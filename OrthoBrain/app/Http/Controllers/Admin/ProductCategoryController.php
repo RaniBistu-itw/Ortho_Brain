@@ -32,6 +32,12 @@ class ProductCategoryController extends Controller
         return redirect()->route('admin.product-categories.index')->with('success', 'Category created.');
     }
 
+    public function show(ProductCategory $productCategory)
+    {
+        $productCategory->loadCount(['subcategories', 'products']);
+        return view('admin.product-categories.show', ['category' => $productCategory]);
+    }
+
     public function edit(ProductCategory $productCategory)
     {
         return view('admin.product-categories.edit', ['category' => $productCategory]);

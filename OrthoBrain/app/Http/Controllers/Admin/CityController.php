@@ -57,6 +57,12 @@ class CityController extends Controller
         return redirect()->route('admin.cities.index')->with('success', 'City created successfully.');
     }
 
+    public function show(City $city)
+    {
+        $city->loadMissing('state.country')->loadCount('zipcodes');
+        return view('admin.cities.show', compact('city'));
+    }
+
     public function edit(City $city)
     {
         $city->loadMissing('state.country');

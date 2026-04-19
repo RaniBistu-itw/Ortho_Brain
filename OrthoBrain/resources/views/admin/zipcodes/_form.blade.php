@@ -6,7 +6,7 @@
 @endphp
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
     <div>
-        <label for="country_id" class="block text-sm font-medium text-[#5e5873] mb-1.5">Country Name <span class="text-red-500">*</span></label>
+        <label for="country_id" class="block text-sm font-medium text-[#5e5873] mb-1.5">Country Name<span class="text-red-500">*</span></label>
         <select id="country_id" name="country_id" required class="js-searchable w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
             <option value="">Select country</option>
             @foreach ($countries as $c)<option value="{{ $c->id }}" @selected($selCountry == $c->id)>{{ $c->name }}</option>@endforeach
@@ -14,21 +14,21 @@
         @error('country_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
     </div>
     <div>
-        <label for="state_id" class="block text-sm font-medium text-[#5e5873] mb-1.5">State Name <span class="text-red-500">*</span></label>
+        <label for="state_id" class="block text-sm font-medium text-[#5e5873] mb-1.5">State Name<span class="text-red-500">*</span></label>
         <select id="state_id" name="state_id" required class="js-searchable w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
             <option value="">Select state</option>
         </select>
         @error('state_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
     </div>
     <div>
-        <label for="city_id" class="block text-sm font-medium text-[#5e5873] mb-1.5">City Name <span class="text-red-500">*</span></label>
+        <label for="city_id" class="block text-sm font-medium text-[#5e5873] mb-1.5">City Name<span class="text-red-500">*</span></label>
         <select id="city_id" name="city_id" required class="js-searchable w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
             <option value="">Select city</option>
         </select>
         @error('city_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
     </div>
     <div>
-        <label for="code" class="block text-sm font-medium text-[#5e5873] mb-1.5">Zip Code <span class="text-red-500">*</span></label>
+        <label for="code" class="block text-sm font-medium text-[#5e5873] mb-1.5">Zip Code<span class="text-red-500">*</span></label>
         <input id="code" name="code" type="text" maxlength="20" required value="{{ old('code', $zipcode->code) }}" placeholder="Enter zip code"
                class="w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
         @error('code')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
@@ -39,7 +39,7 @@
                   class="w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">{{ old('details', $zipcode->details) }}</textarea>
     </div>
     <div>
-        <label for="status" class="block text-sm font-medium text-[#5e5873] mb-1.5">Status <span class="text-red-500">*</span></label>
+        <label for="status" class="block text-sm font-medium text-[#5e5873] mb-1.5">Status<span class="text-red-500">*</span></label>
         <select id="status" name="status" required class="w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
             <option value="ACTIVE"   @selected(old('status', $zipcode->status) === 'ACTIVE')>Active</option>
             <option value="INACTIVE" @selected(old('status', $zipcode->status) === 'INACTIVE')>Inactive</option>
