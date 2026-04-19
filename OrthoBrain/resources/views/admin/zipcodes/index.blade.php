@@ -1,88 +1,98 @@
 @extends('layouts.admin')
 @section('title', 'Zip Codes')
+@section('page_title', 'Zip Codes')
 
 @section('content')
-<div class="flex justify-between items-center mb-5">
-    <h1 class="text-2xl font-semibold text-[#5e5873]">Zip Codes</h1>
-    <a href="{{ route('admin.zipcodes.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-[#5bc0de] hover:bg-[#46b8da] text-white text-sm font-medium rounded-md shadow-sm transition">
-        <i class="bi bi-plus-lg"></i> Add Zip Code
-    </a>
-</div>
+<section id="zipcodes-list">
+    <div class="card">
+        <div class="card-header border-bottom">
+            <h4 class="card-title">Zip Codes</h4>
+            <a href="{{ route('admin.zipcodes.create') }}" class="btn btn-primary">
+                <i data-feather="plus" class="me-25"></i> Add Zip Code
+            </a>
+        </div>
 
-<div class="bg-white border border-[#ebe9f1] rounded-lg p-5">
-    <form id="zipcodesFilter" method="GET" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-        <select id="zip_country_id" name="country_id" data-ob-cascade-parent class="js-searchable rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-            <option value="">All countries</option>
-            @foreach ($countries as $c)<option value="{{ $c->id }}" @selected(request('country_id')==$c->id)>{{ $c->name }}</option>@endforeach
-        </select>
-        <select id="zip_state_id" name="state_id" data-ob-cascade-parent class="js-searchable rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-            <option value="">All states</option>
-            @foreach ($states as $s)<option value="{{ $s->id }}" data-country-id="{{ $s->country_id }}" @selected(request('state_id')==$s->id)>{{ $s->name }}</option>@endforeach
-        </select>
-        <select id="zip_city_id" name="city_id" class="js-searchable rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-            <option value="">All cities</option>
-            @foreach ($cities as $city)<option value="{{ $city->id }}" data-state-id="{{ $city->state_id }}" @selected(request('city_id')==$city->id)>{{ $city->name }}</option>@endforeach
-        </select>
-        <input type="text" name="search" placeholder="Search zip..." value="{{ request('search') }}" class="rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-        <select name="status" class="rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-            <option value="">All statuses</option>
-            <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
-            <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
-        </select>
-        <a href="{{ route('admin.zipcodes.index') }}" class="px-4 py-2 text-sm text-center border border-[#d8d6de] text-[#6e6b7b] hover:bg-gray-50 rounded-md transition">Clear</a>
-    </form>
+        <div class="card-body py-1">
+            <form id="zipcodesFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-2">
+                    <select id="zip_country_id" name="country_id" data-ob-cascade-parent class="js-searchable form-select">
+                        <option value="">All countries</option>
+                        @foreach ($countries as $c)<option value="{{ $c->id }}" @selected(request('country_id')==$c->id)>{{ $c->name }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="zip_state_id" name="state_id" data-ob-cascade-parent class="js-searchable form-select">
+                        <option value="">All states</option>
+                        @foreach ($states as $s)<option value="{{ $s->id }}" data-country-id="{{ $s->country_id }}" @selected(request('state_id')==$s->id)>{{ $s->name }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="zip_city_id" name="city_id" class="js-searchable form-select">
+                        <option value="">All cities</option>
+                        @foreach ($cities as $city)<option value="{{ $city->id }}" data-state-id="{{ $city->state_id }}" @selected(request('city_id')==$city->id)>{{ $city->name }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="search" placeholder="Search zip..." value="{{ request('search') }}" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('admin.zipcodes.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                </div>
+            </form>
+        </div>
 
-    <div class="overflow-x-auto">
-        <table class="min-w-full">
-            <thead><tr class="border-b border-[#ebe9f1]">
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Zip Code</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">City</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">State</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Country</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Status</th>
-                <th class="text-right text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Actions</th>
-            </tr></thead>
-            <tbody class="divide-y divide-[#ebe9f1]">
-                @forelse ($zipcodes as $z)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-3 text-sm font-medium text-[#5e5873]">{{ $z->code }}</td>
-                        <td class="px-3 py-3 text-sm">{{ $z->city?->name ?? '—' }}</td>
-                        <td class="px-3 py-3 text-sm">{{ $z->city?->state?->name ?? '—' }}</td>
-                        <td class="px-3 py-3 text-sm">{{ $z->city?->state?->country?->name ?? '—' }}</td>
-                        <td class="px-3 py-3"><span class="px-2 py-1 text-xs font-semibold rounded {{ $z->status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">{{ $z->status }}</span></td>
-                        <td class="px-3 py-3 text-right">
-                            <a href="{{ route('admin.zipcodes.show', $z) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#8cc63f] text-[#8cc63f] hover:bg-[#8cc63f] hover:text-white transition" title="View"><i class="bi bi-eye"></i></a>
-                            <a href="{{ route('admin.zipcodes.edit', $z) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#5bc0de] text-[#5bc0de] hover:bg-[#5bc0de] hover:text-white transition" title="Edit"><i class="bi bi-pencil"></i></a>
-                            <form method="POST" action="{{ route('admin.zipcodes.destroy', $z) }}" class="inline js-delete-form" data-confirm="Delete zip '{{ $z->code }}'?">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-400 text-red-500 hover:bg-red-500 hover:text-white transition"><i class="bi bi-trash"></i></button>
-                            </form>
-                        </td>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Zip Code</th>
+                        <th>City</th>
+                        <th>State</th>
+                        <th>Country</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
                     </tr>
-                @empty
-                    <tr><td colspan="6" class="px-3 py-6 text-center text-sm text-[#b9b9c3]">No zip codes found.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse ($zipcodes as $z)
+                        <tr>
+                            <td class="fw-bolder">{{ $z->code }}</td>
+                            <td>{{ $z->city?->name ?? '—' }}</td>
+                            <td>{{ $z->city?->state?->name ?? '—' }}</td>
+                            <td>{{ $z->city?->state?->country?->name ?? '—' }}</td>
+                            <td>
+                                <span class="badge rounded-pill badge-light-{{ $z->status === 'ACTIVE' ? 'success' : 'danger' }}">{{ $z->status }}</span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ route('admin.zipcodes.show', $z) }}" class="btn btn-icon btn-sm btn-outline-success" title="View"><i data-feather="eye"></i></a>
+                                <a href="{{ route('admin.zipcodes.edit', $z) }}" class="btn btn-icon btn-sm btn-outline-primary" title="Edit"><i data-feather="edit-2"></i></a>
+                                <form method="POST" action="{{ route('admin.zipcodes.destroy', $z) }}" class="d-inline js-delete-form" data-confirm="Delete zip '{{ $z->code }}'?">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="text-center text-muted py-2">No zip codes found.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="card-body">{{ $zipcodes->links() }}</div>
     </div>
-    <div class="mt-4">{{ $zipcodes->links() }}</div>
-</div>
+</section>
 
 @push('scripts')
 <script>
-// Country → State: preloaded; picking state backfills country.
-obPreloadedCascade({
-    parent: '#zip_country_id',
-    child: '#zip_state_id',
-    parentAttr: 'data-country-id',
-});
-// State → City: preloaded; picking city backfills state, which in turn
-// backfills country via the chain above.
-obPreloadedCascade({
-    parent: '#zip_state_id',
-    child: '#zip_city_id',
-    parentAttr: 'data-state-id',
-});
+obPreloadedCascade({ parent: '#zip_country_id', child: '#zip_state_id', parentAttr: 'data-country-id' });
+obPreloadedCascade({ parent: '#zip_state_id',   child: '#zip_city_id',  parentAttr: 'data-state-id' });
 obAutoFilter('#zipcodesFilter');
 </script>
 @endpush

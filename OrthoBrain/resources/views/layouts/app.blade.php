@@ -1,114 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="loading" lang="en" data-textdirection="ltr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=0, minimal-ui">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>orthoBrain - @yield('title', 'Dashboard')</title>
-    <!-- Vuexy Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700:1,400&display=swap" rel="stylesheet">
 
-    <!-- Injection of Tailwind CDN ensures arbitrary values compile if Vite isn't active -->
+    <link rel="apple-touch-icon" href="{{ asset('vuexy/images/ico/favicon-32x32.png') }}">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('vuexy/images/ico/favicon.ico') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500;1,600" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ asset('vuexy/vendors/css/vendors.min.css') }}" />
+    <link rel="stylesheet" href="{{ asset('vuexy/vendors/css/forms/select/select2.min.css') }}" />
+    <link rel="stylesheet" href="{{ asset('vuexy/css/core.css') }}" />
+    <link rel="stylesheet" href="{{ asset('vuexy/css/base/core/menu/menu-types/vertical-menu.css') }}" />
+    <link rel="stylesheet" href="{{ asset('vuexy/css/overrides.css') }}" />
+    <link rel="stylesheet" href="{{ asset('vuexy/css/orthobrain-overrides.css') }}" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    {{-- Tailwind CDN kept for legacy doctor-side pages (register, profile/index) whose forms
+         still use utility classes. Remove once those pages are fully ported to Vuexy markup. --}}
     <script src="https://cdn.tailwindcss.com"></script>
-    @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
-        @vite('resources/css/app.css')
-    @endif
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { vuexy: {
+                primary: '#7367f0', hover: '#665ee0', green: '#28c76f',
+                text: '#6e6b7b', heading: '#5e5873', border: '#d8d6de', bg: '#f8f8f8',
+            }}}}
+        }
+    </script>
 
-    <style>
-        body { font-family: 'Montserrat', sans-serif; background-color: #f8f8f8; color: #6e6b7b; }
-        .top-nav { height: 62px; background: white; margin: 0; border-radius: 0; box-shadow: 0 2px 6px 0 rgba(34,41,47,.08); border-bottom: 1px solid #f0eff5; }
-        input[type="radio"]:not(.sr-only), input[type="checkbox"]:not(.sr-only) { accent-color: #5bc0de; cursor: pointer; width: 1rem; height: 1rem; min-width: 1rem; flex-shrink: 0; }
-    </style>
+    @stack('styles')
 </head>
-<body class="flex min-h-screen overflow-x-hidden">
 
-    <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col min-h-screen">
+<body class="horizontal-layout horizontal-menu navbar-floating footer-static  menu-expanded"
+      data-open="click" data-menu="horizontal-menu" data-col="1-column">
 
-        @php
-            $navDoctor = \App\Models\Doctor::where('user_id', auth()->id())->first();
-            $navName   = $navDoctor ? $navDoctor->first_name . ' ' . $navDoctor->last_name : auth()->user()->email;
-        @endphp
-        <!-- Top Navbar -->
-        <div class="top-nav flex items-center justify-between px-4 z-10 transition-all">
-            <div class="text-[0.95rem] font-bold italic text-[#5e5873]">
-                Designed for OrthoDentists™
+    @php
+        $navDoctor = \App\Models\Doctor::where('user_id', auth()->id())->first();
+        $navName   = $navDoctor ? trim($navDoctor->first_name . ' ' . $navDoctor->last_name) : auth()->user()->email;
+        $initial   = strtoupper(substr($navName ?: 'U', 0, 1));
+    @endphp
+
+    <nav class="header-navbar navbar navbar-expand-lg align-items-center floating-nav navbar-light navbar-shadow">
+        <div class="navbar-container d-flex content">
+            <div class="d-flex align-items-center">
+                <span class="fw-bold fst-italic text-dark">Designed for OrthoDentists&trade;</span>
             </div>
 
-            <div class="flex items-center space-x-5">
-
-                <!-- Profile Area -->
-                <div class="relative flex items-center cursor-pointer" id="profileToggle">
-                    <div class="text-right mr-3 hidden sm:block">
-                        <div class="text-[0.9rem] font-medium text-[#5e5873]">{{ $navName }}</div>
-                    </div>
-                    <div class="relative">
-                        <div class="w-10 h-10 rounded-full bg-[#f3f2f7] border border-[#d8d6de] flex items-center justify-center overflow-hidden">
-                            <svg class="w-8 h-8 text-[#b9b9c3] mt-2" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                            </svg>
+            <ul class="nav navbar-nav align-items-center ms-auto">
+                <li class="nav-item dropdown dropdown-user">
+                    <a class="nav-link dropdown-toggle dropdown-user-link" id="dropdown-user" href="#"
+                       data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <div class="user-nav d-sm-flex d-none">
+                            <span class="user-name fw-bolder">{{ $navName }}</span>
+                            <span class="user-status">Doctor</span>
                         </div>
-                        <span class="absolute bottom-[0px] right-[1px] w-[11px] h-[11px] bg-[#28c76f] border-[1.5px] border-white rounded-full"></span>
-                    </div>
-
-                    <!-- Dropdown -->
-                    <div id="profileDropdown" class="hidden absolute right-0 top-full mt-2 w-[16rem] bg-white rounded shadow-lg border border-[#ebe9f1] z-50 py-1">
-                        <div class="px-4 py-3 flex items-center space-x-3 cursor-default border-b border-[#ebe9f1] mb-1">
-                            <div class="relative flex-shrink-0">
-                                <div class="w-[40px] h-[40px] rounded-full bg-[#f3f2f7] border border-[#d8d6de] flex items-center justify-center overflow-hidden">
-                                    <svg class="w-8 h-8 text-[#b9b9c3] mt-2" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                                    </svg>
-                                </div>
-                                <span class="absolute bottom-[2px] right-[1px] w-[11px] h-[11px] bg-[#28c76f] border-[1.5px] border-white rounded-full inset-0 m-auto mt-7 ml-7"></span>
-                            </div>
-                            <span class="text-[0.95rem] font-medium text-[#5e5873] leading-tight pr-2">{{ $navName }}</span>
-                        </div>
-
-                        <a href="{{ route('doctor.profile.index') }}" class="block px-4 py-2 text-[0.95rem] text-[#6e6b7b] hover:bg-[#f8f8f8] hover:text-[#5bc0de] flex items-center transition-colors">
-                            <svg style="width: 18px; height: 18px;" class="mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                            My Profile
+                        <span class="avatar">
+                            <span class="avatar-content">{{ $initial }}</span>
+                            <span class="avatar-status-online"></span>
+                        </span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-user">
+                        <a class="dropdown-item" href="{{ route('doctor.profile.index') }}">
+                            <i class="me-50" data-feather="user"></i> My Profile
                         </a>
-                        <a href="{{ route('doctor.profile.settings') }}" class="block px-4 py-2 text-[0.95rem] text-[#6e6b7b] hover:bg-[#f8f8f8] hover:text-[#5bc0de] flex items-center transition-colors">
-                            <svg style="width: 18px; height: 18px;" class="mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                            Change Password
+                        <a class="dropdown-item" href="{{ route('doctor.profile.settings') }}">
+                            <i class="me-50" data-feather="lock"></i> Change Password
                         </a>
-                        <div class="border-t border-[#ebe9f1] my-1"></div>
-                        <form method="POST" action="{{ route('logout') }}">
+                        <div class="dropdown-divider"></div>
+                        <form method="POST" action="{{ route('logout') }}" class="m-0">
                             @csrf
-                            <button type="submit" class="w-full text-left px-4 py-2 text-[0.95rem] text-[#6e6b7b] hover:bg-[#f8f8f8] hover:text-[#ea5455] flex items-center transition-colors">
-                                <svg style="width: 18px; height: 18px;" class="mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                                Logout
+                            <button type="submit" class="dropdown-item">
+                                <i class="me-50" data-feather="power"></i> Logout
                             </button>
                         </form>
                     </div>
-                </div>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="app-content content">
+        <div class="content-overlay"></div>
+        <div class="header-navbar-shadow"></div>
+        <div class="content-wrapper">
+            <div class="content-body">
+                @include('partials.flash')
+                @yield('content')
             </div>
         </div>
-
-        <!-- Inner Content Window -->
-        <main class="w-full px-6 py-5 flex-1">
-            @yield('content')
-        </main>
-
     </div>
 
-    <!-- Dropdown Script -->
+    <footer class="footer footer-static footer-light">
+        <p class="clearfix mb-0">
+            <span class="float-md-start d-block d-md-inline-block mt-25">
+                COPYRIGHT &copy; {{ date('Y') }}
+                <a class="ms-25" href="#">orthoBrain</a>,
+                <span class="d-none d-sm-inline-block">All rights Reserved</span>
+            </span>
+        </p>
+    </footer>
+
+    <script src="{{ asset('vuexy/vendors/js/vendors.min.js') }}"></script>
+    <script src="{{ asset('vuexy/vendors/js/ui/jquery.sticky.js') }}"></script>
+    <script src="{{ asset('vuexy/vendors/js/forms/select/select2.full.min.js') }}"></script>
+    <script src="{{ asset('vuexy/js/core/app-menu.js') }}"></script>
+    <script src="{{ asset('vuexy/js/core/app.js') }}"></script>
+    <script src="{{ asset('vuexy/js/core/scripts.js') }}"></script>
+
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggle = document.getElementById('profileToggle');
-            const dropdown = document.getElementById('profileDropdown');
-
-            toggle.addEventListener('click', function(e) {
-                dropdown.classList.toggle('hidden');
-                e.stopPropagation();
-            });
-
-            document.addEventListener('click', function(e) {
-                if (!dropdown.contains(e.target)) {
-                    dropdown.classList.add('hidden');
-                }
-            });
+        $(window).on('load', function () {
+            if (window.feather) { feather.replace({ width: 14, height: 14 }); }
+        });
+        $.ajaxSetup({
+            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
         });
     </script>
+
+    @stack('scripts')
 </body>
 </html>

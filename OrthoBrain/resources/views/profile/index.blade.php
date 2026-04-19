@@ -2,43 +2,82 @@
 
 @section('title', 'My Profile')
 
+@push('styles')
+<style>
+    .profile-nav-item { display:flex; align-items:center; gap:1rem; padding:.6rem .75rem; border-radius:.358rem; cursor:pointer; transition:all .2s; text-decoration:none; color:inherit; }
+    .profile-nav-item:hover { background:#f8f8f8; }
+    .profile-nav-icon { display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:.358rem; background:#f8f8f8; color:#b9b9c3; transition:all .2s; flex-shrink:0; }
+    .profile-nav-label { font-size:.95rem; color:#5e5873; font-weight:500; line-height:1.2; }
+    .profile-nav-sub { font-size:.8rem; color:#b9b9c3; }
+    .profile-nav-item.active .profile-nav-icon { background:#5bc0de; color:#fff; box-shadow:0 2px 4px rgba(91,192,222,0.4); }
+    .profile-nav-item.active .profile-nav-label { color:#5bc0de; }
+    .profile-sidebar-col {
+        align-self: flex-start;
+    }
+</style>
+@endpush
+
 @section('content')
-<div class="w-full">
-    <!-- Header -->
-    <div class="bg-white rounded-t-md shadow-sm border border-[#d8d6de] border-b-0 p-5">
-        <h2 class="text-[1.4rem] text-[#5e5873] font-medium">My Profile</h2>
+<div class="row match-height pt-2">
+    <div class="col-lg-3 col-md-4 mb-2 profile-sidebar-col">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="mb-2">My Profile</h5>
+                <nav class="d-flex flex-column gap-1">
+                    <a href="?tab=account" class="profile-nav-item {{ $tab == 'account' ? 'active' : '' }}">
+                        <div class="profile-nav-icon">
+                            <svg class="w-5 h-5" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                        <div>
+                            <div class="profile-nav-label">Account</div>
+                            <div class="profile-nav-sub">Account Details</div>
+                        </div>
+                    </a>
+                    <a href="?tab=practice" class="profile-nav-item {{ $tab == 'practice' ? 'active' : '' }}">
+                        <div class="profile-nav-icon">
+                            <svg class="w-5 h-5" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                        </div>
+                        <div>
+                            <div class="profile-nav-label">Practice</div>
+                            <div class="profile-nav-sub">Practice Information</div>
+                        </div>
+                    </a>
+                    <a href="?tab=shipping" class="profile-nav-item {{ $tab == 'shipping' ? 'active' : '' }}">
+                        <div class="profile-nav-icon">
+                            <svg class="w-5 h-5" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </div>
+                        <div>
+                            <div class="profile-nav-label">Shipping</div>
+                            <div class="profile-nav-sub">Shipping Address</div>
+                        </div>
+                    </a>
+                    <a href="?tab=billing" class="profile-nav-item {{ $tab == 'billing' ? 'active' : '' }}">
+                        <div class="profile-nav-icon">
+                            <svg class="w-5 h-5" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                        </div>
+                        <div>
+                            <div class="profile-nav-label">Billing</div>
+                            <div class="profile-nav-sub">Billing Address</div>
+                        </div>
+                    </a>
+                    <a href="?tab=additional" class="profile-nav-item {{ $tab == 'additional' ? 'active' : '' }}">
+                        <div class="profile-nav-icon">
+                            <svg class="w-5 h-5" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <div>
+                            <div class="profile-nav-label">Additional</div>
+                            <div class="profile-nav-sub">Doctor Information</div>
+                        </div>
+                    </a>
+                </nav>
+            </div>
+        </div>
     </div>
 
-    <!-- Inner Layout -->
-    <div class="flex flex-col md:flex-row bg-white rounded-b-md shadow-sm border border-[#d8d6de]">
-        
-        <!-- Vertical Tabs Nav -->
-        <div class="w-full md:w-64 border-r border-[#ebe9f1] p-4 flex flex-col space-y-1">
-            <a href="?tab=account" class="px-4 py-2 {{ $tab == 'account' ? 'bg-[#5bc0de] text-white shadow-sm' : 'text-[#6e6b7b] hover:text-[#5bc0de]' }} rounded-[0.358rem] text-[0.95rem] flex items-center transition-colors">
-                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                Account
-            </a>
-            <a href="?tab=practice" class="px-4 py-2 {{ $tab == 'practice' ? 'bg-[#5bc0de] text-white shadow-sm' : 'text-[#6e6b7b] hover:text-[#5bc0de]' }} rounded-[0.358rem] text-[0.95rem] flex items-center transition-colors">
-                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0z"></path></svg>
-                Practice
-            </a>
-            <a href="?tab=shipping" class="px-4 py-2 {{ $tab == 'shipping' ? 'bg-[#5bc0de] text-white shadow-sm' : 'text-[#6e6b7b] hover:text-[#5bc0de]' }} rounded-[0.358rem] text-[0.95rem] flex items-center transition-colors">
-                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
-                Shipping Address
-            </a>
-            <a href="?tab=billing" class="px-4 py-2 {{ $tab == 'billing' ? 'bg-[#5bc0de] text-white shadow-sm' : 'text-[#6e6b7b] hover:text-[#5bc0de]' }} rounded-[0.358rem] text-[0.95rem] flex items-center transition-colors">
-                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                Billing Address
-            </a>
-            <a href="?tab=additional" class="px-4 py-2 {{ $tab == 'additional' ? 'bg-[#5bc0de] text-white shadow-sm' : 'text-[#6e6b7b] hover:text-[#5bc0de]' }} rounded-[0.358rem] text-[0.95rem] flex items-center transition-colors">
-                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                Additional Information
-            </a>
-        </div>
+    <div class="col-lg-9 col-md-8">
+        <div class="card h-auto">
+            <div class="card-body">
 
-        <!-- Dynamic Form Context -->
-        <div class="flex-1 p-6 overflow-x-hidden">
-            
             @if(session('success'))
                 <div class="bg-[#e2f8eb] text-[#28c76f] px-4 py-2 rounded mb-4 text-[0.9rem]">{{ session('success') }}</div>
             @endif
@@ -920,9 +959,10 @@
             </script>
             @endif
 
-        </div>
-    </div>
-</div>
+            </div>{{-- /.card-body (profile content) --}}
+        </div>{{-- /.card --}}
+    </div>{{-- /.col-md-9 --}}
+</div>{{-- /.row --}}
 
 <style>
     /* Styling for the custom toggle switches */

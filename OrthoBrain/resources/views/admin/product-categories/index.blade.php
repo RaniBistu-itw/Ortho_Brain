@@ -1,64 +1,73 @@
 @extends('layouts.admin')
 @section('title', 'Categories')
+@section('page_title', 'Product Categories')
 
 @section('content')
-<div class="flex justify-between items-center mb-5">
-    <h1 class="text-2xl font-semibold text-[#5e5873]">Product Categories</h1>
-    <a href="{{ route('admin.product-categories.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-[#5bc0de] hover:bg-[#46b8da] text-white text-sm font-medium rounded-md shadow-sm transition">
-        <i class="bi bi-plus-lg"></i> Add Category
-    </a>
-</div>
+<section id="categories-list">
+    <div class="card">
+        <div class="card-header border-bottom">
+            <h4 class="card-title">Product Categories</h4>
+            <a href="{{ route('admin.product-categories.create') }}" class="btn btn-primary">
+                <i data-feather="plus" class="me-25"></i> Add Category
+            </a>
+        </div>
 
-<div class="bg-white border border-[#ebe9f1] rounded-lg p-5">
-    <form id="categoriesFilter" method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        <input type="text" name="search" placeholder="Search..." value="{{ request('search') }}" class="rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-        <select name="status" class="rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-            <option value="">All statuses</option>
-            <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
-            <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
-        </select>
-        <a href="{{ route('admin.product-categories.index') }}" class="px-4 py-2 text-sm text-center border border-[#d8d6de] text-[#6e6b7b] hover:bg-gray-50 rounded-md transition">Clear</a>
-    </form>
+        <div class="card-body py-1">
+            <form id="categoriesFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-5"><input type="text" name="search" placeholder="Search..." value="{{ request('search') }}" class="form-control"></div>
+                <div class="col-md-4">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-3"><a href="{{ route('admin.product-categories.index') }}" class="btn btn-outline-secondary w-100">Clear</a></div>
+            </form>
+        </div>
 
-    <div class="overflow-x-auto">
-        <table class="min-w-full">
-            <thead><tr class="border-b border-[#ebe9f1]">
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Name</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Sub-categories</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Products</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Status</th>
-                <th class="text-right text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Actions</th>
-            </tr></thead>
-            <tbody class="divide-y divide-[#ebe9f1]">
-                @forelse ($categories as $cat)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-3 text-sm text-[#5e5873]">{{ $cat->name }}</td>
-                        <td class="px-3 py-3 text-sm">{{ $cat->subcategories_count }}</td>
-                        <td class="px-3 py-3 text-sm">{{ $cat->products_count }}</td>
-                        <td class="px-3 py-3"><span class="px-2 py-1 text-xs font-semibold rounded {{ $cat->status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">{{ $cat->status ?? '—' }}</span></td>
-                        <td class="px-3 py-3 text-right">
-                            <a href="{{ route('admin.product-categories.show', $cat) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#8cc63f] text-[#8cc63f] hover:bg-[#8cc63f] hover:text-white transition" title="View"><i class="bi bi-eye"></i></a>
-                            <a href="{{ route('admin.product-categories.edit', $cat) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#5bc0de] text-[#5bc0de] hover:bg-[#5bc0de] hover:text-white transition" title="Edit"><i class="bi bi-pencil"></i></a>
-                            @if ($cat->subcategories_count === 0 && $cat->products_count === 0)
-                                <form method="POST" action="{{ route('admin.product-categories.destroy', $cat) }}" class="inline js-delete-form" data-confirm="Delete category '{{ $cat->name }}'?">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-400 text-red-500 hover:bg-red-500 hover:text-white transition"><i class="bi bi-trash"></i></button>
-                                </form>
-                            @else
-                                <span class="text-xs text-[#b9b9c3] ml-1">In use</span>
-                            @endif
-                        </td>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Sub-categories</th>
+                        <th>Products</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
                     </tr>
-                @empty
-                    <tr><td colspan="5" class="px-3 py-6 text-center text-sm text-[#b9b9c3]">No categories found.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse ($categories as $cat)
+                        <tr>
+                            <td class="fw-bolder">{{ $cat->name }}</td>
+                            <td>{{ $cat->subcategories_count }}</td>
+                            <td>{{ $cat->products_count }}</td>
+                            <td>
+                                <span class="badge rounded-pill badge-light-{{ $cat->status === 'ACTIVE' ? 'success' : 'danger' }}">{{ $cat->status ?? '—' }}</span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ route('admin.product-categories.show', $cat) }}" class="btn btn-icon btn-sm btn-outline-success" title="View"><i data-feather="eye"></i></a>
+                                <a href="{{ route('admin.product-categories.edit', $cat) }}" class="btn btn-icon btn-sm btn-outline-primary" title="Edit"><i data-feather="edit-2"></i></a>
+                                @if ($cat->subcategories_count === 0 && $cat->products_count === 0)
+                                    <form method="POST" action="{{ route('admin.product-categories.destroy', $cat) }}" class="d-inline js-delete-form" data-confirm="Delete category '{{ $cat->name }}'?">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                                    </form>
+                                @else
+                                    <span class="text-muted small ms-1">In use</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="text-center text-muted py-2">No categories found.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="card-body">{{ $categories->links() }}</div>
     </div>
-    <div class="mt-4">{{ $categories->links() }}</div>
-</div>
+</section>
 
-@push('scripts')
-<script>obAutoFilter('#categoriesFilter');</script>
-@endpush
+@push('scripts')<script>obAutoFilter('#categoriesFilter');</script>@endpush
 @endsection

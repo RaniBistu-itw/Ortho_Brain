@@ -1,32 +1,44 @@
 @extends('layouts.admin')
 @section('title', 'Dashboard')
+@section('page_title', 'Dashboard')
 
 @section('content')
-<h1 class="text-2xl font-semibold text-[#5e5873] mb-5">Dashboard</h1>
+<section id="dashboard-overview">
+    <div class="row">
+        @php
+            $tiles = [
+                ['label' => 'Products',       'icon' => 'box',      'key' => 'products',      'route' => 'admin.products.index',              'color' => 'primary'],
+                ['label' => 'Categories',    'icon' => 'tag',      'key' => 'categories',    'route' => 'admin.product-categories.index',    'color' => 'success'],
+                ['label' => 'Sub Categories','icon' => 'tag',      'key' => 'subcategories', 'route' => 'admin.product-subcategories.index', 'color' => 'info'],
+                ['label' => 'Scanners',      'icon' => 'cpu',      'key' => 'scanners',      'route' => 'admin.scanners.index',              'color' => 'warning'],
+                ['label' => 'Countries',     'icon' => 'globe',    'key' => 'countries',     'route' => 'admin.countries.index',             'color' => 'primary'],
+                ['label' => 'States',        'icon' => 'map',      'key' => 'states',        'route' => 'admin.states.index',                'color' => 'success'],
+                ['label' => 'Cities',        'icon' => 'map-pin',  'key' => 'cities',        'route' => 'admin.cities.index',                'color' => 'info'],
+                ['label' => 'Zip Codes',     'icon' => 'mail',     'key' => 'zipcodes',      'route' => 'admin.zipcodes.index',              'color' => 'warning'],
+            ];
+        @endphp
 
-<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-    @foreach ([
-        ['label' => 'Products',       'icon' => 'box-seam',  'key' => 'products',      'route' => 'admin.products.index',             'color' => '#5bc0de'],
-        ['label' => 'Categories',     'icon' => 'tags',      'key' => 'categories',    'route' => 'admin.product-categories.index',   'color' => '#8cc63f'],
-        ['label' => 'Sub Categories', 'icon' => 'tag',       'key' => 'subcategories', 'route' => 'admin.product-subcategories.index','color' => '#5bc0de'],
-        ['label' => 'Scanners',       'icon' => 'upc-scan',  'key' => 'scanners',      'route' => 'admin.scanners.index',             'color' => '#8cc63f'],
-        ['label' => 'Countries',      'icon' => 'globe',     'key' => 'countries',     'route' => 'admin.countries.index',            'color' => '#5bc0de'],
-        ['label' => 'States',         'icon' => 'map',       'key' => 'states',        'route' => 'admin.states.index',               'color' => '#8cc63f'],
-        ['label' => 'Cities',         'icon' => 'building',  'key' => 'cities',        'route' => 'admin.cities.index',               'color' => '#5bc0de'],
-        ['label' => 'Zip Codes',      'icon' => 'mailbox',   'key' => 'zipcodes',      'route' => 'admin.zipcodes.index',             'color' => '#8cc63f'],
-    ] as $tile)
-        <a href="{{ route($tile['route']) }}"
-           class="bg-white border border-[#ebe9f1] rounded-lg p-5 hover:shadow-md transition no-underline">
-            <div class="flex items-center justify-between">
-                <div>
-                    <div class="text-xs text-[#6e6b7b] uppercase tracking-wide">{{ $tile['label'] }}</div>
-                    <div class="text-2xl font-semibold text-[#5e5873] mt-1">{{ $stats[$tile['key']] }}</div>
-                </div>
-                <div class="w-11 h-11 flex items-center justify-center rounded-full" style="background-color: {{ $tile['color'] }}15;">
-                    <i class="bi bi-{{ $tile['icon'] }} text-xl" style="color: {{ $tile['color'] }};"></i>
-                </div>
+        @foreach ($tiles as $tile)
+            <div class="col-xl-3 col-md-6 col-sm-6">
+                <a href="{{ route($tile['route']) }}" class="text-body text-decoration-none">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h2 class="fw-bolder mb-0">{{ $stats[$tile['key']] }}</h2>
+                                    <p class="card-text mb-0">{{ $tile['label'] }}</p>
+                                </div>
+                                <div class="avatar bg-light-{{ $tile['color'] }} p-50 m-0">
+                                    <div class="avatar-content">
+                                        <i data-feather="{{ $tile['icon'] }}" class="font-medium-5"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </a>
-    @endforeach
-</div>
+        @endforeach
+    </div>
+</section>
 @endsection
