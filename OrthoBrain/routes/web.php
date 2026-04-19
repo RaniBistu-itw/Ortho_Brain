@@ -56,17 +56,16 @@ Route::middleware(['web', 'admin'])
     ->group(function () {
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 
-        Route::resource('products', ProductController::class)->except(['show']);
-        Route::resource('product-categories', ProductCategoryController::class)->except(['show']);
+        Route::resource('products', ProductController::class);
+        Route::resource('product-categories', ProductCategoryController::class);
         Route::resource('product-subcategories', ProductSubcategoryController::class)
-            ->except(['show'])
             ->parameters(['product-subcategories' => 'product_subcategory']);
-        Route::resource('scanners', ScannerController::class)->except(['show']);
+        Route::resource('scanners', ScannerController::class);
 
-        Route::resource('countries', CountryController::class)->except(['show']);
-        Route::resource('states',    StateController::class)->except(['show']);
-        Route::resource('cities',    CityController::class)->except(['show']);
-        Route::resource('zipcodes',  ZipcodeController::class)->except(['show']);
+        Route::resource('countries', CountryController::class);
+        Route::resource('states',    StateController::class);
+        Route::resource('cities',    CityController::class);
+        Route::resource('zipcodes',  ZipcodeController::class);
 
         Route::prefix('ajax')->name('ajax.')->group(function () {
             Route::get('states',        [LookupController::class, 'statesByCountry'])->name('states');

@@ -7,7 +7,7 @@
 @endphp
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
     <div>
-        <label for="category_id" class="block text-sm font-medium text-[#5e5873] mb-1.5">Category <span class="text-red-500">*</span></label>
+        <label for="category_id" class="block text-sm font-medium text-[#5e5873] mb-1.5">Category<span class="text-red-500">*</span></label>
         <select id="category_id" name="category_id" required class="js-searchable w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
             <option value="">Select category</option>
             @foreach ($categories as $c)<option value="{{ $c->id }}" @selected($selCategory == $c->id)>{{ $c->name }}</option>@endforeach
@@ -21,13 +21,13 @@
         </select>
     </div>
     <div>
-        <label for="name" class="block text-sm font-medium text-[#5e5873] mb-1.5">Name <span class="text-red-500">*</span></label>
+        <label for="name" class="block text-sm font-medium text-[#5e5873] mb-1.5">Name<span class="text-red-500">*</span></label>
         <input id="name" name="name" type="text" maxlength="255" required value="{{ old('name', $product->name) }}" placeholder="Enter product name"
                class="w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
         @error('name')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
     </div>
     <div>
-        <label for="base_price" class="block text-sm font-medium text-[#5e5873] mb-1.5">Base Price <span class="text-red-500">*</span></label>
+        <label for="base_price" class="block text-sm font-medium text-[#5e5873] mb-1.5">Base Price<span class="text-red-500">*</span></label>
         <div class="flex">
             <span class="px-3 py-2 rounded-l-md border border-r-0 border-[#d8d6de] bg-gray-50 text-[#6e6b7b] text-sm">$</span>
             <input id="base_price" name="base_price" type="number" step="0.01" min="0" required value="{{ old('base_price', $product->base_price) }}" placeholder="Enter base price"
@@ -62,15 +62,15 @@
                class="w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
     </div>
     <div>
-        <label for="status" class="block text-sm font-medium text-[#5e5873] mb-1.5">Status <span class="text-red-500">*</span></label>
+        <label for="status" class="block text-sm font-medium text-[#5e5873] mb-1.5">Status<span class="text-red-500">*</span></label>
         <select id="status" name="status" required class="w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
             <option value="ACTIVE"   @selected(old('status', $product->status) === 'ACTIVE')>Active</option>
             <option value="INACTIVE" @selected(old('status', $product->status) === 'INACTIVE')>Inactive</option>
         </select>
     </div>
     <div class="md:col-span-2">
-        <label for="image" class="block text-sm font-medium text-[#5e5873] mb-1.5">Image @if (! $product->exists)<span class="text-red-500">*</span>@endif</label>
-        <input id="image" name="image" type="file" accept=".jpg,.jpeg,.png" @if (! $product->exists) required @endif
+        <label for="image" class="block text-sm font-medium text-[#5e5873] mb-1.5">Image</label>
+        <input id="image" name="image" type="file" accept=".jpg,.jpeg,.png"
                class="w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
         <p class="text-xs text-[#b9b9c3] mt-1">JPG or PNG, max 10 MB.</p>
         @error('image')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
