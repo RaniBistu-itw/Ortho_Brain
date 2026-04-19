@@ -44,9 +44,11 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-3 py-3">
                             @if ($p->image_s3_key)
-                                <img src="{{ app(\App\Services\ImageUploadService::class)->url($p->image_s3_key) }}" alt="" class="w-10 h-10 object-cover rounded">
+                                <img src="{{ app(\App\Services\ImageUploadService::class)->url($p->image_s3_key) }}" alt="{{ $p->name }}" class="w-12 h-12 object-cover rounded-lg border border-[#ebe9f1] bg-white shadow-sm">
                             @else
-                                <span class="text-[#b9b9c3] text-sm">—</span>
+                                <div class="w-12 h-12 flex items-center justify-center rounded-lg border border-dashed border-[#d8d6de] bg-[#f8f8f8] text-[#b9b9c3]" title="No image">
+                                    <i class="bi bi-image text-lg"></i>
+                                </div>
                             @endif
                         </td>
                         <td class="px-3 py-3 text-sm">{{ $p->category?->name ?? '—' }}</td>
@@ -55,7 +57,8 @@
                         <td class="px-3 py-3 text-sm">${{ number_format((float) $p->base_price, 2) }}</td>
                         <td class="px-3 py-3"><span class="px-2 py-1 text-xs font-semibold rounded {{ $p->status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">{{ $p->status }}</span></td>
                         <td class="px-3 py-3 text-right">
-                            <a href="{{ route('admin.products.edit', $p) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#5bc0de] text-[#5bc0de] hover:bg-[#5bc0de] hover:text-white transition"><i class="bi bi-pencil"></i></a>
+                            <a href="{{ route('admin.products.show', $p) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#8cc63f] text-[#8cc63f] hover:bg-[#8cc63f] hover:text-white transition" title="View"><i class="bi bi-eye"></i></a>
+                            <a href="{{ route('admin.products.edit', $p) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#5bc0de] text-[#5bc0de] hover:bg-[#5bc0de] hover:text-white transition" title="Edit"><i class="bi bi-pencil"></i></a>
                             <form method="POST" action="{{ route('admin.products.destroy', $p) }}" class="inline js-delete-form" data-confirm="Delete product '{{ $p->name }}'?">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-400 text-red-500 hover:bg-red-500 hover:text-white transition"><i class="bi bi-trash"></i></button>

@@ -43,6 +43,12 @@ class StateController extends Controller
         return redirect()->route('admin.states.index')->with('success', 'State created successfully.');
     }
 
+    public function show(State $state)
+    {
+        $state->loadMissing('country')->loadCount('cities');
+        return view('admin.states.show', compact('state'));
+    }
+
     public function edit(State $state)
     {
         return view('admin.states.edit', [

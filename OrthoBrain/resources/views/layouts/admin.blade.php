@@ -177,13 +177,15 @@
                         items.forEach(function (it) {
                             $c.append(new Option(it.name, it.id));
                         });
+                        let preselected = false;
                         if (preselectId) {
                             $c.val(String(preselectId));
                             preselectId = null;
+                            preselected = true;
                         }
                         $c.prop('disabled', false);
                         window.obSearchableRefresh($c);
-                        if (triggerChange) $c.trigger('change');
+                        if (triggerChange || preselected) $c.trigger('change');
                     })
                     .fail(function (xhr) {
                         console.error('obCascade failed:', url, xhr.status, xhr.responseText);

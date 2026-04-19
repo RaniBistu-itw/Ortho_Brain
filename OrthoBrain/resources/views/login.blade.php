@@ -64,7 +64,7 @@
 
                     <!-- Email -->
                     <div>
-                        <label for="email" class="block text-[0.82rem] font-medium text-[#5e5873] mb-1">Email (Username)</label>
+                        <label for="email" class="block text-[0.82rem] font-medium text-[#5e5873] mb-1">Email</label>
                         <div class="relative flex items-center border @error('email') border-red-500 @else border-[#d8d6de] @enderror rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary focus-within:shadow-[0_0_0_0.2rem_rgba(91,192,222,0.25)]">
                             <span class="pl-3 pr-2 py-[0.4rem] text-[#b9b9c3] flex items-center border-r @error('email') border-red-500 @else border-[#d8d6de] @enderror bg-[#f8f8f8]">
                                 <svg class="h-[1.1rem] w-[1.1rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>

@@ -37,7 +37,8 @@
                         <td class="px-3 py-3 text-sm">{{ $cat->products_count }}</td>
                         <td class="px-3 py-3"><span class="px-2 py-1 text-xs font-semibold rounded {{ $cat->status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">{{ $cat->status ?? '—' }}</span></td>
                         <td class="px-3 py-3 text-right">
-                            <a href="{{ route('admin.product-categories.edit', $cat) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#5bc0de] text-[#5bc0de] hover:bg-[#5bc0de] hover:text-white transition"><i class="bi bi-pencil"></i></a>
+                            <a href="{{ route('admin.product-categories.show', $cat) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#8cc63f] text-[#8cc63f] hover:bg-[#8cc63f] hover:text-white transition" title="View"><i class="bi bi-eye"></i></a>
+                            <a href="{{ route('admin.product-categories.edit', $cat) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#5bc0de] text-[#5bc0de] hover:bg-[#5bc0de] hover:text-white transition" title="Edit"><i class="bi bi-pencil"></i></a>
                             @if ($cat->subcategories_count === 0 && $cat->products_count === 0)
                                 <form method="POST" action="{{ route('admin.product-categories.destroy', $cat) }}" class="inline js-delete-form" data-confirm="Delete category '{{ $cat->name }}'?">
                                     @csrf @method('DELETE')
