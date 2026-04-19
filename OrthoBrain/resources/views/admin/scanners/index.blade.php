@@ -1,63 +1,73 @@
 @extends('layouts.admin')
 @section('title', 'Scanners')
+@section('page_title', 'Scanners')
 
 @section('content')
-<div class="flex justify-between items-center mb-5">
-    <h1 class="text-2xl font-semibold text-[#5e5873]">Scanners</h1>
-    <a href="{{ route('admin.scanners.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-[#5bc0de] hover:bg-[#46b8da] text-white text-sm font-medium rounded-md shadow-sm transition">
-        <i class="bi bi-plus-lg"></i> Add Scanner
-    </a>
-</div>
+<section id="scanners-list">
+    <div class="card">
+        <div class="card-header border-bottom">
+            <h4 class="card-title">Scanners</h4>
+            <a href="{{ route('admin.scanners.create') }}" class="btn btn-primary">
+                <i data-feather="plus" class="me-25"></i> Add Scanner
+            </a>
+        </div>
 
-<div class="bg-white border border-[#ebe9f1] rounded-lg p-5">
-    <form id="scannersFilter" method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        <input type="text" name="search" placeholder="Search scanner..." value="{{ request('search') }}" class="rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-        <select name="status" class="rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-            <option value="">All statuses</option>
-            <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
-            <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
-        </select>
-        <a href="{{ route('admin.scanners.index') }}" class="px-4 py-2 text-sm text-center border border-[#d8d6de] text-[#6e6b7b] hover:bg-gray-50 rounded-md transition">Clear</a>
-    </form>
+        <div class="card-body py-1">
+            <form id="scannersFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-5"><input type="text" name="search" placeholder="Search scanner..." value="{{ request('search') }}" class="form-control"></div>
+                <div class="col-md-4">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-3"><a href="{{ route('admin.scanners.index') }}" class="btn btn-outline-secondary w-100">Clear</a></div>
+            </form>
+        </div>
 
-    <div class="overflow-x-auto">
-        <table class="min-w-full">
-            <thead><tr class="border-b border-[#ebe9f1]">
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Name</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Description</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Portal Link</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Status</th>
-                <th class="text-right text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Actions</th>
-            </tr></thead>
-            <tbody class="divide-y divide-[#ebe9f1]">
-                @forelse ($scanners as $sc)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-3 text-sm font-medium text-[#5e5873]">{{ $sc->name }}</td>
-                        <td class="px-3 py-3 text-sm">{{ \Illuminate\Support\Str::limit($sc->description, 60) }}</td>
-                        <td class="px-3 py-3 text-sm">
-                            @if ($sc->portal_link)<a href="{{ $sc->portal_link }}" target="_blank" class="text-[#5bc0de] hover:underline">{{ \Illuminate\Support\Str::limit($sc->portal_link, 40) }}</a>
-                            @else — @endif
-                        </td>
-                        <td class="px-3 py-3"><span class="px-2 py-1 text-xs font-semibold rounded {{ $sc->status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">{{ $sc->status }}</span></td>
-                        <td class="px-3 py-3 text-right">
-                            <a href="{{ route('admin.scanners.show', $sc) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#8cc63f] text-[#8cc63f] hover:bg-[#8cc63f] hover:text-white transition" title="View"><i class="bi bi-eye"></i></a>
-                            <a href="{{ route('admin.scanners.edit', $sc) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#5bc0de] text-[#5bc0de] hover:bg-[#5bc0de] hover:text-white transition" title="Edit"><i class="bi bi-pencil"></i></a>
-                            <form method="POST" action="{{ route('admin.scanners.destroy', $sc) }}" class="inline js-delete-form" data-confirm="Delete scanner '{{ $sc->name }}'?">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-400 text-red-500 hover:bg-red-500 hover:text-white transition"><i class="bi bi-trash"></i></button>
-                            </form>
-                        </td>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Portal Link</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
                     </tr>
-                @empty
-                    <tr><td colspan="5" class="px-3 py-6 text-center text-sm text-[#b9b9c3]">No scanners found.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse ($scanners as $sc)
+                        <tr>
+                            <td class="fw-bolder">{{ $sc->name }}</td>
+                            <td>{{ \Illuminate\Support\Str::limit($sc->description, 60) }}</td>
+                            <td>
+                                @if ($sc->portal_link)
+                                    <a href="{{ $sc->portal_link }}" target="_blank" class="text-primary">{{ \Illuminate\Support\Str::limit($sc->portal_link, 40) }}</a>
+                                @else — @endif
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill badge-light-{{ $sc->status === 'ACTIVE' ? 'success' : 'danger' }}">{{ $sc->status }}</span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ route('admin.scanners.show', $sc) }}" class="btn btn-icon btn-sm btn-outline-success" title="View"><i data-feather="eye"></i></a>
+                                <a href="{{ route('admin.scanners.edit', $sc) }}" class="btn btn-icon btn-sm btn-outline-primary" title="Edit"><i data-feather="edit-2"></i></a>
+                                <form method="POST" action="{{ route('admin.scanners.destroy', $sc) }}" class="d-inline js-delete-form" data-confirm="Delete scanner '{{ $sc->name }}'?">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="text-center text-muted py-2">No scanners found.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="card-body">{{ $scanners->links() }}</div>
     </div>
-    <div class="mt-4">{{ $scanners->links() }}</div>
-</div>
+</section>
 
-@push('scripts')
-<script>obAutoFilter('#scannersFilter');</script>
-@endpush
+@push('scripts')<script>obAutoFilter('#scannersFilter');</script>@endpush
 @endsection

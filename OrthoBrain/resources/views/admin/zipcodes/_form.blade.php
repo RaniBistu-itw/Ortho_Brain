@@ -4,51 +4,50 @@
     $selState   = old('state_id',   $zipcode->city?->state_id);
     $selCity    = old('city_id',    $zipcode->city_id);
 @endphp
-<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-    <div>
-        <label for="country_id" class="block text-sm font-medium text-[#5e5873] mb-1.5">Country Name<span class="text-red-500">*</span></label>
-        <select id="country_id" name="country_id" required class="js-searchable w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
+<div class="row">
+    <div class="col-md-6 mb-1">
+        <label for="country_id" class="form-label">Country Name<span class="text-danger">*</span></label>
+        <select id="country_id" name="country_id" required class="js-searchable form-select">
             <option value="">Select country</option>
             @foreach ($countries as $c)<option value="{{ $c->id }}" @selected($selCountry == $c->id)>{{ $c->name }}</option>@endforeach
         </select>
-        @error('country_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+        @error('country_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
     </div>
-    <div>
-        <label for="state_id" class="block text-sm font-medium text-[#5e5873] mb-1.5">State Name<span class="text-red-500">*</span></label>
-        <select id="state_id" name="state_id" required class="js-searchable w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
+    <div class="col-md-6 mb-1">
+        <label for="state_id" class="form-label">State Name<span class="text-danger">*</span></label>
+        <select id="state_id" name="state_id" required class="js-searchable form-select">
             <option value="">Select state</option>
         </select>
-        @error('state_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+        @error('state_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
     </div>
-    <div>
-        <label for="city_id" class="block text-sm font-medium text-[#5e5873] mb-1.5">City Name<span class="text-red-500">*</span></label>
-        <select id="city_id" name="city_id" required class="js-searchable w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
+    <div class="col-md-6 mb-1">
+        <label for="city_id" class="form-label">City Name<span class="text-danger">*</span></label>
+        <select id="city_id" name="city_id" required class="js-searchable form-select">
             <option value="">Select city</option>
         </select>
-        @error('city_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+        @error('city_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
     </div>
-    <div>
-        <label for="code" class="block text-sm font-medium text-[#5e5873] mb-1.5">Zip Code<span class="text-red-500">*</span></label>
+    <div class="col-md-6 mb-1">
+        <label for="code" class="form-label">Zip Code<span class="text-danger">*</span></label>
         <input id="code" name="code" type="text" maxlength="20" required value="{{ old('code', $zipcode->code) }}" placeholder="Enter zip code"
-               class="w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-        @error('code')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+               class="form-control @error('code') is-invalid @enderror">
+        @error('code')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
     </div>
-    <div class="md:col-span-1">
-        <label for="details" class="block text-sm font-medium text-[#5e5873] mb-1.5">Zip Details</label>
-        <textarea id="details" name="details" rows="3" placeholder="Description goes here"
-                  class="w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">{{ old('details', $zipcode->details) }}</textarea>
+    <div class="col-md-6 mb-1">
+        <label for="details" class="form-label">Zip Details</label>
+        <textarea id="details" name="details" rows="3" placeholder="Description goes here" class="form-control">{{ old('details', $zipcode->details) }}</textarea>
     </div>
-    <div>
-        <label for="status" class="block text-sm font-medium text-[#5e5873] mb-1.5">Status<span class="text-red-500">*</span></label>
-        <select id="status" name="status" required class="w-full rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
+    <div class="col-md-6 mb-1">
+        <label for="status" class="form-label">Status<span class="text-danger">*</span></label>
+        <select id="status" name="status" required class="form-select">
             <option value="ACTIVE"   @selected(old('status', $zipcode->status) === 'ACTIVE')>Active</option>
             <option value="INACTIVE" @selected(old('status', $zipcode->status) === 'INACTIVE')>Inactive</option>
         </select>
     </div>
 </div>
-<div class="mt-6 flex gap-3">
-    <button type="submit" class="px-5 py-2 bg-[#8cc63f] hover:bg-[#7ab332] text-white text-sm font-medium rounded-md shadow-sm">{{ $submitLabel ?? 'Submit' }}</button>
-    <a href="{{ route('admin.zipcodes.index') }}" class="px-5 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-md">Cancel</a>
+<div class="d-flex mt-2">
+    <button type="submit" class="btn btn-success me-1">{{ $submitLabel ?? 'Submit' }}</button>
+    <a href="{{ route('admin.zipcodes.index') }}" class="btn btn-outline-secondary">Cancel</a>
 </div>
 
 @push('scripts')

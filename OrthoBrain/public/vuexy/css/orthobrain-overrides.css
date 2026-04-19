@@ -1,0 +1,107 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   OrthoBrain overrides on top of Vuexy.
+   Keep this file small and purpose-driven; palette changes live in Vuexy SCSS.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Action column: keep View / Edit / Delete on one row, tighten gaps */
+.table td .btn-icon.btn-sm,
+.table td .btn-icon.btn-xs {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.table td .btn-icon + .btn-icon,
+.table td form.d-inline,
+.table td form.d-inline .btn-icon {
+    margin-left: 0.25rem;
+}
+.table th.text-end,
+.table td.text-end {
+    white-space: nowrap;
+    min-width: 140px;
+}
+
+/* Status / in-use label in the actions cell should not wrap weirdly */
+.table td .text-muted.small {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Brand text in sidebar header — ortho (cyan) + brain (green) + ™ */
+.navbar-brand .brand-text .brand-ortho { color: #5bc0de; }
+.navbar-brand .brand-text .brand-brain { color: #8cc63f; }
+.navbar-brand .brand-text .brand-tm    { color: #8cc63f; font-size: 0.6em; vertical-align: super; }
+.navbar-brand .brand-tagline {
+    display: block;
+    font-size: 0.65rem;
+    font-style: italic;
+    color: #6e6b7b;
+    margin-top: 2px;
+    line-height: 1;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+}
+.navbar-brand .brand-text {
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+}
+
+/* Sidebar: remove the "modern-nav-toggle" disc button entirely */
+.main-menu .navbar-header .nav-item.nav-toggle { display: none !important; }
+.main-menu .navbar-header .nav-item.me-auto { margin-right: 0 !important; width: 100%; }
+.main-menu .navbar-header .navbar-brand {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    padding-top: 0.5rem;
+}
+
+/* Let the navbar-header grow so the brand tagline isn't clipped, and push
+   the nav list down so Dashboard doesn't butt up against the logo. */
+.main-menu .navbar-header { height: auto !important; min-height: 5.25rem; padding-bottom: 0.75rem; }
+.main-menu .main-menu-content { padding-top: 0.5rem; }
+
+/* Collapsible section headers (Manage Types, Locations) — clickable with
+   a chevron that rotates when the section is collapsed. Chevron sits
+   right next to the label rather than pushed to the far edge. */
+.main-menu .navigation-header.ob-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.4rem;
+    cursor: pointer;
+    user-select: none;
+}
+.main-menu .navigation-header.ob-section-head .ob-chevron {
+    width: 14px;
+    height: 14px;
+    opacity: 0.6;
+    transition: transform 0.2s ease;
+}
+.main-menu .navigation-header.ob-section-head.ob-section-collapsed .ob-chevron {
+    transform: rotate(-90deg);
+}
+.main-menu .navigation-header.ob-section-head > i[data-feather="more-horizontal"] {
+    display: none !important;
+}
+
+/* Pagination: make sure Vuexy pill styling matches brand cyan */
+.pagination .page-item.active .page-link {
+    background-color: #5bc0de;
+    border-color: #5bc0de;
+    color: #fff;
+}
+.pagination .page-item .page-link {
+    color: #5bc0de;
+}
+.pagination .page-item.disabled .page-link {
+    color: #b9b9c3;
+}
+
+/* Tables: align header/body vertically on multi-line rows */
+.table > :not(caption) > * > * { vertical-align: middle; }
