@@ -10,13 +10,13 @@ class DoctorSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Create the user account (auth layer)
-        // Note: password_hash cast is 'hashed' in User model, so we pass plain text
-        // and Laravel hashes it automatically on save.
+        $email    = env('TEST_DOCTOR_EMAIL', 'doctor@orthobrain.local');
+        $password = env('TEST_DOCTOR_PASSWORD', 'Password@1');
+
         $user = User::updateOrCreate(
-            ['email' => 'doctor@orthobrain.test'],
+            ['email' => $email],
             [
-                'password_hash' => 'password123',
+                'password_hash' => $password,
                 'role'          => 'DOCTOR',
                 'is_active'     => true,
             ]
@@ -35,7 +35,7 @@ class DoctorSeeder extends Seeder
                 'preferred_language'                 => 'English',
                 'currently_providing_ortho_services' => false,
                 'preferred_contact_mode'             => 'DOCTOR_ONLY',
-                'doctor_contact_email'               => 'doctor@orthobrain.test',
+                'doctor_contact_email'               => $email,
                 'preferred_tooth_numbering_system'   => 'UNIVERSAL',
                 'smile_arc_pref'                     => 'DEFER',
                 'small_lateral_incisors_pref'        => 'DEFER',
