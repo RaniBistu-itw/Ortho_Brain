@@ -41,6 +41,12 @@ class ProductSubcategoryController extends Controller
         return redirect()->route('admin.product-subcategories.index')->with('success', 'Sub-category created.');
     }
 
+    public function show(ProductSubcategory $productSubcategory)
+    {
+        $productSubcategory->loadMissing('category')->loadCount('products');
+        return view('admin.product-subcategories.show', ['subcategory' => $productSubcategory]);
+    }
+
     public function edit(ProductSubcategory $productSubcategory)
     {
         return view('admin.product-subcategories.edit', [

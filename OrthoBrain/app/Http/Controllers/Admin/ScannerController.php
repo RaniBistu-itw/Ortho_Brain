@@ -32,6 +32,11 @@ class ScannerController extends Controller
         return redirect()->route('admin.scanners.index')->with('success', 'Scanner created successfully.');
     }
 
+    public function show(Scanner $scanner)
+    {
+        return view('admin.scanners.show', compact('scanner'));
+    }
+
     public function edit(Scanner $scanner)
     {
         return view('admin.scanners.edit', compact('scanner'));

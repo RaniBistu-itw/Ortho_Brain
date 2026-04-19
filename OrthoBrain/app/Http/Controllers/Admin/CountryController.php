@@ -35,6 +35,11 @@ class CountryController extends Controller
         return redirect()->route('admin.countries.index')->with('success', 'Country created successfully.');
     }
 
+    public function show(Country $country)
+    {
+        return view('admin.countries.show', compact('country'));
+    }
+
     public function edit(Country $country)
     {
         return view('admin.countries.edit', compact('country'));

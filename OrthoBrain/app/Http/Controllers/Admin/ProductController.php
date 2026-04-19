@@ -65,6 +65,12 @@ class ProductController extends Controller
         return redirect()->route('admin.products.index')->with('success', 'Product created successfully.');
     }
 
+    public function show(Product $product)
+    {
+        $product->loadMissing(['category', 'subcategory']);
+        return view('admin.products.show', compact('product'));
+    }
+
     public function edit(Product $product)
     {
         return view('admin.products.edit', [

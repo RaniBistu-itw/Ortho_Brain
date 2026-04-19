@@ -51,7 +51,8 @@
                         <td class="px-3 py-3 text-sm">{{ $z->city?->state?->country?->name ?? '—' }}</td>
                         <td class="px-3 py-3"><span class="px-2 py-1 text-xs font-semibold rounded {{ $z->status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">{{ $z->status }}</span></td>
                         <td class="px-3 py-3 text-right">
-                            <a href="{{ route('admin.zipcodes.edit', $z) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#5bc0de] text-[#5bc0de] hover:bg-[#5bc0de] hover:text-white transition"><i class="bi bi-pencil"></i></a>
+                            <a href="{{ route('admin.zipcodes.show', $z) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#8cc63f] text-[#8cc63f] hover:bg-[#8cc63f] hover:text-white transition" title="View"><i class="bi bi-eye"></i></a>
+                            <a href="{{ route('admin.zipcodes.edit', $z) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#5bc0de] text-[#5bc0de] hover:bg-[#5bc0de] hover:text-white transition" title="Edit"><i class="bi bi-pencil"></i></a>
                             <form method="POST" action="{{ route('admin.zipcodes.destroy', $z) }}" class="inline js-delete-form" data-confirm="Delete zip '{{ $z->code }}'?">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-400 text-red-500 hover:bg-red-500 hover:text-white transition"><i class="bi bi-trash"></i></button>

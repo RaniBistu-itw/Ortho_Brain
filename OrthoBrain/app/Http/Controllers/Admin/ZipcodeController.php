@@ -60,6 +60,12 @@ class ZipcodeController extends Controller
         return redirect()->route('admin.zipcodes.index')->with('success', 'Zip code created successfully.');
     }
 
+    public function show(Zipcode $zipcode)
+    {
+        $zipcode->loadMissing('city.state.country');
+        return view('admin.zipcodes.show', compact('zipcode'));
+    }
+
     public function edit(Zipcode $zipcode)
     {
         $zipcode->loadMissing('city.state.country');
