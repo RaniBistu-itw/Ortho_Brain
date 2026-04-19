@@ -11,13 +11,13 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'min:8']
+            'email'    => ['required', 'email'],
+            'password' => ['required', 'min:8'],
         ], [
-            'email.required' => 'This field is required.',
-            'email.email' => 'Please enter valid email.',
+            'email.required'    => 'This field is required.',
+            'email.email'       => 'Please enter valid email.',
             'password.required' => 'This field is required.',
-            'password.min' => 'The password must be at least 8 characters.',
+            'password.min'      => 'The password must be at least 8 characters.',
         ]);
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
@@ -28,12 +28,12 @@ class LoginController extends Controller
 
             $request->session()->regenerate();
 
-            // Admins → /admin dashboard; doctors → home
+            // Admins → /admin dashboard; doctors → cases list
             if ($user->role === 'ADMIN') {
                 return redirect()->intended(route('admin.dashboard'));
             }
 
-            return redirect()->intended('/');
+            return redirect()->intended('/dev/cases/list');
         }
 
         return back()->withErrors([
