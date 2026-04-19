@@ -1,70 +1,93 @@
 @extends('layouts.admin')
 @section('title', 'Cities')
+@section('page_title', 'Cities')
 
 @section('content')
-<div class="flex justify-between items-center mb-5">
-    <h1 class="text-2xl font-semibold text-[#5e5873]">Cities</h1>
-    <a href="{{ route('admin.cities.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-[#5bc0de] hover:bg-[#46b8da] text-white text-sm font-medium rounded-md shadow-sm transition">
-        <i class="bi bi-plus-lg"></i> Add City
-    </a>
-</div>
+<section id="cities-list">
+    <div class="card">
+        <div class="card-header border-bottom">
+            <h4 class="card-title">Cities</h4>
+            <a href="{{ route('admin.cities.create') }}" class="btn btn-primary">
+                <i data-feather="plus" class="me-25"></i> Add City
+            </a>
+        </div>
 
-<div class="bg-white border border-[#ebe9f1] rounded-lg p-5">
-    <form id="citiesFilter" method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
-        <select id="filter_country_id" name="country_id" data-ob-cascade-parent class="js-searchable rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-            <option value="">All countries</option>
-            @foreach ($countries as $c)<option value="{{ $c->id }}" @selected(request('country_id')==$c->id)>{{ $c->name }}</option>@endforeach
-        </select>
-        <select id="filter_state_id" name="state_id" class="js-searchable rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-            <option value="">All states</option>
-            @foreach ($states as $s)<option value="{{ $s->id }}" data-country-id="{{ $s->country_id }}" @selected(request('state_id')==$s->id)>{{ $s->name }}</option>@endforeach
-        </select>
-        <input type="text" name="search" placeholder="Search city..." value="{{ request('search') }}" class="rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-        <select name="status" class="rounded-md border border-[#d8d6de] px-3 py-2 text-sm focus:border-[#5bc0de] outline-none">
-            <option value="">All statuses</option>
-            <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
-            <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
-        </select>
-        <a href="{{ route('admin.cities.index') }}" class="px-4 py-2 text-sm text-center border border-[#d8d6de] text-[#6e6b7b] hover:bg-gray-50 rounded-md transition">Clear</a>
-    </form>
+        <div class="card-body py-1">
+            <form id="citiesFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-3">
+                    <select id="filter_country_id" name="country_id" data-ob-cascade-parent class="js-searchable form-select">
+                        <option value="">All countries</option>
+                        @foreach ($countries as $c)
+                            <option value="{{ $c->id }}" @selected(request('country_id')==$c->id)>{{ $c->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="filter_state_id" name="state_id" class="js-searchable form-select">
+                        <option value="">All states</option>
+                        @foreach ($states as $s)
+                            <option value="{{ $s->id }}" data-country-id="{{ $s->country_id }}" @selected(request('state_id')==$s->id)>{{ $s->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="search" placeholder="Search city..." value="{{ request('search') }}" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('admin.cities.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                </div>
+            </form>
+        </div>
 
-    <div class="overflow-x-auto">
-        <table class="min-w-full">
-            <thead><tr class="border-b border-[#ebe9f1]">
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Country</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">State</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Name</th>
-                <th class="text-left text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Status</th>
-                <th class="text-right text-xs font-semibold text-[#6e6b7b] uppercase px-3 py-3">Actions</th>
-            </tr></thead>
-            <tbody class="divide-y divide-[#ebe9f1]">
-                @forelse ($cities as $city)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-3 py-3 text-sm">{{ $city->state?->country?->name ?? '—' }}</td>
-                        <td class="px-3 py-3 text-sm">{{ $city->state?->name ?? '—' }}</td>
-                        <td class="px-3 py-3 text-sm text-[#5e5873]">{{ $city->name }}</td>
-                        <td class="px-3 py-3"><span class="px-2 py-1 text-xs font-semibold rounded {{ $city->status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">{{ $city->status }}</span></td>
-                        <td class="px-3 py-3 text-right">
-                            <a href="{{ route('admin.cities.show', $city) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#8cc63f] text-[#8cc63f] hover:bg-[#8cc63f] hover:text-white transition" title="View"><i class="bi bi-eye"></i></a>
-                            <a href="{{ route('admin.cities.edit', $city) }}" class="inline-flex items-center justify-center w-8 h-8 rounded border border-[#5bc0de] text-[#5bc0de] hover:bg-[#5bc0de] hover:text-white transition" title="Edit"><i class="bi bi-pencil"></i></a>
-                            @if ($city->zipcodes_count === 0)
-                                <form method="POST" action="{{ route('admin.cities.destroy', $city) }}" class="inline js-delete-form" data-confirm="Delete city '{{ $city->name }}'?">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded border border-red-400 text-red-500 hover:bg-red-500 hover:text-white transition"><i class="bi bi-trash"></i></button>
-                                </form>
-                            @else
-                                <span class="text-xs text-[#b9b9c3] ml-1">{{ $city->zipcodes_count }} zip(s)</span>
-                            @endif
-                        </td>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Country</th>
+                        <th>State</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
                     </tr>
-                @empty
-                    <tr><td colspan="5" class="px-3 py-6 text-center text-sm text-[#b9b9c3]">No cities found.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse ($cities as $city)
+                        <tr>
+                            <td>{{ $city->state?->country?->name ?? '—' }}</td>
+                            <td>{{ $city->state?->name ?? '—' }}</td>
+                            <td class="fw-bolder">{{ $city->name }}</td>
+                            <td>
+                                <span class="badge rounded-pill badge-light-{{ $city->status === 'ACTIVE' ? 'success' : 'danger' }}">{{ $city->status }}</span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ route('admin.cities.show', $city) }}" class="btn btn-icon btn-sm btn-outline-success" title="View"><i data-feather="eye"></i></a>
+                                <a href="{{ route('admin.cities.edit', $city) }}" class="btn btn-icon btn-sm btn-outline-primary" title="Edit"><i data-feather="edit-2"></i></a>
+                                @if ($city->zipcodes_count === 0)
+                                    <form method="POST" action="{{ route('admin.cities.destroy', $city) }}" class="d-inline js-delete-form" data-confirm="Delete city '{{ $city->name }}'?">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                                    </form>
+                                @else
+                                    <span class="text-muted small ms-1">{{ $city->zipcodes_count }} zip(s)</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="text-center text-muted py-2">No cities found.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="card-body">{{ $cities->links() }}</div>
     </div>
-    <div class="mt-4">{{ $cities->links() }}</div>
-</div>
+</section>
 
 @push('scripts')
 <script>

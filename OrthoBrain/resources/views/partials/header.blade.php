@@ -1,14 +1,43 @@
-<header class="bg-white border-b border-[#ebe9f1] px-6 py-3 flex justify-between items-center">
-    <div class="text-sm text-[#6e6b7b]">@yield('page_subtitle', '')</div>
-    <div class="flex items-center gap-4">
-        <span class="text-sm text-[#5e5873] font-medium">
-            {{ auth()->user()->admin?->first_name ?? 'Admin' }} {{ auth()->user()->admin?->last_name ?? '' }}
-        </span>
-        <form method="POST" action="{{ route('logout') }}" class="m-0">
-            @csrf
-            <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600 border border-red-300 rounded-md hover:bg-red-50 transition">
-                <i class="bi bi-box-arrow-right"></i> Logout
-            </button>
-        </form>
+@php
+    $adminName = trim((auth()->user()->admin?->first_name ?? 'Admin') . ' ' . (auth()->user()->admin?->last_name ?? ''));
+@endphp
+
+<nav class="header-navbar navbar navbar-expand-lg align-items-center floating-nav navbar-light navbar-shadow">
+    <div class="navbar-container d-flex content">
+        <div class="bookmark-wrapper d-flex align-items-center">
+            <ul class="nav navbar-nav d-xl-none">
+                <li class="nav-item">
+                    <a class="nav-link menu-toggle" href="javascript:void(0);">
+                        <i class="ficon" data-feather="menu"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <ul class="nav navbar-nav align-items-center ms-auto">
+            <li class="nav-item dropdown dropdown-user">
+                <a class="nav-link dropdown-toggle dropdown-user-link" id="dropdown-user" href="#"
+                   data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <div class="user-nav d-sm-flex d-none">
+                        <span class="user-name fw-bolder">{{ $adminName ?: 'Admin' }}</span>
+                        <span class="user-status">Administrator</span>
+                    </div>
+                    <span class="avatar">
+                        <span class="avatar-content">
+                            {{ strtoupper(substr($adminName ?: 'A', 0, 1)) }}
+                        </span>
+                        <span class="avatar-status-online"></span>
+                    </span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-user">
+                    <form method="POST" action="{{ route('logout') }}" class="m-0">
+                        @csrf
+                        <button type="submit" class="dropdown-item">
+                            <i class="me-50" data-feather="power"></i> Logout
+                        </button>
+                    </form>
+                </div>
+            </li>
+        </ul>
     </div>
-</header>
+</nav>
