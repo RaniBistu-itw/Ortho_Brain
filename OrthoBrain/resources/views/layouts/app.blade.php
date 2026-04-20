@@ -14,6 +14,9 @@
     <link rel="stylesheet" href="{{ asset('vuexy/vendors/css/vendors.min.css') }}" />
     <link rel="stylesheet" href="{{ asset('vuexy/vendors/css/forms/select/select2.min.css') }}" />
     <link rel="stylesheet" href="{{ asset('vuexy/css/core.css') }}" />
+    <link rel="stylesheet" href="{{ asset('vuexy/css/base/themes/dark-layout.css') }}" />
+    <link rel="stylesheet" href="{{ asset('vuexy/css/base/themes/bordered-layout.css') }}" />
+    <link rel="stylesheet" href="{{ asset('vuexy/css/base/themes/semi-dark-layout.css') }}" />
     <link rel="stylesheet" href="{{ asset('vuexy/css/base/core/menu/menu-types/vertical-menu.css') }}" />
     <link rel="stylesheet" href="{{ asset('vuexy/css/overrides.css') }}" />
     <link rel="stylesheet" href="{{ asset('vuexy/css/orthobrain-overrides.css') }}" />
@@ -34,74 +37,59 @@
     @stack('styles')
 </head>
 
-<body class="horizontal-layout horizontal-menu navbar-floating footer-static  menu-expanded"
-      data-open="click" data-menu="horizontal-menu" data-col="1-column">
+<body class="vertical-layout vertical-menu-modern navbar-floating footer-static  menu-expanded"
+      data-open="click" data-menu="vertical-menu-modern" data-col="2-columns">
 
-    @php
-        $navDoctor = \App\Models\Doctor::where('user_id', auth()->id())->first();
-        $navName   = $navDoctor ? trim($navDoctor->first_name . ' ' . $navDoctor->last_name) : auth()->user()->email;
-        $initial   = strtoupper(substr($navName ?: 'U', 0, 1));
-    @endphp
+    {{-- BEGIN: Header / Navbar --}}
+    @include('partials.doctor-header')
+    {{-- END: Header --}}
 
-    <nav class="header-navbar navbar navbar-expand-lg align-items-center floating-nav navbar-light navbar-shadow">
-        <div class="navbar-container d-flex content">
-            <div class="d-flex align-items-center">
-                <span class="fw-bold fst-italic text-dark">Designed for OrthoDentists&trade;</span>
-            </div>
+    {{-- BEGIN: Main Menu / Sidebar --}}
+    @include('partials.doctor-sidebar')
+    {{-- END: Main Menu --}}
 
-            <ul class="nav navbar-nav align-items-center ms-auto">
-                <li class="nav-item dropdown dropdown-user">
-                    <a class="nav-link dropdown-toggle dropdown-user-link" id="dropdown-user" href="#"
-                       data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <div class="user-nav d-sm-flex d-none">
-                            <span class="user-name fw-bolder">{{ $navName }}</span>
-                            <span class="user-status">Doctor</span>
-                        </div>
-                        <span class="avatar">
-                            <span class="avatar-content">{{ $initial }}</span>
-                            <span class="avatar-status-online"></span>
-                        </span>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-user">
-                        <a class="dropdown-item" href="{{ route('doctor.profile.index') }}">
-                            <i class="me-50" data-feather="user"></i> My Profile
-                        </a>
-                        <a class="dropdown-item" href="{{ route('doctor.profile.settings') }}">
-                            <i class="me-50" data-feather="lock"></i> Change Password
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <form method="POST" action="{{ route('logout') }}" class="m-0">
-                            @csrf
-                            <button type="submit" class="dropdown-item">
-                                <i class="me-50" data-feather="power"></i> Logout
-                            </button>
-                        </form>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </nav>
-
+    {{-- BEGIN: Content --}}
     <div class="app-content content">
         <div class="content-overlay"></div>
         <div class="header-navbar-shadow"></div>
         <div class="content-wrapper">
+            <div class="content-header row">
+                <div class="content-header-left col-md-9 col-12 mb-2">
+                    <div class="row breadcrumbs-top">
+                        <div class="col-12">
+                            <h2 class="content-header-title float-start mb-0">@yield('page_title', 'Dashboard')</h2>
+                            @hasSection('breadcrumbs')
+                                <div class="breadcrumb-wrapper">
+                                    <ol class="breadcrumb">
+                                        @yield('breadcrumbs')
+                                    </ol>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="content-body">
                 @include('partials.flash')
                 @yield('content')
             </div>
         </div>
     </div>
+    {{-- END: Content --}}
+
+    <div class="sidenav-overlay"></div>
+    <div class="drag-target"></div>
 
     <footer class="footer footer-static footer-light">
         <p class="clearfix mb-0">
             <span class="float-md-start d-block d-md-inline-block mt-25">
                 COPYRIGHT &copy; {{ date('Y') }}
-                <a class="ms-25" href="#">orthoBrain</a>,
+                <a class="ms-25" href="#">orthobrain</a>,
                 <span class="d-none d-sm-inline-block">All rights Reserved</span>
             </span>
         </p>
     </footer>
+    <button class="btn btn-primary btn-icon scroll-top" type="button"><i data-feather="arrow-up"></i></button>
 
     <script src="{{ asset('vuexy/vendors/js/vendors.min.js') }}"></script>
     <script src="{{ asset('vuexy/vendors/js/ui/jquery.sticky.js') }}"></script>
