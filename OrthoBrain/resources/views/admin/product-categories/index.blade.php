@@ -41,8 +41,20 @@
                     @forelse ($categories as $cat)
                         <tr>
                             <td class="fw-bolder">{{ $cat->name }}</td>
-                            <td>{{ $cat->subcategories_count }}</td>
-                            <td>{{ $cat->products_count }}</td>
+                            <td>
+                                @if ($cat->subcategories_count > 0)
+                                    {{ $cat->subcategories_count }}
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if ($cat->products_count > 0)
+                                    {{ $cat->products_count }}
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                             <td>
                                 <span class="badge rounded-pill badge-light-{{ $cat->status === 'ACTIVE' ? 'success' : 'danger' }}">{{ $cat->status ?? '—' }}</span>
                             </td>
@@ -55,7 +67,7 @@
                                         <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
                                     </form>
                                 @else
-                                    <span class="text-muted small ms-1">In use</span>
+                                    <button type="button" class="btn btn-icon btn-sm btn-outline-danger" disabled title="Has linked sub-categories or products — cannot delete"><i data-feather="trash-2"></i></button>
                                 @endif
                             </td>
                         </tr>

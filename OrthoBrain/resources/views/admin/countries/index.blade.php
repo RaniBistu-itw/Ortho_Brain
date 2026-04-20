@@ -38,6 +38,7 @@
                         <th>Code</th>
                         <th>Phone</th>
                         <th>Status</th>
+                        <th>States</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -51,6 +52,13 @@
                                 <span class="badge rounded-pill badge-light-{{ $c->status === 'ACTIVE' ? 'success' : 'danger' }}">
                                     {{ $c->status }}
                                 </span>
+                            </td>
+                            <td>
+                                @if ($c->states_count > 0)
+                                    {{ $c->states_count }}
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
                             </td>
                             <td class="text-end">
                                 <a href="{{ route('admin.countries.show', $c) }}" class="btn btn-icon btn-sm btn-outline-success" title="View">
@@ -67,12 +75,12 @@
                                         </button>
                                     </form>
                                 @else
-                                    <span class="text-muted small ms-1">{{ $c->states_count }} state(s)</span>
+                                    <button type="button" class="btn btn-icon btn-sm btn-outline-danger" disabled title="Has linked states — cannot delete"><i data-feather="trash-2"></i></button>
                                 @endif
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="text-center text-muted py-2">No countries found.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-2">No countries found.</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -54,6 +54,7 @@
                         <th>State</th>
                         <th>Name</th>
                         <th>Status</th>
+                        <th>Zip Codes</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -66,6 +67,13 @@
                             <td>
                                 <span class="badge rounded-pill badge-light-{{ $city->status === 'ACTIVE' ? 'success' : 'danger' }}">{{ $city->status }}</span>
                             </td>
+                            <td>
+                                @if ($city->zipcodes_count > 0)
+                                    {{ $city->zipcodes_count }}
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                             <td class="text-end">
                                 <a href="{{ route('admin.cities.show', $city) }}" class="btn btn-icon btn-sm btn-outline-success" title="View"><i data-feather="eye"></i></a>
                                 <a href="{{ route('admin.cities.edit', $city) }}" class="btn btn-icon btn-sm btn-outline-primary" title="Edit"><i data-feather="edit-2"></i></a>
@@ -75,12 +83,12 @@
                                         <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
                                     </form>
                                 @else
-                                    <span class="text-muted small ms-1">{{ $city->zipcodes_count }} zip(s)</span>
+                                    <button type="button" class="btn btn-icon btn-sm btn-outline-danger" disabled title="Has linked zip codes — cannot delete"><i data-feather="trash-2"></i></button>
                                 @endif
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="text-center text-muted py-2">No cities found.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-2">No cities found.</td></tr>
                     @endforelse
                 </tbody>
             </table>
