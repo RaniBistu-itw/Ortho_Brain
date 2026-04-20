@@ -55,4 +55,39 @@ class Doctor extends Model
     {
         return $this->belongsTo(Admin::class, 'approved_by_admin_id');
     }
+
+    public function addresses()
+    {
+        return $this->hasMany(DoctorAddress::class);
+    }
+
+    public function shippingAddresses()
+    {
+        return $this->hasMany(DoctorAddress::class)->where('type', 'shipping');
+    }
+
+    public function billingAddresses()
+    {
+        return $this->hasMany(DoctorAddress::class)->where('type', 'billing');
+    }
+
+    public function modalities()
+    {
+        return $this->belongsToMany(Modality::class, 'doctor_modalities');
+    }
+
+    public function buccalCorridorOptions()
+    {
+        return $this->belongsToMany(BuccalCorridorOption::class, 'doctor_buccal_corridors');
+    }
+
+    public function treatmentModalities()
+    {
+        return $this->belongsToMany(TreatmentModality::class, 'doctor_treatment_modalities');
+    }
+
+    public function specialties()
+    {
+        return $this->belongsToMany(Specialty::class, 'doctor_specialties');
+    }
 }

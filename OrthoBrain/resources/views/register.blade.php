@@ -166,7 +166,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <!-- Email -->
                                 <div class="md:col-span-2">
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Email <span class="text-[#ea5455]">*</span></label>
+                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Email<span class="text-[#ea5455]">*</span></label>
                                     <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] transition-all overflow-hidden focus-within:border-vuexy-primary focus-within:shadow-[0_0_0_0.2rem_rgba(91,192,222,0.25)]" id="box-email">
                                         <span class="pl-3 pr-2 py-2 text-[#b9b9c3] flex items-center justify-center border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></span>
                                         <input id="in-email" name="email" type="email" required title="Please enter an email address" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.95rem]" placeholder="name@example.com" oninput="clearError('email')" />
@@ -274,6 +274,11 @@
                             <div class="mb-5">
                                 <h2 class="text-[1.3rem] font-medium text-vuexy-heading mb-1">Address Information</h2>
                             </div>
+                            {{-- Hidden inputs populated by the zip auto-fill JS --}}
+                            <input type="hidden" name="city_id"    id="hid-city">
+                            <input type="hidden" name="state_id"   id="hid-state">
+                            <input type="hidden" name="country_id" id="hid-country">
+
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <!-- Street Address -->
                                 <div>
@@ -283,41 +288,54 @@
                                     </div>
                                     <p id="err-address1" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
                                 </div>
-                                <!-- Zip Code -->
+                                <!-- Street Address 2 -->
+                                <div>
+                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Street Address 2</label>
+                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
+                                        <input id="in-address2" type="text" name="street_address_2" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.95rem]" placeholder="Street address 2" />
+                                    </div>
+                                </div>
+                                <!-- Zip (master-driven) -->
                                 <div>
                                     <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Zip<span class="text-[#ea5455]">*</span></label>
                                     <div class="relative">
-                                        <select id="in-zip" name="zip" required class="w-full h-[2.5rem] px-3 bg-white border border-[#d8d6de] rounded-[0.358rem] outline-none focus:border-vuexy-primary appearance-none" onchange="clearError('zip')">
+                                        <select id="in-zip" name="zip_id" required class="w-full h-[2.5rem] px-3 bg-white border border-[#d8d6de] rounded-[0.358rem] outline-none focus:border-vuexy-primary appearance-none" onchange="onRegZipChange()">
                                             <option value="" disabled selected>Select zip code</option>
-                                            <option value="10001">10001 - NY</option>
-                                            <option value="90210">90210 - CA</option>
+                                            @foreach(($zipcodes ?? []) as $z)
+                                                <option value="{{ $z->id }}"
+                                                        data-city-id="{{ $z->city?->id }}"
+                                                        data-city="{{ $z->city?->name }}"
+                                                        data-state-id="{{ $z->city?->state?->id }}"
+                                                        data-state="{{ $z->city?->state?->name }}"
+                                                        data-country-id="{{ $z->city?->state?->country?->id }}"
+                                                        data-country="{{ $z->city?->state?->country?->name }}">
+                                                    {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
+                                                </option>
+                                            @endforeach
                                         </select>
                                     </div>
                                     <p id="err-zip" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
                                 </div>
-                                <!-- City -->
+                                <!-- City (auto-filled, readonly) -->
                                 <div>
                                     <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">City<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative">
-                                        <select id="in-city" name="city" required class="w-full h-[2.5rem] px-3 bg-white border border-[#d8d6de] rounded-[0.358rem] outline-none focus:border-vuexy-primary appearance-none" onchange="clearError('city')">
-                                            <option value="" disabled selected>Select city</option>
-                                            <option value="New York">New York</option>
-                                            <option value="Beverly Hills">Beverly Hills</option>
-                                        </select>
+                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-[#f8f8f8] overflow-hidden">
+                                        <input id="in-city" type="text" class="flex-1 px-3 py-[0.5rem] bg-transparent outline-none text-[0.95rem]" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
-                                    <p id="err-city" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
                                 </div>
-                                <!-- State/Province -->
+                                <!-- State/Province (auto-filled, readonly) -->
                                 <div>
                                     <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">State/Province<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative">
-                                        <select id="in-state" name="state" required class="w-full h-[2.5rem] px-3 bg-white border border-[#d8d6de] rounded-[0.358rem] outline-none focus:border-vuexy-primary appearance-none" onchange="clearError('state')">
-                                            <option value="" disabled selected>Select state</option>
-                                            <option value="NY">New York</option>
-                                            <option value="CA">California</option>
-                                        </select>
+                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-[#f8f8f8] overflow-hidden">
+                                        <input id="in-state" type="text" class="flex-1 px-3 py-[0.5rem] bg-transparent outline-none text-[0.95rem]" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
-                                    <p id="err-state" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                </div>
+                                <!-- Country (auto-filled, readonly) -->
+                                <div>
+                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Country<span class="text-[#ea5455]">*</span></label>
+                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-[#f8f8f8] overflow-hidden">
+                                        <input id="in-country" type="text" class="flex-1 px-3 py-[0.5rem] bg-transparent outline-none text-[0.95rem]" placeholder="Auto-filled from zip" value="" readonly />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -349,47 +367,33 @@
                                     </div>
                                 </div>
 
-                                <!-- Modalities -->
+                                <!-- Modalities (master-driven) -->
                                 <div>
                                     <label class="block text-[0.875rem] font-semibold text-[#5e5873] mb-2">What modalities are you currently/or planning to provide?</label>
                                     <div class="space-y-1">
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="modalities[]" value="Clear Aligner Therapy" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Clear Aligner Therapy
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="modalities[]" value="Braces" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Braces
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="modalities[]" value="Early Intervention" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Early Intervention
-                                        </label>
+                                        @foreach(($modalitiesList ?? collect()) as $opt)
+                                            <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
+                                                <input type="checkbox" name="modalities[]" value="{{ $opt->id }}"
+                                                       @checked(in_array((string) $opt->id, (array) old('modalities', []), true))
+                                                       class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" />
+                                                {{ $opt->name }}
+                                            </label>
+                                        @endforeach
                                     </div>
                                 </div>
 
-                                <!-- Specialties -->
+                                <!-- Specialties (master-driven) -->
                                 <div>
                                     <label class="block text-[0.875rem] font-semibold text-[#5e5873] mb-2">Specialties:</label>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-4">
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="General Dentist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> General Dentist
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Oral & Maxillofacial Surgeon" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Oral & Maxillofacial Surgeon
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Orthodontist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Orthodontist
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Periodontist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Periodontist
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Pediatric Dentist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Pediatric Dentist
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Prosthodontist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Prosthodontist
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Endodontist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Endodontist
-                                        </label>
+                                        @foreach(($specialtiesList ?? collect()) as $opt)
+                                            <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
+                                                <input type="checkbox" name="specialties[]" value="{{ $opt->id }}"
+                                                       @checked(in_array((string) $opt->id, (array) old('specialties', []), true))
+                                                       class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" />
+                                                {{ $opt->name }}
+                                            </label>
+                                        @endforeach
                                     </div>
                                 </div>
 
@@ -510,18 +514,14 @@
                         <div class="p-4 pt-5 border-b border-[#ebe9f1]">
                             <p class="font-medium text-[#5e5873] mb-3 text-[0.95rem]">Preferred Treatment Modality</p>
                             <div class="space-y-2">
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="treatment_modality" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Clear Aligner Therapy</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="treatment_modality" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Braces</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="treatment_modality" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Orthopedics/Arch Development</span>
-                                </label>
+                                @foreach(($treatmentModalitiesList ?? collect()) as $opt)
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" name="treatment_modalities[]" value="{{ $opt->id }}"
+                                               @checked(in_array((string) $opt->id, (array) old('treatment_modalities', []), true))
+                                               class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
+                                        <span class="text-[#6e6b7b] text-[0.95rem]">{{ $opt->name }}</span>
+                                    </label>
+                                @endforeach
                             </div>
                         </div>
 
@@ -586,30 +586,18 @@
                             </div>
                         </div>
 
-                        <!-- Buccal Corridors -->
+                        <!-- Buccal Corridors (master-driven, multi-select) -->
                         <div class="p-4 pt-5 border-b border-[#ebe9f1]">
                             <p class="font-medium text-[#5e5873] mb-3 text-[0.95rem]">Buccal Corridors</p>
                             <div class="space-y-2">
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="buccal_corridors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]" checked>
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Defer to orthobrain®</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="buccal_corridors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Expand to fill buccal corridors</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="buccal_corridors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Do not expand molars</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="buccal_corridors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Do not expand premolars or canines</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="buccal_corridors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Maintain initial arch width</span>
-                                </label>
+                                @foreach(($buccalCorridorsList ?? collect()) as $opt)
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" name="buccal_corridors[]" value="{{ $opt->id }}"
+                                               @checked(in_array((string) $opt->id, (array) old('buccal_corridors', []), true))
+                                               class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
+                                        <span class="text-[#6e6b7b] text-[0.95rem]">{!! $opt->name !!}</span>
+                                    </label>
+                                @endforeach
                             </div>
                         </div>
 
@@ -720,25 +708,26 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
                             </div>
 
-                            <!-- Terms and SMS Checkboxes -->
-                            <div class="mb-6 space-y-2 mt-8 px-2">
-                                <label class="flex items-start text-[#6e6b7b] text-[0.9rem] cursor-pointer">
-                                    <input type="checkbox" name="terms_agreed" onchange="clearError('terms')" class="mt-[0.2rem] mr-3 w-[1.1rem] h-[1.1rem] text-[#5bc0de] focus:ring-[#5bc0de] border-[#d8d6de] rounded-[0.2rem] transition-all cursor-pointer" />
-                                    <span>By creating an account at orthobrain you accept the <a href="#" class="text-[#5bc0de] hover:underline cursor-pointer">Terms and Conditions</a>.</span>
-                                </label>
-                                <p id="err-terms" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
-                                <label class="flex items-start text-[#6e6b7b] text-[0.9rem] cursor-pointer">
-                                    <input type="checkbox" name="sms_agreed" class="mt-[0.2rem] mr-3 w-[1.1rem] h-[1.1rem] text-[#5bc0de] focus:ring-[#5bc0de] border-[#d8d6de] rounded-[0.2rem] transition-all cursor-pointer" />
-                                    <span class="flex items-center">I agree to receive SMS messages for authentication purposes. 
-                                        <svg class="w-[1.1rem] h-[1.1rem] ml-1.5 text-[#5e5873] opacity-70 cursor-pointer" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                                    </span>
-                                </label>
-                            </div>
-
                         </div>
                     </div>
                 </div>
             </div>
+
+                        <!-- Global: Terms and SMS Checkboxes (outside Additional Doctor Information) -->
+                        <div class="mt-6 px-2 space-y-2">
+                            <label class="flex items-start text-[#6e6b7b] text-[0.9rem] cursor-pointer">
+                                <input type="checkbox" name="terms_agreed" onchange="clearError('terms')" class="mt-[0.2rem] mr-3 w-[1.1rem] h-[1.1rem] text-[#5bc0de] focus:ring-[#5bc0de] border-[#d8d6de] rounded-[0.2rem] transition-all cursor-pointer" />
+                                <span>By creating an account at orthobrain you accept the <a href="#" class="text-[#5bc0de] hover:underline cursor-pointer">Terms and Conditions</a>.</span><span class="text-[#ea5455]">*</span>
+                            </label>
+                            <p id="err-terms" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                            <label class="flex items-start text-[#6e6b7b] text-[0.9rem] cursor-pointer">
+                                <input type="checkbox" name="sms_agreed" class="mt-[0.2rem] mr-3 w-[1.1rem] h-[1.1rem] text-[#5bc0de] focus:ring-[#5bc0de] border-[#d8d6de] rounded-[0.2rem] transition-all cursor-pointer" />
+                                <span class="flex items-center">I agree to receive SMS messages for authentication purposes.
+                                    <svg class="w-[1.1rem] h-[1.1rem] ml-1.5 text-[#5e5873] opacity-70 cursor-pointer" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                </span>
+                            </label>
+                        </div>
+
                         <!-- Action Buttons -->
                         <div class="flex justify-end items-center gap-4 mt-6 border-t border-[#ebe9f1] pt-6">
                             <a href="{{ url('/login') }}" class="px-5 py-[0.6rem] bg-[#5bc0de] hover:bg-[#46b8da] text-white rounded-[0.358rem] font-medium shadow-sm transition-colors text-[0.95rem]">Back to Login</a>
@@ -818,6 +807,30 @@
                 container.appendChild(row);
             }
 
+            // ── Zip auto-fill: reads data-* on the selected option and populates
+            //    city / state / country readonly fields + hidden FK inputs.
+            function onRegZipChange() {
+                clearError('zip');
+                const sel = document.getElementById('in-zip');
+                const opt = sel?.options[sel.selectedIndex];
+                const city    = document.getElementById('in-city');
+                const state   = document.getElementById('in-state');
+                const country = document.getElementById('in-country');
+                const hCity   = document.getElementById('hid-city');
+                const hState  = document.getElementById('hid-state');
+                const hCty    = document.getElementById('hid-country');
+                if (!opt || !opt.value) {
+                    [city, state, country, hCity, hState, hCty].forEach(el => { if (el) el.value = ''; });
+                    return;
+                }
+                if (city)    city.value    = opt.dataset.city    || '';
+                if (state)   state.value   = opt.dataset.state   || '';
+                if (country) country.value = opt.dataset.country || '';
+                if (hCity)   hCity.value   = opt.dataset.cityId    || '';
+                if (hState)  hState.value  = opt.dataset.stateId   || '';
+                if (hCty)    hCty.value    = opt.dataset.countryId || '';
+            }
+
             // ScrollSpy Navigation Logic
             const navItems = document.querySelectorAll('.nav-item');
             const sections = document.querySelectorAll('div[id^="step-"]');
@@ -873,172 +886,174 @@
                 });
             });
 
-            // Form Validation Logic
+            // ── Form Validation Logic ──────────────────────────────
+            const emailRe    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const nameRe     = /^[A-Za-z\s\-]+$/;
+            const websiteRe  = /^(https?:\/\/)?([\da-z\.\-]+)\.([a-z\.]{2,6})([\/\w \.\-]*)*\/?$/i;
+            const pwSpecial  = /[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\/]/;
+
+            // Per-field validators: id → (value) → '' when OK, else error message.
+            // The `all` arg is used for cross-field rules (e.g. confirmPassword).
+            const VALIDATORS = {
+                email: v => !v ? 'Email is required'
+                    : !emailRe.test(v) ? 'Please enter a valid email address' : '',
+                firstName: v => !v ? 'First name is required'
+                    : v.length < 2 ? 'First name must be at least 2 characters'
+                    : !nameRe.test(v) ? 'Only letters, spaces, and hyphens are allowed' : '',
+                lastName: v => !v ? 'Last name is required'
+                    : v.length < 2 ? 'Last name must be at least 2 characters'
+                    : !nameRe.test(v) ? 'Only letters, spaces, and hyphens are allowed' : '',
+                password: v => !v ? 'Password is required'
+                    : (v.length < 8 || !/[A-Z]/.test(v) || !/[a-z]/.test(v) || !/\d/.test(v) || !pwSpecial.test(v))
+                        ? 'Min 8 characters with uppercase, lowercase, number & special character' : '',
+                confirmPassword: (v, all) => {
+                    if (!v) return 'Please confirm your password';
+                    if (v !== all.password) return 'Passwords do not match';
+                    return '';
+                },
+                practiceName: v => !v ? 'Please select a practice' : '',
+                phone: v => !v ? 'Phone number is required'
+                    : !/^\d{10}$/.test(v) ? 'Please enter a valid 10-digit phone number' : '',
+                website: v => !v ? 'Website is required'
+                    : !websiteRe.test(v) ? 'Please enter a valid website (e.g. www.example.com)' : '',
+                language: v => !v ? 'Please select a preferred language' : '',
+                address1: v => !v ? 'Street address is required'
+                    : v.length < 5 ? 'Please enter a complete street address (min 5 characters)' : '',
+                zip: v => !v ? 'Please select a zip code' : '',
+            };
+
+            // Which section each field belongs to (for scroll-on-submit-error).
+            const FIELD_SECTION = {
+                email: 'step-account', firstName: 'step-account', lastName: 'step-account',
+                password: 'step-account', confirmPassword: 'step-account',
+                practiceName: 'step-practice', phone: 'step-practice',
+                website: 'step-practice', language: 'step-practice',
+                address1: 'step-address', zip: 'step-address',
+            };
+
+            const touched = new Set();
+
+            function _fieldValue(fieldId) {
+                const el = document.getElementById('in-' + fieldId);
+                if (!el) return '';
+                return (el.value || '').trim();
+            }
+            function _allValues() {
+                const out = {};
+                Object.keys(VALIDATORS).forEach(id => { out[id] = _fieldValue(id); });
+                // password is compared raw (no trim) for confirmPassword rule; keep raw separately
+                out.password = document.getElementById('in-password')?.value ?? '';
+                out.confirmPassword = document.getElementById('in-confirmPassword')?.value ?? '';
+                return out;
+            }
+
             function showError(fieldId, errorMsg) {
                 const errElement = document.getElementById('err-' + fieldId);
                 const boxElement = document.getElementById('box-' + fieldId);
                 const inElement = document.getElementById('in-' + fieldId);
-                
-                if (errElement) {
-                    errElement.textContent = errorMsg;
-                    errElement.classList.remove('hidden');
-                }
-                if (boxElement) {
-                    boxElement.classList.add('border-red-500');
-                }
-                if (inElement && !boxElement) {
-                   inElement.classList.add('border-red-500');
-                }
+                if (errElement) { errElement.textContent = errorMsg; errElement.classList.remove('hidden'); }
+                if (boxElement) boxElement.classList.add('border-red-500');
+                else if (inElement) inElement.classList.add('border-red-500');
             }
 
-            function clearError(fieldId) {
+            function _clearUI(fieldId) {
                 const errElement = document.getElementById('err-' + fieldId);
                 const boxElement = document.getElementById('box-' + fieldId);
                 const inElement = document.getElementById('in-' + fieldId);
-                
-                if (errElement) {
-                    errElement.classList.add('hidden');
-                }
-                if (boxElement) {
-                    boxElement.classList.remove('border-red-500');
-                }
-                if (inElement && !boxElement) {
-                   inElement.classList.remove('border-red-500');
+                if (errElement) errElement.classList.add('hidden');
+                if (boxElement) boxElement.classList.remove('border-red-500');
+                else if (inElement) inElement.classList.remove('border-red-500');
+            }
+
+            // Validate one field. Used by blur/input listeners and by submit.
+            function validateField(fieldId) {
+                const v = VALIDATORS[fieldId];
+                if (!v) return true;
+                const all = _allValues();
+                const msg = v(all[fieldId], all);
+                if (msg) { showError(fieldId, msg); return false; }
+                _clearUI(fieldId);
+                return true;
+            }
+
+            // Called by `oninput="clearError(...)"` in the markup.
+            // If the field has been touched (blurred once), re-run validation live
+            // so the error updates as the user fixes / re-breaks the field.
+            function clearError(fieldId) {
+                if (touched.has(fieldId)) {
+                    validateField(fieldId);
+                    // cross-field: retyping password should re-check confirmPassword
+                    if (fieldId === 'password' && touched.has('confirmPassword')) {
+                        validateField('confirmPassword');
+                    }
+                } else {
+                    _clearUI(fieldId);
                 }
             }
 
+            // Wire blur + change listeners for live validation.
+            document.addEventListener('DOMContentLoaded', () => {
+                Object.keys(VALIDATORS).forEach(fieldId => {
+                    const el = document.getElementById('in-' + fieldId);
+                    if (!el) return;
+                    el.addEventListener('blur', () => {
+                        touched.add(fieldId);
+                        validateField(fieldId);
+                        if (fieldId === 'password' && touched.has('confirmPassword')) {
+                            validateField('confirmPassword');
+                        }
+                    });
+                    if (el.tagName === 'SELECT') {
+                        el.addEventListener('change', () => {
+                            touched.add(fieldId);
+                            validateField(fieldId);
+                        });
+                    }
+                });
+
+                // Terms checkbox live feedback
+                const terms = document.querySelector('input[name="terms_agreed"]');
+                if (terms) {
+                    terms.addEventListener('change', () => {
+                        const err = document.getElementById('err-terms');
+                        if (terms.checked && err) err.classList.add('hidden');
+                    });
+                }
+            });
+
+            // Submit handler — validate every field, scroll to first error section.
             function validateForm() {
+                // Mark everything touched so all errors surface for someone who
+                // clicked Submit without interacting with the form.
+                Object.keys(VALIDATORS).forEach(id => touched.add(id));
+
                 let isValid = true;
                 let firstErrorSection = null;
+                const mark = (id) => { if (!firstErrorSection) firstErrorSection = id; };
 
-                // Reset all previous errors
-                document.querySelectorAll('[id^="err-"]').forEach(el => el.classList.add('hidden'));
-                document.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500'));
+                Object.keys(VALIDATORS).forEach(fieldId => {
+                    if (!validateField(fieldId)) {
+                        isValid = false;
+                        mark(FIELD_SECTION[fieldId]);
+                    }
+                });
 
-                function markSection(id) {
-                    if (!firstErrorSection) firstErrorSection = id;
+                // Zip picked but city_id wasn't populated (auto-fill failed) — block submit.
+                const zipVal = document.getElementById('in-zip')?.value;
+                const hiddenCity = document.getElementById('hid-city')?.value;
+                if (zipVal && !hiddenCity) {
+                    showError('zip', 'Zip lookup failed. Please reselect the zip code.');
+                    mark('step-address');
+                    isValid = false;
                 }
 
-                // ── Doctor Information ──────────────────────────────────
-                const email = document.getElementById('in-email').value.trim();
-                if (!email) {
-                    showError('email', 'Email is required');
-                    markSection('step-account'); isValid = false;
-                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                    showError('email', 'Please enter a valid email address');
-                    markSection('step-account'); isValid = false;
-                }
-
-                const firstName = document.getElementById('in-firstName').value.trim();
-                if (!firstName) {
-                    showError('firstName', 'First name is required');
-                    markSection('step-account'); isValid = false;
-                } else if (firstName.length < 2) {
-                    showError('firstName', 'First name must be at least 2 characters');
-                    markSection('step-account'); isValid = false;
-                } else if (!/^[A-Za-z\s\-]+$/.test(firstName)) {
-                    showError('firstName', 'Only letters, spaces, and hyphens are allowed');
-                    markSection('step-account'); isValid = false;
-                }
-
-                const lastName = document.getElementById('in-lastName').value.trim();
-                if (!lastName) {
-                    showError('lastName', 'Last name is required');
-                    markSection('step-account'); isValid = false;
-                } else if (lastName.length < 2) {
-                    showError('lastName', 'Last name must be at least 2 characters');
-                    markSection('step-account'); isValid = false;
-                } else if (!/^[A-Za-z\s\-]+$/.test(lastName)) {
-                    showError('lastName', 'Only letters, spaces, and hyphens are allowed');
-                    markSection('step-account'); isValid = false;
-                }
-
-                const password = document.getElementById('in-password').value;
-                if (!password) {
-                    showError('password', 'Password is required');
-                    markSection('step-account'); isValid = false;
-                } else if (
-                    password.length < 8 ||
-                    !/[A-Z]/.test(password) ||
-                    !/[a-z]/.test(password) ||
-                    !/\d/.test(password) ||
-                    !/[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\/]/.test(password)
-                ) {
-                    showError('password', 'Min 8 characters with uppercase, lowercase, number & special character');
-                    markSection('step-account'); isValid = false;
-                }
-
-                const confirmPassword = document.getElementById('in-confirmPassword').value;
-                if (!confirmPassword) {
-                    showError('confirmPassword', 'Please confirm your password');
-                    markSection('step-account'); isValid = false;
-                } else if (password !== confirmPassword) {
-                    showError('confirmPassword', 'Passwords do not match');
-                    markSection('step-account'); isValid = false;
-                }
-
-                // ── Practice Information ────────────────────────────────
-                if (!document.getElementById('in-practiceName').value) {
-                    showError('practiceName', 'Please select a practice');
-                    markSection('step-practice'); isValid = false;
-                }
-
-                const phone = document.getElementById('in-phone').value.trim();
-                if (!phone) {
-                    showError('phone', 'Phone number is required');
-                    markSection('step-practice'); isValid = false;
-                } else if (!/^\d{10}$/.test(phone)) {
-                    showError('phone', 'Please enter a valid 10-digit phone number');
-                    markSection('step-practice'); isValid = false;
-                }
-
-                const website = document.getElementById('in-website').value.trim();
-                if (!website) {
-                    showError('website', 'Website is required');
-                    markSection('step-practice'); isValid = false;
-                } else if (!/^(https?:\/\/)?([\da-z\.\-]+)\.([a-z\.]{2,6})([\/\w \.\-]*)*\/?$/i.test(website)) {
-                    showError('website', 'Please enter a valid website (e.g. www.example.com)');
-                    markSection('step-practice'); isValid = false;
-                }
-
-                if (!document.getElementById('in-language').value) {
-                    showError('language', 'Please select a preferred language');
-                    markSection('step-practice'); isValid = false;
-                }
-
-                // ── Address Information ─────────────────────────────────
-                const address1 = document.getElementById('in-address1').value.trim();
-                if (!address1) {
-                    showError('address1', 'Street address is required');
-                    markSection('step-address'); isValid = false;
-                } else if (address1.length < 5) {
-                    showError('address1', 'Please enter a complete street address (min 5 characters)');
-                    markSection('step-address'); isValid = false;
-                }
-
-                if (!document.getElementById('in-zip').value) {
-                    showError('zip', 'Please select a zip code');
-                    markSection('step-address'); isValid = false;
-                }
-
-                if (!document.getElementById('in-city').value) {
-                    showError('city', 'Please select a city');
-                    markSection('step-address'); isValid = false;
-                }
-
-                if (!document.getElementById('in-state').value) {
-                    showError('state', 'Please select a state');
-                    markSection('step-address'); isValid = false;
-                }
-
-                // ── Terms & Conditions ──────────────────────────────────
                 const termsCheckbox = document.querySelector('input[name="terms_agreed"]');
                 if (termsCheckbox && !termsCheckbox.checked) {
                     showError('terms', 'You must accept the Terms and Conditions to continue');
-                    markSection('step-additional'); isValid = false;
+                    mark('step-additional');
+                    isValid = false;
                 }
 
-                // ── Scroll to first error section ───────────────────────
                 if (!isValid && firstErrorSection) {
                     const target = document.getElementById(firstErrorSection);
                     if (target) {
@@ -1051,8 +1066,12 @@
                             behavior: 'smooth'
                         });
                     }
+                    return false;
                 }
 
+                if (isValid) {
+                    document.getElementById('registrationForm').submit();
+                }
                 return isValid;
             }
         </script>
