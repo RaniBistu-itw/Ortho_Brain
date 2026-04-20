@@ -166,7 +166,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <!-- Email -->
                                 <div class="md:col-span-2">
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Email <span class="text-[#ea5455]">*</span></label>
+                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Email<span class="text-[#ea5455]">*</span></label>
                                     <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] transition-all overflow-hidden focus-within:border-vuexy-primary focus-within:shadow-[0_0_0_0.2rem_rgba(91,192,222,0.25)]" id="box-email">
                                         <span class="pl-3 pr-2 py-2 text-[#b9b9c3] flex items-center justify-center border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></span>
                                         <input id="in-email" name="email" type="email" required title="Please enter an email address" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.95rem]" placeholder="name@example.com" oninput="clearError('email')" />
@@ -367,47 +367,33 @@
                                     </div>
                                 </div>
 
-                                <!-- Modalities -->
+                                <!-- Modalities (master-driven) -->
                                 <div>
                                     <label class="block text-[0.875rem] font-semibold text-[#5e5873] mb-2">What modalities are you currently/or planning to provide?</label>
                                     <div class="space-y-1">
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="modalities[]" value="Clear Aligner Therapy" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Clear Aligner Therapy
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="modalities[]" value="Braces" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Braces
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="modalities[]" value="Early Intervention" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Early Intervention
-                                        </label>
+                                        @foreach(($modalitiesList ?? collect()) as $opt)
+                                            <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
+                                                <input type="checkbox" name="modalities[]" value="{{ $opt->id }}"
+                                                       @checked(in_array((string) $opt->id, (array) old('modalities', []), true))
+                                                       class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" />
+                                                {{ $opt->name }}
+                                            </label>
+                                        @endforeach
                                     </div>
                                 </div>
 
-                                <!-- Specialties -->
+                                <!-- Specialties (master-driven) -->
                                 <div>
                                     <label class="block text-[0.875rem] font-semibold text-[#5e5873] mb-2">Specialties:</label>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-4">
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="General Dentist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> General Dentist
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Oral & Maxillofacial Surgeon" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Oral & Maxillofacial Surgeon
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Orthodontist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Orthodontist
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Periodontist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Periodontist
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Pediatric Dentist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Pediatric Dentist
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Prosthodontist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Prosthodontist
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="checkbox" name="specialties[]" value="Endodontist" class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Endodontist
-                                        </label>
+                                        @foreach(($specialtiesList ?? collect()) as $opt)
+                                            <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
+                                                <input type="checkbox" name="specialties[]" value="{{ $opt->id }}"
+                                                       @checked(in_array((string) $opt->id, (array) old('specialties', []), true))
+                                                       class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" />
+                                                {{ $opt->name }}
+                                            </label>
+                                        @endforeach
                                     </div>
                                 </div>
 
@@ -528,18 +514,14 @@
                         <div class="p-4 pt-5 border-b border-[#ebe9f1]">
                             <p class="font-medium text-[#5e5873] mb-3 text-[0.95rem]">Preferred Treatment Modality</p>
                             <div class="space-y-2">
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="treatment_modality" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Clear Aligner Therapy</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="treatment_modality" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Braces</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="treatment_modality" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Orthopedics/Arch Development</span>
-                                </label>
+                                @foreach(($treatmentModalitiesList ?? collect()) as $opt)
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" name="treatment_modalities[]" value="{{ $opt->id }}"
+                                               @checked(in_array((string) $opt->id, (array) old('treatment_modalities', []), true))
+                                               class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
+                                        <span class="text-[#6e6b7b] text-[0.95rem]">{{ $opt->name }}</span>
+                                    </label>
+                                @endforeach
                             </div>
                         </div>
 
@@ -604,30 +586,18 @@
                             </div>
                         </div>
 
-                        <!-- Buccal Corridors -->
+                        <!-- Buccal Corridors (master-driven, multi-select) -->
                         <div class="p-4 pt-5 border-b border-[#ebe9f1]">
                             <p class="font-medium text-[#5e5873] mb-3 text-[0.95rem]">Buccal Corridors</p>
                             <div class="space-y-2">
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="buccal_corridors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]" checked>
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Defer to orthobrain®</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="buccal_corridors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Expand to fill buccal corridors</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="buccal_corridors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Do not expand molars</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="buccal_corridors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Do not expand premolars or canines</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="buccal_corridors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Maintain initial arch width</span>
-                                </label>
+                                @foreach(($buccalCorridorsList ?? collect()) as $opt)
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" name="buccal_corridors[]" value="{{ $opt->id }}"
+                                               @checked(in_array((string) $opt->id, (array) old('buccal_corridors', []), true))
+                                               class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
+                                        <span class="text-[#6e6b7b] text-[0.95rem]">{!! $opt->name !!}</span>
+                                    </label>
+                                @endforeach
                             </div>
                         </div>
 
@@ -738,25 +708,26 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
                             </div>
 
-                            <!-- Terms and SMS Checkboxes -->
-                            <div class="mb-6 space-y-2 mt-8 px-2">
-                                <label class="flex items-start text-[#6e6b7b] text-[0.9rem] cursor-pointer">
-                                    <input type="checkbox" name="terms_agreed" onchange="clearError('terms')" class="mt-[0.2rem] mr-3 w-[1.1rem] h-[1.1rem] text-[#5bc0de] focus:ring-[#5bc0de] border-[#d8d6de] rounded-[0.2rem] transition-all cursor-pointer" />
-                                    <span>By creating an account at orthobrain you accept the <a href="#" class="text-[#5bc0de] hover:underline cursor-pointer">Terms and Conditions</a>.</span>
-                                </label>
-                                <p id="err-terms" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
-                                <label class="flex items-start text-[#6e6b7b] text-[0.9rem] cursor-pointer">
-                                    <input type="checkbox" name="sms_agreed" class="mt-[0.2rem] mr-3 w-[1.1rem] h-[1.1rem] text-[#5bc0de] focus:ring-[#5bc0de] border-[#d8d6de] rounded-[0.2rem] transition-all cursor-pointer" />
-                                    <span class="flex items-center">I agree to receive SMS messages for authentication purposes. 
-                                        <svg class="w-[1.1rem] h-[1.1rem] ml-1.5 text-[#5e5873] opacity-70 cursor-pointer" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                                    </span>
-                                </label>
-                            </div>
-
                         </div>
                     </div>
                 </div>
             </div>
+
+                        <!-- Global: Terms and SMS Checkboxes (outside Additional Doctor Information) -->
+                        <div class="mt-6 px-2 space-y-2">
+                            <label class="flex items-start text-[#6e6b7b] text-[0.9rem] cursor-pointer">
+                                <input type="checkbox" name="terms_agreed" onchange="clearError('terms')" class="mt-[0.2rem] mr-3 w-[1.1rem] h-[1.1rem] text-[#5bc0de] focus:ring-[#5bc0de] border-[#d8d6de] rounded-[0.2rem] transition-all cursor-pointer" />
+                                <span>By creating an account at orthobrain you accept the <a href="#" class="text-[#5bc0de] hover:underline cursor-pointer">Terms and Conditions</a>.</span><span class="text-[#ea5455]">*</span>
+                            </label>
+                            <p id="err-terms" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                            <label class="flex items-start text-[#6e6b7b] text-[0.9rem] cursor-pointer">
+                                <input type="checkbox" name="sms_agreed" class="mt-[0.2rem] mr-3 w-[1.1rem] h-[1.1rem] text-[#5bc0de] focus:ring-[#5bc0de] border-[#d8d6de] rounded-[0.2rem] transition-all cursor-pointer" />
+                                <span class="flex items-center">I agree to receive SMS messages for authentication purposes.
+                                    <svg class="w-[1.1rem] h-[1.1rem] ml-1.5 text-[#5e5873] opacity-70 cursor-pointer" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                </span>
+                            </label>
+                        </div>
+
                         <!-- Action Buttons -->
                         <div class="flex justify-end items-center gap-4 mt-6 border-t border-[#ebe9f1] pt-6">
                             <a href="{{ url('/login') }}" class="px-5 py-[0.6rem] bg-[#5bc0de] hover:bg-[#46b8da] text-white rounded-[0.358rem] font-medium shadow-sm transition-colors text-[0.95rem]">Back to Login</a>

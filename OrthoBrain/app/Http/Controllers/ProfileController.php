@@ -5,8 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use App\Models\BuccalCorridorOption;
 use App\Models\Doctor;
 use App\Models\DoctorAddress;
+use App\Models\Modality;
+use App\Models\Specialty;
+use App\Models\TreatmentModality;
 use App\Models\User;
 use App\Models\Zipcode;
 
@@ -21,7 +25,21 @@ class ProfileController extends Controller
             ? $doctor->addresses()->with('zipcode', 'city', 'state', 'country')->latest()->get()
             : collect();
 
-        return view('profile.index', compact('tab', 'addresses'));
+        $modalitiesList          = Modality::orderBy('id')->get();
+        $specialtiesList         = Specialty::orderBy('id')->get();
+        $treatmentModalitiesList = TreatmentModality::orderBy('id')->get();
+        $buccalCorridorsList     = BuccalCorridorOption::orderBy('id')->get();
+
+        $selectedModalityIds         = $doctor ? $doctor->modalities()->pluck('modalities.id')->all() : [];
+        $selectedSpecialtyIds        = $doctor ? $doctor->specialties()->pluck('specialties.id')->all() : [];
+        $selectedTreatmentModalityIds= $doctor ? $doctor->treatmentModalities()->pluck('treatment_modalities.id')->all() : [];
+        $selectedBuccalCorridorIds   = $doctor ? $doctor->buccalCorridorOptions()->pluck('buccal_corridor_options.id')->all() : [];
+
+        return view('profile.index', compact(
+            'tab', 'addresses',
+            'modalitiesList', 'specialtiesList', 'treatmentModalitiesList', 'buccalCorridorsList',
+            'selectedModalityIds', 'selectedSpecialtyIds', 'selectedTreatmentModalityIds', 'selectedBuccalCorridorIds'
+        ));
     }
 
     public function update(Request $request)
@@ -145,6 +163,31 @@ class ProfileController extends Controller
         return redirect()
             ->route('doctor.profile.index', ['tab' => $address->type])
             ->with('success', ucfirst($address->type) . ' address updated successfully.');
+    }
+
+    public function updateAdditional(Request $request)
+    {
+        $data = $request->validate([
+            'modalities'             => 'nullable|array',
+            'modalities.*'           => 'integer|exists:modalities,id',
+            'specialties'            => 'nullable|array',
+            'specialties.*'          => 'integer|exists:specialties,id',
+            'treatment_modalities'   => 'nullable|array',
+            'treatment_modalities.*' => 'integer|exists:treatment_modalities,id',
+            'buccal_corridors'       => 'nullable|array',
+            'buccal_corridors.*'     => 'integer|exists:buccal_corridor_options,id',
+        ]);
+
+        $doctor = Doctor::where('user_id', Auth::id())->firstOrFail();
+
+        $doctor->modalities()->sync($data['modalities'] ?? []);
+        $doctor->specialties()->sync($data['specialties'] ?? []);
+        $doctor->treatmentModalities()->sync($data['treatment_modalities'] ?? []);
+        $doctor->buccalCorridorOptions()->sync($data['buccal_corridors'] ?? []);
+
+        return redirect()
+            ->route('doctor.profile.index', ['tab' => 'additional'])
+            ->with('success', 'Additional information updated successfully.');
     }
 
     private function authorizeAddress(DoctorAddress $address): void

@@ -70,4 +70,24 @@ class Doctor extends Model
     {
         return $this->hasMany(DoctorAddress::class)->where('type', 'billing');
     }
+
+    public function modalities()
+    {
+        return $this->belongsToMany(Modality::class, 'doctor_modalities');
+    }
+
+    public function buccalCorridorOptions()
+    {
+        return $this->belongsToMany(BuccalCorridorOption::class, 'doctor_buccal_corridors');
+    }
+
+    public function treatmentModalities()
+    {
+        return $this->belongsToMany(TreatmentModality::class, 'doctor_treatment_modalities');
+    }
+
+    public function specialties()
+    {
+        return $this->belongsToMany(Specialty::class, 'doctor_specialties');
+    }
 }

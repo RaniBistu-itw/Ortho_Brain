@@ -3,7 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\BuccalCorridorOption;
 use App\Models\Doctor;
+use App\Models\Modality;
+use App\Models\Specialty;
+use App\Models\TreatmentModality;
 use App\Models\User;
 use App\Models\Zipcode;
 use Illuminate\Http\Request;
@@ -16,7 +20,11 @@ class RegisterController extends Controller
     public function show()
     {
         return view('register', [
-            'zipcodes' => $this->activeZipcodes(),
+            'zipcodes'             => $this->activeZipcodes(),
+            'modalitiesList'       => Modality::orderBy('id')->get(),
+            'specialtiesList'      => Specialty::orderBy('id')->get(),
+            'treatmentModalitiesList' => TreatmentModality::orderBy('id')->get(),
+            'buccalCorridorsList'  => BuccalCorridorOption::orderBy('id')->get(),
         ]);
     }
 
@@ -45,6 +53,15 @@ class RegisterController extends Controller
             'providing_ortho'             => 'nullable|in:yes,no',
             'contact_preference'          => 'nullable|in:doctor,employee,both',
             'terms_agreed'                => 'accepted',
+
+            'modalities'             => 'nullable|array',
+            'modalities.*'           => 'integer|exists:modalities,id',
+            'specialties'            => 'nullable|array',
+            'specialties.*'          => 'integer|exists:specialties,id',
+            'treatment_modalities'   => 'nullable|array',
+            'treatment_modalities.*' => 'integer|exists:treatment_modalities,id',
+            'buccal_corridors'       => 'nullable|array',
+            'buccal_corridors.*'     => 'integer|exists:buccal_corridor_options,id',
         ], [
             'password.regex'              => 'Password must include uppercase, lowercase, number & special character.',
             'practice_phone_number.regex' => 'Phone must be exactly 10 digits.',
@@ -99,6 +116,11 @@ class RegisterController extends Controller
                 'country_id'       => $data['country_id'],
                 'is_default'       => true,
             ]);
+
+            $doctor->modalities()->sync($data['modalities'] ?? []);
+            $doctor->specialties()->sync($data['specialties'] ?? []);
+            $doctor->treatmentModalities()->sync($data['treatment_modalities'] ?? []);
+            $doctor->buccalCorridorOptions()->sync($data['buccal_corridors'] ?? []);
         });
 
         return redirect('/login')->with('success', 'Registered successfully! Please log in with your credentials.');

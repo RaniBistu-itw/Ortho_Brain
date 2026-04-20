@@ -41,6 +41,7 @@ Route::middleware(['web', 'auth'])
 
         Route::get('/profile/index',     [ProfileController::class, 'index'])->name('profile.index');
         Route::post('/profile/index',    [ProfileController::class, 'update'])->name('profile.update');
+        Route::post('/profile/additional', [ProfileController::class, 'updateAdditional'])->name('profile.additional.update');
 
         Route::get('/profile/settings',  [ProfileController::class, 'settings'])->name('profile.settings');
         Route::post('/profile/settings', [ProfileController::class, 'updatePassword'])->name('profile.password');
