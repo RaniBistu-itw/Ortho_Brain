@@ -4,734 +4,810 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Orthobrain Registration</title>
-        @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
-            @vite(['resources/css/app.css', 'resources/js/app.js'])
-        @else
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
-                html { font-family: 'Montserrat', ui-sans-serif, system-ui, sans-serif; }
-                .vx-input-focus:focus-within { border-color: #5bc0de; box-shadow: 0 0 0 3px rgba(91, 192, 222, 0.1); }
-            </style>
-        @endif
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script>
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        colors: {
-                            vuexy: {
-                                primary: '#5bc0de',
-                                hover: '#46b8da',
-                                text: '#6e6b7b',
-                                heading: '#5e5873',
-                                border: '#d8d6de',
-                                bg: '#f8f8f8',
-                                success: '#28c76f',
-                                successHover: '#23b063'
-                            }
-                        }
-                    }
-                }
+
+        {{-- Vuexy theme stylesheets --}}
+        <link rel="stylesheet" href="{{ asset('vuexy/vendors/css/vendors.min.css') }}" />
+        <link rel="stylesheet" href="{{ asset('vuexy/css/core.css') }}" />
+        <link rel="stylesheet" href="{{ asset('vuexy/css/overrides.css') }}" />
+        <link rel="stylesheet" href="{{ asset('vuexy/css/orthobrain-overrides.css') }}" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+        {{-- Scoped registration-page classes (used by ported sections; unported sections still use Tailwind CDN below) --}}
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+            html, body { font-family: 'Montserrat', ui-sans-serif, system-ui, sans-serif; }
+            body.reg-body { min-height: 100vh; background: #f8f8f8; color: #6e6b7b; padding-bottom: 2.5rem; margin: 0; }
+
+            .reg-shell { padding: 2rem 1.5rem; width: 100%; }
+            @media (min-width: 640px) { .reg-shell { padding: 2rem 2rem; } }
+
+            .reg-header { margin-bottom: 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+            .reg-logo-text { font-size: 2.6rem; font-weight: 500; letter-spacing: -0.01em; margin-top: 0.5rem; line-height: 1.1; display: inline-flex; align-items: flex-start; }
+            .reg-logo-text .p1 { color: #5bc0de; }
+            .reg-logo-text .p2 { color: #8cc63f; }
+            .reg-logo-text .tm { color: #8cc63f; font-size: 0.8rem; margin-left: 1px; margin-top: 0.625rem; }
+            .reg-tagline { font-size: 12px; font-style: italic; color: #6e6b7b; margin-top: 0.25rem; letter-spacing: 0.025em; }
+
+            .reg-layout { display: flex; flex-direction: column; gap: 1.5rem; align-items: flex-start; position: relative; }
+            @media (min-width: 768px) { .reg-layout { flex-direction: row; gap: 2rem; } }
+
+            .reg-sidebar {
+                width: 100%;
+                flex-shrink: 0;
+                background: #fff;
+                border-radius: 0.358rem;
+                box-shadow: 0 4px 24px 0 rgba(34,41,47,0.1);
+                padding: 1.25rem;
+                align-self: flex-start;
             }
-        </script>
+            @media (min-width: 768px) { .reg-sidebar { width: 260px; position: sticky; top: 1.5rem; } }
+            .reg-sidebar nav { display: flex; flex-direction: column; gap: 1rem; }
+            .reg-nav-item { display: flex; align-items: center; gap: 1rem; cursor: pointer; }
+            .reg-nav-icon {
+                display: flex; align-items: center; justify-content: center;
+                width: 2.5rem; height: 2.5rem;
+                border-radius: 0.358rem;
+                background: #f8f8f8;
+                color: #b9b9c3;
+                transition: all 0.2s;
+                flex-shrink: 0;
+            }
+            .reg-nav-item .reg-nav-title { font-size: 0.95rem; color: #5e5873; font-weight: 500; transition: all 0.2s; }
+            .reg-nav-item .reg-nav-sub { font-size: 0.8rem; color: #b9b9c3; }
+            .reg-nav-item.active .reg-nav-icon { background: #5bc0de; color: #fff; box-shadow: 0 2px 4px rgba(91,192,222,0.4); }
+            .reg-nav-item.active .reg-nav-title { color: #5bc0de; }
+
+            .reg-main { flex: 1; width: 100%; display: flex; flex-direction: column; gap: 1.5rem; }
+            .reg-card {
+                background: #fff;
+                border-radius: 0.358rem;
+                box-shadow: 0 4px 24px 0 rgba(34,41,47,0.1);
+                padding: 1.5rem;
+                scroll-margin-top: 1.5rem;
+            }
+            .reg-card-head { margin-bottom: 1.25rem; }
+            .reg-card-head h2 { font-size: 1.3rem; font-weight: 500; color: #5e5873; margin: 0 0 0.25rem; }
+            .reg-card-head p { font-size: 0.9rem; color: #6e6b7b; margin: 0; }
+            .reg-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+            @media (min-width: 768px) { .reg-grid { grid-template-columns: 1fr 1fr; } }
+            .reg-col-span-2 { grid-column: span 1; }
+            @media (min-width: 768px) { .reg-col-span-2 { grid-column: span 2; } }
+
+            .reg-label { display: block; font-size: 0.85rem; font-weight: 500; color: #5e5873; margin-bottom: 0.25rem; }
+            .reg-required { color: #ea5455; }
+            .reg-input-group {
+                display: flex;
+                align-items: center;
+                border: 1px solid #d8d6de;
+                border-radius: 0.358rem;
+                background: #fff;
+                overflow: hidden;
+                transition: all .2s;
+            }
+            .reg-input-group:focus-within { border-color: #5bc0de; box-shadow: 0 0 0 0.2rem rgba(91,192,222,0.25); }
+            .reg-input-group.is-invalid { border-color: #ea5455; }
+            .reg-input-icon {
+                display: flex; align-items: center; justify-content: center;
+                padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+                color: #b9b9c3;
+                background: #fff;
+                border-right: 1px solid #d8d6de;
+                align-self: stretch;
+            }
+            .reg-input-group.is-invalid .reg-input-icon { border-right-color: #ea5455; }
+            .reg-input {
+                flex: 1;
+                border: 0;
+                outline: none;
+                padding: 0.5rem 0.75rem;
+                font-size: 0.95rem;
+                color: #6e6b7b;
+                background: transparent;
+                min-width: 0;
+            }
+            .reg-input::placeholder { color: #b9b9c3; }
+            .reg-select {
+                width: 100%;
+                height: 2.5rem;
+                padding: 0 0.75rem;
+                background: #fff;
+                border: 1px solid #d8d6de;
+                border-radius: 0.358rem;
+                outline: none;
+                font-size: 0.95rem;
+                color: #6e6b7b;
+                appearance: none;
+                -webkit-appearance: none;
+            }
+            .reg-select:focus { border-color: #5bc0de; box-shadow: 0 0 0 0.2rem rgba(91,192,222,0.25); }
+            .reg-select.is-invalid { border-color: #ea5455; }
+            .reg-phone {
+                display: flex;
+                border: 1px solid #d8d6de;
+                border-radius: 0.358rem;
+                background: #fff;
+                transition: all .2s;
+                overflow: hidden;
+            }
+            .reg-phone:focus-within { border-color: #5bc0de; box-shadow: 0 0 0 0.2rem rgba(91,192,222,0.25); }
+            .reg-phone.is-invalid { border-color: #ea5455; }
+            .reg-phone select {
+                padding: 0 0.75rem;
+                background: #f8f8f8;
+                border: 0;
+                border-right: 1px solid #d8d6de;
+                color: #6e6b7b;
+                font-size: 0.9rem;
+                outline: none;
+            }
+            .reg-phone input {
+                flex: 1;
+                border: 0;
+                outline: none;
+                padding: 0.5rem 0.75rem;
+                font-size: 0.9rem;
+                color: #6e6b7b;
+                background: transparent;
+                min-width: 0;
+            }
+            .reg-err { color: #ea5455; font-size: 0.8rem; margin: 0.25rem 0 0; }
+            .reg-err.hidden { display: none; }
+            /* neutralize Vuexy/Bootstrap default margins that inflate gaps inside our cards */
+            .reg-card input, .reg-card select, .reg-card textarea, .reg-card button, .reg-card label { margin: 0; }
+            .reg-card .reg-label { margin-bottom: 0.25rem; }
+
+            /* Additional card */
+            .reg-card-head-with-toggle { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; }
+            .reg-expand-btn { background: #5bc0de; color: #fff; border: 0; border-radius: 0.358rem; width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: background .2s; }
+            .reg-expand-btn:hover { background: #46b8da; }
+            .reg-additional-body { display: flex; flex-direction: column; gap: 1.5rem; transition: all .3s; }
+            .reg-additional-body.hidden { display: none; }
+
+            .reg-section-label { display: block; font-size: 0.875rem; font-weight: 600; color: #5e5873; margin-bottom: 0.5rem; }
+            .reg-option-list { display: flex; flex-direction: column; gap: 0.25rem; }
+            .reg-option-grid { display: grid; grid-template-columns: 1fr; row-gap: 0.25rem; column-gap: 1rem; }
+            @media (min-width: 640px) { .reg-option-grid { grid-template-columns: 1fr 1fr; } }
+            .reg-option { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem; color: #6e6b7b; }
+            .reg-option.align-start { align-items: flex-start; }
+            .reg-option input[type="radio"], .reg-option input[type="checkbox"] { accent-color: #5bc0de; width: 1rem; height: 1rem; min-width: 1rem; cursor: pointer; flex-shrink: 0; }
+
+            .reg-form-box { background: #fbfbfb; border: 1px solid #d8d6de; border-radius: 0.358rem; padding: 1.25rem; }
+            .reg-form-box.hidden { display: none; }
+            .reg-email-row { display: flex; gap: 0.5rem; }
+            .reg-email-row .reg-input-group { flex: 1; }
+            .reg-btn-delete { width: 2.5rem; height: 2.5rem; background: rgba(234,84,85,0.125); color: #ea5455; border: 0; border-radius: 0.358rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .2s; }
+            .reg-btn-delete:hover { background: rgba(234,84,85,0.2); }
+            .reg-btn-primary { background: #5bc0de; color: #fff; border: 0; padding: 0.5rem 1rem; border-radius: 0.358rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 4px rgba(91,192,222,0.3); transition: background .2s; }
+            .reg-btn-primary:hover { background: #46b8da; }
+
+            /* Doctor Preferences panel */
+            .reg-pref-panel { background: #fcfcfc; border: 1px solid #ebe9f1; border-radius: 0.358rem; overflow: hidden; display: flex; flex-direction: column; }
+            .reg-pref-header-bar { background: #fff; border-bottom: 1px solid #ebe9f1; padding: 0.75rem 1rem; font-weight: 700; color: #5e5873; font-size: 0.95rem; }
+            .reg-pref-scroll { overflow-y: auto; max-height: 500px; background: #fff; position: relative; }
+            .reg-pref-scroll::-webkit-scrollbar { width: 6px; }
+            .reg-pref-scroll::-webkit-scrollbar-track { background: #fcfcfc; }
+            .reg-pref-scroll::-webkit-scrollbar-thumb { background: #d8d6de; border-radius: 4px; }
+            .reg-pref-scroll::-webkit-scrollbar-thumb:hover { background: #b9b9c3; }
+            .reg-pref-section { padding: 1.25rem 1rem 1rem; border-bottom: 1px solid #ebe9f1; }
+            .reg-pref-title { font-weight: 500; color: #5e5873; margin: 0 0 0.75rem; font-size: 0.95rem; }
+            .reg-pref-list { display: flex; flex-direction: column; gap: 0.5rem; }
+            .reg-pref-item { display: flex; align-items: center; cursor: pointer; }
+            .reg-pref-item.align-start { align-items: flex-start; }
+            .reg-pref-item input[type="radio"], .reg-pref-item input[type="checkbox"] { accent-color: #5bc0de; margin-right: 0.5rem; width: 1rem; height: 1rem; cursor: pointer; flex-shrink: 0; }
+            .reg-pref-item.align-start input { margin-top: 0.25rem; }
+            .reg-pref-item span { color: #6e6b7b; font-size: 0.95rem; }
+
+            /* Toggle switches */
+            .reg-toggle-group { display: flex; flex-direction: column; gap: 1.25rem; }
+            .reg-toggle-label { display: flex; align-items: center; cursor: pointer; }
+            .reg-toggle-switch { position: relative; width: 2.5rem; height: 22px; }
+            .reg-toggle-switch input.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+            .reg-toggle-bg { display: block; width: 2.5rem; height: 22px; background: #ebe9f1; border-radius: 9999px; transition: background .2s; }
+            .reg-toggle-dot { position: absolute; width: 1rem; height: 1rem; background: #fff; border-radius: 50%; top: 3px; right: 3px; transform: translateX(-125%); transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+            .reg-toggle-switch input.sr-only:checked ~ .reg-toggle-bg { background: #5bc0de; }
+            .reg-toggle-switch input.sr-only:checked ~ .reg-toggle-dot { transform: translateX(0); }
+            .reg-toggle-text { margin-left: 0.75rem; font-size: 0.95rem; color: #6e6b7b; }
+            .reg-toggle-panel { margin-top: 0.75rem; padding: 1rem; background: #f8f8f8; border: 1px solid #ebe9f1; border-radius: 0.358rem; display: flex; flex-direction: column; gap: 0.5rem; }
+            .reg-toggle-panel.hidden { display: none; }
+
+            .reg-back-to-top { position: sticky; bottom: 0; background: #5bc0de; color: #fff; width: 2rem; height: 2rem; border-radius: 0.358rem; display: flex; justify-content: center; align-items: center; cursor: pointer; opacity: 0.9; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: -2rem; float: right; z-index: 10; margin-right: 0.5rem; }
+            .reg-back-to-top:hover { background: #46b8da; }
+
+            /* Terms + actions */
+            .reg-terms-wrap { margin-top: 1.5rem; padding: 0 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+            .reg-terms-label { display: flex; align-items: flex-start; color: #6e6b7b; font-size: 0.9rem; cursor: pointer; }
+            .reg-terms-label input { margin: 0.2rem 0.75rem 0 0 !important; width: 1.1rem; height: 1.1rem; accent-color: #5bc0de; cursor: pointer; flex-shrink: 0; }
+            .reg-terms-link { color: #5bc0de; text-decoration: none; }
+            .reg-terms-link:hover { text-decoration: underline; }
+            .reg-actions { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.5rem; border-top: 1px solid #ebe9f1; padding-top: 1.5rem; }
+            .reg-btn-back { padding: 0.6rem 1.25rem; background: #5bc0de; color: #fff; border-radius: 0.358rem; font-weight: 500; text-decoration: none; font-size: 0.95rem; box-shadow: 0 2px 4px rgba(91,192,222,0.3); transition: background .2s; }
+            .reg-btn-back:hover { background: #46b8da; color: #fff; }
+            .reg-btn-submit { padding: 0.6rem 1.25rem; background: #8cc63f; color: #fff; border: 0; border-radius: 0.358rem; font-weight: 500; font-size: 0.95rem; letter-spacing: 0.025em; cursor: pointer; box-shadow: 0 2px 4px rgba(140,198,63,0.3); transition: background .2s; }
+            .reg-btn-submit:hover { background: #7cb038; }
+        </style>
+
         <style>
             input:-webkit-autofill,
-            input:-webkit-autofill:hover, 
-            input:-webkit-autofill:focus, 
-            input:-webkit-autofill:active{
+            input:-webkit-autofill:hover,
+            input:-webkit-autofill:focus,
+            input:-webkit-autofill:active {
                 -webkit-box-shadow: 0 0 0 30px #fff9e6 inset !important;
                 background-color: #fff9e6 !important;
             }
-            .nav-item .nav-icon { background: #f8f8f8; color: #b9b9c3; transition: all 0.2s; }
-            .nav-item .nav-text { color: #5e5873; font-weight: 500; transition: all 0.2s; }
-            .nav-item.active .nav-icon { background: #5bc0de; color: #fff; box-shadow: 0 2px 4px rgba(91,192,222,0.4); }
-            .nav-item.active .nav-text { color: #5bc0de; }
             html { scroll-behavior: smooth; }
         </style>
-    
-        <style>
-/* Styling for the custom toggle switches */
-    input[type=checkbox].sr-only:checked ~ .dot { transform: translateX(0%); }
-    input[type=checkbox].sr-only:not(:checked) ~ .bg-\\[\\#5bc0de\\] { background-color: #d8d6de; }
-    input[type=checkbox].sr-only:not(:checked) ~ .dot { transform: translateX(-125%); }
-
-    /* Gray toggles for Preferences section */
-    input[type=checkbox].sr-only:checked ~ .custom-toggle-bg { background-color: #5bc0de; }
-    input[type=checkbox].sr-only:not(:checked) ~ .custom-toggle-bg { background-color: #ebe9f1; }
-    
-    /* Vuexy Checkbox & Radio native tinting */
-    input[type="radio"]:not(.sr-only),
-    input[type="checkbox"]:not(.sr-only) {
-        accent-color: #5bc0de;
-        cursor: pointer;
-        width: 1rem;
-        height: 1rem;
-        min-width: 1rem;
-        flex-shrink: 0;
-    }
-    
-    /* Custom thin scrollbar for Doctor Preferences */
-    .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: #fcfcfc;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #d8d6de;
-        border-radius: 4px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #b9b9c3;
-    }
-        </style>
     </head>
-    <body class="min-h-screen bg-vuexy-bg text-[#6e6b7b] pb-10">
-        <div class="px-6 py-8 sm:px-8 w-full">
-            
-            <header class="mb-10 flex flex-col items-center justify-center">
-                <div class="flex flex-col items-center">
-                    <svg width="70" height="60" viewBox="0 0 64 64" fill="none" stroke="#b8b8b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="mb-[-8px]">
+    <body class="reg-body">
+        <div class="reg-shell">
+
+            <header class="reg-header">
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <svg width="70" height="60" viewBox="0 0 64 64" fill="none" stroke="#b8b8b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:-8px">
                         <path d="M32 12c-3.5 0-5.5 2-5.5 4 0 2-2 4-4.5 4-4.5 0-7 3-7 7.5 0 2.5-2 4-3 6-1.5 3.5 1 7 4 7 1 0 2 1 2 2.5 0 3.5 3.5 5.5 6.5 5.5 2 0 3-1.5 4.5-3 2-2 5.5-2 7.5 0 1.5 1.5 2.5 3 4.5 3 3 0 6.5-2 6.5-5.5 0-1.5 1-2.5 2-2.5 3 0 5.5-3.5 4-7-1-2-3-3.5-3-6 0-4.5-2.5-7.5-7-7.5-2.5 0-4.5-2-4.5-4 0-2-2-4-5.5-4z" fill="#ffffff" />
                         <path d="M32 16v18M23 26c2 1 2 5 0 7M41 26c-2 1-2 5 0 7M28 20c1.5 1.5 1.5 4 0 5M36 20c-1.5 1.5-1.5 4 0 5M19 33c2.5 1 3.5 4 1 6M45 33c-2.5 1-3.5 4-1 6" stroke="#b8b8b8" />
                         <path d="M30 46 l-4 8 h6 l-2 6 8-10 h-6 z" fill="#b8b8b8" stroke="none" />
                     </svg>
-                    <div class="text-[2.6rem] font-medium tracking-tight mt-2 leading-[1.1] flex items-start">
-                        <span class="text-[#5bc0de]">ortho</span><span class="text-[#8cc63f]">brain</span><span class="text-[#8cc63f] text-[0.8rem] ml-[1px] mt-2.5">™</span>
+                    <div class="reg-logo-text">
+                        <span class="p1">ortho</span><span class="p2">brain</span><span class="tm">&trade;</span>
                     </div>
-                    <div class="text-[12px] italic text-[#6e6b7b] mt-1 tracking-wide">Orthodontics for Your Dental Practice</div>
+                    <div class="reg-tagline">Orthodontics for Your Dental Practice</div>
                 </div>
             </header>
 
-            <div class="flex flex-col md:flex-row gap-6 lg:gap-8 items-start relative">
-                
-                <aside class="w-full md:w-[260px] flex-shrink-0 bg-white rounded-[0.358rem] shadow-[0_4px_24px_0_rgba(34,41,47,0.1)] p-5 sticky top-6 self-start">
-                    <nav class="space-y-4" id="scrollspy-nav">
-                        <!-- Account -->
-                        <div class="flex items-center gap-4 cursor-pointer nav-item active" data-target="step-account">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-[0.358rem] nav-icon">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                            </div>
+            <div class="reg-layout">
+
+                <aside class="reg-sidebar">
+                    <nav id="scrollspy-nav">
+                        {{-- Account --}}
+                        <div class="reg-nav-item active" data-target="step-account">
+                            <div class="reg-nav-icon"><i class="bi bi-house-door" style="font-size:1.15rem"></i></div>
                             <div>
-                                <div class="text-[0.95rem] nav-text">Account</div>
-                                <div class="text-[0.8rem] text-[#b9b9c3]">Account Details</div>
-                            </div>
-                        </div>
-                        
-                        <!-- Practice -->
-                        <div class="flex items-center gap-4 cursor-pointer nav-item" data-target="step-practice">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-[0.358rem] nav-icon">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                            </div>
-                            <div>
-                                <div class="text-[0.95rem] nav-text">Practice</div>
-                                <div class="text-[0.8rem] text-[#b9b9c3]">Practice Information</div>
+                                <div class="reg-nav-title">Account</div>
+                                <div class="reg-nav-sub">Account Details</div>
                             </div>
                         </div>
 
-                        <!-- Address -->
-                        <div class="flex items-center gap-4 cursor-pointer nav-item" data-target="step-address">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-[0.358rem] nav-icon">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                            </div>
+                        {{-- Practice --}}
+                        <div class="reg-nav-item" data-target="step-practice">
+                            <div class="reg-nav-icon"><i class="bi bi-building" style="font-size:1.15rem"></i></div>
                             <div>
-                                <div class="text-[0.95rem] nav-text">Address</div>
-                                <div class="text-[0.8rem] text-[#b9b9c3]">Address Information</div>
+                                <div class="reg-nav-title">Practice</div>
+                                <div class="reg-nav-sub">Practice Information</div>
                             </div>
                         </div>
 
-                        <!-- Additional -->
-                        <div class="flex items-center gap-4 cursor-pointer nav-item" data-target="step-additional">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-[0.358rem] nav-icon">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            </div>
+                        {{-- Address --}}
+                        <div class="reg-nav-item" data-target="step-address">
+                            <div class="reg-nav-icon"><i class="bi bi-geo-alt" style="font-size:1.15rem"></i></div>
                             <div>
-                                <div class="text-[0.95rem] nav-text">Additional</div>
-                                <div class="text-[0.8rem] text-[#b9b9c3]">Doctor Information</div>
+                                <div class="reg-nav-title">Address</div>
+                                <div class="reg-nav-sub">Address Information</div>
+                            </div>
+                        </div>
+
+                        {{-- Additional --}}
+                        <div class="reg-nav-item" data-target="step-additional">
+                            <div class="reg-nav-icon"><i class="bi bi-file-earmark-text" style="font-size:1.15rem"></i></div>
+                            <div>
+                                <div class="reg-nav-title">Additional</div>
+                                <div class="reg-nav-sub">Doctor Information</div>
                             </div>
                         </div>
                     </nav>
                 </aside>
 
-                <main class="flex-1 space-y-6 w-full">
+                <main class="reg-main">
                     <form id="registrationForm" action="{{ url('/register') }}" method="POST" novalidate onsubmit="return validateForm(event)">
                         @csrf
                         
-                        <!-- Doctor Information Card -->
-                        <div id="step-account" class="bg-white rounded-[0.358rem] shadow-[0_4px_24px_0_rgba(34,41,47,0.1)] p-6 scroll-mt-6">
-                            <div class="mb-5">
-                                <h2 class="text-[1.3rem] font-medium text-vuexy-heading mb-1">Doctor Information</h2>
-                                <p class="text-[0.9rem] text-[#6e6b7b]">Enter your account details</p>
+                        {{-- Doctor Information Card --}}
+                        <div id="step-account" class="reg-card">
+                            <div class="reg-card-head">
+                                <h2>Doctor Information</h2>
+                                <p>Enter your account details</p>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <!-- Email -->
-                                <div class="md:col-span-2">
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Email<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] transition-all overflow-hidden focus-within:border-vuexy-primary focus-within:shadow-[0_0_0_0.2rem_rgba(91,192,222,0.25)]" id="box-email">
-                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] flex items-center justify-center border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></span>
-                                        <input id="in-email" name="email" type="email" required title="Please enter an email address" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.95rem]" placeholder="name@example.com" oninput="clearError('email')" />
+                            <div class="reg-grid">
+                                {{-- Email --}}
+                                <div class="reg-col-span-2">
+                                    <label class="reg-label">Email (Username)<span class="reg-required">*</span></label>
+                                    <div class="reg-input-group" id="box-email">
+                                        <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
+                                        <input id="in-email" name="email" type="email" required title="Please enter an email address" class="reg-input" placeholder="Enter email" oninput="clearError('email')" />
                                     </div>
-                                    <p id="err-email" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                    <p id="err-email" class="reg-err hidden"></p>
                                 </div>
-                                <!-- First Name -->
+                                {{-- First Name --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">First Name<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] transition-all overflow-hidden focus-within:border-vuexy-primary focus-within:shadow-[0_0_0_0.2rem_rgba(91,192,222,0.25)]" id="box-firstName">
-                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] flex items-center justify-center border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></span>
-                                        <input id="in-firstName" name="first_name" type="text" class="flex-1 px-3 py-[0.5rem] bg-white outline-none text-[0.95rem]" placeholder="First name" oninput="clearError('firstName')" />
+                                    <label class="reg-label">First Name<span class="reg-required">*</span></label>
+                                    <div class="reg-input-group" id="box-firstName">
+                                        <span class="reg-input-icon"><i class="bi bi-person"></i></span>
+                                        <input id="in-firstName" name="first_name" type="text" class="reg-input" placeholder="Enter first name" oninput="clearError('firstName')" />
                                     </div>
-                                    <p id="err-firstName" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                    <p id="err-firstName" class="reg-err hidden"></p>
                                 </div>
-                                <!-- Last Name -->
+                                {{-- Last Name --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Last Name<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] transition-all overflow-hidden focus-within:border-vuexy-primary focus-within:shadow-[0_0_0_0.2rem_rgba(91,192,222,0.25)]" id="box-lastName">
-                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] flex items-center justify-center border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></span>
-                                        <input id="in-lastName" name="last_name" type="text" class="flex-1 px-3 py-[0.5rem] bg-white outline-none text-[0.95rem]" placeholder="Last name" oninput="clearError('lastName')" />
+                                    <label class="reg-label">Last Name<span class="reg-required">*</span></label>
+                                    <div class="reg-input-group" id="box-lastName">
+                                        <span class="reg-input-icon"><i class="bi bi-person"></i></span>
+                                        <input id="in-lastName" name="last_name" type="text" class="reg-input" placeholder="Enter last name" oninput="clearError('lastName')" />
                                     </div>
-                                    <p id="err-lastName" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                    <p id="err-lastName" class="reg-err hidden"></p>
                                 </div>
-                                <!-- Password -->
+                                {{-- Password --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Password<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] transition-all overflow-hidden focus-within:border-vuexy-primary focus-within:shadow-[0_0_0_0.2rem_rgba(91,192,222,0.25)]" id="box-password">
-                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] flex items-center justify-center border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></span>
-                                        <input id="in-password" name="password" type="password" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.95rem]" placeholder="********" oninput="clearError('password')" />
+                                    <label class="reg-label">Password<span class="reg-required">*</span></label>
+                                    <div class="reg-input-group" id="box-password">
+                                        <span class="reg-input-icon"><i class="bi bi-lock"></i></span>
+                                        <input id="in-password" name="password" type="password" class="reg-input" placeholder="&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;" oninput="clearError('password')" />
+                                        <span class="reg-input-icon" style="border-right:0; border-left:1px solid #d8d6de; cursor:pointer;" onclick="const p=document.getElementById('in-password');p.type=p.type==='password'?'text':'password';this.querySelector('i').classList.toggle('bi-eye');this.querySelector('i').classList.toggle('bi-eye-slash');">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </span>
                                     </div>
-                                    <p id="err-password" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                    <p id="err-password" class="reg-err hidden"></p>
                                 </div>
-                                <!-- Confirm Password -->
+                                {{-- Confirm Password --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Confirm Password<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] transition-all overflow-hidden focus-within:border-vuexy-primary focus-within:shadow-[0_0_0_0.2rem_rgba(91,192,222,0.25)]" id="box-confirmPassword">
-                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] flex items-center justify-center border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></span>
-                                        <input id="in-confirmPassword" name="confirm_password" type="password" class="flex-1 px-3 py-[0.5rem] bg-white outline-none text-[0.95rem]" placeholder="********" oninput="clearError('confirmPassword')" />
+                                    <label class="reg-label">Confirm Password<span class="reg-required">*</span></label>
+                                    <div class="reg-input-group" id="box-confirmPassword">
+                                        <span class="reg-input-icon"><i class="bi bi-lock"></i></span>
+                                        <input id="in-confirmPassword" name="confirm_password" type="password" class="reg-input" placeholder="&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;" oninput="clearError('confirmPassword')" />
+                                        <span class="reg-input-icon" style="border-right:0; border-left:1px solid #d8d6de; cursor:pointer;" onclick="const p=document.getElementById('in-confirmPassword');p.type=p.type==='password'?'text':'password';this.querySelector('i').classList.toggle('bi-eye');this.querySelector('i').classList.toggle('bi-eye-slash');">
+                                            <i class="bi bi-eye-slash"></i>
+                                        </span>
                                     </div>
-                                    <p id="err-confirmPassword" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                    <p id="err-confirmPassword" class="reg-err hidden"></p>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Practice Information Card -->
-                        <div id="step-practice" class="bg-white rounded-[0.358rem] shadow-[0_4px_24px_0_rgba(34,41,47,0.1)] p-6 scroll-mt-6">
-                            <div class="mb-5">
-                                <h2 class="text-[1.3rem] font-medium text-vuexy-heading mb-1">Practice Information</h2>
-                                <p class="text-[0.9rem] text-[#6e6b7b]">Enter your practice details</p>
+                        {{-- Practice Information Card --}}
+                        <div id="step-practice" class="reg-card">
+                            <div class="reg-card-head">
+                                <h2>Practice Information</h2>
+                                <p>Enter your practice details</p>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <!-- Practice Name -->
+                            <div class="reg-grid">
+                                {{-- Practice Name --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Practice Name<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative">
-                                        <select id="in-practiceName" name="practice_name" required class="w-full h-[2.5rem] px-3 bg-white border border-[#d8d6de] rounded-[0.358rem] outline-none focus:border-vuexy-primary appearance-none" onchange="clearError('practiceName')">
-                                            <option value="" disabled selected>Search practice</option>
-                                            <option value="Practice 1">Practice 1</option>
-                                            <option value="Practice 2">Practice 2</option>
-                                        </select>
-                                    </div>
-                                    <p id="err-practiceName" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                    <label class="reg-label">Practice Name<span class="reg-required">*</span></label>
+                                    <select id="in-practiceName" name="practice_name" required class="reg-select" onchange="clearError('practiceName')">
+                                        <option value="" disabled selected>Search practice</option>
+                                        <option value="Practice 1">Practice 1</option>
+                                        <option value="Practice 2">Practice 2</option>
+                                    </select>
+                                    <p id="err-practiceName" class="reg-err hidden"></p>
                                 </div>
-                                <!-- Practice Phone Number -->
+                                {{-- Practice Phone Number --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Practice Phone Number<span class="text-[#ea5455]">*</span></label>
-                                    <div class="flex rounded-[0.358rem] shadow-sm border border-[#d8d6de] focus-within:border-vuexy-primary focus-within:shadow-[0_0_0_0.2rem_rgba(91,192,222,0.25)] transition-all bg-white" id="box-phone">
-                                        <select name="practice_phone_country_code" class="px-3 bg-[#f8f8f8] border-r border-[#d8d6de] text-[0.9rem] text-[#6e6b7b] rounded-l-[0.358rem] outline-none">
+                                    <label class="reg-label">Practice Phone Number<span class="reg-required">*</span></label>
+                                    <div class="reg-phone" id="box-phone">
+                                        <span class="reg-input-icon" style="border-right:0"><i class="bi bi-telephone"></i></span>
+                                        <select name="practice_phone_country_code">
                                             <option value="+1_US">+1 (US)</option>
                                             <option value="+1_CA">+1 (CA)</option>
                                             <option value="+61_AU">+61 (AU)</option>
                                         </select>
-                                        <input id="in-phone" name="practice_phone_number" type="text" maxlength="10" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.9rem]" placeholder="10 Digit Number" oninput="clearError('phone')"/>
+                                        <input id="in-phone" name="practice_phone_number" type="text" maxlength="10" placeholder="XXX-XXX-XXXX" oninput="clearError('phone')" />
                                     </div>
-                                    <p id="err-phone" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                    <p id="err-phone" class="reg-err hidden"></p>
                                 </div>
-                                <!-- Practice Website -->
+                                {{-- Practice Website --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Practice Website<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary" id="box-website">
-                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg></span>
-                                        <input id="in-website" type="text" name="practice_website" class="flex-1 px-3 py-[0.5rem] bg-transparent outline-none text-[0.95rem]" placeholder="www.example.com" oninput="clearError('website')" />
+                                    <label class="reg-label">Practice Website<span class="reg-required">*</span></label>
+                                    <div class="reg-input-group" id="box-website">
+                                        <span class="reg-input-icon"><i class="bi bi-globe"></i></span>
+                                        <input id="in-website" type="text" name="practice_website" class="reg-input" placeholder="www.example.com" oninput="clearError('website')" />
                                     </div>
-                                    <p id="err-website" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                    <p id="err-website" class="reg-err hidden"></p>
                                 </div>
-                                <!-- Preferred Language -->
+                                {{-- Preferred Language --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Preferred Language<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative">
-                                        <select id="in-language" name="preferred_language" required class="w-full h-[2.5rem] px-3 bg-white border border-[#d8d6de] rounded-[0.358rem] outline-none focus:border-vuexy-primary appearance-none" onchange="clearError('language')">
-                                            <option value="" disabled selected>Select language</option>
-                                            <option value="English">English</option>
-                                            <option value="Spanish">Spanish</option>
-                                            <option value="French">French</option>
-                                        </select>
-                                    </div>
-                                    <p id="err-language" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                    <label class="reg-label">Preferred Language<span class="reg-required">*</span></label>
+                                    <select id="in-language" name="preferred_language" required class="reg-select" onchange="clearError('language')">
+                                        <option value="English" selected>English</option>
+                                        <option value="Spanish">Spanish</option>
+                                        <option value="French">French</option>
+                                    </select>
+                                    <p id="err-language" class="reg-err hidden"></p>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Address Information Card -->
-                        <div id="step-address" class="bg-white rounded-[0.358rem] shadow-[0_4px_24px_0_rgba(34,41,47,0.1)] p-6 scroll-mt-6">
-                            <div class="mb-5">
-                                <h2 class="text-[1.3rem] font-medium text-vuexy-heading mb-1">Address Information</h2>
+                        {{-- Address Information Card --}}
+                        <div id="step-address" class="reg-card">
+                            <div class="reg-card-head">
+                                <h2>Address Information</h2>
+                                <p>Enter your address details</p>
                             </div>
                             {{-- Hidden inputs populated by the zip auto-fill JS --}}
                             <input type="hidden" name="city_id"    id="hid-city">
                             <input type="hidden" name="state_id"   id="hid-state">
                             <input type="hidden" name="country_id" id="hid-country">
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <!-- Street Address -->
+                            <div class="reg-grid">
+                                {{-- Street Address --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Street Address<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary" id="box-address1">
-                                        <input id="in-address1" type="text" name="street_address_1" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.95rem]" placeholder="Street address 1" oninput="clearError('address1')" />
+                                    <label class="reg-label">Street Address<span class="reg-required">*</span></label>
+                                    <div class="reg-input-group" id="box-address1">
+                                        <span class="reg-input-icon"><i class="bi bi-geo-alt"></i></span>
+                                        <input id="in-address1" type="text" name="street_address_1" class="reg-input" placeholder="Street address 1" oninput="clearError('address1')" />
                                     </div>
-                                    <p id="err-address1" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                    <p id="err-address1" class="reg-err hidden"></p>
                                 </div>
-                                <!-- Street Address 2 -->
+                                {{-- Street Address 2 --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Street Address 2</label>
-                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
-                                        <input id="in-address2" type="text" name="street_address_2" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.95rem]" placeholder="Street address 2" />
-                                    </div>
-                                </div>
-                                <!-- Zip (master-driven) -->
-                                <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Zip<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative">
-                                        <select id="in-zip" name="zip_id" required class="w-full h-[2.5rem] px-3 bg-white border border-[#d8d6de] rounded-[0.358rem] outline-none focus:border-vuexy-primary appearance-none" onchange="onRegZipChange()">
-                                            <option value="" disabled selected>Select zip code</option>
-                                            @foreach(($zipcodes ?? []) as $z)
-                                                <option value="{{ $z->id }}"
-                                                        data-city-id="{{ $z->city?->id }}"
-                                                        data-city="{{ $z->city?->name }}"
-                                                        data-state-id="{{ $z->city?->state?->id }}"
-                                                        data-state="{{ $z->city?->state?->name }}"
-                                                        data-country-id="{{ $z->city?->state?->country?->id }}"
-                                                        data-country="{{ $z->city?->state?->country?->name }}">
-                                                    {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <p id="err-zip" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
-                                </div>
-                                <!-- City (auto-filled, readonly) -->
-                                <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">City<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-[#f8f8f8] overflow-hidden">
-                                        <input id="in-city" type="text" class="flex-1 px-3 py-[0.5rem] bg-transparent outline-none text-[0.95rem]" placeholder="Auto-filled from zip" value="" readonly />
+                                    <label class="reg-label">Street Address 2</label>
+                                    <div class="reg-input-group">
+                                        <span class="reg-input-icon"><i class="bi bi-geo-alt"></i></span>
+                                        <input id="in-address2" type="text" name="street_address_2" class="reg-input" placeholder="Street address 2" />
                                     </div>
                                 </div>
-                                <!-- State/Province (auto-filled, readonly) -->
+                                {{-- Zip (master-driven) --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">State/Province<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-[#f8f8f8] overflow-hidden">
-                                        <input id="in-state" type="text" class="flex-1 px-3 py-[0.5rem] bg-transparent outline-none text-[0.95rem]" placeholder="Auto-filled from zip" value="" readonly />
+                                    <label class="reg-label">Zip<span class="reg-required">*</span></label>
+                                    <select id="in-zip" name="zip_id" required class="reg-select" onchange="onRegZipChange()">
+                                        <option value="" disabled selected>Select zip code</option>
+                                        @foreach(($zipcodes ?? []) as $z)
+                                            <option value="{{ $z->id }}"
+                                                    data-city-id="{{ $z->city?->id }}"
+                                                    data-city="{{ $z->city?->name }}"
+                                                    data-state-id="{{ $z->city?->state?->id }}"
+                                                    data-state="{{ $z->city?->state?->name }}"
+                                                    data-country-id="{{ $z->city?->state?->country?->id }}"
+                                                    data-country="{{ $z->city?->state?->country?->name }}">
+                                                {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <p id="err-zip" class="reg-err hidden"></p>
+                                </div>
+                                {{-- City (auto-filled, readonly) --}}
+                                <div>
+                                    <label class="reg-label">City<span class="reg-required">*</span></label>
+                                    <div class="reg-input-group" style="background:#f8f8f8">
+                                        <input id="in-city" type="text" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
                                 </div>
-                                <!-- Country (auto-filled, readonly) -->
+                                {{-- State/Province (auto-filled, readonly) --}}
                                 <div>
-                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Country<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-[#f8f8f8] overflow-hidden">
-                                        <input id="in-country" type="text" class="flex-1 px-3 py-[0.5rem] bg-transparent outline-none text-[0.95rem]" placeholder="Auto-filled from zip" value="" readonly />
+                                    <label class="reg-label">State/Province<span class="reg-required">*</span></label>
+                                    <div class="reg-input-group" style="background:#f8f8f8">
+                                        <input id="in-state" type="text" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" value="" readonly />
+                                    </div>
+                                </div>
+                                {{-- Country (auto-filled, readonly) --}}
+                                <div>
+                                    <label class="reg-label">Country<span class="reg-required">*</span></label>
+                                    <div class="reg-input-group" style="background:#f8f8f8">
+                                        <input id="in-country" type="text" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Additional -->
-                        <div id="step-additional" class="bg-white rounded-[0.358rem] shadow-[0_4px_24px_0_rgba(34,41,47,0.1)] p-6 scroll-mt-6">
-                            <div class="mb-5 flex justify-between items-start gap-4">
+                        {{-- Additional --}}
+                        <div id="step-additional" class="reg-card">
+                            <div class="reg-card-head-with-toggle">
                                 <div>
-                                    <h2 class="text-[1.3rem] font-medium text-vuexy-heading mb-1">Additional Doctor Information</h2>
-                                    <p class="text-[0.9rem] text-[#6e6b7b]">This information will automatically be saved to your account for all future submissions. You may edit this information at any time by visiting the My Profile tab.</p>
+                                    <h2 style="font-size:1.3rem; font-weight:500; color:#5e5873; margin:0 0 0.25rem;">Additional Doctor Information</h2>
+                                    <p style="font-size:0.9rem; color:#6e6b7b; margin:0;">This information will automatically be saved to your account for all future submissions. You may edit this information at any time by visiting the My Profile tab.</p>
                                 </div>
-                                <button type="button" onclick="toggleAdditionalInfo()" id="btn-toggle-add" class="bg-vuexy-primary text-white rounded-[0.358rem] w-8 h-8 flex items-center justify-center flex-shrink-0 hover:bg-vuexy-hover transition-colors">
-                                    <svg id="icon-collapse" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
-                                    <svg id="icon-expand" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                <button type="button" onclick="toggleAdditionalInfo()" id="btn-toggle-add" class="reg-expand-btn">
+                                    <i id="icon-collapse" class="bi bi-dash-lg" style="font-size:1.1rem"></i>
+                                    <i id="icon-expand" class="bi bi-plus-lg hidden" style="font-size:1.1rem"></i>
                                 </button>
                             </div>
 
-                            <div id="additional-info-body" class="space-y-6 transition-all duration-300">
-                                <!-- Orthodontic Services -->
+                            <div id="additional-info-body" class="reg-additional-body">
+                                {{-- Orthodontic Services --}}
                                 <div>
-                                    <label class="block text-[0.875rem] font-semibold text-[#5e5873] mb-2">Are you currently providing orthodontic services in your practice?</label>
-                                    <div class="space-y-1">
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="radio" name="providing_ortho" value="yes" class="w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Yes
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="radio" name="providing_ortho" value="no" class="w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> No
-                                        </label>
+                                    <label class="reg-section-label">Are you currently providing orthodontic services in your practice?</label>
+                                    <div class="reg-option-list">
+                                        <label class="reg-option"><input type="radio" name="providing_ortho" value="yes"> Yes</label>
+                                        <label class="reg-option"><input type="radio" name="providing_ortho" value="no"> No</label>
                                     </div>
                                 </div>
 
-                                <!-- Modalities (master-driven) -->
+                                {{-- Modalities (master-driven) --}}
                                 <div>
-                                    <label class="block text-[0.875rem] font-semibold text-[#5e5873] mb-2">What modalities are you currently/or planning to provide?</label>
-                                    <div class="space-y-1">
+                                    <label class="reg-section-label">What modalities are you currently/or planning to provide?</label>
+                                    <div class="reg-option-list">
                                         @foreach(($modalitiesList ?? collect()) as $opt)
-                                            <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                                <input type="checkbox" name="modalities[]" value="{{ $opt->id }}"
-                                                       @checked(in_array((string) $opt->id, (array) old('modalities', []), true))
-                                                       class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" />
+                                            <label class="reg-option">
+                                                <input type="checkbox" name="modalities[]" value="{{ $opt->id }}" @checked(in_array((string) $opt->id, (array) old('modalities', []), true))>
                                                 {{ $opt->name }}
                                             </label>
                                         @endforeach
                                     </div>
                                 </div>
 
-                                <!-- Specialties (master-driven) -->
+                                {{-- Specialties (master-driven) --}}
                                 <div>
-                                    <label class="block text-[0.875rem] font-semibold text-[#5e5873] mb-2">Specialties:</label>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-4">
+                                    <label class="reg-section-label">Specialties:</label>
+                                    <div class="reg-option-grid">
                                         @foreach(($specialtiesList ?? collect()) as $opt)
-                                            <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                                <input type="checkbox" name="specialties[]" value="{{ $opt->id }}"
-                                                       @checked(in_array((string) $opt->id, (array) old('specialties', []), true))
-                                                       class="rounded w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" />
+                                            <label class="reg-option">
+                                                <input type="checkbox" name="specialties[]" value="{{ $opt->id }}" @checked(in_array((string) $opt->id, (array) old('specialties', []), true))>
                                                 {{ $opt->name }}
                                             </label>
                                         @endforeach
                                     </div>
                                 </div>
 
-                                <!-- Preferred doctor contact information -->
+                                {{-- Preferred doctor contact information --}}
                                 <div>
-                                    <label class="block text-[0.875rem] font-semibold text-[#5e5873] mb-2">Preferred doctor contact information</label>
-                                    <div class="space-y-1 mb-4">
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="radio" onchange="toggleContactViews()" name="contact_preference" value="doctor" class="w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Doctor Only
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="radio" onchange="toggleContactViews()" name="contact_preference" value="employee" class="w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Employee/Office
-                                        </label>
-                                        <label class="flex items-center gap-2 cursor-pointer text-[0.875rem] text-[#6e6b7b]">
-                                            <input type="radio" onchange="toggleContactViews()" name="contact_preference" value="both" class="w-4 h-4 text-vuexy-primary focus:ring-vuexy-primary border-[#d8d6de]" /> Doctor and Employee/Office
-                                        </label>
+                                    <label class="reg-section-label">Preferred doctor contact information</label>
+                                    <div class="reg-option-list" style="margin-bottom:1rem;">
+                                        <label class="reg-option"><input type="radio" onchange="toggleContactViews()" name="contact_preference" value="doctor"> Doctor Only</label>
+                                        <label class="reg-option"><input type="radio" onchange="toggleContactViews()" name="contact_preference" value="employee"> Employee/Office</label>
+                                        <label class="reg-option"><input type="radio" onchange="toggleContactViews()" name="contact_preference" value="both"> Doctor and Employee/Office</label>
                                     </div>
 
-                                    <div id="contact-forms-container" class="space-y-4">
-                                        <!-- Doctor Form Box -->
-                                        <div id="form-box-doctor" class="hidden bg-[#fbfbfb] border border-[#d8d6de] rounded-[0.358rem] p-5">
-                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                                    <div id="contact-forms-container" style="display:flex; flex-direction:column; gap:1rem;">
+                                        {{-- Doctor Form Box --}}
+                                        <div id="form-box-doctor" class="reg-form-box hidden">
+                                            <div class="reg-grid" style="margin-bottom:1.25rem;">
                                                 <div>
-                                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Doctor Email<span class="text-[#ea5455]">*</span></label>
-                                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
-                                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></span>
-                                                        <input type="email" name="contact_doctor_email" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.9rem]" placeholder="name@example.com" />
+                                                    <label class="reg-label">Doctor Email<span class="reg-required">*</span></label>
+                                                    <div class="reg-input-group">
+                                                        <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
+                                                        <input type="email" name="contact_doctor_email" class="reg-input" placeholder="name@example.com" />
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Doctor Cell Phone Number</label>
-                                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
-                                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg></span>
-                                                        <input type="text" name="contact_doctor_phone" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.9rem]" placeholder="XXX-XXX-XXXX" />
+                                                    <label class="reg-label">Doctor Cell Phone Number</label>
+                                                    <div class="reg-input-group">
+                                                        <span class="reg-input-icon"><i class="bi bi-telephone"></i></span>
+                                                        <input type="text" name="contact_doctor_phone" class="reg-input" placeholder="XXX-XXX-XXXX" />
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div id="doctor-other-emails-list" class="space-y-4 mb-4">
+                                            <div id="doctor-other-emails-list" style="display:flex; flex-direction:column; gap:1rem; margin-bottom:1rem;">
                                                 <div>
-                                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Other Email</label>
-                                                    <div class="flex gap-2">
-                                                        <div class="relative flex-1 flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
-                                                            <span class="pl-3 pr-2 py-2 text-[#b9b9c3] border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></span>
-                                                            <input type="email" name="contact_doctor_other_emails[]" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.9rem]" placeholder="Enter other email" />
+                                                    <label class="reg-label">Other Email</label>
+                                                    <div class="reg-email-row">
+                                                        <div class="reg-input-group">
+                                                            <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
+                                                            <input type="email" name="contact_doctor_other_emails[]" class="reg-input" placeholder="Enter other email" />
                                                         </div>
-                                                        <button type="button" onclick="this.parentElement.remove()" class="w-10 h-10 flex items-center justify-center bg-[#ea545520] text-[#ea5455] rounded-[0.358rem] hover:bg-[#ea545530] transition-colors">
-                                                            <svg class="h-[1.1rem] w-[1.1rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                        </button>
+                                                        <button type="button" onclick="this.parentElement.parentElement.remove()" class="reg-btn-delete"><i class="bi bi-trash"></i></button>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button type="button" onclick="addEmailRow('doctor-other-emails-list')" class="bg-vuexy-primary text-white px-4 py-[0.5rem] rounded-[0.358rem] text-[0.85rem] font-medium hover:bg-vuexy-hover transition-colors shadow-sm">
-                                                + Add Other Email
-                                            </button>
+                                            <button type="button" onclick="addEmailRow('doctor-other-emails-list')" class="reg-btn-primary">+ Add Other Email</button>
                                         </div>
 
-                                        <!-- Employee Form Box -->
-                                        <div id="form-box-employee" class="hidden bg-[#fbfbfb] border border-[#d8d6de] rounded-[0.358rem] p-5">
-                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                                        {{-- Employee Form Box --}}
+                                        <div id="form-box-employee" class="reg-form-box hidden">
+                                            <div class="reg-grid" style="margin-bottom:1.25rem;">
                                                 <div>
-                                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Employee Name<span class="text-[#ea5455]">*</span></label>
-                                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
-                                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></span>
-                                                        <input type="text" name="contact_emp_name" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.9rem]" placeholder="Enter name" />
+                                                    <label class="reg-label">Employee Name<span class="reg-required">*</span></label>
+                                                    <div class="reg-input-group">
+                                                        <span class="reg-input-icon"><i class="bi bi-person"></i></span>
+                                                        <input type="text" name="contact_emp_name" class="reg-input" placeholder="Enter name" />
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Employee Title<span class="text-[#ea5455]">*</span></label>
-                                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
-                                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path></svg></span>
-                                                        <input type="text" name="contact_emp_title" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.9rem]" placeholder="Enter title" />
+                                                    <label class="reg-label">Employee Title<span class="reg-required">*</span></label>
+                                                    <div class="reg-input-group">
+                                                        <span class="reg-input-icon"><i class="bi bi-briefcase"></i></span>
+                                                        <input type="text" name="contact_emp_title" class="reg-input" placeholder="Enter title" />
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Office/Employee Email<span class="text-[#ea5455]">*</span></label>
-                                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
-                                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></span>
-                                                        <input type="email" name="contact_emp_email" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.9rem]" placeholder="Enter office/employee email" />
+                                                    <label class="reg-label">Office/Employee Email<span class="reg-required">*</span></label>
+                                                    <div class="reg-input-group">
+                                                        <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
+                                                        <input type="email" name="contact_emp_email" class="reg-input" placeholder="Enter office/employee email" />
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Office/Employee Cell Phone Number<span class="text-[#ea5455]">*</span></label>
-                                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
-                                                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg></span>
-                                                        <input type="text" name="contact_emp_phone" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.9rem]" placeholder="XXX-XXX-XXXX" />
+                                                    <label class="reg-label">Office/Employee Cell Phone Number<span class="reg-required">*</span></label>
+                                                    <div class="reg-input-group">
+                                                        <span class="reg-input-icon"><i class="bi bi-telephone"></i></span>
+                                                        <input type="text" name="contact_emp_phone" class="reg-input" placeholder="XXX-XXX-XXXX" />
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div id="employee-other-emails-list" class="space-y-4 mb-4">
+                                            <div id="employee-other-emails-list" style="display:flex; flex-direction:column; gap:1rem; margin-bottom:1rem;">
                                                 <div>
-                                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Other Email</label>
-                                                    <div class="flex gap-2">
-                                                        <div class="relative flex-1 flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
-                                                            <span class="pl-3 pr-2 py-2 text-[#b9b9c3] border-r border-[#d8d6de] bg-white"><svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></span>
-                                                            <input type="email" name="contact_emp_other_emails[]" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.9rem]" placeholder="Enter other email" />
+                                                    <label class="reg-label">Other Email</label>
+                                                    <div class="reg-email-row">
+                                                        <div class="reg-input-group">
+                                                            <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
+                                                            <input type="email" name="contact_emp_other_emails[]" class="reg-input" placeholder="Enter other email" />
                                                         </div>
-                                                        <button type="button" onclick="this.parentElement.remove()" class="w-10 h-10 flex items-center justify-center bg-[#ea545520] text-[#ea5455] rounded-[0.358rem] hover:bg-[#ea545530] transition-colors">
-                                                            <svg class="h-[1.1rem] w-[1.1rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                        </button>
+                                                        <button type="button" onclick="this.parentElement.parentElement.remove()" class="reg-btn-delete"><i class="bi bi-trash"></i></button>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button type="button" onclick="addEmailRow('employee-other-emails-list')" class="bg-vuexy-primary text-white px-4 py-[0.5rem] rounded-[0.358rem] text-[0.85rem] font-medium hover:bg-vuexy-hover transition-colors shadow-sm">
-                                                + Add Other Email
-                                            </button>
+                                            <button type="button" onclick="addEmailRow('employee-other-emails-list')" class="reg-btn-primary">+ Add Other Email</button>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <!-- Doctor Preferences Box -->
-                <div class="mb-5 bg-[#fcfcfc] border border-[#ebe9f1] rounded-md overflow-hidden flex flex-col">
-                    <div class="bg-white border-b border-[#ebe9f1] p-3 pl-4">
-                        <span class="font-bold text-[#5e5873] text-[0.95rem]">Doctor Preferences</span>
-                    </div>
-                    
-                    <div class="overflow-y-auto max-h-[500px] custom-scrollbar bg-white relative">
-                        <!-- Preferred Treatment Modality -->
-                        <div class="p-4 pt-5 border-b border-[#ebe9f1]">
-                            <p class="font-medium text-[#5e5873] mb-3 text-[0.95rem]">Preferred Treatment Modality</p>
-                            <div class="space-y-2">
-                                @foreach(($treatmentModalitiesList ?? collect()) as $opt)
-                                    <label class="flex items-center cursor-pointer">
-                                        <input type="checkbox" name="treatment_modalities[]" value="{{ $opt->id }}"
-                                               @checked(in_array((string) $opt->id, (array) old('treatment_modalities', []), true))
-                                               class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                        <span class="text-[#6e6b7b] text-[0.95rem]">{{ $opt->name }}</span>
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
+                                {{-- Doctor Preferences Box --}}
+                                <div class="reg-pref-panel">
+                                    <div class="reg-pref-header-bar">Doctor Preferences</div>
+                                    <div class="reg-pref-scroll">
 
-                        <!-- Preferred Tooth Numbering System -->
-                        <div class="p-4 pt-5 border-b border-[#ebe9f1]">
-                            <p class="font-medium text-[#5e5873] mb-3 text-[0.95rem]">Preferred Tooth Numbering System</p>
-                            <div class="space-y-2">
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="tooth_numbering" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]" checked>
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Universal (1-32)</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="tooth_numbering" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">FDI (11-48)</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="tooth_numbering" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Palmer (UR1-UR8)</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="tooth_numbering" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">International (11-48)</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Smile Arc -->
-                        <div class="p-4 pt-5 border-b border-[#ebe9f1]">
-                            <p class="font-medium text-[#5e5873] mb-3 text-[0.95rem]">Smile Arc</p>
-                            <div class="space-y-2">
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="smile_arc" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]" checked>
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Defer to orthobrain®</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="smile_arc" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Lateral incisors .5mm shorter than central incisors</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="smile_arc" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Lateral incisors same length as central incisors</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Treatment of Small Lateral Incisors -->
-                        <div class="p-4 pt-5 border-b border-[#ebe9f1]">
-                            <p class="font-medium text-[#5e5873] mb-3 text-[0.95rem]">Treatment of Small Lateral Incisors</p>
-                            <div class="space-y-2">
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="lateral_incisors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]" checked>
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Defer to orthobrain®</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="lateral_incisors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Interproximal Reduction (IPR) on lower arch to camouflage</span>
-                                </label>
-                                <label class="flex items-center cursor-pointer">
-                                    <input type="radio" name="lateral_incisors" class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Leave spacing mesial and distal to maxillary laterals for future cosmetic correction</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Buccal Corridors (master-driven, multi-select) -->
-                        <div class="p-4 pt-5 border-b border-[#ebe9f1]">
-                            <p class="font-medium text-[#5e5873] mb-3 text-[0.95rem]">Buccal Corridors</p>
-                            <div class="space-y-2">
-                                @foreach(($buccalCorridorsList ?? collect()) as $opt)
-                                    <label class="flex items-center cursor-pointer">
-                                        <input type="checkbox" name="buccal_corridors[]" value="{{ $opt->id }}"
-                                               @checked(in_array((string) $opt->id, (array) old('buccal_corridors', []), true))
-                                               class="mr-2 w-4 h-4 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                        <span class="text-[#6e6b7b] text-[0.95rem]">{!! $opt->name !!}</span>
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
-
-                        <!-- Mixed Dentition and Bite Correcting Appliances -->
-                        <div class="p-4 pt-5 border-b border-[#ebe9f1]">
-                            <p class="font-medium text-[#5e5873] mb-3 text-[0.95rem]">Mixed Dentition and Bite Correcting Appliances</p>
-                            <div class="space-y-2">
-                                <label class="flex items-start cursor-pointer">
-                                    <input type="radio" name="mixed_dentition" class="mr-2 w-4 h-4 mt-1 text-[#5bc0de] focus:ring-[#5bc0de]" checked>
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Defer to orthobrain®</span>
-                                </label>
-                                <label class="flex items-start cursor-pointer">
-                                    <input type="radio" name="mixed_dentition" class="mr-2 w-4 h-4 mt-1 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem] leading-relaxed">I prefer not to use any growth and adjunctive appliances (e.g., expanders, bite planes, bit correctors, herbst, etc.) and request a proposal for a best outcome without an appliance knowing and fully understanding that this may not be an ideal Perfect Smile Plan for optimal results.</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Orthodontic Extractions -->
-                        <div class="p-4 pt-5 border-b border-[#ebe9f1]">
-                            <p class="font-medium text-[#5e5873] mb-3 text-[0.95rem]">Orthodontic Extractions</p>
-                            <div class="space-y-2">
-                                <label class="flex items-start cursor-pointer">
-                                    <input type="radio" name="ortho_extractions" class="mr-2 w-4 h-4 mt-1 text-[#5bc0de] focus:ring-[#5bc0de]" checked>
-                                    <span class="text-[#6e6b7b] text-[0.95rem]">Defer to orthobrain®</span>
-                                </label>
-                                <label class="flex items-start cursor-pointer">
-                                    <input type="radio" name="ortho_extractions" class="mr-2 w-4 h-4 mt-1 text-[#5bc0de] focus:ring-[#5bc0de]">
-                                    <span class="text-[#6e6b7b] text-[0.95rem] leading-relaxed">I prefer not to extract teeth and request a proposal for a best outcome without extractions fully knowing and fully understanding that this may not be an ideal treatment plan for optimal results.</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Preferences (Toggles) -->
-                        <div class="p-4 pt-5 pb-6 relative">
-                            <p class="font-medium text-[#5e5873] mb-4 text-[0.95rem]">Preferences</p>
-                            <div class="space-y-5">
-                                
-                                <!-- IPR Protocol -->
-                                <div>
-                                    <label class="flex items-center cursor-pointer">
-                                        <div class="relative">
-                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('ipr-options').classList.toggle('hidden')">
-                                            <div class="w-10 h-[22px] bg-[#ebe9f1] rounded-full shadow-inner custom-toggle-bg transition-colors"></div>
-                                            <div class="dot absolute w-4 h-4 bg-white rounded-full shadow right-1 top-[3px] transition-transform"></div>
+                                        {{-- Preferred Treatment Modality --}}
+                                        <div class="reg-pref-section">
+                                            <p class="reg-pref-title">Preferred Treatment Modality</p>
+                                            <div class="reg-pref-list">
+                                                @foreach(($treatmentModalitiesList ?? collect()) as $opt)
+                                                    <label class="reg-pref-item">
+                                                        <input type="checkbox" name="treatment_modalities[]" value="{{ $opt->id }}" @checked(in_array((string) $opt->id, (array) old('treatment_modalities', []), true))>
+                                                        <span>{{ $opt->name }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
                                         </div>
-                                        <div class="ml-3 text-[0.95rem] text-[#6e6b7b]">IPR Protocol</div>
-                                    </label>
-                                    <div id="ipr-options" class="hidden mt-3 p-4 bg-[#f8f8f8] rounded-md space-y-2 border border-[#ebe9f1]">
-                                        <label class="flex items-center cursor-pointer"><input type="radio" name="ipr_opt" class="mr-2 text-[#5bc0de] focus:ring-[#5bc0de]" checked><span class="text-[#6e6b7b] text-[0.9rem]">Defer to orthobrain®</span></label>
-                                        <label class="flex items-center cursor-pointer"><input type="radio" name="ipr_opt" class="mr-2 text-[#5bc0de] focus:ring-[#5bc0de]"><span class="text-[#6e6b7b] text-[0.9rem]">No IPR</span></label>
-                                        <label class="flex items-center cursor-pointer"><input type="radio" name="ipr_opt" class="mr-2 text-[#5bc0de] focus:ring-[#5bc0de]"><span class="text-[#6e6b7b] text-[0.9rem]">Other</span></label>
+
+                                        {{-- Preferred Tooth Numbering System --}}
+                                        <div class="reg-pref-section">
+                                            <p class="reg-pref-title">Preferred Tooth Numbering System</p>
+                                            <div class="reg-pref-list">
+                                                <label class="reg-pref-item"><input type="radio" name="tooth_numbering" checked><span>Universal (1-32)</span></label>
+                                                <label class="reg-pref-item"><input type="radio" name="tooth_numbering"><span>FDI (11-48)</span></label>
+                                                <label class="reg-pref-item"><input type="radio" name="tooth_numbering"><span>Palmer (UR1-UR8)</span></label>
+                                                <label class="reg-pref-item"><input type="radio" name="tooth_numbering"><span>International (11-48)</span></label>
+                                            </div>
+                                        </div>
+
+                                        {{-- Smile Arc --}}
+                                        <div class="reg-pref-section">
+                                            <p class="reg-pref-title">Smile Arc</p>
+                                            <div class="reg-pref-list">
+                                                <label class="reg-pref-item"><input type="radio" name="smile_arc" checked><span>Defer to orthobrain&reg;</span></label>
+                                                <label class="reg-pref-item"><input type="radio" name="smile_arc"><span>Lateral incisors .5mm shorter than central incisors</span></label>
+                                                <label class="reg-pref-item"><input type="radio" name="smile_arc"><span>Lateral incisors same length as central incisors</span></label>
+                                            </div>
+                                        </div>
+
+                                        {{-- Treatment of Small Lateral Incisors --}}
+                                        <div class="reg-pref-section">
+                                            <p class="reg-pref-title">Treatment of Small Lateral Incisors</p>
+                                            <div class="reg-pref-list">
+                                                <label class="reg-pref-item"><input type="radio" name="lateral_incisors" checked><span>Defer to orthobrain&reg;</span></label>
+                                                <label class="reg-pref-item"><input type="radio" name="lateral_incisors"><span>Interproximal Reduction (IPR) on lower arch to camouflage</span></label>
+                                                <label class="reg-pref-item"><input type="radio" name="lateral_incisors"><span>Leave spacing mesial and distal to maxillary laterals for future cosmetic correction</span></label>
+                                            </div>
+                                        </div>
+
+                                        {{-- Buccal Corridors --}}
+                                        <div class="reg-pref-section">
+                                            <p class="reg-pref-title">Buccal Corridors</p>
+                                            <div class="reg-pref-list">
+                                                @foreach(($buccalCorridorsList ?? collect()) as $opt)
+                                                    <label class="reg-pref-item">
+                                                        <input type="checkbox" name="buccal_corridors[]" value="{{ $opt->id }}" @checked(in_array((string) $opt->id, (array) old('buccal_corridors', []), true))>
+                                                        <span>{!! $opt->name !!}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
+
+                                        {{-- Mixed Dentition --}}
+                                        <div class="reg-pref-section">
+                                            <p class="reg-pref-title">Mixed Dentition and Bite Correcting Appliances</p>
+                                            <div class="reg-pref-list">
+                                                <label class="reg-pref-item align-start"><input type="radio" name="mixed_dentition" checked><span>Defer to orthobrain&reg;</span></label>
+                                                <label class="reg-pref-item align-start"><input type="radio" name="mixed_dentition"><span>I prefer not to use any growth and adjunctive appliances (e.g., expanders, bite planes, bit correctors, herbst, etc.) and request a proposal for a best outcome without an appliance knowing and fully understanding that this may not be an ideal Perfect Smile Plan for optimal results.</span></label>
+                                            </div>
+                                        </div>
+
+                                        {{-- Orthodontic Extractions --}}
+                                        <div class="reg-pref-section">
+                                            <p class="reg-pref-title">Orthodontic Extractions</p>
+                                            <div class="reg-pref-list">
+                                                <label class="reg-pref-item align-start"><input type="radio" name="ortho_extractions" checked><span>Defer to orthobrain&reg;</span></label>
+                                                <label class="reg-pref-item align-start"><input type="radio" name="ortho_extractions"><span>I prefer not to extract teeth and request a proposal for a best outcome without extractions fully knowing and fully understanding that this may not be an ideal treatment plan for optimal results.</span></label>
+                                            </div>
+                                        </div>
+
+                                        {{-- Preferences (Toggles) --}}
+                                        <div class="reg-pref-section" style="border-bottom:0; padding-bottom:1.5rem;">
+                                            <p class="reg-pref-title" style="margin-bottom:1rem;">Preferences</p>
+                                            <div class="reg-toggle-group">
+
+                                                {{-- IPR Protocol --}}
+                                                <div>
+                                                    <label class="reg-toggle-label">
+                                                        <span class="reg-toggle-switch">
+                                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('ipr-options').classList.toggle('hidden')">
+                                                            <span class="reg-toggle-bg"></span>
+                                                            <span class="reg-toggle-dot"></span>
+                                                        </span>
+                                                        <span class="reg-toggle-text">IPR Protocol</span>
+                                                    </label>
+                                                    <div id="ipr-options" class="reg-toggle-panel hidden">
+                                                        <label class="reg-pref-item"><input type="radio" name="ipr_opt" checked><span style="font-size:0.9rem;">Defer to orthobrain&reg;</span></label>
+                                                        <label class="reg-pref-item"><input type="radio" name="ipr_opt"><span style="font-size:0.9rem;">No IPR</span></label>
+                                                        <label class="reg-pref-item"><input type="radio" name="ipr_opt"><span style="font-size:0.9rem;">Other</span></label>
+                                                    </div>
+                                                </div>
+
+                                                {{-- Attachments --}}
+                                                <div>
+                                                    <label class="reg-toggle-label">
+                                                        <span class="reg-toggle-switch">
+                                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('attachment-options').classList.toggle('hidden')">
+                                                            <span class="reg-toggle-bg"></span>
+                                                            <span class="reg-toggle-dot"></span>
+                                                        </span>
+                                                        <span class="reg-toggle-text">Attachments</span>
+                                                    </label>
+                                                    <div id="attachment-options" class="reg-toggle-panel hidden">
+                                                        <label class="reg-pref-item"><input type="radio" name="attachment_opt" checked><span style="font-size:0.9rem;">At Aligner Step 1</span></label>
+                                                        <label class="reg-pref-item"><input type="radio" name="attachment_opt"><span style="font-size:0.9rem;">At Aligner Step</span></label>
+                                                    </div>
+                                                </div>
+
+                                                {{-- Elastics/Bonded Buttons --}}
+                                                <div>
+                                                    <label class="reg-toggle-label">
+                                                        <span class="reg-toggle-switch">
+                                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('elastics-options').classList.toggle('hidden')">
+                                                            <span class="reg-toggle-bg"></span>
+                                                            <span class="reg-toggle-dot"></span>
+                                                        </span>
+                                                        <span class="reg-toggle-text">Elastics/Bonded Buttons</span>
+                                                    </label>
+                                                    <div id="elastics-options" class="reg-toggle-panel hidden">
+                                                        <label class="reg-pref-item"><input type="radio" name="elastics_opt" checked><span style="font-size:0.9rem;">Yes</span></label>
+                                                        <label class="reg-pref-item"><input type="radio" name="elastics_opt"><span style="font-size:0.9rem;">No</span></label>
+                                                    </div>
+                                                </div>
+
+                                                {{-- Extractions if suggested --}}
+                                                <div>
+                                                    <label class="reg-toggle-label">
+                                                        <span class="reg-toggle-switch">
+                                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('extractions-options').classList.toggle('hidden')">
+                                                            <span class="reg-toggle-bg"></span>
+                                                            <span class="reg-toggle-dot"></span>
+                                                        </span>
+                                                        <span class="reg-toggle-text">Extractions if suggested</span>
+                                                    </label>
+                                                    <div id="extractions-options" class="reg-toggle-panel hidden">
+                                                        <label class="reg-pref-item"><input type="radio" name="extractions_opt" checked><span style="font-size:0.9rem;">Yes</span></label>
+                                                        <label class="reg-pref-item"><input type="radio" name="extractions_opt"><span style="font-size:0.9rem;">No</span></label>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+
+                                            {{-- Back to Top --}}
+                                            <div class="reg-back-to-top" onclick="this.closest('.reg-pref-scroll').scrollTo({top: 0, behavior: 'smooth'});">
+                                                <i class="bi bi-arrow-up" style="font-size:1rem"></i>
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
-
-                                <!-- Attachments -->
-                                <div>
-                                    <label class="flex items-center cursor-pointer">
-                                        <div class="relative">
-                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('attachment-options').classList.toggle('hidden')">
-                                            <div class="w-10 h-[22px] bg-[#ebe9f1] rounded-full shadow-inner custom-toggle-bg transition-colors"></div>
-                                            <div class="dot absolute w-4 h-4 bg-white rounded-full shadow right-1 top-[3px] transition-transform"></div>
-                                        </div>
-                                        <div class="ml-3 text-[0.95rem] text-[#6e6b7b]">Attachments</div>
-                                    </label>
-                                    <div id="attachment-options" class="hidden mt-3 p-4 bg-[#f8f8f8] rounded-md space-y-2 border border-[#ebe9f1]">
-                                        <label class="flex items-center cursor-pointer"><input type="radio" name="attachment_opt" class="mr-2 text-[#5bc0de] focus:ring-[#5bc0de]" checked><span class="text-[#6e6b7b] text-[0.9rem]">At Aligner Step 1</span></label>
-                                        <label class="flex items-center cursor-pointer"><input type="radio" name="attachment_opt" class="mr-2 text-[#5bc0de] focus:ring-[#5bc0de]"><span class="text-[#6e6b7b] text-[0.9rem]">At Aligner Step</span></label>
-                                    </div>
-                                </div>
-
-                                <!-- Elastics/Bonded Buttons -->
-                                <div>
-                                    <label class="flex items-center cursor-pointer">
-                                        <div class="relative">
-                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('elastics-options').classList.toggle('hidden')">
-                                            <div class="w-10 h-[22px] bg-[#ebe9f1] rounded-full shadow-inner custom-toggle-bg transition-colors"></div>
-                                            <div class="dot absolute w-4 h-4 bg-white rounded-full shadow right-1 top-[3px] transition-transform"></div>
-                                        </div>
-                                        <div class="ml-3 text-[0.95rem] text-[#6e6b7b]">Elastics/Bonded Buttons</div>
-                                    </label>
-                                    <div id="elastics-options" class="hidden mt-3 p-4 bg-[#f8f8f8] rounded-md space-y-2 border border-[#ebe9f1]">
-                                        <label class="flex items-center cursor-pointer"><input type="radio" name="elastics_opt" class="mr-2 text-[#5bc0de] focus:ring-[#5bc0de]" checked><span class="text-[#6e6b7b] text-[0.9rem]">Yes</span></label>
-                                        <label class="flex items-center cursor-pointer"><input type="radio" name="elastics_opt" class="mr-2 text-[#5bc0de] focus:ring-[#5bc0de]"><span class="text-[#6e6b7b] text-[0.9rem]">No</span></label>
-                                    </div>
-                                </div>
-
-                                <!-- Extractions if suggested -->
-                                <div>
-                                    <label class="flex items-center cursor-pointer">
-                                        <div class="relative">
-                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('extractions-options').classList.toggle('hidden')">
-                                            <div class="w-10 h-[22px] bg-[#ebe9f1] rounded-full shadow-inner custom-toggle-bg transition-colors"></div>
-                                            <div class="dot absolute w-4 h-4 bg-white rounded-full shadow right-1 top-[3px] transition-transform"></div>
-                                        </div>
-                                        <div class="ml-3 text-[0.95rem] text-[#6e6b7b]">Extractions if suggested</div>
-                                    </label>
-                                    <div id="extractions-options" class="hidden mt-3 p-4 bg-[#f8f8f8] rounded-md space-y-2 border border-[#ebe9f1]">
-                                        <label class="flex items-center cursor-pointer"><input type="radio" name="extractions_opt" class="mr-2 text-[#5bc0de] focus:ring-[#5bc0de]" checked><span class="text-[#6e6b7b] text-[0.9rem]">Yes</span></label>
-                                        <label class="flex items-center cursor-pointer"><input type="radio" name="extractions_opt" class="mr-2 text-[#5bc0de] focus:ring-[#5bc0de]"><span class="text-[#6e6b7b] text-[0.9rem]">No</span></label>
-                                    </div>
-                                </div>
-                                
-                            </div>
-                            
-                            <!-- Back to Top pseudo-button matching screenshot -->
-                            <div class="sticky bottom-0 bg-[#5bc0de] text-white w-8 h-8 rounded-[0.358rem] flex justify-center items-center cursor-pointer opacity-90 shadow float-right mt-[-30px] z-10 hover:bg-[#46b8da]" onclick="this.parentElement.parentElement.scrollTo({top: 0, behavior: 'smooth'});">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
                             </div>
 
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-                        <!-- Global: Terms and SMS Checkboxes (outside Additional Doctor Information) -->
-                        <div class="mt-6 px-2 space-y-2">
-                            <label class="flex items-start text-[#6e6b7b] text-[0.9rem] cursor-pointer">
-                                <input type="checkbox" name="terms_agreed" onchange="clearError('terms')" class="mt-[0.2rem] mr-3 w-[1.1rem] h-[1.1rem] text-[#5bc0de] focus:ring-[#5bc0de] border-[#d8d6de] rounded-[0.2rem] transition-all cursor-pointer" />
-                                <span>By creating an account at orthobrain you accept the <a href="#" class="text-[#5bc0de] hover:underline cursor-pointer">Terms and Conditions</a>.</span><span class="text-[#ea5455]">*</span>
+                        {{-- Global: Terms and SMS Checkboxes --}}
+                        <div class="reg-terms-wrap">
+                            <label class="reg-terms-label">
+                                <input type="checkbox" name="terms_agreed" onchange="clearError('terms')" />
+                                <span>By creating an account at orthobrain you accept the <a href="#" class="reg-terms-link">Terms and Conditions</a>.<span class="reg-required">*</span></span>
                             </label>
-                            <p id="err-terms" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
-                            <label class="flex items-start text-[#6e6b7b] text-[0.9rem] cursor-pointer">
-                                <input type="checkbox" name="sms_agreed" class="mt-[0.2rem] mr-3 w-[1.1rem] h-[1.1rem] text-[#5bc0de] focus:ring-[#5bc0de] border-[#d8d6de] rounded-[0.2rem] transition-all cursor-pointer" />
-                                <span class="flex items-center">I agree to receive SMS messages for authentication purposes.
-                                    <svg class="w-[1.1rem] h-[1.1rem] ml-1.5 text-[#5e5873] opacity-70 cursor-pointer" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                            <p id="err-terms" class="reg-err hidden"></p>
+                            <label class="reg-terms-label">
+                                <input type="checkbox" name="sms_agreed" />
+                                <span style="display:inline-flex; align-items:center;">I agree to receive SMS messages for authentication purposes.
+                                    <i class="bi bi-info-circle" style="margin-left:0.375rem; color:#5e5873; opacity:0.7; cursor:pointer;"></i>
                                 </span>
                             </label>
                         </div>
 
-                        <!-- Action Buttons -->
-                        <div class="flex justify-end items-center gap-4 mt-6 border-t border-[#ebe9f1] pt-6">
-                            <a href="{{ url('/login') }}" class="px-5 py-[0.6rem] bg-[#5bc0de] hover:bg-[#46b8da] text-white rounded-[0.358rem] font-medium shadow-sm transition-colors text-[0.95rem]">Back to Login</a>
-                            <button type="button" onclick="validateForm()" class="px-5 py-[0.6rem] bg-[#8cc63f] hover:bg-[#7cb038] text-white rounded-[0.358rem] font-medium shadow-sm transition-colors text-[0.95rem] tracking-wide">Submit</button>
+                        {{-- Action Buttons --}}
+                        <div class="reg-actions">
+                            <a href="{{ url('/login') }}" class="reg-btn-back">Back to Login</a>
+                            <button type="button" onclick="validateForm()" class="reg-btn-submit">Submit</button>
                         </div>
                     </form>
                 </main>
@@ -792,17 +868,15 @@
                 const inputName = isDoctor ? 'contact_doctor_other_emails[]' : 'contact_emp_other_emails[]';
                 
                 const row = document.createElement('div');
-                row.className = 'flex gap-2';
                 row.innerHTML = `
-                    <div class="relative flex-1 flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
-                        <span class="pl-3 pr-2 py-2 text-[#b9b9c3] border-r border-[#d8d6de] bg-white">
-                            <svg class="h-[1.15rem] w-[1.15rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                        </span>
-                        <input type="email" name="${inputName}" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.9rem]" placeholder="Enter other email" />
+                    <label class="reg-label">Other Email</label>
+                    <div class="reg-email-row">
+                        <div class="reg-input-group">
+                            <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
+                            <input type="email" name="${inputName}" class="reg-input" placeholder="Enter other email" />
+                        </div>
+                        <button type="button" onclick="this.parentElement.parentElement.parentElement.remove()" class="reg-btn-delete"><i class="bi bi-trash"></i></button>
                     </div>
-                    <button type="button" onclick="this.parentElement.remove()" class="w-10 h-10 flex items-center justify-center bg-[#ea545520] text-[#ea5455] rounded-[0.358rem] hover:bg-[#ea545530] transition-colors">
-                        <svg class="h-[1.1rem] w-[1.1rem]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
                 `;
                 container.appendChild(row);
             }
@@ -832,7 +906,7 @@
             }
 
             // ScrollSpy Navigation Logic
-            const navItems = document.querySelectorAll('.nav-item');
+            const navItems = document.querySelectorAll('.reg-nav-item');
             const sections = document.querySelectorAll('div[id^="step-"]');
 
             let isNavigating = false;
