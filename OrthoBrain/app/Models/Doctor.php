@@ -55,4 +55,19 @@ class Doctor extends Model
     {
         return $this->belongsTo(Admin::class, 'approved_by_admin_id');
     }
+
+    public function addresses()
+    {
+        return $this->hasMany(DoctorAddress::class);
+    }
+
+    public function shippingAddresses()
+    {
+        return $this->hasMany(DoctorAddress::class)->where('type', 'shipping');
+    }
+
+    public function billingAddresses()
+    {
+        return $this->hasMany(DoctorAddress::class)->where('type', 'billing');
+    }
 }

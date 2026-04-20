@@ -274,6 +274,11 @@
                             <div class="mb-5">
                                 <h2 class="text-[1.3rem] font-medium text-vuexy-heading mb-1">Address Information</h2>
                             </div>
+                            {{-- Hidden inputs populated by the zip auto-fill JS --}}
+                            <input type="hidden" name="city_id"    id="hid-city">
+                            <input type="hidden" name="state_id"   id="hid-state">
+                            <input type="hidden" name="country_id" id="hid-country">
+
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <!-- Street Address -->
                                 <div>
@@ -283,41 +288,54 @@
                                     </div>
                                     <p id="err-address1" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
                                 </div>
-                                <!-- Zip Code -->
+                                <!-- Street Address 2 -->
+                                <div>
+                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Street Address 2</label>
+                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-white transition-all overflow-hidden focus-within:border-vuexy-primary">
+                                        <input id="in-address2" type="text" name="street_address_2" class="flex-1 px-3 py-[0.5rem] outline-none text-[0.95rem]" placeholder="Street address 2" />
+                                    </div>
+                                </div>
+                                <!-- Zip (master-driven) -->
                                 <div>
                                     <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Zip<span class="text-[#ea5455]">*</span></label>
                                     <div class="relative">
-                                        <select id="in-zip" name="zip" required class="w-full h-[2.5rem] px-3 bg-white border border-[#d8d6de] rounded-[0.358rem] outline-none focus:border-vuexy-primary appearance-none" onchange="clearError('zip')">
+                                        <select id="in-zip" name="zip_id" required class="w-full h-[2.5rem] px-3 bg-white border border-[#d8d6de] rounded-[0.358rem] outline-none focus:border-vuexy-primary appearance-none" onchange="onRegZipChange()">
                                             <option value="" disabled selected>Select zip code</option>
-                                            <option value="10001">10001 - NY</option>
-                                            <option value="90210">90210 - CA</option>
+                                            @foreach(($zipcodes ?? []) as $z)
+                                                <option value="{{ $z->id }}"
+                                                        data-city-id="{{ $z->city?->id }}"
+                                                        data-city="{{ $z->city?->name }}"
+                                                        data-state-id="{{ $z->city?->state?->id }}"
+                                                        data-state="{{ $z->city?->state?->name }}"
+                                                        data-country-id="{{ $z->city?->state?->country?->id }}"
+                                                        data-country="{{ $z->city?->state?->country?->name }}">
+                                                    {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
+                                                </option>
+                                            @endforeach
                                         </select>
                                     </div>
                                     <p id="err-zip" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
                                 </div>
-                                <!-- City -->
+                                <!-- City (auto-filled, readonly) -->
                                 <div>
                                     <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">City<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative">
-                                        <select id="in-city" name="city" required class="w-full h-[2.5rem] px-3 bg-white border border-[#d8d6de] rounded-[0.358rem] outline-none focus:border-vuexy-primary appearance-none" onchange="clearError('city')">
-                                            <option value="" disabled selected>Select city</option>
-                                            <option value="New York">New York</option>
-                                            <option value="Beverly Hills">Beverly Hills</option>
-                                        </select>
+                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-[#f8f8f8] overflow-hidden">
+                                        <input id="in-city" type="text" class="flex-1 px-3 py-[0.5rem] bg-transparent outline-none text-[0.95rem]" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
-                                    <p id="err-city" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
                                 </div>
-                                <!-- State/Province -->
+                                <!-- State/Province (auto-filled, readonly) -->
                                 <div>
                                     <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">State/Province<span class="text-[#ea5455]">*</span></label>
-                                    <div class="relative">
-                                        <select id="in-state" name="state" required class="w-full h-[2.5rem] px-3 bg-white border border-[#d8d6de] rounded-[0.358rem] outline-none focus:border-vuexy-primary appearance-none" onchange="clearError('state')">
-                                            <option value="" disabled selected>Select state</option>
-                                            <option value="NY">New York</option>
-                                            <option value="CA">California</option>
-                                        </select>
+                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-[#f8f8f8] overflow-hidden">
+                                        <input id="in-state" type="text" class="flex-1 px-3 py-[0.5rem] bg-transparent outline-none text-[0.95rem]" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
-                                    <p id="err-state" class="text-red-500 text-[0.8rem] mt-1 hidden"></p>
+                                </div>
+                                <!-- Country (auto-filled, readonly) -->
+                                <div>
+                                    <label class="block text-[0.85rem] font-medium text-[#5e5873] mb-1">Country<span class="text-[#ea5455]">*</span></label>
+                                    <div class="relative flex items-center border border-[#d8d6de] rounded-[0.358rem] bg-[#f8f8f8] overflow-hidden">
+                                        <input id="in-country" type="text" class="flex-1 px-3 py-[0.5rem] bg-transparent outline-none text-[0.95rem]" placeholder="Auto-filled from zip" value="" readonly />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -818,6 +836,30 @@
                 container.appendChild(row);
             }
 
+            // ── Zip auto-fill: reads data-* on the selected option and populates
+            //    city / state / country readonly fields + hidden FK inputs.
+            function onRegZipChange() {
+                clearError('zip');
+                const sel = document.getElementById('in-zip');
+                const opt = sel?.options[sel.selectedIndex];
+                const city    = document.getElementById('in-city');
+                const state   = document.getElementById('in-state');
+                const country = document.getElementById('in-country');
+                const hCity   = document.getElementById('hid-city');
+                const hState  = document.getElementById('hid-state');
+                const hCty    = document.getElementById('hid-country');
+                if (!opt || !opt.value) {
+                    [city, state, country, hCity, hState, hCty].forEach(el => { if (el) el.value = ''; });
+                    return;
+                }
+                if (city)    city.value    = opt.dataset.city    || '';
+                if (state)   state.value   = opt.dataset.state   || '';
+                if (country) country.value = opt.dataset.country || '';
+                if (hCity)   hCity.value   = opt.dataset.cityId    || '';
+                if (hState)  hState.value  = opt.dataset.stateId   || '';
+                if (hCty)    hCty.value    = opt.dataset.countryId || '';
+            }
+
             // ScrollSpy Navigation Logic
             const navItems = document.querySelectorAll('.nav-item');
             const sections = document.querySelectorAll('div[id^="step-"]');
@@ -873,172 +915,174 @@
                 });
             });
 
-            // Form Validation Logic
+            // ── Form Validation Logic ──────────────────────────────
+            const emailRe    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const nameRe     = /^[A-Za-z\s\-]+$/;
+            const websiteRe  = /^(https?:\/\/)?([\da-z\.\-]+)\.([a-z\.]{2,6})([\/\w \.\-]*)*\/?$/i;
+            const pwSpecial  = /[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\/]/;
+
+            // Per-field validators: id → (value) → '' when OK, else error message.
+            // The `all` arg is used for cross-field rules (e.g. confirmPassword).
+            const VALIDATORS = {
+                email: v => !v ? 'Email is required'
+                    : !emailRe.test(v) ? 'Please enter a valid email address' : '',
+                firstName: v => !v ? 'First name is required'
+                    : v.length < 2 ? 'First name must be at least 2 characters'
+                    : !nameRe.test(v) ? 'Only letters, spaces, and hyphens are allowed' : '',
+                lastName: v => !v ? 'Last name is required'
+                    : v.length < 2 ? 'Last name must be at least 2 characters'
+                    : !nameRe.test(v) ? 'Only letters, spaces, and hyphens are allowed' : '',
+                password: v => !v ? 'Password is required'
+                    : (v.length < 8 || !/[A-Z]/.test(v) || !/[a-z]/.test(v) || !/\d/.test(v) || !pwSpecial.test(v))
+                        ? 'Min 8 characters with uppercase, lowercase, number & special character' : '',
+                confirmPassword: (v, all) => {
+                    if (!v) return 'Please confirm your password';
+                    if (v !== all.password) return 'Passwords do not match';
+                    return '';
+                },
+                practiceName: v => !v ? 'Please select a practice' : '',
+                phone: v => !v ? 'Phone number is required'
+                    : !/^\d{10}$/.test(v) ? 'Please enter a valid 10-digit phone number' : '',
+                website: v => !v ? 'Website is required'
+                    : !websiteRe.test(v) ? 'Please enter a valid website (e.g. www.example.com)' : '',
+                language: v => !v ? 'Please select a preferred language' : '',
+                address1: v => !v ? 'Street address is required'
+                    : v.length < 5 ? 'Please enter a complete street address (min 5 characters)' : '',
+                zip: v => !v ? 'Please select a zip code' : '',
+            };
+
+            // Which section each field belongs to (for scroll-on-submit-error).
+            const FIELD_SECTION = {
+                email: 'step-account', firstName: 'step-account', lastName: 'step-account',
+                password: 'step-account', confirmPassword: 'step-account',
+                practiceName: 'step-practice', phone: 'step-practice',
+                website: 'step-practice', language: 'step-practice',
+                address1: 'step-address', zip: 'step-address',
+            };
+
+            const touched = new Set();
+
+            function _fieldValue(fieldId) {
+                const el = document.getElementById('in-' + fieldId);
+                if (!el) return '';
+                return (el.value || '').trim();
+            }
+            function _allValues() {
+                const out = {};
+                Object.keys(VALIDATORS).forEach(id => { out[id] = _fieldValue(id); });
+                // password is compared raw (no trim) for confirmPassword rule; keep raw separately
+                out.password = document.getElementById('in-password')?.value ?? '';
+                out.confirmPassword = document.getElementById('in-confirmPassword')?.value ?? '';
+                return out;
+            }
+
             function showError(fieldId, errorMsg) {
                 const errElement = document.getElementById('err-' + fieldId);
                 const boxElement = document.getElementById('box-' + fieldId);
                 const inElement = document.getElementById('in-' + fieldId);
-                
-                if (errElement) {
-                    errElement.textContent = errorMsg;
-                    errElement.classList.remove('hidden');
-                }
-                if (boxElement) {
-                    boxElement.classList.add('border-red-500');
-                }
-                if (inElement && !boxElement) {
-                   inElement.classList.add('border-red-500');
-                }
+                if (errElement) { errElement.textContent = errorMsg; errElement.classList.remove('hidden'); }
+                if (boxElement) boxElement.classList.add('border-red-500');
+                else if (inElement) inElement.classList.add('border-red-500');
             }
 
-            function clearError(fieldId) {
+            function _clearUI(fieldId) {
                 const errElement = document.getElementById('err-' + fieldId);
                 const boxElement = document.getElementById('box-' + fieldId);
                 const inElement = document.getElementById('in-' + fieldId);
-                
-                if (errElement) {
-                    errElement.classList.add('hidden');
-                }
-                if (boxElement) {
-                    boxElement.classList.remove('border-red-500');
-                }
-                if (inElement && !boxElement) {
-                   inElement.classList.remove('border-red-500');
+                if (errElement) errElement.classList.add('hidden');
+                if (boxElement) boxElement.classList.remove('border-red-500');
+                else if (inElement) inElement.classList.remove('border-red-500');
+            }
+
+            // Validate one field. Used by blur/input listeners and by submit.
+            function validateField(fieldId) {
+                const v = VALIDATORS[fieldId];
+                if (!v) return true;
+                const all = _allValues();
+                const msg = v(all[fieldId], all);
+                if (msg) { showError(fieldId, msg); return false; }
+                _clearUI(fieldId);
+                return true;
+            }
+
+            // Called by `oninput="clearError(...)"` in the markup.
+            // If the field has been touched (blurred once), re-run validation live
+            // so the error updates as the user fixes / re-breaks the field.
+            function clearError(fieldId) {
+                if (touched.has(fieldId)) {
+                    validateField(fieldId);
+                    // cross-field: retyping password should re-check confirmPassword
+                    if (fieldId === 'password' && touched.has('confirmPassword')) {
+                        validateField('confirmPassword');
+                    }
+                } else {
+                    _clearUI(fieldId);
                 }
             }
 
+            // Wire blur + change listeners for live validation.
+            document.addEventListener('DOMContentLoaded', () => {
+                Object.keys(VALIDATORS).forEach(fieldId => {
+                    const el = document.getElementById('in-' + fieldId);
+                    if (!el) return;
+                    el.addEventListener('blur', () => {
+                        touched.add(fieldId);
+                        validateField(fieldId);
+                        if (fieldId === 'password' && touched.has('confirmPassword')) {
+                            validateField('confirmPassword');
+                        }
+                    });
+                    if (el.tagName === 'SELECT') {
+                        el.addEventListener('change', () => {
+                            touched.add(fieldId);
+                            validateField(fieldId);
+                        });
+                    }
+                });
+
+                // Terms checkbox live feedback
+                const terms = document.querySelector('input[name="terms_agreed"]');
+                if (terms) {
+                    terms.addEventListener('change', () => {
+                        const err = document.getElementById('err-terms');
+                        if (terms.checked && err) err.classList.add('hidden');
+                    });
+                }
+            });
+
+            // Submit handler — validate every field, scroll to first error section.
             function validateForm() {
+                // Mark everything touched so all errors surface for someone who
+                // clicked Submit without interacting with the form.
+                Object.keys(VALIDATORS).forEach(id => touched.add(id));
+
                 let isValid = true;
                 let firstErrorSection = null;
+                const mark = (id) => { if (!firstErrorSection) firstErrorSection = id; };
 
-                // Reset all previous errors
-                document.querySelectorAll('[id^="err-"]').forEach(el => el.classList.add('hidden'));
-                document.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500'));
+                Object.keys(VALIDATORS).forEach(fieldId => {
+                    if (!validateField(fieldId)) {
+                        isValid = false;
+                        mark(FIELD_SECTION[fieldId]);
+                    }
+                });
 
-                function markSection(id) {
-                    if (!firstErrorSection) firstErrorSection = id;
+                // Zip picked but city_id wasn't populated (auto-fill failed) — block submit.
+                const zipVal = document.getElementById('in-zip')?.value;
+                const hiddenCity = document.getElementById('hid-city')?.value;
+                if (zipVal && !hiddenCity) {
+                    showError('zip', 'Zip lookup failed. Please reselect the zip code.');
+                    mark('step-address');
+                    isValid = false;
                 }
 
-                // ── Doctor Information ──────────────────────────────────
-                const email = document.getElementById('in-email').value.trim();
-                if (!email) {
-                    showError('email', 'Email is required');
-                    markSection('step-account'); isValid = false;
-                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                    showError('email', 'Please enter a valid email address');
-                    markSection('step-account'); isValid = false;
-                }
-
-                const firstName = document.getElementById('in-firstName').value.trim();
-                if (!firstName) {
-                    showError('firstName', 'First name is required');
-                    markSection('step-account'); isValid = false;
-                } else if (firstName.length < 2) {
-                    showError('firstName', 'First name must be at least 2 characters');
-                    markSection('step-account'); isValid = false;
-                } else if (!/^[A-Za-z\s\-]+$/.test(firstName)) {
-                    showError('firstName', 'Only letters, spaces, and hyphens are allowed');
-                    markSection('step-account'); isValid = false;
-                }
-
-                const lastName = document.getElementById('in-lastName').value.trim();
-                if (!lastName) {
-                    showError('lastName', 'Last name is required');
-                    markSection('step-account'); isValid = false;
-                } else if (lastName.length < 2) {
-                    showError('lastName', 'Last name must be at least 2 characters');
-                    markSection('step-account'); isValid = false;
-                } else if (!/^[A-Za-z\s\-]+$/.test(lastName)) {
-                    showError('lastName', 'Only letters, spaces, and hyphens are allowed');
-                    markSection('step-account'); isValid = false;
-                }
-
-                const password = document.getElementById('in-password').value;
-                if (!password) {
-                    showError('password', 'Password is required');
-                    markSection('step-account'); isValid = false;
-                } else if (
-                    password.length < 8 ||
-                    !/[A-Z]/.test(password) ||
-                    !/[a-z]/.test(password) ||
-                    !/\d/.test(password) ||
-                    !/[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\/]/.test(password)
-                ) {
-                    showError('password', 'Min 8 characters with uppercase, lowercase, number & special character');
-                    markSection('step-account'); isValid = false;
-                }
-
-                const confirmPassword = document.getElementById('in-confirmPassword').value;
-                if (!confirmPassword) {
-                    showError('confirmPassword', 'Please confirm your password');
-                    markSection('step-account'); isValid = false;
-                } else if (password !== confirmPassword) {
-                    showError('confirmPassword', 'Passwords do not match');
-                    markSection('step-account'); isValid = false;
-                }
-
-                // ── Practice Information ────────────────────────────────
-                if (!document.getElementById('in-practiceName').value) {
-                    showError('practiceName', 'Please select a practice');
-                    markSection('step-practice'); isValid = false;
-                }
-
-                const phone = document.getElementById('in-phone').value.trim();
-                if (!phone) {
-                    showError('phone', 'Phone number is required');
-                    markSection('step-practice'); isValid = false;
-                } else if (!/^\d{10}$/.test(phone)) {
-                    showError('phone', 'Please enter a valid 10-digit phone number');
-                    markSection('step-practice'); isValid = false;
-                }
-
-                const website = document.getElementById('in-website').value.trim();
-                if (!website) {
-                    showError('website', 'Website is required');
-                    markSection('step-practice'); isValid = false;
-                } else if (!/^(https?:\/\/)?([\da-z\.\-]+)\.([a-z\.]{2,6})([\/\w \.\-]*)*\/?$/i.test(website)) {
-                    showError('website', 'Please enter a valid website (e.g. www.example.com)');
-                    markSection('step-practice'); isValid = false;
-                }
-
-                if (!document.getElementById('in-language').value) {
-                    showError('language', 'Please select a preferred language');
-                    markSection('step-practice'); isValid = false;
-                }
-
-                // ── Address Information ─────────────────────────────────
-                const address1 = document.getElementById('in-address1').value.trim();
-                if (!address1) {
-                    showError('address1', 'Street address is required');
-                    markSection('step-address'); isValid = false;
-                } else if (address1.length < 5) {
-                    showError('address1', 'Please enter a complete street address (min 5 characters)');
-                    markSection('step-address'); isValid = false;
-                }
-
-                if (!document.getElementById('in-zip').value) {
-                    showError('zip', 'Please select a zip code');
-                    markSection('step-address'); isValid = false;
-                }
-
-                if (!document.getElementById('in-city').value) {
-                    showError('city', 'Please select a city');
-                    markSection('step-address'); isValid = false;
-                }
-
-                if (!document.getElementById('in-state').value) {
-                    showError('state', 'Please select a state');
-                    markSection('step-address'); isValid = false;
-                }
-
-                // ── Terms & Conditions ──────────────────────────────────
                 const termsCheckbox = document.querySelector('input[name="terms_agreed"]');
                 if (termsCheckbox && !termsCheckbox.checked) {
                     showError('terms', 'You must accept the Terms and Conditions to continue');
-                    markSection('step-additional'); isValid = false;
+                    mark('step-additional');
+                    isValid = false;
                 }
 
-                // ── Scroll to first error section ───────────────────────
                 if (!isValid && firstErrorSection) {
                     const target = document.getElementById(firstErrorSection);
                     if (target) {
@@ -1051,8 +1095,12 @@
                             behavior: 'smooth'
                         });
                     }
+                    return false;
                 }
 
+                if (isValid) {
+                    document.getElementById('registrationForm').submit();
+                }
                 return isValid;
             }
         </script>

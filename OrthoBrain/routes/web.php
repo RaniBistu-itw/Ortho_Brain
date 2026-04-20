@@ -21,12 +21,9 @@ Route::view('/login', 'login')->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-Route::view('/register', 'register');
-Route::view('/register/doctor', 'register');
-Route::post('/register', function () {
-    // TODO: replace with RegisterController@store once registration is built
-    return view('register');
-});
+Route::get('/register',         [\App\Http\Controllers\Auth\RegisterController::class, 'show']);
+Route::get('/register/doctor',  [\App\Http\Controllers\Auth\RegisterController::class, 'show']);
+Route::post('/register',        [\App\Http\Controllers\Auth\RegisterController::class, 'store']);
 
 Route::redirect('/admin/login', '/login');
 
@@ -47,6 +44,13 @@ Route::middleware(['web', 'auth'])
 
         Route::get('/profile/settings',  [ProfileController::class, 'settings'])->name('profile.settings');
         Route::post('/profile/settings', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
+        Route::get('/profile/address/create',        [ProfileController::class, 'addressCreate'])->name('profile.address.create');
+        Route::post('/profile/address/store',        [ProfileController::class, 'addressStore'])->name('profile.address.store');
+        Route::get('/profile/address/zip-lookup',    [ProfileController::class, 'addressZipLookup'])->name('profile.address.zip-lookup');
+        Route::get('/profile/address/{address}',     [ProfileController::class, 'addressShow'])->name('profile.address.show');
+        Route::get('/profile/address/{address}/edit',[ProfileController::class, 'addressEdit'])->name('profile.address.edit');
+        Route::put('/profile/address/{address}',     [ProfileController::class, 'addressUpdate'])->name('profile.address.update');
     });
 
 // ─── Admin area ───────────────────────────────────────────

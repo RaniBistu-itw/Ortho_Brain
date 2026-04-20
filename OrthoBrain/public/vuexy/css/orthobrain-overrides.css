@@ -105,3 +105,65 @@
 
 /* Tables: align header/body vertically on multi-line rows */
 .table > :not(caption) > * > * { vertical-align: middle; }
+
+/* ────────────────────────────────────────────────────────────
+   Text contrast: Vuexy defaults to a muted #6e6b7b body color,
+   which reads as low-contrast against white cards. Darken the
+   body and bump weight on labels/headings/tables so the whole
+   project feels crisper and more readable.
+   ──────────────────────────────────────────────────────────── */
+body {
+    color: #1f1f1f;
+    font-weight: 500;
+}
+
+/* Headings & titles — stronger, nearly-black */
+h1, h2, h3, h4, h5, h6,
+.card-title,
+.page-title,
+.content-header-title,
+.navbar-brand .brand-text {
+    color: #111 !important;
+    font-weight: 600;
+}
+
+/* Form labels */
+.form-label {
+    color: #1a1a1a !important;
+    font-weight: 600;
+}
+
+/* Inputs: typed text darker and a touch bolder; placeholders stay muted */
+.form-control,
+.form-select,
+.input-group-text {
+    color: #1f1f1f;
+    font-weight: 500;
+}
+.form-control::placeholder { color: #9a9a9a; opacity: 1; }
+
+/* Tables */
+.table { color: #1f1f1f; }
+.table thead th {
+    color: #111;
+    font-weight: 700;
+}
+.table td { font-weight: 500; }
+
+/* Body copy helpers */
+p, label, .card-text { color: #1f1f1f; }
+
+/* Sidebar / nav links */
+.main-menu .navigation > li > a,
+.nav-link,
+.dropdown-item {
+    color: #1f1f1f;
+}
+.main-menu .navigation > li > a:hover {
+    color: #000;
+}
+
+/* Keep text-muted distinctly muted (used for Showing N entries, etc.) */
+.text-muted { color: #6c757d !important; }
+
+/* Buttons keep Vuexy's white-on-cyan for contrast; no override here */

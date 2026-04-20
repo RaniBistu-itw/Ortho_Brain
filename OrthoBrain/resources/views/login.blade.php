@@ -58,6 +58,13 @@
                     <p class="text-[0.85rem] text-[#6e6b7b]">Please sign-in to your account</p>
                 </div>
 
+                @if (session('success'))
+                    <div class="bg-[#e2f8eb] border border-[#28c76f] text-[#28c76f] px-4 py-2 rounded-[0.358rem] mb-3 text-[0.85rem] text-left flex items-center gap-2">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>{{ session('success') }}</span>
+                    </div>
+                @endif
+
                 <!-- Form -->
                 <form action="{{ url('/login') }}" method="POST" class="space-y-3 text-left" novalidate>
                     @csrf

@@ -6,14 +6,22 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Doctor;
+use App\Models\DoctorAddress;
 use App\Models\User;
+use App\Models\Zipcode;
 
 class ProfileController extends Controller
 {
     public function index(Request $request)
     {
         $tab = $request->query('tab', 'account');
-        return view('profile.index', compact('tab'));
+
+        $doctor = Doctor::where('user_id', Auth::id())->first();
+        $addresses = $doctor
+            ? $doctor->addresses()->with('zipcode', 'city', 'state', 'country')->latest()->get()
+            : collect();
+
+        return view('profile.index', compact('tab', 'addresses'));
     }
 
     public function update(Request $request)
@@ -75,6 +83,141 @@ class ProfileController extends Controller
     public function settings()
     {
         return view('profile.settings');
+    }
+
+    public function addressCreate(Request $request)
+    {
+        $type = $request->query('type', 'shipping');
+        if (! in_array($type, ['shipping', 'billing'], true)) {
+            $type = 'shipping';
+        }
+        $doctor = Doctor::where('user_id', Auth::id())->first();
+
+        return view('profile.address-form', [
+            'mode'     => 'create',
+            'type'     => $type,
+            'doctor'   => $doctor,
+            'address'  => null,
+            'zipcodes' => $this->activeZipcodes(),
+        ]);
+    }
+
+    public function addressShow(DoctorAddress $address)
+    {
+        $this->authorizeAddress($address);
+        return view('profile.address-form', [
+            'mode'     => 'view',
+            'type'     => $address->type,
+            'doctor'   => $address->doctor,
+            'address'  => $address->load('zipcode', 'city', 'state', 'country'),
+            'zipcodes' => $this->activeZipcodes(),
+        ]);
+    }
+
+    public function addressEdit(DoctorAddress $address)
+    {
+        $this->authorizeAddress($address);
+        return view('profile.address-form', [
+            'mode'     => 'edit',
+            'type'     => $address->type,
+            'doctor'   => $address->doctor,
+            'address'  => $address->load('zipcode', 'city', 'state', 'country'),
+            'zipcodes' => $this->activeZipcodes(),
+        ]);
+    }
+
+    public function addressUpdate(Request $request, DoctorAddress $address)
+    {
+        $this->authorizeAddress($address);
+
+        $data = $request->validate([
+            'street_address_1' => 'required|string|max:255|min:5',
+            'street_address_2' => 'nullable|string|max:255',
+            'zip_id'           => 'required|integer|exists:zipcodes,id',
+            'city_id'          => 'required|integer|exists:cities,id',
+            'state_id'         => 'required|integer|exists:states,id',
+            'country_id'       => 'required|integer|exists:countries,id',
+            'billing_email'    => ($address->type === 'billing' ? 'required|' : 'nullable|') . 'email|max:150',
+        ]);
+
+        $address->update($data);
+
+        return redirect()
+            ->route('doctor.profile.index', ['tab' => $address->type])
+            ->with('success', ucfirst($address->type) . ' address updated successfully.');
+    }
+
+    private function authorizeAddress(DoctorAddress $address): void
+    {
+        $doctor = Doctor::where('user_id', Auth::id())->first();
+        abort_unless($doctor && $address->doctor_id === $doctor->id, 403);
+    }
+
+    private function activeZipcodes()
+    {
+        return Zipcode::with('city.state.country')
+            ->where('status', 'ACTIVE')
+            ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
+            ->orderBy('code')
+            ->get();
+    }
+
+    public function addressZipLookup(Request $request)
+    {
+        $request->validate(['zip_id' => 'required|integer']);
+
+        $zip = Zipcode::with('city.state.country')->find($request->integer('zip_id'));
+        if (! $zip) {
+            return response()->json(['ok' => false, 'message' => 'Zip code not found.'], 404);
+        }
+
+        return response()->json([
+            'ok'         => true,
+            'zip_id'     => $zip->id,
+            'zip_code'   => $zip->code,
+            'city_id'    => $zip->city?->id,
+            'city'       => $zip->city?->name,
+            'state_id'   => $zip->city?->state?->id,
+            'state'      => $zip->city?->state?->name,
+            'state_code' => $zip->city?->state?->state_code,
+            'country_id' => $zip->city?->state?->country?->id,
+            'country'    => $zip->city?->state?->country?->name,
+        ]);
+    }
+
+    public function addressStore(Request $request)
+    {
+        $type = $request->input('type');
+        $data = $request->validate([
+            'type'              => 'required|in:shipping,billing',
+            'street_address_1'  => 'required|string|max:255|min:5',
+            'street_address_2'  => 'nullable|string|max:255',
+            'zip_id'            => 'required|integer|exists:zipcodes,id',
+            'city_id'           => 'required|integer|exists:cities,id',
+            'state_id'          => 'required|integer|exists:states,id',
+            'country_id'        => 'required|integer|exists:countries,id',
+            'billing_email'     => ($type === 'billing' ? 'required|' : 'nullable|') . 'email|max:150',
+        ]);
+
+        $doctor = Doctor::where('user_id', Auth::id())->firstOrFail();
+
+        $isFirst = ! $doctor->addresses()->where('type', $data['type'])->exists();
+
+        $doctor->addresses()->create([
+            'type'             => $data['type'],
+            'street_address_1' => $data['street_address_1'],
+            'street_address_2' => $data['street_address_2'] ?? null,
+            'zip_id'           => $data['zip_id'],
+            'city_id'          => $data['city_id'],
+            'state_id'         => $data['state_id'],
+            'country_id'       => $data['country_id'],
+            'billing_email'    => $data['billing_email'] ?? null,
+            'is_default'       => $isFirst,
+        ]);
+
+        return redirect()
+            ->route('doctor.profile.index', ['tab' => $data['type']])
+            ->with('success', ucfirst($data['type']) . ' address saved successfully.');
     }
 
     public function updatePassword(Request $request)

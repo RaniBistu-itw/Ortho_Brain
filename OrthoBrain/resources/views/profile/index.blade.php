@@ -154,19 +154,6 @@
 
         <div class="card">
             <div class="card-body">
-                @if(session('success'))
-                    <div class="alert alert-success" role="alert">
-                        <div class="alert-body">{{ session('success') }}</div>
-                    </div>
-                @endif
-                @if($errors->any())
-                    <div class="alert alert-danger" role="alert">
-                        <div class="alert-body">
-                            @foreach ($errors->all() as $error)<p class="mb-0">{{ $error }}</p>@endforeach
-                        </div>
-                    </div>
-                @endif
-
                 {{-- ─── Tab: Account ─── --}}
                 @if($tab == 'account')
                 <h4 class="card-title mb-2">Account</h4>
@@ -336,16 +323,19 @@
                 @if($tab == 'shipping')
                 <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 mb-2">
                     <h4 class="card-title mb-0">Shipping Addresses</h4>
-                    <button type="button" class="btn btn-info align-self-start align-self-sm-auto">
+                    <a href="{{ route('doctor.profile.address.create', ['type' => 'shipping']) }}" class="btn btn-info align-self-start align-self-sm-auto">
                         <i data-feather="plus" class="me-25"></i> Add Shipping Address
-                    </button>
+                    </a>
                 </div>
 
                 <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 border-top border-bottom py-1 mb-1">
                     <div class="d-flex align-items-center">
                         <span class="me-50">Show</span>
-                        <select class="form-select form-select-sm" style="width:auto;">
-                            <option>10</option>
+                        <select id="ship-pagesize" class="form-select form-select-sm" style="width: 5.5rem; padding-right: 2rem;">
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
                         </select>
                         <span class="ms-50">entries</span>
                     </div>
@@ -355,8 +345,9 @@
                     </div>
                 </div>
 
+                @php $shippingList = ($addresses ?? collect())->where('type', 'shipping'); @endphp
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table id="ship-table" class="table table-hover mb-0">
                         <thead>
                             <tr>
                                 <th>Action</th>
@@ -368,28 +359,45 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>
-                                    <a href="#" class="btn btn-icon btn-sm btn-flat-success" title="View"><i data-feather="eye"></i></a>
-                                    <a href="#" class="btn btn-icon btn-sm btn-flat-info" title="Edit"><i data-feather="edit-2"></i></a>
-                                </td>
-                                <td>Test12</td>
-                                <td>Delaware</td>
-                                <td>Ohio</td>
-                                <td>43015</td>
-                                <td><span class="badge bg-light-success">Yes</span></td>
-                            </tr>
+                            @forelse($shippingList as $addr)
+                                @php
+                                    $searchText = strtolower(trim(implode(' ', array_filter([
+                                        $addr->street_address_1,
+                                        $addr->street_address_2,
+                                        $addr->city?->name,
+                                        $addr->state?->name,
+                                        $addr->zipcode?->code,
+                                        $addr->is_default ? 'yes default' : 'no',
+                                    ]))));
+                                @endphp
+                                <tr data-searchable="{{ $searchText }}">
+                                    <td>
+                                        <a href="{{ route('doctor.profile.address.show', $addr) }}" class="btn btn-icon btn-sm btn-flat-success" title="View"><i data-feather="eye"></i></a>
+                                        <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="btn btn-icon btn-sm btn-flat-info" title="Edit"><i data-feather="edit-2"></i></a>
+                                    </td>
+                                    <td>{{ $addr->street_address_1 }}{{ $addr->street_address_2 ? ', ' . $addr->street_address_2 : '' }}</td>
+                                    <td>{{ $addr->city?->name }}</td>
+                                    <td>{{ $addr->state?->name }}</td>
+                                    <td>{{ $addr->zipcode?->code }}</td>
+                                    <td>
+                                        @if($addr->is_default)
+                                            <span class="badge bg-light-success">Yes</span>
+                                        @else
+                                            <span class="badge bg-light-secondary">No</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr class="empty-state"><td colspan="6" class="text-center text-muted">No shipping addresses yet.</td></tr>
+                            @endforelse
+                            <tr class="no-results d-none"><td colspan="6" class="text-center text-muted">No matching results.</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 border-top pt-1 mt-1">
-                    <small class="text-muted">Showing 1 to 1 of 1 entries</small>
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item disabled"><span class="page-link">Previous</span></li>
-                        <li class="page-item active"><span class="page-link">1</span></li>
-                        <li class="page-item disabled"><span class="page-link">Next</span></li>
-                    </ul>
+                <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 mt-1">
+                    <small id="ship-footer" class="text-muted"></small>
+                    <ul id="ship-pager" class="pagination pagination-sm mb-0"></ul>
                 </div>
                 @endif
 
@@ -398,16 +406,19 @@
                 @if($tab == 'billing')
                 <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 mb-2">
                     <h4 class="card-title mb-0">Billing Addresses</h4>
-                    <button type="button" class="btn btn-info align-self-start align-self-sm-auto">
+                    <a href="{{ route('doctor.profile.address.create', ['type' => 'billing']) }}" class="btn btn-info align-self-start align-self-sm-auto">
                         <i data-feather="plus" class="me-25"></i> Add Billing Address
-                    </button>
+                    </a>
                 </div>
 
                 <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 border-top border-bottom py-1 mb-1">
                     <div class="d-flex align-items-center">
                         <span class="me-50">Show</span>
-                        <select class="form-select form-select-sm" style="width:auto;">
-                            <option>10</option>
+                        <select id="bill-pagesize" class="form-select form-select-sm" style="width: 5.5rem; padding-right: 2rem;">
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
                         </select>
                         <span class="ms-50">entries</span>
                     </div>
@@ -417,8 +428,9 @@
                     </div>
                 </div>
 
+                @php $billingList = ($addresses ?? collect())->where('type', 'billing'); @endphp
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table id="bill-table" class="table table-hover mb-0">
                         <thead>
                             <tr>
                                 <th>Action</th>
@@ -430,19 +442,39 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="6" class="text-center text-muted">No data available in table</td>
-                            </tr>
+                            @forelse($billingList as $addr)
+                                @php
+                                    $searchText = strtolower(trim(implode(' ', array_filter([
+                                        $addr->street_address_1,
+                                        $addr->street_address_2,
+                                        $addr->city?->name,
+                                        $addr->state?->name,
+                                        $addr->zipcode?->code,
+                                        $addr->billing_email,
+                                    ]))));
+                                @endphp
+                                <tr data-searchable="{{ $searchText }}">
+                                    <td>
+                                        <a href="{{ route('doctor.profile.address.show', $addr) }}" class="btn btn-icon btn-sm btn-flat-success" title="View"><i data-feather="eye"></i></a>
+                                        <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="btn btn-icon btn-sm btn-flat-info" title="Edit"><i data-feather="edit-2"></i></a>
+                                    </td>
+                                    <td>{{ $addr->street_address_1 }}{{ $addr->street_address_2 ? ', ' . $addr->street_address_2 : '' }}</td>
+                                    <td>{{ $addr->city?->name }}</td>
+                                    <td>{{ $addr->state?->name }}</td>
+                                    <td>{{ $addr->zipcode?->code }}</td>
+                                    <td>{{ $addr->billing_email ?? '—' }}</td>
+                                </tr>
+                            @empty
+                                <tr class="empty-state"><td colspan="6" class="text-center text-muted">No billing addresses yet.</td></tr>
+                            @endforelse
+                            <tr class="no-results d-none"><td colspan="6" class="text-center text-muted">No matching results.</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 border-top pt-1 mt-1">
-                    <small class="text-muted">Showing 0 to 0 of 0 entries</small>
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item disabled"><span class="page-link">Previous</span></li>
-                        <li class="page-item disabled"><span class="page-link">Next</span></li>
-                    </ul>
+                <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 mt-1">
+                    <small id="bill-footer" class="text-muted"></small>
+                    <ul id="bill-pager" class="pagination pagination-sm mb-0"></ul>
                 </div>
                 @endif
 
@@ -918,5 +950,92 @@
 
         if (ok) alert('Contact information is valid! (Backend save coming soon.)');
     }
+
+    /* ── Reusable client-side datatable: search + page size + pagination ── */
+    function wireDataTable({ tableId, searchId, pageSizeId, footerId, pagerId }) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const tbody    = table.querySelector('tbody');
+        const allRows  = Array.from(tbody.querySelectorAll('tr[data-searchable]'));
+        const emptyRow = tbody.querySelector('tr.empty-state');
+        const noResRow = tbody.querySelector('tr.no-results');
+        const search   = document.getElementById(searchId);
+        const sizeSel  = document.getElementById(pageSizeId);
+        const footer   = document.getElementById(footerId);
+        const pager    = document.getElementById(pagerId);
+
+        let currentPage = 1;
+
+        function render() {
+            const q = (search?.value || '').trim().toLowerCase();
+            const pageSize = parseInt(sizeSel?.value || '10', 10);
+
+            const filtered = q
+                ? allRows.filter(r => (r.dataset.searchable || '').includes(q))
+                : allRows.slice();
+
+            const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+            if (currentPage > totalPages) currentPage = totalPages;
+            const start = (currentPage - 1) * pageSize;
+            const pageRows = filtered.slice(start, start + pageSize);
+
+            allRows.forEach(r => r.classList.add('d-none'));
+            pageRows.forEach(r => r.classList.remove('d-none'));
+
+            if (emptyRow) emptyRow.classList.toggle('d-none', allRows.length > 0);
+            if (noResRow) noResRow.classList.toggle('d-none', !(allRows.length > 0 && filtered.length === 0));
+
+            if (footer) {
+                if (allRows.length === 0) {
+                    footer.textContent = '';
+                } else if (filtered.length === 0) {
+                    footer.textContent = `Showing 0 of ${allRows.length} entries (filtered)`;
+                } else {
+                    const end = Math.min(start + pageSize, filtered.length);
+                    const suffix = (q && filtered.length !== allRows.length)
+                        ? ` (filtered from ${allRows.length} total)`
+                        : '';
+                    footer.textContent = `Showing ${start + 1} to ${end} of ${filtered.length} entries${suffix}`;
+                }
+            }
+
+            if (pager) renderPager(pager, currentPage, totalPages);
+        }
+
+        function renderPager(el, cur, total) {
+            el.innerHTML = '';
+            if (total <= 1) return;
+            const mk = (label, page, opts = {}) => {
+                const li = document.createElement('li');
+                li.className = 'page-item'
+                    + (opts.disabled ? ' disabled' : '')
+                    + (opts.active ? ' active' : '');
+                const a = document.createElement('a');
+                a.className = 'page-link';
+                a.href = '#';
+                a.textContent = label;
+                a.addEventListener('click', e => {
+                    e.preventDefault();
+                    if (opts.disabled || opts.active) return;
+                    currentPage = page;
+                    render();
+                });
+                li.appendChild(a);
+                el.appendChild(li);
+            };
+            mk('Previous', cur - 1, { disabled: cur === 1 });
+            for (let p = 1; p <= total; p++) mk(String(p), p, { active: p === cur });
+            mk('Next', cur + 1, { disabled: cur === total });
+        }
+
+        search?.addEventListener('input',  () => { currentPage = 1; render(); });
+        sizeSel?.addEventListener('change', () => { currentPage = 1; render(); });
+        render();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        wireDataTable({ tableId: 'ship-table', searchId: 'ship-search', pageSizeId: 'ship-pagesize', footerId: 'ship-footer', pagerId: 'ship-pager' });
+        wireDataTable({ tableId: 'bill-table', searchId: 'bill-search', pageSizeId: 'bill-pagesize', footerId: 'bill-footer', pagerId: 'bill-pager' });
+    });
 </script>
 @endpush
