@@ -41,7 +41,13 @@
                         <tr>
                             <td>{{ $sub->category?->name ?? '—' }}</td>
                             <td class="fw-bolder">{{ $sub->name }}</td>
-                            <td>{{ $sub->products_count }}</td>
+                            <td>
+                                @if ($sub->products_count > 0)
+                                    {{ $sub->products_count }}
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                             <td>
                                 <span class="badge rounded-pill badge-light-{{ $sub->status ? 'success' : 'danger' }}">{{ $sub->status ? 'ACTIVE' : 'INACTIVE' }}</span>
                             </td>
@@ -54,7 +60,7 @@
                                         <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
                                     </form>
                                 @else
-                                    <span class="text-muted small ms-1">In use</span>
+                                    <button type="button" class="btn btn-icon btn-sm btn-outline-danger" disabled title="Has linked products — cannot delete"><i data-feather="trash-2"></i></button>
                                 @endif
                             </td>
                         </tr>
