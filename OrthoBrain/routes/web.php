@@ -39,7 +39,8 @@ Route::middleware(['web', 'auth'])
     ->prefix('dev')
     ->name('doctor.')
     ->group(function () {
-        Route::get('/cases/list', [DoctorDashboardController::class, 'index'])->name('cases.list');
+        // Legacy route — login still redirects here. Keep as a redirect to the real list.
+        Route::redirect('/cases/list', '/dev/cases')->name('cases.list');
 
         // Add Case + Case List feature (owner: Devansh)
         Route::get('/cases',                    [CasesController::class, 'index'])->name('cases.index');

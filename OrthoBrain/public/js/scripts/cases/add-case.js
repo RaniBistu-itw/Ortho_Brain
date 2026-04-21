@@ -55,7 +55,7 @@
 
   function ensureShellCreated() {
     if (caseId !== 'new') return Promise.resolve();
-    if (!window.CaseApi || !state.prescription) return Promise.resolve();
+    if (!window.CaseApi) return Promise.resolve();
 
     return window.CaseApi.createShell().then(function (res) {
       caseId = String(res.id);
