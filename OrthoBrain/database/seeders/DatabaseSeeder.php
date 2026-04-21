@@ -10,6 +10,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             SuperAdminSeeder::class,
+            MasterOptionsSeeder::class,
+            PracticesSeeder::class,
             DoctorSeeder::class,
         ]);
     }

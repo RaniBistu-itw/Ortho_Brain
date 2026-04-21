@@ -20,7 +20,7 @@ class ProfileController extends Controller
     {
         $tab = $request->query('tab', 'account');
 
-        $doctor = Doctor::where('user_id', Auth::id())->first();
+        $doctor = Doctor::with('practice')->where('user_id', Auth::id())->first();
         $addresses = $doctor
             ? $doctor->addresses()->with('zipcode', 'city', 'state', 'country')->latest()->get()
             : collect();
@@ -36,7 +36,7 @@ class ProfileController extends Controller
         $selectedBuccalCorridorIds   = $doctor ? $doctor->buccalCorridorOptions()->pluck('buccal_corridor_options.id')->all() : [];
 
         return view('profile.index', compact(
-            'tab', 'addresses',
+            'tab', 'doctor', 'addresses',
             'modalitiesList', 'specialtiesList', 'treatmentModalitiesList', 'buccalCorridorsList',
             'selectedModalityIds', 'selectedSpecialtyIds', 'selectedTreatmentModalityIds', 'selectedBuccalCorridorIds'
         ));
@@ -51,7 +51,6 @@ class ProfileController extends Controller
                 'first_name' => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
                 'last_name'  => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
                 'email'      => 'required|email|max:150|unique:users,email,' . Auth::id(),
-                'practice_phone_number' => 'nullable|string|max:20',
             ], [
                 'first_name.regex' => 'First name may only contain letters, spaces and hyphens.',
                 'last_name.regex'  => 'Last name may only contain letters, spaces and hyphens.',
@@ -65,10 +64,6 @@ class ProfileController extends Controller
             if ($doctor) {
                 $doctor->first_name = $request->first_name;
                 $doctor->last_name  = $request->last_name;
-                if ($request->filled('practice_phone_number')) {
-                    $doctor->practice_phone_number       = $request->practice_phone_number;
-                    $doctor->practice_phone_country_code = $request->input('practice_phone_country_code', $doctor->practice_phone_country_code);
-                }
                 $doctor->save();
             }
         }
@@ -76,21 +71,26 @@ class ProfileController extends Controller
         if ($tab === 'practice') {
             $request->validate([
                 'practice_name'         => 'required|string|max:200',
-                'practice_phone_number' => 'required|string|max:20',
+                'practice_phone_number' => 'required|string|max:30',
                 'website'               => 'required|string|max:500',
                 'language'              => 'nullable|string|max:50',
             ]);
 
-            $user   = Auth::user();
-            $doctor = Doctor::where('user_id', $user->id)->first();
-            if ($doctor) {
-                $doctor->practice_name               = $request->practice_name;
-                $doctor->practice_phone_number       = preg_replace('/\D/', '', $request->practice_phone_number);
-                $doctor->practice_phone_country_code = $request->input('practice_phone_country_code', $doctor->practice_phone_country_code);
-                $doctor->practice_website            = $request->website;
-                if ($request->filled('language')) {
-                    $doctor->preferred_language = $request->language;
-                }
+            $doctor = Doctor::with('practice')->where('user_id', Auth::id())->first();
+            if (! $doctor?->practice) {
+                return back()->with('error', 'No practice is linked to your account.');
+            }
+            $practice = $doctor->practice;
+
+            $practice->name               = $request->practice_name;
+            $practice->phone_number       = preg_replace('/\D/', '', $request->practice_phone_number);
+            $practice->phone_country_code = $request->input('practice_phone_country_code', $practice->phone_country_code);
+            $practice->website            = $request->website;
+            $practice->save();
+
+            // preferred_language is a doctor-level attribute, not practice-level
+            if ($request->filled('language')) {
+                $doctor->preferred_language = $request->language;
                 $doctor->save();
             }
         }

@@ -156,6 +156,51 @@
             .reg-card input, .reg-card select, .reg-card textarea, .reg-card button, .reg-card label { margin: 0; }
             .reg-card .reg-label { margin-bottom: 0.25rem; }
 
+            /* Locked (read-only) state when an existing practice is picked */
+            .reg-input-group.is-locked { background: #f8f8f8; }
+            .reg-input-group.is-locked input { background: transparent; }
+            .reg-phone.is-locked { background: #f8f8f8; }
+            .reg-phone.is-locked select, .reg-phone.is-locked input { background: transparent; pointer-events: none; }
+            .reg-select.is-locked { background: #f8f8f8; pointer-events: none; }
+
+            /* Autocomplete wrapper + menu */
+            .reg-autocomplete { position: relative; }
+            .reg-autocomplete-menu {
+                position: absolute;
+                top: calc(100% + 4px);
+                left: 0;
+                right: 0;
+                background: #fff;
+                border: 1px solid #d8d6de;
+                border-radius: 0.358rem;
+                box-shadow: 0 4px 12px rgba(34,41,47,0.08);
+                max-height: 260px;
+                overflow-y: auto;
+                z-index: 100;
+                display: none;
+            }
+            .reg-autocomplete-menu.open { display: block; }
+            .reg-autocomplete-item {
+                padding: 0.5rem 0.75rem;
+                cursor: pointer;
+                font-size: 0.9rem;
+                color: #6e6b7b;
+                border-bottom: 1px solid #f6f6f6;
+            }
+            .reg-autocomplete-item:last-child { border-bottom: 0; }
+            .reg-autocomplete-item:hover,
+            .reg-autocomplete-item.active { background: #f8f8f8; color: #5e5873; }
+            .reg-autocomplete-empty { padding: 0.5rem 0.75rem; font-size: 0.85rem; color: #b9b9c3; font-style: italic; }
+            .reg-change-link {
+                display: inline-block;
+                margin-top: 0.25rem;
+                font-size: 0.8rem;
+                color: #5bc0de;
+                cursor: pointer;
+                text-decoration: none;
+            }
+            .reg-change-link:hover { text-decoration: underline; }
+
             /* Additional card */
             .reg-card-head-with-toggle { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; }
             .reg-expand-btn { background: #5bc0de; color: #fff; border: 0; border-radius: 0.358rem; width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: background .2s; }
@@ -368,14 +413,25 @@
                                 <p>Enter your practice details</p>
                             </div>
                             <div class="reg-grid">
-                                {{-- Practice Name --}}
+                                {{-- Practice Name (autocomplete) --}}
                                 <div>
                                     <label class="reg-label">Practice Name<span class="reg-required">*</span></label>
-                                    <select id="in-practiceName" name="practice_name" required class="reg-select" onchange="clearError('practiceName')">
-                                        <option value="" disabled selected>Search practice</option>
-                                        <option value="Practice 1">Practice 1</option>
-                                        <option value="Practice 2">Practice 2</option>
-                                    </select>
+                                    <div class="reg-autocomplete">
+                                        {{-- Hidden: set when an existing practice is picked; empty = new practice --}}
+                                        <input type="hidden" id="hid-practiceId" name="practice_id" value="">
+                                        <div class="reg-input-group" id="box-practiceName">
+                                            <span class="reg-input-icon"><i class="bi bi-building"></i></span>
+                                            <input id="in-practiceName" name="practice_name" type="text"
+                                                   autocomplete="off"
+                                                   class="reg-input"
+                                                   placeholder="Start typing your practice name…"
+                                                   oninput="onPracticeInput(event)"
+                                                   onkeydown="onPracticeKey(event)"
+                                                   onblur="onPracticeBlur(event)" />
+                                        </div>
+                                        <div id="practice-suggest" class="reg-autocomplete-menu" role="listbox"></div>
+                                    </div>
+                                    <a id="practice-change-link" class="reg-change-link" style="display:none" onclick="clearPracticeSelection()">Change practice</a>
                                     <p id="err-practiceName" class="reg-err hidden"></p>
                                 </div>
                                 {{-- Practice Phone Number --}}
@@ -438,7 +494,7 @@
                                 {{-- Street Address 2 --}}
                                 <div>
                                     <label class="reg-label">Street Address 2</label>
-                                    <div class="reg-input-group">
+                                    <div class="reg-input-group" id="box-address2">
                                         <span class="reg-input-icon"><i class="bi bi-geo-alt"></i></span>
                                         <input id="in-address2" type="text" name="street_address_2" class="reg-input" placeholder="Street address 2" />
                                     </div>
@@ -879,6 +935,189 @@
                     </div>
                 `;
                 container.appendChild(row);
+            }
+
+            // ────────────────────────────────────────────────────────────────
+            //  Practice autocomplete
+            //    – Debounced AJAX to /practice-search (min 2 chars)
+            //    – Keyboard navigation (↑ ↓ Enter Esc)
+            //    – Pick a suggestion → fills practice + address fields, locks them
+            //    – "Change practice" link clears selection and unlocks
+            // ────────────────────────────────────────────────────────────────
+            const PRACTICE_SEARCH_URL = @json(route('practice.search'));
+            let practiceSearchTimer    = null;
+            let practiceSearchAbort    = null;
+            let practiceSuggestions    = [];
+            let practiceActiveIdx      = -1;
+
+            function onPracticeInput(e) {
+                clearError('practiceName');
+                // Any typing clears a previously-picked practice (they're choosing again)
+                if (document.getElementById('hid-practiceId').value) {
+                    document.getElementById('hid-practiceId').value = '';
+                    unlockPracticeFields();
+                    document.getElementById('practice-change-link').style.display = 'none';
+                }
+                const q = e.target.value.trim();
+                clearTimeout(practiceSearchTimer);
+                if (q.length < 2) { hidePracticeMenu(); return; }
+                practiceSearchTimer = setTimeout(() => fetchPracticeSuggestions(q), 300);
+            }
+
+            async function fetchPracticeSuggestions(q) {
+                if (practiceSearchAbort) practiceSearchAbort.abort();
+                practiceSearchAbort = new AbortController();
+                try {
+                    const res = await fetch(PRACTICE_SEARCH_URL + '?q=' + encodeURIComponent(q), {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        signal: practiceSearchAbort.signal,
+                    });
+                    if (!res.ok) throw new Error('search failed');
+                    practiceSuggestions = await res.json();
+                    practiceActiveIdx   = -1;
+                    renderPracticeMenu();
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.error('practice search error', err);
+                }
+            }
+
+            function renderPracticeMenu() {
+                const menu = document.getElementById('practice-suggest');
+                if (!practiceSuggestions || practiceSuggestions.length === 0) {
+                    menu.innerHTML = '<div class="reg-autocomplete-empty">No match — you can continue typing to register a new practice.</div>';
+                    menu.classList.add('open');
+                    return;
+                }
+                menu.innerHTML = practiceSuggestions.map((p, i) =>
+                    `<div class="reg-autocomplete-item ${i === practiceActiveIdx ? 'active' : ''}" role="option" data-idx="${i}" onmousedown="pickPractice(${i})">${escapeHtml(p.label)}</div>`
+                ).join('');
+                menu.classList.add('open');
+            }
+
+            function hidePracticeMenu() {
+                const menu = document.getElementById('practice-suggest');
+                menu.classList.remove('open');
+                menu.innerHTML = '';
+            }
+
+            function onPracticeKey(e) {
+                const menu = document.getElementById('practice-suggest');
+                if (!menu.classList.contains('open') || practiceSuggestions.length === 0) return;
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    practiceActiveIdx = (practiceActiveIdx + 1) % practiceSuggestions.length;
+                    renderPracticeMenu();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    practiceActiveIdx = (practiceActiveIdx - 1 + practiceSuggestions.length) % practiceSuggestions.length;
+                    renderPracticeMenu();
+                } else if (e.key === 'Enter') {
+                    if (practiceActiveIdx >= 0) {
+                        e.preventDefault();
+                        pickPractice(practiceActiveIdx);
+                    }
+                } else if (e.key === 'Escape') {
+                    hidePracticeMenu();
+                }
+            }
+
+            function onPracticeBlur() {
+                // Delay so click on a menu item registers before the menu hides.
+                setTimeout(hidePracticeMenu, 150);
+            }
+
+            function pickPractice(idx) {
+                const p = practiceSuggestions[idx];
+                if (!p) return;
+
+                document.getElementById('hid-practiceId').value = p.id;
+                document.getElementById('in-practiceName').value = p.name;
+
+                // Practice info
+                setVal('in-phone', p.phone_number);
+                setVal('in-website', p.website);
+                const cc = document.querySelector('select[name="practice_phone_country_code"]');
+                if (cc && p.phone_country_code) cc.value = p.phone_country_code;
+
+                // Address info
+                setVal('in-address1', p.street_address_1);
+                setVal('in-address2', p.street_address_2);
+
+                // Zip select — if it contains a matching option, select it; otherwise inject one so the form still submits.
+                const zipSel = document.getElementById('in-zip');
+                if (zipSel) {
+                    let found = Array.from(zipSel.options).find(o => o.value == p.zip_id);
+                    if (!found && p.zip_id) {
+                        const opt = document.createElement('option');
+                        opt.value = p.zip_id;
+                        opt.textContent = (p.zip_code ?? '') + ' — ' + (p.city ?? '') + (p.state_code ? ', ' + p.state_code : '');
+                        zipSel.appendChild(opt);
+                    }
+                    zipSel.value = p.zip_id;
+                }
+                setVal('in-city',    p.city);
+                setVal('in-state',   p.state);
+                setVal('in-country', p.country);
+                setVal('hid-city',    p.city_id);
+                setVal('hid-state',   p.state_id);
+                setVal('hid-country', p.country_id);
+
+                lockPracticeFields();
+                document.getElementById('practice-change-link').style.display = 'inline-block';
+                hidePracticeMenu();
+            }
+
+            function clearPracticeSelection() {
+                document.getElementById('hid-practiceId').value = '';
+                ['in-practiceName','in-phone','in-website','in-address1','in-address2',
+                 'in-city','in-state','in-country','hid-city','hid-state','hid-country']
+                    .forEach(id => setVal(id, ''));
+                const zipSel = document.getElementById('in-zip');
+                if (zipSel) zipSel.selectedIndex = 0;
+
+                unlockPracticeFields();
+                document.getElementById('practice-change-link').style.display = 'none';
+                document.getElementById('in-practiceName').focus();
+            }
+
+            function lockPracticeFields() {
+                setReadonly('in-practiceName', false);                       // keep editable so user can clear + search again
+                setLockedGroup('box-phone',     true);
+                setLockedGroup('box-website',   true);
+                setLockedGroup('box-address1',  true);
+                setLockedGroup('box-address2',  true);
+                ['in-phone','in-website','in-address1','in-address2'].forEach(id => setReadonly(id, true));
+                const zipSel = document.getElementById('in-zip');
+                if (zipSel) zipSel.classList.add('is-locked');
+            }
+
+            function unlockPracticeFields() {
+                setLockedGroup('box-phone',     false);
+                setLockedGroup('box-website',   false);
+                setLockedGroup('box-address1',  false);
+                setLockedGroup('box-address2',  false);
+                ['in-phone','in-website','in-address1','in-address2'].forEach(id => setReadonly(id, false));
+                const zipSel = document.getElementById('in-zip');
+                if (zipSel) zipSel.classList.remove('is-locked');
+            }
+
+            function setLockedGroup(boxId, locked) {
+                const el = document.getElementById(boxId);
+                if (!el) return;
+                el.classList.toggle('is-locked', locked);
+            }
+            function setReadonly(id, readonly) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (readonly) el.setAttribute('readonly', 'readonly');
+                else          el.removeAttribute('readonly');
+            }
+            function setVal(id, v) {
+                const el = document.getElementById(id);
+                if (el) el.value = (v ?? '');
+            }
+            function escapeHtml(s) {
+                return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
             }
 
             // ── Zip auto-fill: reads data-* on the selected option and populates

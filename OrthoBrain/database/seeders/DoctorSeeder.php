@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Doctor;
+use App\Models\Practice;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -22,16 +23,16 @@ class DoctorSeeder extends Seeder
             ]
         );
 
+        // Affiliate the test doctor with the first seeded practice (if any).
+        $practiceId = Practice::where('status', 'ACTIVE')->orderBy('id')->value('id');
+
         // 2. Create the doctor profile (clinical layer)
         Doctor::updateOrCreate(
             ['user_id' => $user->id],
             [
+                'practice_id'                        => $practiceId,
                 'first_name'                         => 'Test',
                 'last_name'                          => 'Doctor',
-                'practice_name'                      => 'Demo Dental Practice',
-                'practice_phone_country_code'        => '+1_US',
-                'practice_phone_number'              => '5551234567',
-                'practice_website'                   => 'https://demo.example.com',
                 'preferred_language'                 => 'English',
                 'currently_providing_ortho_services' => false,
                 'preferred_contact_mode'             => 'DOCTOR_ONLY',

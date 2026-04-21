@@ -23,4 +23,9 @@ class City extends Model
     {
         return $this->hasMany(Zipcode::class);
     }
+
+    public function practices(): HasMany
+    {
+        return $this->hasMany(Practice::class);
+    }
 }
