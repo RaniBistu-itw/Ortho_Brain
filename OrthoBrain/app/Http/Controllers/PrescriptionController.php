@@ -14,12 +14,20 @@ class PrescriptionController extends Controller
 {
     public function update(Request $request, int $id)
     {
-        $doctor = Doctor::where('user_id', Auth::id())->first();
-        if (! $doctor) {
-            abort(403, 'Doctor profile not found.');
+        $user = Auth::user();
+        if (! $user) {
+            abort(401);
         }
 
-        $case = CaseModel::where('doctor_id', $doctor->id)->findOrFail($id);
+        if ($user->role === 'ADMIN') {
+            $case = CaseModel::findOrFail($id);
+        } else {
+            $doctor = Doctor::where('user_id', $user->id)->first();
+            if (! $doctor) {
+                abort(403, 'Doctor profile not found.');
+            }
+            $case = CaseModel::where('doctor_id', $doctor->id)->findOrFail($id);
+        }
 
         $payload = $request->validate([
             'arches'                                   => 'nullable|in:both,maxillary,mandibular',
