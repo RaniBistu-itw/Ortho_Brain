@@ -26,7 +26,6 @@ class ProductFactory extends Factory
             'to_step'             => fake()->numberBetween(5, 20),
             'url'                 => fake()->url(),
             'status'              => 'ACTIVE',
-            'image_s3_key'        => null,
             'description'         => fake()->sentence(),
         ];
     }

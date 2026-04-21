@@ -177,3 +177,447 @@ p, label, .card-text { color: #1f1f1f; }
 .js-delete-blocked:focus {
     opacity: 0.65;
 }
+
+/* ────────────────────────────────────────────────────────────
+   Image hover preview — floating card, no arrow. Triggered by
+   any element with [data-preview-src]. JS lives in the admin
+   layout; this file owns all visual styling.
+   ──────────────────────────────────────────────────────────── */
+[data-preview-src] { cursor: zoom-in; }
+
+.ob-image-preview-card {
+    position: fixed;
+    z-index: 2000;
+    left: -9999px;
+    top: -9999px;
+    background: #fff;
+    border: 1px solid rgba(24, 28, 40, 0.06);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow:
+        0 12px 32px rgba(24, 28, 40, 0.18),
+        0 2px 8px rgba(24, 28, 40, 0.08);
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+    transition: opacity 140ms ease-out, transform 140ms ease-out;
+    pointer-events: none;
+}
+.ob-image-preview-card.is-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.ob-image-preview-card img {
+    display: block;
+    max-width: 240px;
+    max-height: 240px;
+    width: auto;
+    height: auto;
+    border-radius: 7px;
+}
+.ob-image-preview-card.is-lg img {
+    max-width: 360px;
+    max-height: 360px;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Selected-file chip (product image form, new file selected)
+   ──────────────────────────────────────────────────────────── */
+.ob-file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    background: #f4f5f7;
+    border: 1px solid #e6e7eb;
+    border-radius: 10px;
+    padding: 0.5rem 0.625rem 0.5rem 0.5rem;
+    max-width: 100%;
+    animation: obChipIn 180ms ease-out;
+}
+@keyframes obChipIn {
+    from { opacity: 0; transform: translateY(-2px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.ob-file-chip-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e9f6fb;   /* brand cyan tint */
+    color: #5bc0de;
+    flex: 0 0 auto;
+}
+.ob-file-chip-icon svg { width: 16px; height: 16px; }
+.ob-file-chip-meta {
+    min-width: 0;
+    line-height: 1.25;
+}
+.ob-file-chip-name {
+    font-weight: 600;
+    color: #1f1f1f;
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ob-file-chip-size {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+.ob-file-chip-remove {
+    border: 0;
+    background: transparent;
+    color: #8a8a8a;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+    flex: 0 0 auto;
+}
+.ob-file-chip-remove:hover,
+.ob-file-chip-remove:focus-visible {
+    background: #fde7e9;
+    color: #d9534f;
+    outline: none;
+}
+.ob-file-chip-remove svg { width: 14px; height: 14px; }
+
+/* ────────────────────────────────────────────────────────────
+   Existing image card (edit form): frame + hover × overlay,
+   with a pending-remove state (dimmed + undo icon).
+   ──────────────────────────────────────────────────────────── */
+.ob-current-image-frame {
+    position: relative;
+    display: inline-block;
+    border: 1px solid #e6e7eb;
+    border-radius: 10px;
+    padding: 4px;
+    background: #fff;
+    transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+.ob-current-image-frame:hover {
+    border-color: #d4d6dc;
+    box-shadow: 0 6px 18px rgba(24, 28, 40, 0.08);
+}
+.ob-current-image-thumb {
+    display: block;
+    max-height: 96px;
+    max-width: 160px;
+    border-radius: 7px;
+    transition: opacity 160ms ease;
+}
+.ob-current-image-remove {
+    position: absolute;
+    top: -9px;
+    right: -9px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 0;
+    background: #fff;
+    color: #374151;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow:
+        0 2px 6px rgba(24, 28, 40, 0.22),
+        0 0 0 1px rgba(0, 0, 0, 0.06);
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 120ms ease, transform 120ms ease, background 120ms ease, color 120ms ease;
+}
+.ob-current-image-frame:hover .ob-current-image-remove,
+.ob-current-image-remove:focus-visible {
+    opacity: 1;
+    transform: scale(1);
+    outline: none;
+}
+.ob-current-image-remove:hover {
+    background: #d9534f;
+    color: #fff;
+}
+.ob-current-image-remove svg { width: 14px; height: 14px; }
+
+/* Pending-remove: frame goes soft-red, image dims, overlay flips to undo */
+.ob-current-image.is-pending-remove .ob-current-image-frame {
+    border-color: #f0a0a5;
+    background: #fff6f6;
+}
+.ob-current-image.is-pending-remove .ob-current-image-thumb {
+    opacity: 0.35;
+}
+.ob-current-image.is-pending-remove .ob-current-image-remove {
+    opacity: 1;
+    transform: scale(1);
+    background: #5bc0de;
+    color: #fff;
+}
+.ob-current-image.is-pending-remove .ob-current-image-remove:hover {
+    background: #3fb1d4;
+}
+.ob-current-image-hint {
+    font-size: 0.75rem;
+    color: #d9534f;
+    margin-top: 0.35rem;
+    display: none;
+}
+.ob-current-image.is-pending-remove .ob-current-image-hint {
+    display: block;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Multi-image gallery (product form, edit): reorderable tiles
+   with × overlay and a "Cover" badge on the first tile.
+   ──────────────────────────────────────────────────────────── */
+.ob-image-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #eef6fb;
+    color: #3aa5c4;
+    border: 1px solid #d6ecf3;
+}
+.ob-image-count.is-full {
+    background: #fff4e5;
+    color: #b76a00;
+    border-color: #ffd9a8;
+}
+.ob-image-count.is-over {
+    background: #fdecee;
+    color: #b7282b;
+    border-color: #f5b8bc;
+}
+
+.ob-image-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    min-height: 1px;   /* keeps drop zone targetable when empty */
+}
+.ob-image-gallery-empty {
+    padding: 0.9rem 1rem;
+    border: 1px dashed #d4d6dc;
+    border-radius: 10px;
+    color: #6c757d;
+    font-size: 0.85rem;
+    background: #fafbfc;
+}
+
+.ob-image-gallery-item {
+    position: relative;
+    width: 112px;
+    height: 112px;
+    border: 1px solid #e6e7eb;
+    border-radius: 10px;
+    background: #fff;
+    padding: 4px;
+    cursor: grab;
+    transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+.ob-image-gallery-item:hover {
+    border-color: #cfd2d8;
+    box-shadow: 0 6px 18px rgba(24, 28, 40, 0.08);
+}
+.ob-image-gallery-item:active { cursor: grabbing; }
+.ob-image-gallery-item.is-dragging {
+    opacity: 0.4;
+    transform: scale(0.97);
+}
+.ob-image-gallery-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 7px;
+    display: block;
+    pointer-events: none;   /* drag originates on the tile, not the img */
+}
+
+.ob-image-cover-badge {
+    position: absolute;
+    left: 6px;
+    bottom: 6px;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: rgba(91, 192, 222, 0.95);   /* brand cyan */
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+.ob-image-gallery-item:not(:first-child) .ob-image-cover-badge { display: none; }
+
+.ob-image-gallery-remove {
+    position: absolute;
+    top: -9px;
+    right: -9px;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    color: #374151;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow:
+        0 2px 6px rgba(24, 28, 40, 0.22),
+        0 0 0 1px rgba(0, 0, 0, 0.06);
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 120ms ease, transform 120ms ease, background 120ms ease, color 120ms ease;
+    z-index: 2;
+}
+.ob-image-gallery-item:hover .ob-image-gallery-remove,
+.ob-image-gallery-remove:focus-visible {
+    opacity: 1;
+    transform: scale(1);
+    outline: none;
+}
+.ob-image-gallery-remove:hover {
+    background: #d9534f;
+    color: #fff;
+}
+.ob-image-gallery-remove svg { width: 12px; height: 12px; }
+
+.ob-image-drag-hint {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #6c757d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 120ms ease;
+    pointer-events: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.ob-image-gallery-item:hover .ob-image-drag-hint { opacity: 1; }
+.ob-image-drag-hint svg { width: 12px; height: 12px; }
+
+/* Dragula: mirror element (the floating clone during drag) */
+.gu-mirror {
+    opacity: 0.85;
+    box-shadow: 0 10px 28px rgba(24, 28, 40, 0.2) !important;
+    border-radius: 10px;
+}
+.gu-transit { opacity: 0.25; }
+
+/* ────────────────────────────────────────────────────────────
+   Chip list (multiple pending files)
+   ──────────────────────────────────────────────────────────── */
+.ob-file-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.ob-file-chip-list:empty { display: none; }
+
+/* ────────────────────────────────────────────────────────────
+   Hover preview — carousel extensions (dots + cross-fade)
+   ──────────────────────────────────────────────────────────── */
+.ob-image-preview-card img {
+    transition: opacity 120ms ease;
+}
+.ob-image-preview-card img.is-fading { opacity: 0; }
+
+.ob-image-preview-dots {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 0 2px;
+}
+.ob-image-preview-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(24, 28, 40, 0.18);
+    transition: background 160ms ease, transform 160ms ease;
+}
+.ob-image-preview-dot.is-active {
+    background: #5bc0de;
+    transform: scale(1.2);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Product list thumbnail — cover image + "+N" badge overlay
+   ──────────────────────────────────────────────────────────── */
+.ob-list-thumb {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+}
+.ob-list-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: zoom-in;
+}
+.ob-list-thumb-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: #1f1f1f;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Show view — read-only gallery
+   ──────────────────────────────────────────────────────────── */
+.ob-show-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.ob-show-gallery-item {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    border: 1px solid #e6e7eb;
+    border-radius: 10px;
+    background: #fff;
+    padding: 4px;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.ob-show-gallery-item:hover {
+    border-color: #cfd2d8;
+    box-shadow: 0 6px 18px rgba(24, 28, 40, 0.08);
+}
+.ob-show-gallery-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 7px;
+    display: block;
+}

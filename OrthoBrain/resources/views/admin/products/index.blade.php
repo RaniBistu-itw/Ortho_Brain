@@ -55,8 +55,21 @@
                     @forelse ($products as $p)
                         <tr>
                             <td>
-                                @if ($p->image_s3_key)
-                                    <img src="{{ app(\App\Services\ImageUploadService::class)->url($p->image_s3_key) }}" alt="{{ $p->name }}" class="rounded" style="width: 48px; height: 48px; object-fit: cover;">
+                                @php
+                                    $imgService = app(\App\Services\ImageUploadService::class);
+                                    $imageUrls = $p->images->map(fn ($im) => $imgService->url($im->s3_key))->filter()->values();
+                                    $coverUrl  = $imageUrls->first();
+                                @endphp
+                                @if ($coverUrl)
+                                    <div class="ob-list-thumb">
+                                        <img src="{{ $coverUrl }}" alt="{{ $p->name }}" class="rounded ob-list-thumb-img"
+                                             data-preview-src="{{ $coverUrl }}"
+                                             @if ($imageUrls->count() > 1) data-preview-gallery='@json($imageUrls->values())' @endif
+                                             style="width: 48px; height: 48px; object-fit: cover;">
+                                        @if ($imageUrls->count() > 1)
+                                            <span class="ob-list-thumb-badge" title="{{ $imageUrls->count() }} images">+{{ $imageUrls->count() - 1 }}</span>
+                                        @endif
+                                    </div>
                                 @else
                                     <div class="rounded bg-light-secondary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                                         <i data-feather="image" class="text-muted"></i>
