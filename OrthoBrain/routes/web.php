@@ -11,8 +11,10 @@ use App\Http\Controllers\Admin\ScannerController;
 use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\ZipcodeController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CasesController;
 use App\Http\Controllers\DashboardController as DoctorDashboardController;
 use App\Http\Controllers\PracticeController;
+use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,7 +43,16 @@ Route::middleware(['web', 'auth'])
     ->prefix('dev')
     ->name('doctor.')
     ->group(function () {
-        Route::get('/cases/list', [DoctorDashboardController::class, 'index'])->name('cases.list');
+        // Legacy route — login still redirects here. Keep as a redirect to the real list.
+        Route::redirect('/cases/list', '/dev/cases')->name('cases.list');
+
+        // Add Case + Case List feature (owner: Devansh)
+        Route::get('/cases',                    [CasesController::class, 'index'])->name('cases.index');
+        Route::get('/cases/create',             [CasesController::class, 'create'])->name('cases.create');
+        Route::post('/cases',                   [CasesController::class, 'store'])->name('cases.store');
+        Route::get('/cases/{case}/edit',        [CasesController::class, 'edit'])->name('cases.edit');
+        Route::post('/cases/{case}/submit',     [CasesController::class, 'submit'])->name('cases.submit');
+        Route::post('/cases/{case}/prescription',[PrescriptionController::class, 'update'])->name('cases.prescription.update');
 
         Route::get('/profile/index',     [ProfileController::class, 'index'])->name('profile.index');
         Route::post('/profile/index',    [ProfileController::class, 'update'])->name('profile.update');

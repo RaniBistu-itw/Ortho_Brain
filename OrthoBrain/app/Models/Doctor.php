@@ -97,4 +97,9 @@ class Doctor extends Model
     {
         return $this->belongsToMany(Specialty::class, 'doctor_specialties');
     }
+
+    public function cases()
+    {
+        return $this->hasMany(CaseModel::class);
+    }
 }
