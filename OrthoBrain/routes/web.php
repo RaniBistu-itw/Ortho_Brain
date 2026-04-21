@@ -98,7 +98,7 @@ Route::middleware(['web', 'admin'])
 
         // Admin Doctors — review + approve/reject/suspend (PR #17)
         Route::resource('doctors', AdminDoctorController::class)
-            ->only(['index', 'show', 'update', 'destroy']);
+            ->only(['index', 'create', 'store', 'show', 'update', 'destroy']);
         Route::post('doctors/{doctor}/approve',    [AdminDoctorController::class, 'approve'])->name('doctors.approve');
         Route::post('doctors/{doctor}/reject',     [AdminDoctorController::class, 'reject'])->name('doctors.reject');
         Route::post('doctors/{doctor}/suspend',    [AdminDoctorController::class, 'suspend'])->name('doctors.suspend');

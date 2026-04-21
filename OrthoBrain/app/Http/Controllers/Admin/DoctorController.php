@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RejectDoctorRequest;
 use App\Http\Requests\Admin\UpdateDoctorSectionRequest;
@@ -11,6 +12,7 @@ use App\Models\Modality;
 use App\Models\Practice;
 use App\Models\Specialty;
 use App\Models\TreatmentModality;
+use App\Models\Zipcode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +62,52 @@ class DoctorController extends Controller
             'totalCount'     => $statusCounts->sum(),
             'pendingCount'   => (int) ($statusCounts['PENDING'] ?? 0),
         ]);
+    }
+
+    public function create()
+    {
+        $zipcodes = Zipcode::with('city.state.country')
+            ->where('status', 'ACTIVE')
+            ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
+            ->orderBy('code')
+            ->get();
+
+        return view('admin.doctors.create', [
+            'zipcodes'                => $zipcodes,
+            'modalitiesList'          => Modality::orderBy('id')->get(),
+            'specialtiesList'         => Specialty::orderBy('id')->get(),
+            'treatmentModalitiesList' => TreatmentModality::orderBy('id')->get(),
+            'buccalCorridorsList'     => BuccalCorridorOption::orderBy('id')->get(),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        // Delegate to the registration flow so validation + creation logic
+        // lives in exactly one place. Validation errors propagate via
+        // ValidationException → back() with errors, so the admin returns to
+        // /admin/doctors/create with all inputs preserved.
+        app(RegisterController::class)->store($request);
+
+        // Admin-created doctors skip the pending queue and are auto-approved,
+        // stamped with the current admin as the reviewer.
+        $doctor = Doctor::query()
+            ->whereHas('user', fn ($q) => $q->where('email', $request->input('email')))
+            ->latest('id')
+            ->first();
+
+        if ($doctor && $doctor->approval_status !== 'APPROVED') {
+            $doctor->update([
+                'approval_status'      => 'APPROVED',
+                'approved_at'          => now(),
+                'approved_by_admin_id' => $this->currentAdminId(),
+                'rejection_reason'     => null,
+            ]);
+        }
+
+        return redirect()
+            ->route('admin.doctors.index')
+            ->with('success', 'Doctor added and approved.');
     }
 
     public function show(Doctor $doctor)
