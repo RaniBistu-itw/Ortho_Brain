@@ -1,97 +1,66 @@
 # Case List + Add Case — local setup for teammates
 
-Feature branch: `feature/case-list-and-add-case-integrated` (off `dev`).
 Owner: Devansh (Prescription screen + persistence).
+
+**Branches on `origin`:**
+- `feature/case-list-and-add-case` — clean feature work (no merge commits). Reviewable diff against `dev`.
+- `feature/case-list-and-add-case-integrated` — **PR this one.** Above + `origin/dev` merged in, conflict resolved, smoke-tested on a fresh DB.
 
 ---
 
-## TL;DR (copy-paste)
+## 1. Pull + install
 
 ```bash
 git fetch origin
 git checkout feature/case-list-and-add-case-integrated
+git pull --ff-only
 
-# PHP deps (see note on PHP version below)
+# PHP deps. Platform-req bypass needed on PHP 8.3 (see troubleshooting).
 composer install --ignore-platform-req=php
 
-# Node deps (teammates' existing Vite pipeline is untouched)
+# Node deps — the existing Vite pipeline is untouched; no new packages.
 npm install
 
-# Fresh DB + seed (admin + doctor accounts). Adjust DB_DATABASE in .env first.
+# Configure .env (first time only)
+cp .env.example .env
+php artisan key:generate
+# then set DB_DATABASE / DB_USERNAME / DB_PASSWORD to your local MariaDB
+
+# Fresh DB + seed (creates admin + doctor accounts; safe to re-run)
 php artisan migrate:fresh --seed
 
-# Expose storage/app/public via /storage/* URLs
+# Expose storage/app/public under /storage/* (one-time)
 php artisan storage:link
 
 # Run
 php artisan serve        # http://127.0.0.1:8000
-# in a separate shell if you touch Vue/Tailwind: npm run dev
-```
-
-Log in as either:
-- **Doctor** — `doctor@orthobrain.local` / `Password@1` → lands on `/dev/cases`
-- **Admin**  — `admin@orthobrain.local` / `Password@1` → lands on `/admin`
-
----
-
-## What's in this branch
-
-- **`/dev/cases`** — Case List page (doctor scope). Replaces the old `/dev/cases/list` dashboard placeholder.
-- **`/dev/cases/create`** + **`/dev/cases/{id}/edit`** — 10-section Add Case form (8 active + 2 placeholders). Scroll-spy rail, sticky action bar, 30s debounced autosave, Submit confirmation modal.
-- **Prescription section wired to DB** end-to-end: `cases`, `prescriptions`, `prescription_tooth_restrictions`. Other 7 sections still write to `localStorage` with `// TODO:` markers for their respective owners.
-- Shared UI helpers: crop modal (Cropper.js via CDN with Zoom In / Out / Rotate / Reset), reusable Web Speech mic on every `textarea[maxlength="5000"]`.
-
-Routes added (under existing `auth`-guarded `/dev` group):
-
-```
-GET  /dev/cases                    doctor.cases.index
-GET  /dev/cases/create             doctor.cases.create
-POST /dev/cases                    doctor.cases.store
-GET  /dev/cases/{id}/edit          doctor.cases.edit
-POST /dev/cases/{id}/prescription  doctor.cases.prescription.update
-POST /dev/cases/{id}/submit        doctor.cases.submit
 ```
 
 ---
 
-## Gotchas
+## 2. Accounts + smoke test (3 minutes)
 
-### 1. PHP 8.3 vs 8.4 (composer.lock)
-`composer.lock` pins symfony 8.x which requires PHP 8.4. On PHP 8.3 you need `--ignore-platform-req=php` during install.
+| Role   | Email                       | Password    | Lands on    |
+|--------|-----------------------------|-------------|-------------|
+| Doctor | doctor@orthobrain.local     | Password@1  | `/dev/cases`|
+| Admin  | admin@orthobrain.local      | Password@1  | `/admin`    |
 
-At runtime, PHP 8.3 boxes hit a fatal on `PUT / PATCH / DELETE` with JSON bodies (Symfony's `Request::createFromGlobals` calls the PHP-8.4-only `request_parse_body()`). Our Prescription save endpoint is therefore a `POST`, not a `PUT`. If you hit similar issues on your own endpoints on 8.3, prefer POST or install PHP 8.4.
-
-### 2. Admin password
-Default in `.env.example` is `ChangeMe@123` — this branch's local `.env` uses `Password@1` for both admin and doctor to keep dev logins simple. Adjust for your env.
-
-### 3. Voice dictation
-Uses Web Speech API. Works in Chrome / Edge. Firefox ships `SpeechRecognition` behind a flag — in Firefox the mic still appears (faded) and clicking it shows a toast saying it's unavailable.
-
-### 4. Image uploads
-Prototype still uses `URL.createObjectURL()` in browser memory for Photographs / X-Rays. Binaries disappear on refresh; metadata persists in draft. `storage:link` is ready for the real upload flow whenever we wire it to `storage/app/public/case-uploads/{caseId}/…`.
-
-### 5. Cropper / heic2any
-Loaded via CDN (jsdelivr) inside `resources/views/content/cases/add-case.blade.php`. Not added to `package.json` — no npm install step needed for the case feature.
-
----
-
-## Smoke test (3 minutes)
-
-1. Log in as doctor, you should land on `/dev/cases` → "No cases yet" + "+ New Case".
-2. Click **+ New Case**. Browser URL is `/dev/cases/create`.
-3. Fill Prescription section only (pick Arches, pick an IPR value, select 2 teeth in Tooth Movement Restrictions, type in Additional Comments). Wait 30s — top bar reads "Saved at HH:MM". URL should have rewritten itself to `/dev/cases/{id}/edit`.
-4. Refresh the page. Prescription values should rehydrate from DB (not localStorage).
-5. Click **Submit**. Confirmation modal → Confirm → redirects to `/dev/cases` with a "Case submitted" toast; row shows `SUBMITTED`.
-6. Peek at DB:
+1. Log in as doctor → "No cases yet" + **+ New Case** button.
+2. Click **+ New Case** → `/dev/cases/create`.
+3. Fill Prescription only: pick Arches, pick an IPR value, select 2 teeth in Tooth Movement Restrictions, type in Additional Comments.
+4. Wait 30s (or click **Save Draft**). Top bar reads "Saved at HH:MM"; URL rewrites to `/dev/cases/{id}/edit`.
+5. Refresh page → Prescription values rehydrate from DB.
+6. Click **Submit** → Confirm → redirects to `/dev/cases` with toast; row shows `SUBMITTED`.
 
 ```sql
+-- Peek at persisted state
 SELECT * FROM cases;
 SELECT * FROM prescriptions;
 SELECT * FROM prescription_tooth_restrictions;
 ```
 
 ### DevTools self-check
-On any `/dev/cases/create` or `/edit` load, the console prints one line:
+On any `/dev/cases/create` or `/edit` load, the console prints exactly one line:
 
 ```
 [AddCase] deps check — Alpine=true Cropper=true heic2any=true bootstrap=true feather=true photographsSection=true
@@ -101,19 +70,80 @@ All `true` = vendor stack is healthy. Any `false` = stop, tell Devansh which one
 
 ---
 
-## What's NOT in this branch (owner / follow-up)
+## 3. What's in vs what's out
 
-- Patient Information persistence — Rani/Kamlesh schema extension to `cases` or a `patients` table.
-- Additional Information / Impressions / Shipping Address / Submit Order server endpoints — one-at-a-time swap with the matching section owner.
-- Photographs / X-Rays S3 (or disk) upload endpoint. `storage:link` is prepared but no upload route yet.
+### In this branch
+- **Routes** under existing `/dev` auth group:
+  ```
+  GET  /dev/cases                    doctor.cases.index
+  GET  /dev/cases/create             doctor.cases.create
+  POST /dev/cases                    doctor.cases.store
+  GET  /dev/cases/{id}/edit          doctor.cases.edit
+  POST /dev/cases/{id}/prescription  doctor.cases.prescription.update
+  POST /dev/cases/{id}/submit        doctor.cases.submit
+  ```
+- **Schema** — 3 new tables: `cases`, `prescriptions`, `prescription_tooth_restrictions`.
+- **Models** — `CaseModel` (table `cases`; class avoids PHP `case` keyword), `Prescription`, `PrescriptionToothRestriction`. `Doctor::cases()` relation added.
+- **UI** — 10-section Add Case form (8 active, 2 placeholders), scroll-spy rail, sticky top bar, 30s debounced autosave, Submit confirmation modal, "Cases" item in the doctor sidebar.
+- **Reusable helpers** — crop modal with Zoom In / Out / Rotate / Reset (Cropper.js v1 via CDN), Web Speech mic auto-attached to every `textarea[maxlength="5000"]`.
+- **Only the Prescription slice persists to DB.** Other 7 sections still write to `localStorage` behind `// TODO:` markers for their owners.
+
+### Not in this branch (owner pickups)
+- Patient Information persistence — needs schema extension (patients table or columns on `cases`).
+- Additional Information / Impressions / Shipping Address / Submit Order server endpoints — one-at-a-time swap.
+- Photographs / X-Rays disk upload endpoint. `storage:link` is set up, but no route yet.
+  **Reuse `app/Services/ImageUploadService.php`** (shipped in PR #14, `feature/local-image-save`) rather than building a parallel service.
 - Perfect Smile Plan + Additional Records sections (still placeholders by spec).
-- Doctor preferences settings page (Prescription defaults read from the `doctors` table enums; editing them is out of scope for this PR).
+- Doctor preferences settings page (Prescription defaults read from existing `doctors` enums; editing UI is out of scope).
 
 ---
 
-## If things look wrong
+## 4. Keeping your local branch fresh
 
-- Fresh `.env` issues → copy from `.env.example`, set `DB_DATABASE`, run `php artisan key:generate`.
-- "Unauthenticated" on `POST /dev/cases` → session probably expired; refresh the page once.
-- Tile modal buttons dead → check the `[AddCase] deps check` line in the console; most likely `bootstrap=false` or `Alpine=false`.
-- Cropper modal blank → `Cropper=false` in the deps check. Check your network can reach `cdn.jsdelivr.net`.
+### `dev` moved and I want the latest here
+
+```bash
+git fetch origin
+git checkout feature/case-list-and-add-case-integrated
+git merge origin/dev
+# If a conflict surfaces, resolve it, then:
+git commit                          # completes the merge
+```
+
+Use `merge` (not `rebase`) — the integration branch is shared via PR; rebasing rewrites history and breaks review threads.
+
+### I pushed, then `dev` moved, my push is rejected
+
+```bash
+git fetch origin
+git merge origin/dev                # resolve any conflicts
+php artisan migrate:fresh --seed    # re-verify everything still runs
+git push origin feature/case-list-and-add-case-integrated
+```
+
+### I only want to peek at what changed upstream
+
+```bash
+git fetch origin
+git log --oneline HEAD..origin/dev          # commits I'm missing
+git diff --stat HEAD..origin/dev            # file-level scope
+git merge --no-commit --no-ff origin/dev    # dry-run
+git merge --abort                           # back out
+```
+
+---
+
+## 5. Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `composer install` fails on symfony/laravel packages requiring PHP 8.4 | composer.lock pins symfony 8 | Use `composer install --ignore-platform-req=php`, OR install PHP 8.4 |
+| `PUT` / `PATCH` / `DELETE` with JSON body 500s with `Call to undefined function request_parse_body()` | Symfony 8 calls the PHP-8.4-only `request_parse_body()` | Use `POST` instead (our Prescription save already is), OR install PHP 8.4 |
+| `POST /dev/cases` returns 401 "Unauthenticated" | Session expired | Refresh the page once |
+| Tile modal buttons dead (Replace / Remove / Crop) | Alpine or bootstrap failed to load | Open DevTools → check the `[AddCase] deps check` line; the `false` field is the broken one |
+| Crop modal opens but image doesn't appear / buttons do nothing | `Cropper=false` in deps check | Network can't reach `cdn.jsdelivr.net`, OR a previous tab cached the old `crop-modal.js`. Hard-refresh (Ctrl+Shift+R) |
+| Mic button absent on textareas in Chrome | Script blocked, or fresh fetch needed | Hard-refresh once; check `[VoiceInput] refresh — found=8` in console |
+| Mic present but clicking shows a toast | Browser isn't Chrome/Edge (Web Speech unsupported) | Expected — no action needed |
+| `PracticesSeeder skipped: no ACTIVE zipcodes found` during seed | Teammates' `PracticesSeeder` depends on geo sample data not yet in a dedicated seeder | Harmless; import teammates' `database/seeders/sql/sample_data.sql` if you want `practices` populated |
+| `migrate:fresh` wipes sessions — existing browser tab 401s | Session table recreated | Log out + log back in |
+| `.env` missing / `APP_KEY` error | Fresh clone didn't copy `.env.example` | `cp .env.example .env && php artisan key:generate` |
