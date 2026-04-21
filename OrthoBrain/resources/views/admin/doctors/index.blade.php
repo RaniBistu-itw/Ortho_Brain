@@ -163,11 +163,19 @@
                         @php
                             $initials = strtoupper(substr($doctor->first_name, 0, 1) . substr($doctor->last_name, 0, 1));
                             $badge = $statusToBadge[$doctor->approval_status] ?? ['label' => $doctor->approval_status, 'class' => 'secondary'];
+                            $avatarUrl = $doctor->avatarUrl();
                         @endphp
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <span class="ob-avatar me-1">{{ $initials }}</span>
+                                    <span class="ob-avatar me-1">
+                                        @if ($avatarUrl)
+                                            <img src="{{ $avatarUrl }}" alt="Dr. {{ $doctor->first_name }} {{ $doctor->last_name }}"
+                                                 data-preview-src="{{ $avatarUrl }}" data-preview-size="lg">
+                                        @else
+                                            {{ $initials }}
+                                        @endif
+                                    </span>
                                     <div>
                                         <div class="fw-bolder">Dr. {{ $doctor->first_name }} {{ $doctor->last_name }}</div>
                                         @if ($doctor->other_email)

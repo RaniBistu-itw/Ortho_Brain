@@ -7,11 +7,19 @@
     ];
     $current = $statusMap[$doctor->approval_status] ?? ['label' => $doctor->approval_status, 'class' => 'secondary'];
     $initials = strtoupper(substr($doctor->first_name, 0, 1) . substr($doctor->last_name, 0, 1));
+    $avatarUrl = $doctor->avatarUrl();
 @endphp
 <div class="card ob-doctor-header">
     <div class="card-body">
         <div class="d-flex flex-wrap align-items-center gap-2">
-            <span class="ob-avatar ob-avatar-lg">{{ $initials }}</span>
+            <span class="ob-avatar ob-avatar-lg">
+                @if ($avatarUrl)
+                    <img src="{{ $avatarUrl }}" alt="Dr. {{ $doctor->first_name }} {{ $doctor->last_name }}"
+                         data-preview-src="{{ $avatarUrl }}" data-preview-size="lg">
+                @else
+                    {{ $initials }}
+                @endif
+            </span>
 
             <div class="flex-grow-1">
                 <div class="d-flex flex-wrap align-items-center gap-1">
