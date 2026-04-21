@@ -15,6 +15,11 @@
         </div>
 
         <ul class="nav navbar-nav align-items-center ms-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-theme-toggle title="Toggle dark / light mode" aria-label="Toggle dark mode">
+                    <i class="ficon" data-feather="moon" data-theme-toggle-icon></i>
+                </a>
+            </li>
             <li class="nav-item dropdown dropdown-user">
                 <a class="nav-link dropdown-toggle dropdown-user-link" id="dropdown-user" href="#"
                    data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">

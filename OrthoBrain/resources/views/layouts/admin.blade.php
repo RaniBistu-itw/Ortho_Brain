@@ -98,6 +98,7 @@
     <script src="{{ asset('vuexy/js/core/app-menu.js') }}"></script>
     <script src="{{ asset('vuexy/js/core/app.js') }}"></script>
     <script src="{{ asset('vuexy/js/core/scripts.js') }}"></script>
+    <script src="{{ asset('js/theme-toggle.js') }}?v={{ @filemtime(public_path('js/theme-toggle.js')) ?: time() }}"></script>
 
     <script>
         $(window).on('load', function () {
