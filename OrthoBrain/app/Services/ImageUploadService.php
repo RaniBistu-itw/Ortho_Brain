@@ -39,13 +39,13 @@ class ImageUploadService
     {
         if (! $key) return null;
 
-        $disk = Storage::disk($this->disk());
-
-        try {
-            return $disk->url($key);
-        } catch (\Throwable $e) {
+        // For the public disk, asset() tracks the current request host so
+        // URLs stay correct across different serve ports / dev domains.
+        if ($this->disk() !== 's3') {
             return asset('storage/' . $key);
         }
+
+        return Storage::disk('s3')->url($key);
     }
 
     private function disk(): string

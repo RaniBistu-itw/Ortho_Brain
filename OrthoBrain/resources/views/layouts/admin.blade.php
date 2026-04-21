@@ -295,6 +295,182 @@
             });
         });
 
+        // ─── Image upload guard (size + MIME type, client-side) ───
+        $(document).on('change', '.js-image-guard', function () {
+            const input = this;
+            const file = input.files && input.files[0];
+            if (!file) return;
+
+            const maxSize = parseInt($(input).data('max-size'), 10) || (2 * 1024 * 1024);
+            const allowed = String($(input).data('allowed-types') || 'image/jpeg,image/png')
+                .split(',').map(s => s.trim()).filter(Boolean);
+
+            const block = (title, text) => {
+                input.value = '';
+                Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: 'warning',
+                    confirmButtonText: 'Got it',
+                    customClass: { confirmButton: 'btn btn-primary' },
+                    buttonsStyling: false
+                });
+            };
+
+            if (allowed.length && !allowed.includes(file.type)) {
+                const labels = allowed.map(t => t.split('/')[1].toUpperCase()).join(' or ');
+                return block('Unsupported file type',
+                    'Please choose a ' + labels + ' image.');
+            }
+
+            if (file.size > maxSize) {
+                const maxMb = (maxSize / 1024 / 1024).toFixed(1).replace(/\.0$/, '');
+                const actualMb = (file.size / 1024 / 1024).toFixed(1);
+                return block('Image is too large',
+                    'Maximum size is ' + maxMb + ' MB. Your file is ' + actualMb + ' MB — please resize or compress it and try again.');
+            }
+        });
+
+        // ─── Image hover preview (custom floating card) ─────────────
+        // Any element with [data-preview-src] gets a soft, lightweight
+        // preview on hover. Single reused DOM node, delegated listeners.
+        //
+        // If the element ALSO has [data-preview-gallery] (JSON array of URLs),
+        // the card becomes a self-advancing carousel with dot indicators.
+        (function () {
+            const SHOW_DELAY     = 180;   // ms — avoids flashes on casual passes
+            const GAP            = 12;    // px — breathing room from the trigger
+            const SLIDE_INTERVAL = 2200;  // ms between carousel slides
+
+            let card = null, cardImg = null, cardDots = null;
+            let showTimer = null, slideTimer = null;
+            let current = null;
+            let gallery = null;   // string[] or null
+            let slideIdx = 0;
+
+            function ensureCard() {
+                if (card) return;
+                card = document.createElement('div');
+                card.className = 'ob-image-preview-card';
+                cardImg = new Image();
+                cardImg.alt = '';
+                card.appendChild(cardImg);
+                cardDots = document.createElement('div');
+                cardDots.className = 'ob-image-preview-dots';
+                card.appendChild(cardDots);
+                document.body.appendChild(card);
+            }
+
+            function place(target) {
+                const r = target.getBoundingClientRect();
+                const pw = card.offsetWidth, ph = card.offsetHeight;
+                const vw = window.innerWidth, vh = window.innerHeight;
+                let left = r.right + GAP;
+                if (left + pw > vw - 8) left = r.left - pw - GAP;
+                if (left < 8) left = Math.max(8, (vw - pw) / 2);
+                let top = r.top + r.height / 2 - ph / 2;
+                if (top < 8) top = 8;
+                if (top + ph > vh - 8) top = vh - ph - 8;
+                card.style.left = left + 'px';
+                card.style.top  = top + 'px';
+            }
+
+            function renderDots() {
+                if (!gallery || gallery.length < 2) {
+                    cardDots.style.display = 'none';
+                    cardDots.innerHTML = '';
+                    return;
+                }
+                cardDots.style.display = '';
+                let html = '';
+                for (let i = 0; i < gallery.length; i++) {
+                    html += '<span class="ob-image-preview-dot' + (i === slideIdx ? ' is-active' : '') + '"></span>';
+                }
+                cardDots.innerHTML = html;
+            }
+
+            function setImage(src, then) {
+                const done = function () {
+                    if (typeof then === 'function') then();
+                };
+                if (cardImg.src !== src) {
+                    cardImg.onload  = done;
+                    cardImg.onerror = done;
+                    cardImg.src = src;
+                    if (cardImg.complete && cardImg.naturalWidth) done();
+                } else {
+                    done();
+                }
+            }
+
+            function startCarousel(target) {
+                clearInterval(slideTimer);
+                if (!gallery || gallery.length < 2) return;
+                slideTimer = setInterval(function () {
+                    if (current !== target) { clearInterval(slideTimer); return; }
+                    slideIdx = (slideIdx + 1) % gallery.length;
+                    cardImg.classList.add('is-fading');
+                    setTimeout(function () {
+                        setImage(gallery[slideIdx], function () {
+                            renderDots();
+                            place(target);
+                            cardImg.classList.remove('is-fading');
+                        });
+                    }, 120);
+                }, SLIDE_INTERVAL);
+            }
+
+            function show(target) {
+                ensureCard();
+                card.classList.toggle('is-lg', target.getAttribute('data-preview-size') === 'lg');
+                const raw = target.getAttribute('data-preview-gallery');
+                gallery = null;
+                if (raw) {
+                    try {
+                        const arr = JSON.parse(raw);
+                        if (Array.isArray(arr) && arr.length) gallery = arr;
+                    } catch (e) { /* ignore malformed gallery */ }
+                }
+                const firstSrc = (gallery && gallery[0]) || target.getAttribute('data-preview-src');
+                if (!firstSrc) return;
+                slideIdx = 0;
+                setImage(firstSrc, function () {
+                    if (current !== target) return;
+                    renderDots();
+                    place(target);
+                    card.classList.add('is-visible');
+                    startCarousel(target);
+                });
+            }
+
+            function hide() {
+                if (card) card.classList.remove('is-visible');
+                clearInterval(slideTimer);
+                current = null;
+            }
+
+            document.addEventListener('mouseover', function (e) {
+                const t = e.target.closest('[data-preview-src]');
+                if (!t || t === current) return;
+                current = t;
+                clearTimeout(showTimer);
+                showTimer = setTimeout(function () {
+                    if (current === t) show(t);
+                }, SHOW_DELAY);
+            });
+            document.addEventListener('mouseout', function (e) {
+                const t = e.target.closest('[data-preview-src]');
+                if (!t) return;
+                const related = e.relatedTarget && e.relatedTarget.closest
+                    ? e.relatedTarget.closest('[data-preview-src]') : null;
+                if (related === t) return;
+                clearTimeout(showTimer);
+                hide();
+            });
+            window.addEventListener('scroll', hide, true);
+            window.addEventListener('resize', hide);
+        })();
+
         // ─── Delete confirmation (Vuexy SweetAlert2) ───
         $(document).on('submit', 'form.js-delete-form', function (e) {
             const $form = $(this);
