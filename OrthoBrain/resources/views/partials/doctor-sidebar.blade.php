@@ -34,7 +34,14 @@
                 </a>
             </li>
 
-            {{-- Future menu sections and items go here (e.g. Cases, Patients, Reports). --}}
+            <li class="nav-item {{ $active('doctor.cases.*') }}">
+                <a href="{{ route('doctor.cases.index') }}" class="d-flex align-items-center">
+                    <i data-feather="folder"></i>
+                    <span class="menu-title text-truncate">Cases</span>
+                </a>
+            </li>
+
+            {{-- Future menu sections and items go here (e.g. Patients, Reports). --}}
 
         </ul>
     </div>
