@@ -89,9 +89,25 @@ class DoctorController extends Controller
         // /admin/doctors/create with all inputs preserved.
         app(RegisterController::class)->store($request);
 
+        // Admin-created doctors skip the pending queue and are auto-approved,
+        // stamped with the current admin as the reviewer.
+        $doctor = Doctor::query()
+            ->whereHas('user', fn ($q) => $q->where('email', $request->input('email')))
+            ->latest('id')
+            ->first();
+
+        if ($doctor && $doctor->approval_status !== 'APPROVED') {
+            $doctor->update([
+                'approval_status'      => 'APPROVED',
+                'approved_at'          => now(),
+                'approved_by_admin_id' => $this->currentAdminId(),
+                'rejection_reason'     => null,
+            ]);
+        }
+
         return redirect()
             ->route('admin.doctors.index')
-            ->with('success', 'Doctor added.');
+            ->with('success', 'Doctor added and approved.');
     }
 
     public function show(Doctor $doctor)
