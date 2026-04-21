@@ -35,6 +35,13 @@
                 </a>
             </li>
 
+            <li class="nav-item {{ $active('admin.cases.*') }}">
+                <a href="{{ route('admin.cases.index') }}" class="d-flex align-items-center">
+                    <i data-feather="folder"></i>
+                    <span class="menu-title text-truncate">Cases</span>
+                </a>
+            </li>
+
             <li class="navigation-header ob-section-head" data-ob-section="users">
                 <span>Users</span>
                 <svg class="ob-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>

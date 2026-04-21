@@ -1,7 +1,15 @@
-@extends('layouts.app')
+@php
+  $adminMode = $adminMode ?? false;
+  $caseRow = $caseRow ?? null;
+  $statusOptions = $statusOptions ?? ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
+  $apiBase = $adminMode ? '/admin/cases' : '/dev/cases';
+  $backUrl = $adminMode ? route('admin.cases.index') : route('doctor.cases.index');
+@endphp
+
+@extends($adminMode ? 'layouts.admin' : 'layouts.app')
 
 @section('title', isset($id) ? 'Edit Case' : 'Add Case')
-@section('page_title', isset($id) ? 'Edit Case' : 'Add Case')
+@section('page_title', isset($id) ? ($adminMode ? 'Case #' . $id : 'Edit Case') : 'Add Case')
 
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/base/pages/add-case.css') }}">
@@ -30,7 +38,7 @@
   {{-- Sticky Top Bar --}}
   <div class="add-case-topbar card mb-0">
     <div class="card-body py-75 px-1 d-flex align-items-center gap-75">
-      <a href="{{ route('doctor.cases.index') }}" class="btn btn-danger btn-sm add-case-topbar__back" title="Back to Cases">
+      <a href="{{ $backUrl }}" class="btn btn-danger btn-sm add-case-topbar__back" title="Back to Cases">
         <i data-feather="arrow-left"></i>
       </a>
 
@@ -38,18 +46,41 @@
         Case #<span id="case-id-badge-num">{{ $caseId ?? '' }}</span>
       </span>
 
+      @if($adminMode && $caseRow && $caseRow->doctor)
+        <span class="text-muted font-small-2 ms-1">
+          {{ trim($caseRow->doctor->first_name . ' ' . $caseRow->doctor->last_name) }}
+          @if($caseRow->doctor->practice) · {{ $caseRow->doctor->practice->name }} @endif
+        </span>
+      @endif
+
       <div class="flex-fill"></div>
 
       <span class="add-case-topbar__autosave text-muted font-small-2" id="autosave-indicator"></span>
 
-      <button type="button" class="btn btn-outline-primary btn-sm" id="btn-save-draft">
-        Save Draft
+      @if($adminMode && $caseRow)
+        <div class="d-flex align-items-center gap-50 add-case-topbar__group">
+          <select class="form-select form-select-sm" id="admin-status-select" style="width:auto;" aria-label="Case status">
+            @foreach($statusOptions as $s)
+              <option value="{{ $s }}" @selected($caseRow->status === $s)>{{ $s }}</option>
+            @endforeach
+          </select>
+          <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-25" id="btn-admin-save-status" title="Save status change">
+            <i data-feather="check"></i> Save Status
+          </button>
+        </div>
+        <span class="add-case-topbar__divider"></span>
+      @endif
+
+      <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-25" id="btn-save-draft" title="Save draft now">
+        <i data-feather="save"></i> Save Draft
       </button>
 
-      <button type="button" class="btn btn-success btn-sm d-flex align-items-center gap-50" id="btn-submit"
-              onclick="window.AddCaseSubmit.submit()">
-        Submit <i data-feather="check" class="ms-25"></i>
-      </button>
+      @unless($adminMode)
+        <button type="button" class="btn btn-success btn-sm d-flex align-items-center gap-25" id="btn-submit" title="Submit case for review"
+                onclick="window.AddCaseSubmit.submit()">
+          <i data-feather="check"></i> Submit
+        </button>
+      @endunless
     </div>
   </div>
 
@@ -113,6 +144,8 @@
   <script>
     window.CASE_ID = '{{ $caseId ?? 'new' }}';
     window.__addCasePrefill = @json($prescriptionPrefill ?? null);
+    window.CASE_API_BASE = @json($apiBase);
+    window.CASE_ADMIN_MODE = @json((bool) $adminMode);
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
   {{-- Cropper.js v1 — required by the shared crop modal (Photographs + X-Rays). --}}
@@ -148,6 +181,25 @@
     // Alpine CDN build auto-starts on DOMContentLoaded; do not call Alpine.start() manually.
     document.addEventListener('DOMContentLoaded', function () {
       if (window.PatientInformationSection) window.PatientInformationSection.init();
+
+      // Admin: save-status button
+      var btnAdminStatus = document.getElementById('btn-admin-save-status');
+      if (btnAdminStatus) {
+        btnAdminStatus.addEventListener('click', function () {
+          var sel = document.getElementById('admin-status-select');
+          if (!sel || !window.CASE_ID || window.CASE_ID === 'new') return;
+          btnAdminStatus.disabled = true;
+          window.CaseApi.updateStatus(window.CASE_ID, sel.value)
+            .then(function (res) {
+              alert('Status updated to ' + res.status + '.');
+            })
+            .catch(function (err) {
+              console.error('Status update failed', err);
+              alert('Failed to update status.');
+            })
+            .finally(function () { btnAdminStatus.disabled = false; });
+        });
+      }
 
       // One-shot self-test: confirms vendor deps are present.
       setTimeout(function () {

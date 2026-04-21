@@ -41,17 +41,27 @@
     return data;
   }
 
+  function base() {
+    return window.CASE_API_BASE || '/dev/cases';
+  }
+
   window.CaseApi = {
     createShell: function () {
+      // Admin context never creates shells (admins always edit existing cases),
+      // so this stays anchored to the doctor route.
       return request('POST', '/dev/cases', {});
     },
 
     savePrescription: function (caseId, payload) {
-      return request('POST', '/dev/cases/' + encodeURIComponent(caseId) + '/prescription', payload);
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/prescription', payload);
     },
 
     submitCase: function (caseId) {
       return request('POST', '/dev/cases/' + encodeURIComponent(caseId) + '/submit', {});
+    },
+
+    updateStatus: function (caseId, status) {
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/status', { status: status });
     },
   };
 })();

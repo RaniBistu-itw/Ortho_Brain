@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\Ajax\LookupController;
+use App\Http\Controllers\Admin\CasesController as AdminCasesController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -89,6 +90,13 @@ Route::middleware(['web', 'admin'])
             ->parameters(['product-subcategories' => 'product_subcategory']);
         Route::resource('scanners', ScannerController::class);
 
+        // Admin Cases — full visibility + edit (owner: Devansh)
+        Route::get('/cases',                          [AdminCasesController::class, 'index'])->name('cases.index');
+        Route::get('/cases/{case}/edit',              [AdminCasesController::class, 'edit'])->name('cases.edit');
+        Route::post('/cases/{case}/status',           [AdminCasesController::class, 'updateStatus'])->name('cases.status');
+        Route::post('/cases/{case}/prescription',     [PrescriptionController::class, 'update'])->name('cases.prescription.update');
+
+        // Admin Doctors — review + approve/reject/suspend (PR #17)
         Route::resource('doctors', AdminDoctorController::class)
             ->only(['index', 'show', 'update', 'destroy']);
         Route::post('doctors/{doctor}/approve',    [AdminDoctorController::class, 'approve'])->name('doctors.approve');
