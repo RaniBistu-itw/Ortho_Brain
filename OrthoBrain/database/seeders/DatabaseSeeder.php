@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             MasterOptionsSeeder::class,
             PracticesSeeder::class,
             DoctorSeeder::class,
+            CaseDemoSeeder::class,
         ]);
     }
 }

@@ -10,41 +10,18 @@
       <label for="imp-method" class="form-label fw-semibold">
         Impression Method <span class="text-danger">*</span>
       </label>
-      {{-- Options are static HTML matching window.MOCK_SCANNERS structure --}}
-      {{-- TODO: replace with API call to GET /api/impression-methods once endpoint exists --}}
+      {{-- Sourced from the scanners master table (admin-managed at /admin/scanners). --}}
       <select id="imp-method" class="form-select"
               x-model="impressionMethodId"
               @change="onMethodChange()"
               @blur="validateField('impressionMethod')"
               :class="{ 'is-invalid': errors.impressionMethod }">
         <option value="">Select scanner model or PVS</option>
-        <optgroup label="iTero">
-          <option value="itero-element-5d">Element 5D</option>
-          <option value="itero-element-5d-plus">Element 5D Plus</option>
-          <option value="itero-element-flex">Element Flex</option>
-        </optgroup>
-        <optgroup label="3Shape">
-          <option value="3shape-trios-3">Trios 3</option>
-          <option value="3shape-trios-4">Trios 4</option>
-          <option value="3shape-trios-5">Trios 5</option>
-        </optgroup>
-        <optgroup label="Medit">
-          <option value="medit-i500">i500</option>
-          <option value="medit-i700">i700</option>
-          <option value="medit-i900">i900</option>
-        </optgroup>
-        <optgroup label="Planmeca">
-          <option value="planmeca-emerald">Emerald</option>
-          <option value="planmeca-emerald-s">Emerald S</option>
-        </optgroup>
-        <optgroup label="Carestream">
-          <option value="carestream-cs-3600">CS 3600</option>
-          <option value="carestream-cs-3700">CS 3700</option>
-          <option value="carestream-cs-3800">CS 3800</option>
-        </optgroup>
-        <optgroup label="Other / Non-digital">
-          <option value="pvs">PVS (Polyvinyl Siloxane)</option>
-        </optgroup>
+        @forelse($scanners ?? [] as $s)
+          <option value="{{ $s->id }}">{{ $s->name }}</option>
+        @empty
+          <option value="" disabled>No scanners configured. Admin → /admin/scanners.</option>
+        @endforelse
       </select>
       <div class="small text-danger mt-25"
            x-show="errors.impressionMethod"

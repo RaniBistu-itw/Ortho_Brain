@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CaseModel;
 use App\Models\Doctor;
 use App\Models\Prescription;
+use App\Models\Scanner;
 use App\Http\Requests\Cases\PrescriptionRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,9 +25,14 @@ class CasesController extends Controller
 
     public function create()
     {
+        $doctor = $this->currentDoctor();
+        $doctor->loadMissing('practice:id,name');
+
         return view('content.cases.add-case', [
             'id' => null,
             'prescriptionPrefill' => null,
+            'caseDoctor' => $doctor,
+            'scanners' => $this->activeScanners(),
         ]);
     }
 
@@ -49,6 +55,7 @@ class CasesController extends Controller
     public function edit(int $id)
     {
         $doctor = $this->currentDoctor();
+        $doctor->loadMissing('practice:id,name');
 
         $case = CaseModel::with('prescription.toothRestrictions')
             ->where('doctor_id', $doctor->id)
@@ -57,6 +64,8 @@ class CasesController extends Controller
         return view('content.cases.add-case', [
             'id' => $case->id,
             'prescriptionPrefill' => $this->serializePrescription($case->prescription),
+            'caseDoctor' => $doctor,
+            'scanners' => $this->activeScanners(),
         ]);
     }
 
@@ -96,6 +105,13 @@ class CasesController extends Controller
         }
 
         return $doctor;
+    }
+
+    private function activeScanners()
+    {
+        return Scanner::where('status', 'ACTIVE')
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 
     private function serializePrescription(?Prescription $prescription): ?array

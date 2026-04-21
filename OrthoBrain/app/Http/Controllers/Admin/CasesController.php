@@ -6,6 +6,7 @@ use App\Http\Controllers\CasesController as DoctorCasesController;
 use App\Http\Controllers\Controller;
 use App\Models\CaseModel;
 use App\Models\Doctor;
+use App\Models\Scanner;
 use Illuminate\Http\Request;
 
 class CasesController extends Controller
@@ -61,7 +62,9 @@ class CasesController extends Controller
             'prescriptionPrefill' => $prescriptionPrefill,
             'adminMode' => true,
             'caseRow' => $case,
+            'caseDoctor' => $case->doctor,
             'statusOptions' => self::STATUS_OPTIONS,
+            'scanners' => Scanner::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
