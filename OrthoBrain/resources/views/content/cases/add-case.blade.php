@@ -115,7 +115,11 @@
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
   <script src="{{ asset('js/scripts/cases/case-api.js') }}"></script>
-  <script src="{{ asset('js/scripts/cases/voice-input.js') }}"></script>
+  @php
+    $voiceInputVer = @filemtime(public_path('js/scripts/cases/voice-input.js')) ?: time();
+    $cropModalVer  = @filemtime(public_path('js/scripts/cases/sections/crop-modal.js')) ?: time();
+  @endphp
+  <script src="{{ asset('js/scripts/cases/voice-input.js') }}?v={{ $voiceInputVer }}"></script>
   <script src="{{ asset('js/scripts/cases/mock-patients.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/mock-preferences.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/tooth-layout.js') }}"></script>
@@ -130,7 +134,7 @@
   <script src="{{ asset('js/scripts/cases/add-case.js') }}"></script>
   {{-- Phase 6: shared media helpers must load before section scripts --}}
   <script src="{{ asset('js/scripts/cases/sections/media-tile-helpers.js') }}"></script>
-  <script src="{{ asset('js/scripts/cases/sections/crop-modal.js') }}"></script>
+  <script src="{{ asset('js/scripts/cases/sections/crop-modal.js') }}?v={{ $cropModalVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/photographs.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/xrays.js') }}"></script>
   {{-- Phase 7: submit orchestrator --}}

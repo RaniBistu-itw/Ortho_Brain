@@ -835,10 +835,34 @@
    ─────────────────────────────────────────────────────────────────────────── */
 .voice-input-wrapper {
   position: relative;
-  display: block;
+  display: inline-block;
+  width: 100%;
 }
 .voice-input-wrapper > textarea {
   padding-right: 2.25rem;
+}
+.voice-input-mic--disabled {
+  opacity: 0.5;
+}
+.voice-input-toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1090;
+  background: #5e5873;
+  color: #fff;
+  font-size: 0.82rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+.voice-input-toast--visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 .voice-input-mic {
   position: absolute;

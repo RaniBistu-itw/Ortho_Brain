@@ -7,7 +7,7 @@
 //   window.VoiceInput.refresh()            // re-scan the DOM (e.g., after partials render)
 //
 // Browser support: Chrome/Edge. Firefox ships SpeechRecognition behind a flag.
-// If unsupported, no buttons are rendered.
+// In unsupported browsers we still render the mic; clicking shows a toast.
 
 (function () {
   'use strict';
@@ -15,9 +15,24 @@
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   var supported = !!SR;
 
+  function showUnsupportedToast() {
+    var existing = document.getElementById('voice-input-toast');
+    if (existing) { existing.remove(); }
+
+    var toast = document.createElement('div');
+    toast.id = 'voice-input-toast';
+    toast.className = 'voice-input-toast';
+    toast.innerHTML = 'Voice dictation requires Chrome or Edge.';
+    document.body.appendChild(toast);
+    setTimeout(function () { toast.classList.add('voice-input-toast--visible'); }, 10);
+    setTimeout(function () {
+      toast.classList.remove('voice-input-toast--visible');
+      setTimeout(function () { toast.remove(); }, 300);
+    }, 3000);
+  }
+
   function attach(textarea) {
     if (!textarea || textarea._voiceAttached) return;
-    if (!supported) return;
     textarea._voiceAttached = true;
 
     var parent = textarea.parentNode;
@@ -31,10 +46,19 @@
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'voice-input-mic';
-    btn.setAttribute('aria-label', 'Dictate with voice');
-    btn.title = 'Dictate with voice';
+    btn.setAttribute('aria-label', supported ? 'Dictate with voice' : 'Voice dictation unavailable');
+    btn.title = supported ? 'Dictate with voice' : 'Voice dictation requires Chrome or Edge';
     btn.innerHTML = '<i data-feather="mic"></i>';
+    if (!supported) btn.classList.add('voice-input-mic--disabled');
     wrapper.appendChild(btn);
+
+    if (!supported) {
+      btn.addEventListener('click', function (evt) {
+        evt.preventDefault();
+        showUnsupportedToast();
+      });
+      return;
+    }
 
     var recognition = null;
     var baseline = '';
@@ -70,7 +94,7 @@
 
       recognition.onend = function () { finishRecording(); };
       recognition.onerror = function (evt) {
-        console.warn('[VoiceInput]', evt.error);
+        console.warn('[VoiceInput] recognition error:', evt.error);
         finishRecording();
       };
       return recognition;
@@ -83,7 +107,7 @@
       btn.classList.add('voice-input-mic--active');
       btn.title = 'Stop dictation';
       try { ensureRecognition().start(); }
-      catch (e) { console.warn('[VoiceInput] start failed', e); finishRecording(); }
+      catch (e) { console.warn('[VoiceInput] start failed:', e); finishRecording(); }
     }
 
     function finishRecording() {
@@ -99,25 +123,27 @@
       if (recording) finishRecording();
       else startRecording();
     });
-
-    // Stop recording if the textarea is removed from DOM.
-    textarea.addEventListener('blur', function () {
-      // Keep dictation going when user clicks the mic (which briefly blurs the
-      // textarea). Only stop on explicit click of the mic or end event.
-    });
   }
 
   function refresh() {
-    if (!supported) return;
     var selector = 'textarea[data-voice-input], textarea[maxlength="5000"]';
-    document.querySelectorAll(selector).forEach(attach);
+    var list = document.querySelectorAll(selector);
+    var before = 0, after = 0;
+    list.forEach(function (el) {
+      if (el._voiceAttached) before++;
+      attach(el);
+      if (el._voiceAttached) after++;
+    });
+    var newly = after - before;
+    console.info('[VoiceInput] refresh — found=' + list.length + ' newly_attached=' + newly + ' supported=' + supported);
     if (window.feather) window.feather.replace({ width: 14, height: 14 });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    // Alpine auto-starts via CDN on DOMContentLoaded too; run after a tick so
-    // x-model bindings settle before we restructure the DOM around textareas.
+    // Alpine CDN auto-starts on DOMContentLoaded. Give it a tick to render x-show/x-if,
+    // then sweep; a second sweep at 800ms catches anything that hydrates later.
     setTimeout(refresh, 150);
+    setTimeout(refresh, 800);
   });
 
   window.VoiceInput = {

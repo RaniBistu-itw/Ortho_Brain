@@ -33,11 +33,13 @@ window.CropModalController = {
     });
 
     document.getElementById('cropZoomIn').addEventListener('click', function () {
-      if (self._cropperInstance) self._cropperInstance.zoom(0.1);
+      console.info('[CropModal] zoomIn click, cropper=', !!self._cropperInstance);
+      if (self._cropperInstance) self._cropperInstance.zoom(0.2);
     });
 
     document.getElementById('cropZoomOut').addEventListener('click', function () {
-      if (self._cropperInstance) self._cropperInstance.zoom(-0.1);
+      console.info('[CropModal] zoomOut click, cropper=', !!self._cropperInstance);
+      if (self._cropperInstance) self._cropperInstance.zoom(-0.2);
     });
 
     document.getElementById('cropReset').addEventListener('click', function () {
@@ -73,7 +75,13 @@ window.CropModalController = {
         autoCropArea: 1,
         responsive: true,
         checkOrientation: true,
+        zoomable: true,
+        zoomOnWheel: true,
+        zoomOnTouch: true,
       });
+      // Convert any data-feather icons inside the modal (zoom-in / zoom-out)
+      // now that the modal is visible.
+      if (window.feather) window.feather.replace({ width: 14, height: 14 });
     }, { once: true });
   },
 
