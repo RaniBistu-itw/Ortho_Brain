@@ -58,24 +58,27 @@
       <span class="add-case-topbar__autosave text-muted font-small-2" id="autosave-indicator"></span>
 
       @if($adminMode && $caseRow)
-        <select class="form-select form-select-sm" id="admin-status-select" style="width:auto;">
-          @foreach($statusOptions as $s)
-            <option value="{{ $s }}" @selected($caseRow->status === $s)>{{ $s }}</option>
-          @endforeach
-        </select>
-        <button type="button" class="btn btn-outline-primary btn-sm" id="btn-admin-save-status">
-          Save Status
-        </button>
+        <div class="d-flex align-items-center gap-50 add-case-topbar__group">
+          <select class="form-select form-select-sm" id="admin-status-select" style="width:auto;" aria-label="Case status">
+            @foreach($statusOptions as $s)
+              <option value="{{ $s }}" @selected($caseRow->status === $s)>{{ $s }}</option>
+            @endforeach
+          </select>
+          <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-25" id="btn-admin-save-status" title="Save status change">
+            <i data-feather="check"></i> Save Status
+          </button>
+        </div>
+        <span class="add-case-topbar__divider"></span>
       @endif
 
-      <button type="button" class="btn btn-outline-primary btn-sm" id="btn-save-draft">
-        Save Draft
+      <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-25" id="btn-save-draft" title="Save draft now">
+        <i data-feather="save"></i> Save Draft
       </button>
 
       @unless($adminMode)
-        <button type="button" class="btn btn-success btn-sm d-flex align-items-center gap-50" id="btn-submit"
+        <button type="button" class="btn btn-success btn-sm d-flex align-items-center gap-25" id="btn-submit" title="Submit case for review"
                 onclick="window.AddCaseSubmit.submit()">
-          Submit <i data-feather="check" class="ms-25"></i>
+          <i data-feather="check"></i> Submit
         </button>
       @endunless
     </div>

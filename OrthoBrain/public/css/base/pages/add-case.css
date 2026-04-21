@@ -910,3 +910,20 @@
   background-color: #ebe9f1;
   margin: 0 0.25rem;
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Add Case top bar — visual grouping + small divider between admin status
+   controls and the Save Draft / Submit cluster.
+   ─────────────────────────────────────────────────────────────────────────── */
+.add-case-topbar__group {
+  padding: 0.15rem 0.4rem;
+  background-color: rgba(89, 192, 212, 0.06);
+  border-radius: 6px;
+}
+.add-case-topbar__divider {
+  display: inline-block;
+  width: 1px;
+  height: 22px;
+  background-color: #ebe9f1;
+  margin: 0 0.25rem;
+}
