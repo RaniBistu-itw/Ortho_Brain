@@ -67,7 +67,7 @@
                                         <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
                                     </form>
                                 @else
-                                    <button type="button" class="btn btn-icon btn-sm btn-outline-danger" disabled title="Has linked sub-categories or products — cannot delete"><i data-feather="trash-2"></i></button>
+                                    <button type="button" class="btn btn-icon btn-sm btn-outline-danger js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '{{ $cat->name }}' — it has linked sub-categories or products. Remove them first."><i data-feather="trash-2"></i></button>
                                 @endif
                             </td>
                         </tr>

@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="{{ asset('vuexy/css/base/core/menu/menu-types/vertical-menu.css') }}" />
     <link rel="stylesheet" href="{{ asset('vuexy/css/overrides.css') }}" />
     <link rel="stylesheet" href="{{ asset('vuexy/css/orthobrain-overrides.css') }}" />
+    <link rel="stylesheet" href="{{ asset('vuexy/vendors/css/extensions/sweetalert2.min.css') }}" />
 
     {{-- Bootstrap Icons (already used across OrthoBrain views) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -91,6 +92,7 @@
     <script src="{{ asset('vuexy/vendors/js/ui/jquery.sticky.js') }}"></script>
     <script src="{{ asset('vuexy/vendors/js/forms/select/select2.full.min.js') }}"></script>
     <script src="{{ asset('vuexy/vendors/js/forms/validation/jquery.validate.min.js') }}"></script>
+    <script src="{{ asset('vuexy/vendors/js/extensions/sweetalert2.all.min.js') }}"></script>
 
     {{-- Vuexy Theme JS --}}
     <script src="{{ asset('vuexy/js/core/app-menu.js') }}"></script>
@@ -279,9 +281,45 @@
         };
         $(function () { window.obSidebarToggle(); });
 
-        // ─── Delete confirmation ───────────────────────
+        // ─── Blocked delete notice (has dependent records) ───
+        $(document).on('click', '.js-delete-blocked', function (e) {
+            e.preventDefault();
+            const reason = $(this).data('reason') || 'This item has dependent records and cannot be deleted.';
+            Swal.fire({
+                title: 'Cannot delete',
+                text: reason,
+                icon: 'info',
+                confirmButtonText: 'Got it',
+                customClass: { confirmButton: 'btn btn-primary' },
+                buttonsStyling: false
+            });
+        });
+
+        // ─── Delete confirmation (Vuexy SweetAlert2) ───
         $(document).on('submit', 'form.js-delete-form', function (e) {
-            if (!confirm($(this).data('confirm') || 'Are you sure?')) e.preventDefault();
+            const $form = $(this);
+            if ($form.data('confirmed')) return;
+            e.preventDefault();
+
+            const message = $form.data('confirm') || 'Are you sure?';
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    confirmButton: 'btn btn-danger',
+                    cancelButton: 'btn btn-outline-secondary ms-1'
+                },
+                buttonsStyling: false
+            }).then(function (result) {
+                if (result.value) {
+                    $form.data('confirmed', true).trigger('submit');
+                }
+            });
         });
 
         // ─── Auto-dismiss flash alerts ─────────────────
