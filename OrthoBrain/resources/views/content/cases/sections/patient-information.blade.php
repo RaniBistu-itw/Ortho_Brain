@@ -6,17 +6,19 @@
 
   <div class="case-section__body">
 
-    {{-- Row 1: Practice | Doctor Name (read-only) --}}
+    {{-- Row 1: Practice | Doctor Name (read-only, sourced from auth doctor) --}}
+    @php
+      $piPractice = $caseDoctor?->practice?->name ?? '—';
+      $piDoctorName = $caseDoctor ? trim($caseDoctor->first_name . ' ' . $caseDoctor->last_name) : '—';
+    @endphp
     <div class="row mb-1">
       <div class="col-md-6 mb-1 mb-md-0">
         <p class="form-label text-muted mb-25">Practice</p>
-        {{-- TODO: prefill from authenticated doctor's practice --}}
-        <p class="mb-0 fw-semibold" id="pi-practice-display">Promo Indp Practice Admin 3</p>
+        <p class="mb-0 fw-semibold" id="pi-practice-display">{{ $piPractice }}</p>
       </div>
       <div class="col-md-6">
         <p class="form-label text-muted mb-25">Doctor Name</p>
-        {{-- TODO: prefill from authenticated doctor profile --}}
-        <p class="mb-0 fw-semibold" id="pi-doctor-name-display">Promo Indp Practice Admin 3 Dr 1</p>
+        <p class="mb-0 fw-semibold" id="pi-doctor-name-display">{{ $piDoctorName }}</p>
       </div>
     </div>
 

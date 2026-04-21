@@ -1,6 +1,8 @@
 @php
   $adminMode = $adminMode ?? false;
   $caseRow = $caseRow ?? null;
+  $caseDoctor = $caseDoctor ?? null;
+  $scanners = $scanners ?? collect();
   $statusOptions = $statusOptions ?? ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
   $apiBase = $adminMode ? '/admin/cases' : '/dev/cases';
   $backUrl = $adminMode ? route('admin.cases.index') : route('doctor.cases.index');
