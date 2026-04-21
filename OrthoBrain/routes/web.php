@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\Ajax\LookupController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DoctorController as AdminDoctorController;
 use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductSubcategoryController;
@@ -87,6 +88,13 @@ Route::middleware(['web', 'admin'])
         Route::resource('product-subcategories', ProductSubcategoryController::class)
             ->parameters(['product-subcategories' => 'product_subcategory']);
         Route::resource('scanners', ScannerController::class);
+
+        Route::resource('doctors', AdminDoctorController::class)
+            ->only(['index', 'show', 'update', 'destroy']);
+        Route::post('doctors/{doctor}/approve',    [AdminDoctorController::class, 'approve'])->name('doctors.approve');
+        Route::post('doctors/{doctor}/reject',     [AdminDoctorController::class, 'reject'])->name('doctors.reject');
+        Route::post('doctors/{doctor}/suspend',    [AdminDoctorController::class, 'suspend'])->name('doctors.suspend');
+        Route::post('doctors/{doctor}/reactivate', [AdminDoctorController::class, 'reactivate'])->name('doctors.reactivate');
 
         Route::resource('countries', CountryController::class);
         Route::resource('states',    StateController::class);
