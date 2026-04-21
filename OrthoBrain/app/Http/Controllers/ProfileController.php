@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use App\Models\BuccalCorridorOption;
 use App\Models\Doctor;
 use App\Models\DoctorAddress;
@@ -283,5 +284,77 @@ class ProfileController extends Controller
         $user->save();
 
         return redirect('/dev/cases/list')->with('success', 'Password updated successfully.');
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    //  Image uploads (doctor avatar + practice logo) — local public disk
+    // ──────────────────────────────────────────────────────────────────
+
+    public function uploadAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
+
+        $doctor = Doctor::where('user_id', Auth::id())->firstOrFail();
+
+        // Delete previous file if it exists on disk
+        if ($doctor->profile_photo_s3_key && Storage::disk('public')->exists($doctor->profile_photo_s3_key)) {
+            Storage::disk('public')->delete($doctor->profile_photo_s3_key);
+        }
+
+        $path = $request->file('avatar')->store("doctors/{$doctor->id}", 'public');
+        $doctor->update(['profile_photo_s3_key' => $path]);
+
+        return back()->with('success', 'Profile photo updated.');
+    }
+
+    public function deleteAvatar()
+    {
+        $doctor = Doctor::where('user_id', Auth::id())->firstOrFail();
+        if ($doctor->profile_photo_s3_key && Storage::disk('public')->exists($doctor->profile_photo_s3_key)) {
+            Storage::disk('public')->delete($doctor->profile_photo_s3_key);
+        }
+        $doctor->update(['profile_photo_s3_key' => null]);
+
+        return back()->with('success', 'Profile photo removed.');
+    }
+
+    public function uploadPracticeLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
+
+        $doctor = Doctor::with('practice')->where('user_id', Auth::id())->firstOrFail();
+        if (! $doctor->practice) {
+            return back()->with('error', 'No practice is linked to your account.');
+        }
+        $practice = $doctor->practice;
+
+        if ($practice->logo_path && Storage::disk('public')->exists($practice->logo_path)) {
+            Storage::disk('public')->delete($practice->logo_path);
+        }
+
+        $path = $request->file('logo')->store("practices/{$practice->id}", 'public');
+        $practice->update(['logo_path' => $path]);
+
+        return back()->with('success', 'Practice photo updated.');
+    }
+
+    public function deletePracticeLogo()
+    {
+        $doctor = Doctor::with('practice')->where('user_id', Auth::id())->firstOrFail();
+        if (! $doctor->practice) {
+            return back()->with('error', 'No practice is linked to your account.');
+        }
+        $practice = $doctor->practice;
+
+        if ($practice->logo_path && Storage::disk('public')->exists($practice->logo_path)) {
+            Storage::disk('public')->delete($practice->logo_path);
+        }
+        $practice->update(['logo_path' => null]);
+
+        return back()->with('success', 'Practice photo removed.');
     }
 }
