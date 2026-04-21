@@ -48,6 +48,12 @@ class Doctor extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function avatarUrl(): ?string
+    {
+        // Root-relative so it works regardless of APP_URL (localhost vs 127.0.0.1 etc.)
+        return $this->profile_photo_s3_key ? '/storage/' . ltrim($this->profile_photo_s3_key, '/') : null;
+    }
+
     public function practice()
     {
         return $this->belongsTo(Practice::class, 'practice_id');

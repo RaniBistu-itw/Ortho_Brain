@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\CasesController as AdminCasesController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DoctorController as AdminDoctorController;
 use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductSubcategoryController;
@@ -62,6 +63,12 @@ Route::middleware(['web', 'auth'])
         Route::get('/profile/settings',  [ProfileController::class, 'settings'])->name('profile.settings');
         Route::post('/profile/settings', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
+        // Doctor avatar & practice logo uploads (local public storage)
+        Route::post('/profile/photo',   [ProfileController::class, 'uploadAvatar'])->name('profile.photo');
+        Route::delete('/profile/photo', [ProfileController::class, 'deleteAvatar'])->name('profile.photo.delete');
+        Route::post('/practice/photo',   [ProfileController::class, 'uploadPracticeLogo'])->name('practice.photo');
+        Route::delete('/practice/photo', [ProfileController::class, 'deletePracticeLogo'])->name('practice.photo.delete');
+
         Route::get('/profile/address/create',        [ProfileController::class, 'addressCreate'])->name('profile.address.create');
         Route::post('/profile/address/store',        [ProfileController::class, 'addressStore'])->name('profile.address.store');
         Route::get('/profile/address/zip-lookup',    [ProfileController::class, 'addressZipLookup'])->name('profile.address.zip-lookup');
@@ -88,6 +95,14 @@ Route::middleware(['web', 'admin'])
         Route::get('/cases/{case}/edit',              [AdminCasesController::class, 'edit'])->name('cases.edit');
         Route::post('/cases/{case}/status',           [AdminCasesController::class, 'updateStatus'])->name('cases.status');
         Route::post('/cases/{case}/prescription',     [PrescriptionController::class, 'update'])->name('cases.prescription.update');
+
+        // Admin Doctors — review + approve/reject/suspend (PR #17)
+        Route::resource('doctors', AdminDoctorController::class)
+            ->only(['index', 'show', 'update', 'destroy']);
+        Route::post('doctors/{doctor}/approve',    [AdminDoctorController::class, 'approve'])->name('doctors.approve');
+        Route::post('doctors/{doctor}/reject',     [AdminDoctorController::class, 'reject'])->name('doctors.reject');
+        Route::post('doctors/{doctor}/suspend',    [AdminDoctorController::class, 'suspend'])->name('doctors.suspend');
+        Route::post('doctors/{doctor}/reactivate', [AdminDoctorController::class, 'reactivate'])->name('doctors.reactivate');
 
         Route::resource('countries', CountryController::class);
         Route::resource('states',    StateController::class);

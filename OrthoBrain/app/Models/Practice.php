@@ -18,6 +18,7 @@ class Practice extends Model
         'website',
         'phone_country_code',
         'phone_number',
+        'logo_path',
         'street_address_1',
         'street_address_2',
         'zip_id',
@@ -26,6 +27,12 @@ class Practice extends Model
         'country_id',
         'status',
     ];
+
+    public function logoUrl(): ?string
+    {
+        // Root-relative so it works regardless of APP_URL (localhost vs 127.0.0.1 etc.)
+        return $this->logo_path ? '/storage/' . ltrim($this->logo_path, '/') : null;
+    }
 
     public function owner(): BelongsTo
     {

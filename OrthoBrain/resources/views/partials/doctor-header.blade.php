@@ -2,6 +2,7 @@
     $navDoctor = \App\Models\Doctor::where('user_id', auth()->id())->first();
     $navName   = $navDoctor ? trim($navDoctor->first_name . ' ' . $navDoctor->last_name) : auth()->user()->email;
     $initial   = strtoupper(substr($navName ?: 'U', 0, 1));
+    $navAvatar = $navDoctor?->avatarUrl();
 @endphp
 
 <nav class="header-navbar navbar navbar-expand-lg align-items-center floating-nav navbar-light navbar-shadow">
@@ -25,7 +26,11 @@
                         <span class="user-status">Doctor</span>
                     </div>
                     <span class="avatar">
-                        <span class="avatar-content">{{ $initial }}</span>
+                        @if($navAvatar)
+                            <img src="{{ $navAvatar }}" alt="avatar" style="width:32px; height:32px; object-fit:cover; border-radius:50%;">
+                        @else
+                            <span class="avatar-content">{{ $initial }}</span>
+                        @endif
                         <span class="avatar-status-online"></span>
                     </span>
                 </a>

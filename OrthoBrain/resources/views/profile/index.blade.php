@@ -227,10 +227,25 @@
 
                         <div class="col-12 mb-1">
                             <label class="form-label">Profile Image</label>
-                            <div class="profile-dropzone">
-                                <i data-feather="upload" class="dz-icon mb-50" style="width:36px;height:36px;"></i>
-                                <span class="fw-bolder">Choose a File or Drag &amp; Drop Files</span>
-                                <input type="file" name="profile_image" accept="image/*">
+                            <div class="d-flex align-items-center gap-3">
+                                @php $avatarUrl = $doctor?->avatarUrl(); @endphp
+                                <div style="width:96px; height:96px; border-radius:50%; overflow:hidden; border:1px solid #ebe9f1; background:#f8f8f8; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    @if($avatarUrl)
+                                        <img src="{{ $avatarUrl }}" alt="avatar" style="width:100%; height:100%; object-fit:cover;">
+                                    @else
+                                        <i class="bi bi-person" style="font-size:2.75rem; color:#b9b9c3;"></i>
+                                    @endif
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openPhotoEditor('avatar-editor')">
+                                        <i class="bi bi-camera"></i> {{ $avatarUrl ? 'Change photo' : 'Upload photo' }}
+                                    </button>
+                                    @if($avatarUrl)
+                                        <button type="button" class="btn btn-outline-danger btn-sm"
+                                                onclick="deletePhoto('remove-avatar-form', 'profile')">Remove</button>
+                                    @endif
+                                    <div class="text-muted small mt-1">JPG / PNG / WEBP, max 2 MB. Crop, rotate or use webcam.</div>
+                                </div>
                             </div>
                         </div>
 
@@ -253,6 +268,22 @@
                         <a href="/dev/cases/list" class="btn btn-outline-secondary">Cancel</a>
                     </div>
                 </form>
+
+                {{-- Static delete form (outside the outer form so it actually submits) --}}
+                <form id="remove-avatar-form" method="POST" action="/dev/profile/photo" style="display:none;">
+                    @csrf
+                    @method('DELETE')
+                </form>
+
+                {{-- Modal kept OUTSIDE the account form: nested <form> tags are invalid HTML --}}
+                @include('partials._photo-editor', [
+                    'id'        => 'avatar-editor',
+                    'title'     => 'Edit Profile Photo',
+                    'action'    => '/dev/profile/photo',
+                    'fieldName' => 'avatar',
+                    'aspect'    => 1,
+                    'enableCam' => true,
+                ])
                 @endif
 
 
@@ -313,13 +344,29 @@
                         </div>
 
                         <div class="col-12 mb-1">
-                            <label class="form-label">Practice Logo</label>
-                            <div class="profile-dropzone">
-                                <i data-feather="upload" class="dz-icon mb-50" style="width:36px;height:36px;"></i>
-                                <span class="fw-bolder">Choose a File or Drag &amp; Drop Files</span>
-                                <input type="file" name="practice_logo" accept="image/*">
+                            <label class="form-label">Practice Photo</label>
+                            <div class="d-flex align-items-center gap-3">
+                                @php $logoUrl = $doctor?->practice?->logoUrl(); @endphp
+                                <div style="width:120px; height:120px; border-radius:.358rem; overflow:hidden; border:1px solid #ebe9f1; background:#f8f8f8; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    @if($logoUrl)
+                                        <img src="{{ $logoUrl }}" alt="practice photo" style="width:100%; height:100%; object-fit:cover;">
+                                    @else
+                                        <i class="bi bi-building" style="font-size:3rem; color:#b9b9c3;"></i>
+                                    @endif
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openPhotoEditor('practice-logo-editor')">
+                                        <i class="bi bi-image"></i> {{ $logoUrl ? 'Change photo' : 'Upload photo' }}
+                                    </button>
+                                    @if($logoUrl)
+                                        <button type="button" class="btn btn-outline-danger btn-sm"
+                                                onclick="deletePhoto('remove-practice-logo-form', 'practice')">Remove</button>
+                                    @endif
+                                    <div class="text-muted small mt-1">JPG / PNG / WEBP, max 2 MB. Crop & rotate available.</div>
+                                </div>
                             </div>
                         </div>
+
                     </div>
 
                     <div class="d-flex mt-2">
@@ -327,6 +374,22 @@
                         <a href="/dev/cases/list" class="btn btn-outline-secondary">Cancel</a>
                     </div>
                 </form>
+
+                {{-- Static delete form (outside the outer form so it actually submits) --}}
+                <form id="remove-practice-logo-form" method="POST" action="/dev/practice/photo" style="display:none;">
+                    @csrf
+                    @method('DELETE')
+                </form>
+
+                {{-- Modal kept OUTSIDE the practice form: nested <form> tags are invalid HTML --}}
+                @include('partials._photo-editor', [
+                    'id'        => 'practice-logo-editor',
+                    'title'     => 'Edit Practice Photo',
+                    'action'    => '/dev/practice/photo',
+                    'fieldName' => 'logo',
+                    'aspect'    => null,
+                    'enableCam' => false,
+                ])
                 @endif
 
 
@@ -814,6 +877,15 @@
 
 @push('scripts')
 <script>
+    /* ── Photo delete — submits the static form rendered just below the outer form ── */
+    function deletePhoto(formId, kind) {
+        const label = kind === 'practice' ? 'practice photo' : 'profile photo';
+        if (!confirm('Remove ' + label + '?')) return;
+        const f = document.getElementById(formId);
+        if (!f) { alert('Delete form missing — please refresh.'); return; }
+        f.submit();
+    }
+
     /* ── Contact tab helpers ── */
     function toggleContactForms() {
         const checked = document.querySelector('input[name="contact_info"]:checked');
