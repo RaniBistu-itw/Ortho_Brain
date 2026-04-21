@@ -5,6 +5,7 @@
 
 @push('styles')
   <link rel="stylesheet" href="{{ asset('css/base/pages/add-case.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
 @endpush
 
 @php
@@ -114,6 +115,10 @@
     window.__addCasePrefill = @json($prescriptionPrefill ?? null);
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  {{-- Cropper.js v1 — required by the shared crop modal (Photographs + X-Rays). --}}
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+  {{-- heic2any — HEIC → JPEG conversion for preview on Photograph / X-Ray uploads. --}}
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <script src="{{ asset('js/scripts/cases/case-api.js') }}"></script>
   @php
     $voiceInputVer = @filemtime(public_path('js/scripts/cases/voice-input.js')) ?: time();
@@ -143,6 +148,16 @@
     // Alpine CDN build auto-starts on DOMContentLoaded; do not call Alpine.start() manually.
     document.addEventListener('DOMContentLoaded', function () {
       if (window.PatientInformationSection) window.PatientInformationSection.init();
+
+      // One-shot self-test: confirms vendor deps are present.
+      setTimeout(function () {
+        console.info('[AddCase] deps check — Alpine=' + (!!window.Alpine)
+          + ' Cropper=' + (typeof window.Cropper !== 'undefined')
+          + ' heic2any=' + (typeof window.heic2any !== 'undefined')
+          + ' bootstrap=' + (typeof window.bootstrap !== 'undefined')
+          + ' feather=' + (typeof window.feather !== 'undefined')
+          + ' photographsSection=' + (typeof window.photographsSection === 'function'));
+      }, 300);
     });
   </script>
 @endpush
