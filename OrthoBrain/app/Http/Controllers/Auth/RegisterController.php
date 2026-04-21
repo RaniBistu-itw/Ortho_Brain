@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BuccalCorridorOption;
 use App\Models\Doctor;
 use App\Models\Modality;
+use App\Models\Practice;
 use App\Models\Specialty;
 use App\Models\TreatmentModality;
 use App\Models\User;
@@ -20,49 +21,60 @@ class RegisterController extends Controller
     public function show()
     {
         return view('register', [
-            'zipcodes'             => $this->activeZipcodes(),
-            'modalitiesList'       => Modality::orderBy('id')->get(),
-            'specialtiesList'      => Specialty::orderBy('id')->get(),
+            'zipcodes'                => $this->activeZipcodes(),
+            'modalitiesList'          => Modality::orderBy('id')->get(),
+            'specialtiesList'         => Specialty::orderBy('id')->get(),
             'treatmentModalitiesList' => TreatmentModality::orderBy('id')->get(),
-            'buccalCorridorsList'  => BuccalCorridorOption::orderBy('id')->get(),
+            'buccalCorridorsList'     => BuccalCorridorOption::orderBy('id')->get(),
         ]);
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'email'                       => 'required|email|max:150|unique:users,email',
-            'first_name'                  => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
-            'last_name'                   => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
-            'password'                    => 'required|string|min:8|confirmed:confirm_password|regex:/[A-Z]/|regex:/[a-z]/|regex:/\d/|regex:/[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\\\\/]/',
-            'confirm_password'            => 'required|string',
+        // Branch: existing practice picked from autocomplete (practice_id present)
+        //         vs new practice (all practice + address fields expected)
+        $isExisting = $request->filled('practice_id');
 
-            'practice_name'               => 'required|string|max:200',
-            'practice_phone_country_code' => ['required', Rule::in(['+1_US', '+1_CA', '+61_AU'])],
-            'practice_phone_number'       => 'required|string|regex:/^\d{10}$/',
-            'practice_website'            => 'required|string|max:500',
-            'preferred_language'          => 'required|string|max:50',
+        $rules = [
+            'email'                 => 'required|email|max:150|unique:users,email',
+            'first_name'            => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
+            'last_name'             => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
+            'password'              => 'required|string|min:8|confirmed:confirm_password|regex:/[A-Z]/|regex:/[a-z]/|regex:/\d/|regex:/[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\\\\/]/',
+            'confirm_password'      => 'required|string',
+            'preferred_language'    => 'required|string|max:50',
 
-            'street_address_1'            => 'required|string|min:5|max:255',
-            'street_address_2'            => 'nullable|string|max:255',
-            'zip_id'                      => 'required|integer|exists:zipcodes,id',
-            'city_id'                     => 'required|integer|exists:cities,id',
-            'state_id'                    => 'required|integer|exists:states,id',
-            'country_id'                  => 'required|integer|exists:countries,id',
+            'providing_ortho'       => 'nullable|in:yes,no',
+            'contact_preference'    => 'nullable|in:doctor,employee,both',
+            'terms_agreed'          => 'accepted',
 
-            'providing_ortho'             => 'nullable|in:yes,no',
-            'contact_preference'          => 'nullable|in:doctor,employee,both',
-            'terms_agreed'                => 'accepted',
-
-            'modalities'             => 'nullable|array',
-            'modalities.*'           => 'integer|exists:modalities,id',
-            'specialties'            => 'nullable|array',
-            'specialties.*'          => 'integer|exists:specialties,id',
-            'treatment_modalities'   => 'nullable|array',
+            'modalities'            => 'nullable|array',
+            'modalities.*'          => 'integer|exists:modalities,id',
+            'specialties'           => 'nullable|array',
+            'specialties.*'         => 'integer|exists:specialties,id',
+            'treatment_modalities'  => 'nullable|array',
             'treatment_modalities.*' => 'integer|exists:treatment_modalities,id',
-            'buccal_corridors'       => 'nullable|array',
-            'buccal_corridors.*'     => 'integer|exists:buccal_corridor_options,id',
-        ], [
+            'buccal_corridors'      => 'nullable|array',
+            'buccal_corridors.*'    => 'integer|exists:buccal_corridor_options,id',
+        ];
+
+        if ($isExisting) {
+            $rules['practice_id'] = 'required|integer|exists:practices,id';
+        } else {
+            $rules = array_merge($rules, [
+                'practice_name'               => 'required|string|max:200',
+                'practice_phone_country_code' => ['required', Rule::in(['+1_US', '+1_CA', '+61_AU'])],
+                'practice_phone_number'       => 'required|string|regex:/^\d{10}$/',
+                'practice_website'            => 'required|string|max:500',
+                'street_address_1'            => 'required|string|min:5|max:255',
+                'street_address_2'            => 'nullable|string|max:255',
+                'zip_id'                      => 'required|integer|exists:zipcodes,id',
+                'city_id'                     => 'required|integer|exists:cities,id',
+                'state_id'                    => 'required|integer|exists:states,id',
+                'country_id'                  => 'required|integer|exists:countries,id',
+            ]);
+        }
+
+        $data = $request->validate($rules, [
             'password.regex'              => 'Password must include uppercase, lowercase, number & special character.',
             'practice_phone_number.regex' => 'Phone must be exactly 10 digits.',
             'terms_agreed.accepted'       => 'You must accept the Terms and Conditions to continue.',
@@ -74,7 +86,7 @@ class RegisterController extends Controller
             'both'     => 'DOCTOR_AND_EMPLOYEE_OFFICE',
         ];
 
-        DB::transaction(function () use ($data, $contactMap) {
+        DB::transaction(function () use ($data, $contactMap, $isExisting) {
             $user = User::create([
                 'email'         => $data['email'],
                 'password_hash' => Hash::make($data['password']),
@@ -82,40 +94,56 @@ class RegisterController extends Controller
                 'is_active'     => true,
             ]);
 
+            // Resolve practice: either pick existing or create new (owner stamped after doctor exists)
+            $newPractice = null;
+            if ($isExisting) {
+                $practiceId = (int) $data['practice_id'];
+            } else {
+                $newPractice = Practice::create([
+                    'owner_id'           => null,
+                    'name'               => $data['practice_name'],
+                    'website'            => $data['practice_website'],
+                    'phone_country_code' => $data['practice_phone_country_code'],
+                    'phone_number'       => $data['practice_phone_number'],
+                    'street_address_1'   => $data['street_address_1'],
+                    'street_address_2'   => $data['street_address_2'] ?? null,
+                    'zip_id'             => $data['zip_id'],
+                    'city_id'            => $data['city_id'],
+                    'state_id'           => $data['state_id'],
+                    'country_id'         => $data['country_id'],
+                    'status'             => 'ACTIVE',
+                ]);
+                $practiceId = $newPractice->id;
+            }
+
             $doctor = Doctor::create([
-                'user_id'                          => $user->id,
-                'first_name'                       => $data['first_name'],
-                'last_name'                        => $data['last_name'],
-                'practice_name'                    => $data['practice_name'],
-                'practice_phone_country_code'      => $data['practice_phone_country_code'],
-                'practice_phone_number'            => $data['practice_phone_number'],
-                'practice_website'                 => $data['practice_website'],
-                'preferred_language'               => $data['preferred_language'],
+                'user_id'                            => $user->id,
+                'practice_id'                        => $practiceId,
+                'first_name'                         => $data['first_name'],
+                'last_name'                          => $data['last_name'],
+                'preferred_language'                 => $data['preferred_language'],
                 'currently_providing_ortho_services' => ($data['providing_ortho'] ?? 'no') === 'yes',
-                'preferred_contact_mode'           => $contactMap[$data['contact_preference'] ?? 'doctor'] ?? 'DOCTOR_ONLY',
-                'doctor_contact_email'             => $data['email'],
-                'preferred_tooth_numbering_system' => 'UNIVERSAL',
-                'smile_arc_pref'                   => 'DEFER',
-                'small_lateral_incisors_pref'      => 'DEFER',
-                'mixed_dentition_pref'             => 'DEFER',
-                'orthodontic_extractions_pref'     => 'DEFER',
-                'ipr_protocol_pref'                => 'DEFER',
-                'elastics_bonded_buttons_pref'     => 'NO',
-                'extractions_if_suggested_pref'    => 'NO',
-                'attachment_stage_pref'            => 'AT_STEP_1',
-                'approval_status'                  => 'PENDING',
+                'preferred_contact_mode'             => $contactMap[$data['contact_preference'] ?? 'doctor'] ?? 'DOCTOR_ONLY',
+                'doctor_contact_email'               => $data['email'],
+                'preferred_tooth_numbering_system'   => 'UNIVERSAL',
+                'smile_arc_pref'                     => 'DEFER',
+                'small_lateral_incisors_pref'        => 'DEFER',
+                'mixed_dentition_pref'               => 'DEFER',
+                'orthodontic_extractions_pref'       => 'DEFER',
+                'ipr_protocol_pref'                  => 'DEFER',
+                'elastics_bonded_buttons_pref'       => 'NO',
+                'extractions_if_suggested_pref'      => 'NO',
+                'attachment_stage_pref'              => 'AT_STEP_1',
+                'approval_status'                    => 'PENDING',
             ]);
 
-            $doctor->addresses()->create([
-                'type'             => 'shipping',
-                'street_address_1' => $data['street_address_1'],
-                'street_address_2' => $data['street_address_2'] ?? null,
-                'zip_id'           => $data['zip_id'],
-                'city_id'          => $data['city_id'],
-                'state_id'         => $data['state_id'],
-                'country_id'       => $data['country_id'],
-                'is_default'       => true,
-            ]);
+            // Stamp ownership on the just-created practice
+            if ($newPractice) {
+                $newPractice->update(['owner_id' => $doctor->id]);
+            }
+
+            // Per product decision: do NOT create a shipping/billing DoctorAddress here.
+            // Doctor adds shipping/billing later in the profile.
 
             $doctor->modalities()->sync($data['modalities'] ?? []);
             $doctor->specialties()->sync($data['specialties'] ?? []);

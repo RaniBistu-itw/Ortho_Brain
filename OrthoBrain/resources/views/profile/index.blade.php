@@ -64,6 +64,17 @@
     .preferences-card .pref-section { border-bottom: 1px solid #ebe9f1; padding: 1rem 1.25rem; }
     .preferences-card .pref-section:last-child { border-bottom: 0; }
     .preferences-card .pref-section p.pref-title { font-weight: 500; color: #5e5873; margin-bottom: .75rem; }
+
+    /* Scrollable Doctor Preferences body (matches registration page) */
+    .preferences-card .card-body {
+        max-height: 500px;
+        overflow-y: auto;
+        position: relative;
+    }
+    .preferences-card .card-body::-webkit-scrollbar { width: 6px; }
+    .preferences-card .card-body::-webkit-scrollbar-track { background: #fcfcfc; }
+    .preferences-card .card-body::-webkit-scrollbar-thumb { background: #d8d6de; border-radius: 4px; }
+    .preferences-card .card-body::-webkit-scrollbar-thumb:hover { background: #b9b9c3; }
     .sticky-back-top {
         position: sticky;
         bottom: 0.5rem;
@@ -206,7 +217,7 @@
                                     <div class="input-group input-group-merge">
                                         <span class="input-group-text"><i data-feather="phone"></i></span>
                                         <input id="in-acc-phone" type="text" name="practice_phone_number"
-                                               value="{{ old('practice_phone_number', $doctor?->practice_phone_number ?? '') }}"
+                                               value="{{ old('practice_phone_number', $doctor?->practice?->phone_number ?? '') }}"
                                                placeholder="XXX-XXX-XXXX" class="form-control">
                                     </div>
                                 </div>
@@ -257,7 +268,7 @@
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><i data-feather="award"></i></span>
                                 <input id="in-prac-name" type="text" name="practice_name"
-                                       value="{{ old('practice_name', $doctor?->practice_name ?? '') }}"
+                                       value="{{ old('practice_name', $doctor?->practice?->name ?? '') }}"
                                        class="form-control">
                             </div>
                             <small id="err-prac-name" class="text-danger d-none"></small>
@@ -275,7 +286,7 @@
                                     <div class="input-group input-group-merge">
                                         <span class="input-group-text"><i data-feather="phone"></i></span>
                                         <input id="in-prac-phone" type="text" name="practice_phone_number"
-                                               value="{{ old('practice_phone_number', $doctor?->practice_phone_number ?? '') }}"
+                                               value="{{ old('practice_phone_number', $doctor?->practice?->phone_number ?? '') }}"
                                                placeholder="XXX-XXX-XXXX" class="form-control">
                                     </div>
                                 </div>
@@ -288,7 +299,7 @@
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><i data-feather="globe"></i></span>
                                 <input id="in-prac-website" type="text" name="website"
-                                       value="{{ old('website', $doctor?->practice_website ?? '') }}"
+                                       value="{{ old('website', $doctor?->practice?->website ?? '') }}"
                                        placeholder="https://yoursite.com" class="form-control">
                             </div>
                             <small id="err-prac-website" class="text-danger d-none"></small>
