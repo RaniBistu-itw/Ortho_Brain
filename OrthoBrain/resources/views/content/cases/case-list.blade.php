@@ -21,7 +21,7 @@
             <table class="table table-hover mb-0 align-middle">
               <thead>
                 <tr>
-                  <th>#</th>
+                  <th>Case ID</th>
                   <th>Case code</th>
                   <th>Status</th>
                   <th>Created</th>
@@ -32,7 +32,7 @@
               <tbody>
                 @foreach($cases as $case)
                   <tr>
-                    <td>{{ $case->id }}</td>
+                    <td><span class="fw-bolder">#{{ $case->id }}</span></td>
                     <td>{{ $case->case_code ?? '—' }}</td>
                     <td>
                       @php

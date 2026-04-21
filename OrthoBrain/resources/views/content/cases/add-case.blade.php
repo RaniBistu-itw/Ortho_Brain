@@ -33,6 +33,10 @@
         <i data-feather="arrow-left"></i>
       </a>
 
+      <span id="case-id-badge" class="badge bg-light-primary ms-50" @if(!$caseId) style="display:none" @endif>
+        Case #<span id="case-id-badge-num">{{ $caseId ?? '' }}</span>
+      </span>
+
       <div class="flex-fill"></div>
 
       <span class="add-case-topbar__autosave text-muted font-small-2" id="autosave-indicator"></span>

@@ -63,6 +63,13 @@
       window.CASE_ID = caseId;
       state.caseId = caseId;
       try { history.replaceState(null, '', '/dev/cases/' + caseId + '/edit'); } catch (e) { /* noop */ }
+
+      var badge = document.getElementById('case-id-badge');
+      var badgeNum = document.getElementById('case-id-badge-num');
+      if (badge && badgeNum) {
+        badgeNum.textContent = caseId;
+        badge.style.display = '';
+      }
     });
   }
 
