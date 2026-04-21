@@ -35,6 +35,18 @@
                 </a>
             </li>
 
+            <li class="navigation-header ob-section-head" data-ob-section="users">
+                <span>Users</span>
+                <svg class="ob-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </li>
+
+            <li class="nav-item {{ $active('admin.doctors.*') }}">
+                <a href="{{ route('admin.doctors.index') }}" class="d-flex align-items-center">
+                    <i data-feather="user-check"></i>
+                    <span class="menu-title text-truncate">Doctors</span>
+                </a>
+            </li>
+
             <li class="navigation-header ob-section-head" data-ob-section="manage-types">
                 <span>Manage Types</span>
                 <svg class="ob-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
