@@ -115,6 +115,7 @@
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
   <script src="{{ asset('js/scripts/cases/case-api.js') }}"></script>
+  <script src="{{ asset('js/scripts/cases/voice-input.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/mock-patients.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/mock-preferences.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/tooth-layout.js') }}"></script>

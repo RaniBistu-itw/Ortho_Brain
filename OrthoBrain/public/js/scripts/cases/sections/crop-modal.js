@@ -32,6 +32,14 @@ window.CropModalController = {
       if (self._cropperInstance) self._cropperInstance.rotate(90);
     });
 
+    document.getElementById('cropZoomIn').addEventListener('click', function () {
+      if (self._cropperInstance) self._cropperInstance.zoom(0.1);
+    });
+
+    document.getElementById('cropZoomOut').addEventListener('click', function () {
+      if (self._cropperInstance) self._cropperInstance.zoom(-0.1);
+    });
+
     document.getElementById('cropReset').addEventListener('click', function () {
       if (self._cropperInstance) self._cropperInstance.reset();
     });

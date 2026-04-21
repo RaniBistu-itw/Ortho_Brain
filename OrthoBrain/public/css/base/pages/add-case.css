@@ -829,3 +829,60 @@
 .xrays-date-input {
   max-width: 220px;
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Voice-to-text mic (floats over any textarea[maxlength="5000"])
+   ─────────────────────────────────────────────────────────────────────────── */
+.voice-input-wrapper {
+  position: relative;
+  display: block;
+}
+.voice-input-wrapper > textarea {
+  padding-right: 2.25rem;
+}
+.voice-input-mic {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.375rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid #d8d6de;
+  background: #fff;
+  color: #6e6b7b;
+  border-radius: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+  z-index: 3;
+}
+.voice-input-mic:hover {
+  background: #f6f6f6;
+  color: #59c0d4;
+  border-color: #59c0d4;
+}
+.voice-input-mic--active {
+  background: #ea5455;
+  border-color: #ea5455;
+  color: #fff;
+  animation: voice-input-pulse 1.2s ease-in-out infinite;
+}
+.voice-input-mic--active:hover {
+  background: #ea5455;
+  color: #fff;
+}
+@keyframes voice-input-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(234, 84, 85, 0.45); }
+  50%      { box-shadow: 0 0 0 5px rgba(234, 84, 85, 0); }
+}
+
+/* Crop modal: small visual separator between the zoom group and rotate group */
+.crop-modal__sep {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background-color: #ebe9f1;
+  margin: 0 0.25rem;
+}
