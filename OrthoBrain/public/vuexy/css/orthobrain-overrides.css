@@ -167,3 +167,13 @@ p, label, .card-text { color: #1f1f1f; }
 .text-muted { color: #6c757d !important; }
 
 /* Buttons keep Vuexy's white-on-cyan for contrast; no override here */
+
+/* Delete buttons that are blocked due to dependent records — look disabled but remain clickable to show popup */
+.js-delete-blocked {
+    opacity: 0.55;
+    cursor: not-allowed !important;
+}
+.js-delete-blocked:hover,
+.js-delete-blocked:focus {
+    opacity: 0.65;
+}
