@@ -4,7 +4,7 @@
 
 @php
     $imgService = app(\App\Services\ImageUploadService::class);
-    $imageUrl = $product->image_s3_key ? $imgService->url($product->image_s3_key) : null;
+    $imageUrls  = $product->images->map(fn ($im) => $imgService->url($im->s3_key))->filter()->values();
 @endphp
 
 @section('content')
@@ -23,9 +23,24 @@
             @include('admin._partials.view_field', ['label' => 'Status', 'value' => $product->status === 'ACTIVE' ? 'Active' : 'Inactive', 'required' => true])
 
             <div class="col-12 mb-1">
-                <label class="form-label">Image</label><br>
-                @if ($imageUrl)
-                    <img src="{{ $imageUrl }}" alt="{{ $product->name }}" class="rounded border bg-white shadow-sm" style="width: 160px; height: 160px; object-fit: cover;">
+                <label class="form-label d-flex align-items-center" style="gap:.5rem;">
+                    <span>Images</span>
+                    @if ($imageUrls->count())
+                        <span class="ob-image-count">{{ $imageUrls->count() }}</span>
+                    @endif
+                </label>
+                @if ($imageUrls->count())
+                    <div class="ob-show-gallery">
+                        @foreach ($imageUrls as $i => $url)
+                            <div class="ob-show-gallery-item">
+                                <img src="{{ $url }}" alt="{{ $product->name }}" class="ob-show-gallery-img"
+                                     data-preview-src="{{ $url }}">
+                                @if ($i === 0)
+                                    <span class="ob-image-cover-badge" title="Cover image">Cover</span>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
                 @else
                     <div class="rounded bg-light-secondary d-flex align-items-center justify-content-center" style="width: 160px; height: 160px;">
                         <i data-feather="image" class="text-muted" style="width:40px;height:40px;"></i>

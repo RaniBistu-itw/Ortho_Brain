@@ -61,12 +61,15 @@ it('creates a product with an uploaded image', function () {
         'name'        => 'With Image',
         'base_price'  => 49.50,
         'status'      => 'ACTIVE',
-        'image'       => UploadedFile::fake()->image('product.jpg'),
+        'images'      => [UploadedFile::fake()->image('product.jpg')],
     ])->assertRedirect();
 
-    $product = Product::where('name', 'With Image')->first();
-    expect($product->image_s3_key)->not->toBeNull();
-    Storage::disk('public')->assertExists($product->image_s3_key);
+    $product = Product::where('name', 'With Image')->with('images')->first();
+    expect($product->images)->toHaveCount(1);
+    $image = $product->images->first();
+    expect($image->s3_key)->not->toBeNull();
+    expect($image->sort_order)->toBe(0);
+    Storage::disk('public')->assertExists($image->s3_key);
 });
 
 it('rejects product creation with missing required fields', function () {

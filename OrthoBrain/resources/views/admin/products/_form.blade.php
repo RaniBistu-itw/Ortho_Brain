@@ -2,8 +2,9 @@
 @php
     $selCategory    = old('category_id',    $product->category_id);
     $selSubcategory = old('subcategory_id', $product->subcategory_id);
-    $imgService = app(\App\Services\ImageUploadService::class);
-    $existingImageUrl = $product->image_s3_key ? $imgService->url($product->image_s3_key) : null;
+    $imgService     = app(\App\Services\ImageUploadService::class);
+    $existingImages = $product->images ?? collect();
+    $maxImages      = \App\Models\Product::MAX_IMAGES;
 @endphp
 <div class="row">
     <div class="col-md-6 mb-1">
@@ -63,18 +64,53 @@
             <option value="INACTIVE" @selected(old('status', $product->status) === 'INACTIVE')>Inactive</option>
         </select>
     </div>
+
+    {{-- ─── Images: gallery + multi-file picker ─────────────────── --}}
     <div class="col-12 mb-1">
-        <label for="image" class="form-label">Image</label>
-        <input id="image" name="image" type="file" accept=".jpg,.jpeg,.png" class="form-control @error('image') is-invalid @enderror">
-        <small class="text-muted">JPG or PNG, max 10 MB.</small>
-        @error('image')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-        @if ($existingImageUrl)
-            <div class="mt-1">
-                <small class="text-muted">Current image:</small><br>
-                <img src="{{ $existingImageUrl }}" alt="" class="mt-25 rounded border" style="max-height: 96px;">
-            </div>
+        <label class="form-label d-flex align-items-center" style="gap:.5rem;">
+            <span>Images</span>
+            <span class="ob-image-count" id="ob-image-count">0 / {{ $maxImages }}</span>
+        </label>
+
+        {{-- Existing images (edit mode): drag to reorder, × to queue for removal. --}}
+        <div id="ob-image-gallery" class="ob-image-gallery" data-has-items="{{ $existingImages->count() }}">
+            @foreach ($existingImages as $img)
+                @php $url = $imgService->url($img->s3_key); @endphp
+                <div class="ob-image-gallery-item" data-image-id="{{ $img->id }}">
+                    <img src="{{ $url }}" alt="" class="ob-image-gallery-img" data-preview-src="{{ $url }}">
+                    <span class="ob-image-cover-badge" title="Cover image">Cover</span>
+                    <button type="button" class="ob-image-gallery-remove js-remove-existing-image"
+                            aria-label="Remove image" title="Remove image"><i data-feather="x"></i></button>
+                    <span class="ob-image-drag-hint" title="Drag to reorder"><i data-feather="move"></i></span>
+                </div>
+            @endforeach
+        </div>
+        @if ($existingImages->isEmpty())
+            <div class="ob-image-gallery-empty" id="ob-image-gallery-empty">No images yet. Add up to {{ $maxImages }} below.</div>
         @endif
+
+        {{-- File input --}}
+        <div class="mt-1">
+            <input id="images" name="images[]" type="file" multiple accept=".jpg,.jpeg,.png"
+                   class="form-control js-image-guard-multi @error('images') is-invalid @enderror"
+                   data-max-size="2097152"
+                   data-allowed-types="image/jpeg,image/png"
+                   data-max-count="{{ $maxImages }}">
+            <small class="text-muted d-block mt-25">
+                Up to {{ $maxImages }} images. JPG or PNG, max 2 MB each. The first image is used as the cover.
+            </small>
+        </div>
+
+        {{-- Chip list: one chip per pending new file --}}
+        <div id="ob-file-chip-list" class="ob-file-chip-list mt-1"></div>
+
+        @error('images')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+        @error('images.*')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+
+        {{-- Hidden state: ids to remove + final ordering of existing images --}}
+        <div id="ob-image-hidden-inputs"></div>
     </div>
+
     <div class="col-12 mb-1">
         <label for="description" class="form-label">Description</label>
         <textarea id="description" name="description" rows="6" class="form-control">{{ old('description', $product->description) }}</textarea>
@@ -86,12 +122,177 @@
     <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary">Cancel</a>
 </div>
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('vuexy/vendors/css/extensions/dragula.min.css') }}">
+@endpush
+
 @push('scripts')
+<script src="{{ asset('vuexy/vendors/js/extensions/dragula.min.js') }}"></script>
 <script src="https://cdn.ckeditor.com/ckeditor5/41.3.1/classic/ckeditor.js"></script>
 <script>
 obCascade({ parent:'#category_id', child:'#subcategory_id', url:'{{ route('admin.ajax.subcategories') }}', paramName:'category_id', placeholder:'Select sub category', preselectId: @json($selSubcategory) });
 ClassicEditor.create(document.querySelector('#description'), {
     toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', '|', 'undo', 'redo']
 }).catch(err => console.error(err));
+
+(function () {
+    const MAX_IMAGES   = {{ $maxImages }};
+    const MAX_FILE     = 2 * 1024 * 1024;
+    const ALLOWED_MIME = ['image/jpeg', 'image/png'];
+
+    const $input        = $('#images');
+    const $chipList     = $('#ob-file-chip-list');
+    const $gallery      = $('#ob-image-gallery');
+    const $hiddenInputs = $('#ob-image-hidden-inputs');
+    const $count        = $('#ob-image-count');
+
+    // Own buffer of pending files (FileList is readonly; we sync to input via DataTransfer).
+    let pendingFiles = [];   // File[]
+    let removedIds   = [];   // number[] — ids of existing images queued for deletion
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    function remainingExisting() {
+        return $gallery.find('.ob-image-gallery-item').length;
+    }
+
+    function totalAfterSave() {
+        return remainingExisting() + pendingFiles.length;
+    }
+
+    function syncInputFiles() {
+        const dt = new DataTransfer();
+        pendingFiles.forEach(f => dt.items.add(f));
+        $input[0].files = dt.files;
+    }
+
+    function renderHiddenInputs() {
+        const parts = [];
+        removedIds.forEach(id => {
+            parts.push('<input type="hidden" name="remove_image_ids[]" value="' + id + '">');
+        });
+        $gallery.find('.ob-image-gallery-item').each(function (idx) {
+            const id = $(this).data('image-id');
+            parts.push('<input type="hidden" name="image_order[]" value="' + id + '">');
+        });
+        $hiddenInputs.html(parts.join(''));
+    }
+
+    function renderChips() {
+        const html = pendingFiles.map((f, idx) => `
+            <div class="ob-file-chip" data-idx="${idx}">
+                <span class="ob-file-chip-icon"><i data-feather="image"></i></span>
+                <span class="ob-file-chip-meta">
+                    <span class="ob-file-chip-name">${$('<div>').text(f.name).html()}</span>
+                    <span class="ob-file-chip-size">${formatSize(f.size)}</span>
+                </span>
+                <button type="button" class="ob-file-chip-remove js-remove-pending-file"
+                        aria-label="Remove selected file" title="Remove">
+                    <i data-feather="x"></i>
+                </button>
+            </div>
+        `).join('');
+        $chipList.html(html);
+        if (window.feather) feather.replace();
+    }
+
+    function refreshCoverBadge() {
+        $gallery.find('.ob-image-cover-badge').hide();
+        $gallery.find('.ob-image-gallery-item').first().find('.ob-image-cover-badge').show();
+    }
+
+    function refreshCount() {
+        const n = totalAfterSave();
+        $count.text(n + ' / ' + MAX_IMAGES);
+        $count.toggleClass('is-full', n >= MAX_IMAGES);
+        $count.toggleClass('is-over', n > MAX_IMAGES);
+        const empty = remainingExisting() === 0 && pendingFiles.length === 0;
+        $('#ob-image-gallery-empty').toggle(empty);
+    }
+
+    function validateFile(file) {
+        if (!ALLOWED_MIME.includes(file.type)) {
+            return { ok: false, title: 'Unsupported file type',
+                     text: '"' + file.name + '" is not a JPG or PNG image.' };
+        }
+        if (file.size > MAX_FILE) {
+            return { ok: false, title: 'Image is too large',
+                     text: '"' + file.name + '" is ' + formatSize(file.size) + ' — the limit is 2 MB per image.' };
+        }
+        return { ok: true };
+    }
+
+    function warn(title, text) {
+        Swal.fire({
+            title: title, text: text, icon: 'warning',
+            confirmButtonText: 'Got it',
+            customClass: { confirmButton: 'btn btn-primary' },
+            buttonsStyling: false
+        });
+    }
+
+    // When user picks files via the input.
+    $input.on('change', function () {
+        const incoming = Array.from(this.files || []);
+        const accepted = [];
+
+        for (const f of incoming) {
+            const v = validateFile(f);
+            if (!v.ok) { warn(v.title, v.text); continue; }
+            if (totalAfterSave() + accepted.length >= MAX_IMAGES) {
+                warn('Too many images',
+                     'You can have at most ' + MAX_IMAGES + ' images per product. Remove one before adding another.');
+                break;
+            }
+            accepted.push(f);
+        }
+
+        pendingFiles = pendingFiles.concat(accepted);
+        syncInputFiles();
+        renderChips();
+        refreshCount();
+    });
+
+    // Remove a pending (not-yet-uploaded) file from the chip list.
+    $chipList.on('click', '.js-remove-pending-file', function () {
+        const idx = parseInt($(this).closest('.ob-file-chip').data('idx'), 10);
+        pendingFiles.splice(idx, 1);
+        syncInputFiles();
+        renderChips();
+        refreshCount();
+    });
+
+    // Remove an existing (already-saved) image: drop its tile, queue its id.
+    $gallery.on('click', '.js-remove-existing-image', function () {
+        const $tile = $(this).closest('.ob-image-gallery-item');
+        const id = $tile.data('image-id');
+        if (id) removedIds.push(id);
+        $tile.remove();
+        refreshCoverBadge();
+        refreshCount();
+        renderHiddenInputs();
+    });
+
+    // Dragula: reorder existing-image tiles.
+    if (window.dragula && $gallery.length) {
+        const drake = dragula([$gallery[0]], {
+            moves: function (el, source, handle, sibling) {
+                return el.classList.contains('ob-image-gallery-item');
+            }
+        });
+        drake.on('drag',  el => el.classList.add('is-dragging'));
+        drake.on('dragend', el => el.classList.remove('is-dragging'));
+        drake.on('drop',  () => { refreshCoverBadge(); renderHiddenInputs(); });
+    }
+
+    // Initial paint.
+    refreshCoverBadge();
+    refreshCount();
+    renderHiddenInputs();
+})();
 </script>
 @endpush
