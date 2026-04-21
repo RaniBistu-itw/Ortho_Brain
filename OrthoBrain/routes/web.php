@@ -61,6 +61,12 @@ Route::middleware(['web', 'auth'])
         Route::get('/profile/settings',  [ProfileController::class, 'settings'])->name('profile.settings');
         Route::post('/profile/settings', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
+        // Doctor avatar & practice logo uploads (local public storage)
+        Route::post('/profile/photo',   [ProfileController::class, 'uploadAvatar'])->name('profile.photo');
+        Route::delete('/profile/photo', [ProfileController::class, 'deleteAvatar'])->name('profile.photo.delete');
+        Route::post('/practice/photo',   [ProfileController::class, 'uploadPracticeLogo'])->name('practice.photo');
+        Route::delete('/practice/photo', [ProfileController::class, 'deletePracticeLogo'])->name('practice.photo.delete');
+
         Route::get('/profile/address/create',        [ProfileController::class, 'addressCreate'])->name('profile.address.create');
         Route::post('/profile/address/store',        [ProfileController::class, 'addressStore'])->name('profile.address.store');
         Route::get('/profile/address/zip-lookup',    [ProfileController::class, 'addressZipLookup'])->name('profile.address.zip-lookup');
