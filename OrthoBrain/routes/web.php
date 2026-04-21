@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\ZipcodeController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CasesController;
 use App\Http\Controllers\DashboardController as DoctorDashboardController;
+use App\Http\Controllers\PracticeController;
 use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +34,9 @@ Route::match(['get', 'post'], '/forgot-password', function (\Illuminate\Http\Req
     $status = $request->isMethod('post');
     return view('forgot-password', ['status' => $status]);
 });
+
+// Public practice-search (used by the register page autocomplete on Practice Name)
+Route::get('/practice-search', [PracticeController::class, 'search'])->name('practice.search');
 
 // ─── Doctor area (authenticated) ──────────────────────────
 Route::middleware(['web', 'auth'])

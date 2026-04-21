@@ -1,0 +1,59 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Practice extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'owner_id',
+        'name',
+        'website',
+        'phone_country_code',
+        'phone_number',
+        'street_address_1',
+        'street_address_2',
+        'zip_id',
+        'city_id',
+        'state_id',
+        'country_id',
+        'status',
+    ];
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(Doctor::class, 'owner_id');
+    }
+
+    public function members(): HasMany
+    {
+        return $this->hasMany(Doctor::class, 'practice_id');
+    }
+
+    public function zipcode(): BelongsTo
+    {
+        return $this->belongsTo(Zipcode::class, 'zip_id');
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    public function state(): BelongsTo
+    {
+        return $this->belongsTo(State::class);
+    }
+
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class);
+    }
+}

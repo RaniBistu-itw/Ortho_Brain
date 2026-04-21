@@ -12,13 +12,10 @@ class Doctor extends Model
 
     protected $fillable = [
         'user_id',
+        'practice_id',
         'first_name',
         'last_name',
         'profile_photo_s3_key',
-        'practice_name',
-        'practice_phone_country_code',
-        'practice_phone_number',
-        'practice_website',
         'preferred_language',
         'currently_providing_ortho_services',
         'preferred_contact_mode',
@@ -49,6 +46,16 @@ class Doctor extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function practice()
+    {
+        return $this->belongsTo(Practice::class, 'practice_id');
+    }
+
+    public function ownedPractices()
+    {
+        return $this->hasMany(Practice::class, 'owner_id');
     }
 
     public function approverAdmin()
