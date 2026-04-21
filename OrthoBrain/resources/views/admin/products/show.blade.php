@@ -34,7 +34,7 @@
                         @foreach ($imageUrls as $i => $url)
                             <div class="ob-show-gallery-item">
                                 <img src="{{ $url }}" alt="{{ $product->name }}" class="ob-show-gallery-img"
-                                     data-preview-src="{{ $url }}">
+                                     data-preview-src="{{ $url }}" data-preview-size="lg">
                                 @if ($i === 0)
                                     <span class="ob-image-cover-badge" title="Cover image">Cover</span>
                                 @endif

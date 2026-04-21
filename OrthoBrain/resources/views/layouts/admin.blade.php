@@ -422,6 +422,7 @@
 
             function show(target) {
                 ensureCard();
+                card.classList.toggle('is-lg', target.getAttribute('data-preview-size') === 'lg');
                 const raw = target.getAttribute('data-preview-gallery');
                 gallery = null;
                 if (raw) {

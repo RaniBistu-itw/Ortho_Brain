@@ -214,6 +214,10 @@ p, label, .card-text { color: #1f1f1f; }
     height: auto;
     border-radius: 7px;
 }
+.ob-image-preview-card.is-lg img {
+    max-width: 360px;
+    max-height: 360px;
+}
 
 /* ────────────────────────────────────────────────────────────
    Selected-file chip (product image form, new file selected)
