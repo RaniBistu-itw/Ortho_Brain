@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\DoctorController as AdminDoctorController;
 use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductSubcategoryController;
+use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\ScannerController;
 use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\ZipcodeController;
@@ -83,6 +84,12 @@ Route::middleware(['web', 'admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+        // Admin profile (account details + avatar)
+        Route::get('/profile',            [AdminProfileController::class, 'index'])->name('profile.index');
+        Route::post('/profile',           [AdminProfileController::class, 'update'])->name('profile.update');
+        Route::post('/profile/photo',     [AdminProfileController::class, 'uploadAvatar'])->name('profile.photo');
+        Route::delete('/profile/photo',   [AdminProfileController::class, 'deleteAvatar'])->name('profile.photo.delete');
 
         Route::resource('products', ProductController::class);
         Route::resource('product-categories', ProductCategoryController::class);

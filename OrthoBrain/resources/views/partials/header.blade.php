@@ -1,5 +1,6 @@
 @php
-    $adminName = trim((auth()->user()->admin?->first_name ?? 'Admin') . ' ' . (auth()->user()->admin?->last_name ?? ''));
+    $adminName      = trim((auth()->user()->admin?->first_name ?? 'Admin') . ' ' . (auth()->user()->admin?->last_name ?? ''));
+    $adminAvatarUrl = auth()->user()->admin?->avatarUrl();
 @endphp
 
 <nav class="header-navbar navbar navbar-expand-lg align-items-center floating-nav navbar-light navbar-shadow">
@@ -28,13 +29,22 @@
                         <span class="user-status">Administrator</span>
                     </div>
                     <span class="avatar">
-                        <span class="avatar-content">
-                            {{ strtoupper(substr($adminName ?: 'A', 0, 1)) }}
-                        </span>
+                        @if($adminAvatarUrl)
+                            <img src="{{ $adminAvatarUrl }}" alt="avatar" width="40" height="40"
+                                 style="width:40px;height:40px;border-radius:50%;object-fit:cover;display:block;">
+                        @else
+                            <span class="avatar-content">
+                                {{ strtoupper(substr($adminName ?: 'A', 0, 1)) }}
+                            </span>
+                        @endif
                         <span class="avatar-status-online"></span>
                     </span>
                 </a>
                 <div class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-user">
+                    <a class="dropdown-item" href="{{ route('admin.profile.index') }}">
+                        <i class="me-50" data-feather="user"></i> My Profile
+                    </a>
+                    <div class="dropdown-divider"></div>
                     <form method="POST" action="{{ route('logout') }}" class="m-0">
                         @csrf
                         <button type="submit" class="dropdown-item">
