@@ -102,7 +102,15 @@ Route::middleware(['web', 'admin'])
         Route::put('product-categories/ajax/{productCategory}', [ProductCategoryController::class, 'ajaxUpdate'])
             ->name('product-categories.ajax.update');
         Route::resource('product-categories', ProductCategoryController::class);
+
+        // Product Subcategories — AJAX endpoints for drawer create / edit flow
+        // (must be registered BEFORE the resource so `/ajax` is not captured by {product_subcategory})
+        Route::post('product-subcategories/ajax', [ProductSubcategoryController::class, 'ajaxStore'])
+            ->name('product-subcategories.ajax.store');
+        Route::put('product-subcategories/ajax/{product_subcategory}', [ProductSubcategoryController::class, 'ajaxUpdate'])
+            ->name('product-subcategories.ajax.update');
         Route::resource('product-subcategories', ProductSubcategoryController::class)
+            ->only(['index', 'show', 'destroy'])
             ->parameters(['product-subcategories' => 'product_subcategory']);
         Route::resource('scanners', ScannerController::class);
 

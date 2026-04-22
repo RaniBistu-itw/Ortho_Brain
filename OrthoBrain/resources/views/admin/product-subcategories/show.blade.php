@@ -13,7 +13,7 @@
             @include('admin._partials.view_field', ['label' => 'Description', 'value' => $subcategory->description, 'span' => 2])
         </div>
         <div class="d-flex mt-2">
-            <a href="{{ route('admin.product-subcategories.edit', $subcategory) }}" class="btn btn-primary me-1">Edit</a>
+            <a href="{{ route('admin.product-subcategories.index', ['edit' => $subcategory->id]) }}" class="btn btn-primary me-1">Edit</a>
             <a href="{{ route('admin.product-subcategories.index') }}" class="btn btn-outline-secondary">Back</a>
         </div>
     </div>

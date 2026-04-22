@@ -25,42 +25,10 @@ class ProductSubcategoryController extends Controller
         ]);
     }
 
-    public function create()
-    {
-        return view('admin.product-subcategories.create', [
-            'subcategory' => new ProductSubcategory(['status' => true]),
-            'categories'  => ProductCategory::where('status', 'ACTIVE')->orderBy('name')->get(),
-        ]);
-    }
-
-    public function store(ProductSubcategoryRequest $request)
-    {
-        $data = $request->validated();
-        $data['status'] = $data['status'] === 'ACTIVE';
-        ProductSubcategory::create($data);
-        return redirect()->route('admin.product-subcategories.index')->with('success', 'Sub-category created.');
-    }
-
     public function show(ProductSubcategory $productSubcategory)
     {
         $productSubcategory->loadMissing('category')->loadCount('products');
         return view('admin.product-subcategories.show', ['subcategory' => $productSubcategory]);
-    }
-
-    public function edit(ProductSubcategory $productSubcategory)
-    {
-        return view('admin.product-subcategories.edit', [
-            'subcategory' => $productSubcategory,
-            'categories'  => ProductCategory::where('status', 'ACTIVE')->orderBy('name')->get(),
-        ]);
-    }
-
-    public function update(ProductSubcategoryRequest $request, ProductSubcategory $productSubcategory)
-    {
-        $data = $request->validated();
-        $data['status'] = $data['status'] === 'ACTIVE';
-        $productSubcategory->update($data);
-        return redirect()->route('admin.product-subcategories.index')->with('success', 'Sub-category updated.');
     }
 
     public function destroy(ProductSubcategory $productSubcategory)
@@ -70,5 +38,51 @@ class ProductSubcategoryController extends Controller
         }
         $productSubcategory->delete();
         return redirect()->route('admin.product-subcategories.index')->with('success', 'Sub-category deleted.');
+    }
+
+    // ─── AJAX endpoints for drawer create / edit ────────────────────────
+
+    public function ajaxStore(ProductSubcategoryRequest $request)
+    {
+        $data = $request->validated();
+        $data['status'] = $data['status'] === 'ACTIVE';
+        $sub = ProductSubcategory::create($data);
+        $sub->loadMissing('category')->loadCount('products');
+
+        return response()->json([
+            'ok'          => true,
+            'subcategory' => $this->presentRow($sub),
+            'message'     => 'Sub-category created.',
+        ]);
+    }
+
+    public function ajaxUpdate(ProductSubcategoryRequest $request, ProductSubcategory $productSubcategory)
+    {
+        $data = $request->validated();
+        $data['status'] = $data['status'] === 'ACTIVE';
+        $productSubcategory->update($data);
+        $productSubcategory->loadMissing('category')->loadCount('products');
+
+        return response()->json([
+            'ok'          => true,
+            'subcategory' => $this->presentRow($productSubcategory),
+            'message'     => 'Sub-category updated.',
+        ]);
+    }
+
+    private function presentRow(ProductSubcategory $s): array
+    {
+        return [
+            'id'             => $s->id,
+            'category_id'    => $s->category_id,
+            'category_name'  => $s->category?->name ?? '—',
+            'name'           => $s->name,
+            'description'    => (string) ($s->description ?? ''),
+            'status'         => $s->status ? 'ACTIVE' : 'INACTIVE',
+            'products_count' => (int) ($s->products_count ?? 0),
+            'update_url'     => route('admin.product-subcategories.ajax.update', $s),
+            'destroy_url'    => route('admin.product-subcategories.destroy', $s),
+            'show_url'       => route('admin.product-subcategories.show', $s),
+        ];
     }
 }
