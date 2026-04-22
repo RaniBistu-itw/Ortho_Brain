@@ -89,15 +89,18 @@
             <div class="ob-image-gallery-empty" id="ob-image-gallery-empty">No images yet. Add up to {{ $maxImages }} below.</div>
         @endif
 
-        {{-- File input --}}
+        {{-- File input (hidden — populated from the cropper modal) --}}
+        <input id="images" name="images[]" type="file" multiple accept=".jpg,.jpeg,.png"
+               class="@error('images') is-invalid @enderror" hidden>
+
+        {{-- Add-image trigger: opens the cropper modal --}}
         <div class="mt-1">
-            <input id="images" name="images[]" type="file" multiple accept=".jpg,.jpeg,.png"
-                   class="form-control js-image-guard-multi @error('images') is-invalid @enderror"
-                   data-max-size="2097152"
-                   data-allowed-types="image/jpeg,image/png"
-                   data-max-count="{{ $maxImages }}">
+            <button type="button" id="ob-add-image-btn" class="btn btn-outline-primary"
+                    onclick="openPhotoEditor('product-image-editor')">
+                <i data-feather="plus"></i> Add image
+            </button>
             <small class="text-muted d-block mt-25">
-                Up to {{ $maxImages }} images. JPG or PNG, max 2 MB each. The first image is used as the cover.
+                Up to {{ $maxImages }} images. JPG or PNG, max 2 MB each. Crop/rotate each image before saving. The first image is used as the cover.
             </small>
         </div>
 
@@ -122,6 +125,15 @@
     <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary">Cancel</a>
 </div>
 
+{{-- Cropper modal — pushes cropped File into the pending-files buffer. --}}
+@include('partials._photo-editor', [
+    'id'        => 'product-image-editor',
+    'title'     => 'Edit Product Image',
+    'callback'  => 'onProductImageCropped',
+    'aspect'    => null,
+    'enableCam' => false,
+])
+
 @push('styles')
 <link rel="stylesheet" href="{{ asset('vuexy/vendors/css/extensions/dragula.min.css') }}">
 @endpush
@@ -138,17 +150,18 @@ ClassicEditor.create(document.querySelector('#description'), {
 (function () {
     const MAX_IMAGES   = {{ $maxImages }};
     const MAX_FILE     = 2 * 1024 * 1024;
-    const ALLOWED_MIME = ['image/jpeg', 'image/png'];
 
     const $input        = $('#images');
     const $chipList     = $('#ob-file-chip-list');
     const $gallery      = $('#ob-image-gallery');
     const $hiddenInputs = $('#ob-image-hidden-inputs');
     const $count        = $('#ob-image-count');
+    const $addBtn       = $('#ob-add-image-btn');
 
     // Own buffer of pending files (FileList is readonly; we sync to input via DataTransfer).
     let pendingFiles = [];   // File[]
     let removedIds   = [];   // number[] — ids of existing images queued for deletion
+    let nextSeq      = 1;    // for unique filenames from cropper
 
     function formatSize(bytes) {
         if (bytes < 1024) return bytes + ' B';
@@ -205,6 +218,12 @@ ClassicEditor.create(document.querySelector('#description'), {
         $gallery.find('.ob-image-gallery-item').first().find('.ob-image-cover-badge').show();
     }
 
+    function refreshAddButton() {
+        const atMax = totalAfterSave() >= MAX_IMAGES;
+        $addBtn.prop('disabled', atMax);
+        $addBtn.attr('title', atMax ? 'Maximum of ' + MAX_IMAGES + ' images reached' : '');
+    }
+
     function refreshCount() {
         const n = totalAfterSave();
         $count.text(n + ' / ' + MAX_IMAGES);
@@ -212,18 +231,7 @@ ClassicEditor.create(document.querySelector('#description'), {
         $count.toggleClass('is-over', n > MAX_IMAGES);
         const empty = remainingExisting() === 0 && pendingFiles.length === 0;
         $('#ob-image-gallery-empty').toggle(empty);
-    }
-
-    function validateFile(file) {
-        if (!ALLOWED_MIME.includes(file.type)) {
-            return { ok: false, title: 'Unsupported file type',
-                     text: '"' + file.name + '" is not a JPG or PNG image.' };
-        }
-        if (file.size > MAX_FILE) {
-            return { ok: false, title: 'Image is too large',
-                     text: '"' + file.name + '" is ' + formatSize(file.size) + ' — the limit is 2 MB per image.' };
-        }
-        return { ok: true };
+        refreshAddButton();
     }
 
     function warn(title, text) {
@@ -235,27 +243,26 @@ ClassicEditor.create(document.querySelector('#description'), {
         });
     }
 
-    // When user picks files via the input.
-    $input.on('change', function () {
-        const incoming = Array.from(this.files || []);
-        const accepted = [];
-
-        for (const f of incoming) {
-            const v = validateFile(f);
-            if (!v.ok) { warn(v.title, v.text); continue; }
-            if (totalAfterSave() + accepted.length >= MAX_IMAGES) {
-                warn('Too many images',
-                     'You can have at most ' + MAX_IMAGES + ' images per product. Remove one before adding another.');
-                break;
-            }
-            accepted.push(f);
+    // Global callback invoked by the photo-editor modal once a crop is saved.
+    window.onProductImageCropped = function (file) {
+        if (totalAfterSave() >= MAX_IMAGES) {
+            warn('Too many images',
+                 'You can have at most ' + MAX_IMAGES + ' images per product. Remove one before adding another.');
+            return;
         }
-
-        pendingFiles = pendingFiles.concat(accepted);
+        if (file.size > MAX_FILE) {
+            warn('Image is too large',
+                 'The cropped image is ' + formatSize(file.size) + ' — the limit is 2 MB per image.');
+            return;
+        }
+        // Re-name so chips are distinct and uploads don't collide server-side.
+        const stamped = new File([file], 'product-image-' + Date.now() + '-' + (nextSeq++) + '.jpg',
+                                 { type: file.type || 'image/jpeg' });
+        pendingFiles.push(stamped);
         syncInputFiles();
         renderChips();
         refreshCount();
-    });
+    };
 
     // Remove a pending (not-yet-uploaded) file from the chip list.
     $chipList.on('click', '.js-remove-pending-file', function () {

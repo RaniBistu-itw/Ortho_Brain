@@ -1,14 +1,31 @@
 {{--
     Reusable photo editor modal (Cropper.js + optional webcam capture).
 
-    Usage:
+    Two modes:
+      1) Direct-submit  — the modal owns a <form> that POSTs the cropped file
+                           to the given `action` endpoint.
+      2) Callback        — pass `callback` (name of a global JS function) and
+                           the modal hands the cropped File to that function
+                           instead of submitting. Use this when the cropper
+                           feeds a parent form (e.g. multi-image product form).
+
+    Direct-submit usage:
         @include('partials._photo-editor', [
-            'id'         => 'avatar-editor',                // unique DOM id
+            'id'         => 'avatar-editor',
             'title'      => 'Edit Profile Photo',
-            'action'     => route('doctor.profile.photo'),  // POST endpoint
-            'fieldName'  => 'avatar',                       // POST file field name
-            'aspect'     => 1,                              // aspect ratio (1 = square, 16/9, or null = free)
-            'enableCam'  => true,                           // show "Use webcam" button
+            'action'     => route('doctor.profile.photo'),
+            'fieldName'  => 'avatar',
+            'aspect'     => 1,
+            'enableCam'  => true,
+        ])
+
+    Callback usage:
+        @include('partials._photo-editor', [
+            'id'         => 'product-image-editor',
+            'title'      => 'Edit Product Image',
+            'callback'   => 'onProductImageCropped', // window.onProductImageCropped(file, editorId)
+            'aspect'     => null,
+            'enableCam'  => false,
         ])
 
     Open from anywhere:   openPhotoEditor('avatar-editor')
@@ -84,16 +101,26 @@
 </script>
 @endonce
 
-<div id="{{ $id }}" class="photo-editor-backdrop" data-id="{{ $id }}" data-aspect="{{ $aspect ?? 'null' }}" data-cam="{{ !empty($enableCam) ? '1' : '0' }}">
+@php $peCallback = $callback ?? null; @endphp
+<div id="{{ $id }}" class="photo-editor-backdrop"
+     data-id="{{ $id }}"
+     data-aspect="{{ $aspect ?? 'null' }}"
+     data-cam="{{ !empty($enableCam) ? '1' : '0' }}"
+     data-callback="{{ $peCallback ?? '' }}">
     <div class="photo-editor-dialog">
         <div class="photo-editor-header">
             <h5>{{ $title ?? 'Edit Photo' }}</h5>
             <button type="button" class="photo-editor-close" onclick="closePhotoEditor('{{ $id }}')">&times;</button>
         </div>
 
-        <form id="{{ $id }}-form" method="POST" action="{{ $action }}" enctype="multipart/form-data">
-            @csrf
-            <input type="file" class="pe-file" name="{{ $fieldName }}" accept="image/jpeg,image/png,image/webp" hidden>
+        @if($peCallback)
+            <div id="{{ $id }}-form" class="pe-shell">
+                <input type="file" class="pe-file" accept="image/jpeg,image/png,image/webp" hidden>
+        @else
+            <form id="{{ $id }}-form" method="POST" action="{{ $action }}" enctype="multipart/form-data" class="pe-shell">
+                @csrf
+                <input type="file" class="pe-file" name="{{ $fieldName }}" accept="image/jpeg,image/png,image/webp" hidden>
+        @endif
             <div class="photo-editor-body">
                 <div class="photo-editor-stage pe-stage">
                     <div class="photo-editor-picker pe-picker">
@@ -132,7 +159,11 @@
                 <button type="button" class="btn-pe-secondary" onclick="closePhotoEditor('{{ $id }}')">Cancel</button>
                 <button type="button" class="btn-pe-primary pe-save" disabled>Save photo</button>
             </div>
-        </form>
+        @if($peCallback)
+            </div>
+        @else
+            </form>
+        @endif
     </div>
 </div>
 
@@ -143,6 +174,7 @@
             const id       = root.dataset.id;
             const aspect   = root.dataset.aspect === 'null' || root.dataset.aspect === '' ? NaN : parseFloat(root.dataset.aspect);
             const camOn    = root.dataset.cam === '1';
+            const cbName   = root.dataset.callback || '';
             const picker   = root.querySelector('.pe-picker');
             const img      = root.querySelector('.pe-img');
             const video    = root.querySelector('.pe-video');
@@ -244,14 +276,19 @@
                 loadImage(dataUrl);
             }
 
-            // Save — crop/rotate → blob → POST the processed file (not the original)
+            // Save — crop/rotate → blob. Either hand to callback or POST via inner form.
             saveBtn.addEventListener('click', async () => {
                 if (!cropper) return;
                 saveBtn.disabled = true;
                 cropper.getCroppedCanvas({ maxWidth: 1600, maxHeight: 1600 }).toBlob(blob => {
                     if (!blob) { showErr('Crop failed — try again.'); saveBtn.disabled = false; return; }
+                    const file = new File([blob], 'upload.jpg', { type: 'image/jpeg' });
+                    if (cbName && typeof window[cbName] === 'function') {
+                        try { window[cbName](file, id); } finally { closePhotoEditor(id); }
+                        return;
+                    }
                     const dt = new DataTransfer();
-                    dt.items.add(new File([blob], 'upload.jpg', { type: 'image/jpeg' }));
+                    dt.items.add(file);
                     fileIn.files = dt.files;
                     form.submit();
                 }, 'image/jpeg', 0.9);
