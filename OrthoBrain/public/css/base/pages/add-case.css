@@ -1,7 +1,11 @@
 .add-case-topbar {
   position: sticky;
-  top: 0;
-  z-index: 100;
+  /* Clears the Vuexy floating navbar (~4.45rem tall + 1rem top margin) so the
+     two bars stack instead of overlapping. */
+  top: 5.75rem;
+  /* Below the navbar's z-index (~12) so the avatar dropdown renders OVER this
+     bar; still above scrolled page content (which has no z-index). */
+  z-index: 1;
   border-radius: 0;
   border-left: 0;
   border-right: 0;
@@ -32,8 +36,9 @@
   width: 240px;
   flex-shrink: 0;
   position: sticky;
-  top: 72px;
-  max-height: calc(100vh - 88px);
+  /* Sits immediately below .add-case-topbar (5.75rem nav offset + ~4rem bar). */
+  top: 10rem;
+  max-height: calc(100vh - 11rem);
   overflow-y: auto;
 }
 .add-case-rail::-webkit-scrollbar {
