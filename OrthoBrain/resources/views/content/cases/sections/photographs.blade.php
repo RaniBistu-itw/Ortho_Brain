@@ -94,6 +94,56 @@
              @change="onBulkInputChange()">
     </div>
 
+    {{-- Camera capture modal (live webcam → snap → fed into _processFile) --}}
+    <div class="modal fade" id="photoCameraModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              Camera —
+              <span x-text="cameraModal.activeTileId ? getTileLabel(cameraModal.activeTileId) : ''"></span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center p-1">
+            <div x-show="cameraModal.error"
+                 class="alert alert-warning text-start mb-1"
+                 role="alert"
+                 x-text="cameraModal.error"
+                 style="display:none;"></div>
+
+            <video x-ref="cameraVideo"
+                   class="photo-camera__video w-100 rounded"
+                   :class="{ 'photo-camera__video--mirrored': cameraModal.facingMode === 'user' }"
+                   autoplay
+                   playsinline
+                   muted
+                   x-show="!cameraModal.error"
+                   style="display:none;"></video>
+          </div>
+          <div class="modal-footer flex-wrap gap-50 justify-content-center">
+            <button type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    x-show="cameraModal.canSwitch && !cameraModal.error"
+                    @click="switchCamera()"
+                    style="display:none;">
+              <i data-feather="refresh-cw" class="me-25"></i> Switch camera
+            </button>
+            <button type="button"
+                    class="btn btn-primary btn-sm"
+                    :disabled="!cameraModal.isReady || cameraModal.isCapturing"
+                    @click="capturePhoto()">
+              <i data-feather="camera" class="me-25"></i>
+              <span x-text="cameraModal.isCapturing ? 'Capturing…' : 'Capture'"></span>
+            </button>
+            <button type="button"
+                    class="btn btn-secondary btn-sm"
+                    data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     {{-- Tile modal (view / replace / remove / crop) --}}
     <div class="modal fade" id="photoTileModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">

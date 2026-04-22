@@ -155,9 +155,12 @@
   {{-- heic2any — HEIC → JPEG conversion for preview on Photograph / X-Ray uploads. --}}
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <script src="{{ asset('js/scripts/cases/case-api.js') }}"></script>
+  {{-- IndexedDB-backed image store; must load before photographs.js so its init() can hydrate. --}}
+  <script src="{{ asset('js/scripts/cases/case-image-store.js') }}"></script>
   @php
     $voiceInputVer = @filemtime(public_path('js/scripts/cases/voice-input.js')) ?: time();
     $cropModalVer  = @filemtime(public_path('js/scripts/cases/sections/crop-modal.js')) ?: time();
+    $photographsVer = @filemtime(public_path('js/scripts/cases/sections/photographs.js')) ?: time();
   @endphp
   <script src="{{ asset('js/scripts/cases/voice-input.js') }}?v={{ $voiceInputVer }}"></script>
   <script src="{{ asset('js/scripts/cases/mock-patients.js') }}"></script>
@@ -175,7 +178,7 @@
   {{-- Phase 6: shared media helpers must load before section scripts --}}
   <script src="{{ asset('js/scripts/cases/sections/media-tile-helpers.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/crop-modal.js') }}?v={{ $cropModalVer }}"></script>
-  <script src="{{ asset('js/scripts/cases/sections/photographs.js') }}"></script>
+  <script src="{{ asset('js/scripts/cases/sections/photographs.js') }}?v={{ $photographsVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/xrays.js') }}"></script>
   {{-- Phase 7: submit orchestrator --}}
   <script src="{{ asset('js/scripts/cases/add-case-submit.js') }}"></script>

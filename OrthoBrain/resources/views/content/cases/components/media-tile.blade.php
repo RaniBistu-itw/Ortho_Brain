@@ -37,6 +37,19 @@
 
   <div class="media-tile__label">{{ $poseLabel }}</div>
 
+  @if($sectionType === 'photograph')
+    {{-- Camera entry — only when empty AND device exposes a camera --}}
+    <button type="button"
+            class="media-tile__camera-btn"
+            x-show="!tiles['{{ $tileId }}'].filled && cameraSupported"
+            @click.stop="onTileCameraClick('{{ $tileId }}')"
+            aria-label="Take photo for {{ $poseLabel }}"
+            title="Use camera"
+            style="display:none;">
+      <i data-feather="camera"></i>
+    </button>
+  @endif
+
   {{-- Hidden file input — triggered programmatically on empty-tile click --}}
   <input type="file"
          id="tile-file-{{ $tileId }}"
