@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\RegistrationReceivedMail;
 use App\Models\BuccalCorridorOption;
 use App\Models\Doctor;
 use App\Models\Modality;
@@ -14,6 +15,7 @@ use App\Models\Zipcode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class RegisterController extends Controller
@@ -35,8 +37,20 @@ class RegisterController extends Controller
         //         vs new practice (all practice + address fields expected)
         $isExisting = $request->filled('practice_id');
 
+        // Resurrection: if this email belongs to a previously-rejected doctor,
+        // allow re-registration — we'll overwrite the existing user/doctor rows
+        // and reset approval back to PENDING (see DB::transaction below).
+        $resurrecting = null;
+        if ($request->filled('email')) {
+            $resurrecting = User::where('email', $request->email)
+                ->whereHas('doctor', fn ($q) => $q->where('approval_status', 'REJECTED'))
+                ->first();
+        }
+
         $rules = [
-            'email'                 => 'required|email|max:150|unique:users,email',
+            'email'                 => $resurrecting
+                ? 'required|email|max:150'
+                : 'required|email|max:150|unique:users,email',
             'first_name'            => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
             'last_name'             => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
             'password'              => 'required|string|min:8|confirmed:confirm_password|regex:/[A-Z]/|regex:/[a-z]/|regex:/\d/|regex:/[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\\\\/]/',
@@ -86,13 +100,24 @@ class RegisterController extends Controller
             'both'     => 'DOCTOR_AND_EMPLOYEE_OFFICE',
         ];
 
-        DB::transaction(function () use ($data, $contactMap, $isExisting) {
-            $user = User::create([
-                'email'         => $data['email'],
-                'password_hash' => Hash::make($data['password']),
-                'role'          => 'DOCTOR',
-                'is_active'     => true,
-            ]);
+        $createdUser   = null;
+        $createdDoctor = null;
+
+        DB::transaction(function () use ($data, $contactMap, $isExisting, $resurrecting, &$createdUser, &$createdDoctor) {
+            if ($resurrecting) {
+                $user = $resurrecting;
+                $user->password_hash = Hash::make($data['password']);
+                $user->is_active     = true;
+                $user->save();
+            } else {
+                $user = User::create([
+                    'email'         => $data['email'],
+                    'password_hash' => Hash::make($data['password']),
+                    'role'          => 'DOCTOR',
+                    'is_active'     => true,
+                ]);
+            }
+            $createdUser = $user;
 
             // Resolve practice: either pick existing or create new (owner stamped after doctor exists)
             $newPractice = null;
@@ -116,7 +141,7 @@ class RegisterController extends Controller
                 $practiceId = $newPractice->id;
             }
 
-            $doctor = Doctor::create([
+            $doctorData = [
                 'user_id'                            => $user->id,
                 'practice_id'                        => $practiceId,
                 'first_name'                         => $data['first_name'],
@@ -135,7 +160,18 @@ class RegisterController extends Controller
                 'extractions_if_suggested_pref'      => 'NO',
                 'attachment_stage_pref'              => 'AT_STEP_1',
                 'approval_status'                    => 'PENDING',
-            ]);
+                'approved_at'                        => null,
+                'approved_by_admin_id'               => null,
+                'rejection_reason'                   => null,
+            ];
+
+            if ($resurrecting && $resurrecting->doctor) {
+                $doctor = $resurrecting->doctor;
+                $doctor->fill($doctorData)->save();
+            } else {
+                $doctor = Doctor::create($doctorData);
+            }
+            $createdDoctor = $doctor;
 
             // Stamp ownership on the just-created practice
             if ($newPractice) {
@@ -151,7 +187,15 @@ class RegisterController extends Controller
             $doctor->buccalCorridorOptions()->sync($data['buccal_corridors'] ?? []);
         });
 
-        return redirect('/login')->with('success', 'Registered successfully! Please log in with your credentials.');
+        // Send "application received" email only for public registrations.
+        // Admin-created doctors are auto-approved downstream, and will get the
+        // approval email (not this one) via the Doctor observer.
+        $isAdminCreating = auth()->check() && auth()->user()->role === 'ADMIN';
+        if (! $isAdminCreating && $createdUser && $createdDoctor) {
+            Mail::to($createdUser->email)->send(new RegistrationReceivedMail($createdDoctor));
+        }
+
+        return redirect('/login')->with('success', 'Registration submitted. Your account is pending admin approval — you\'ll receive an email once approved.');
     }
 
     private function activeZipcodes()

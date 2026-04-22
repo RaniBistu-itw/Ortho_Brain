@@ -863,7 +863,7 @@
                         {{-- Action Buttons --}}
                         <div class="reg-actions">
                             <a href="{{ url('/login') }}" class="reg-btn-back">Back to Login</a>
-                            <button type="button" onclick="validateForm()" class="reg-btn-submit">Submit</button>
+                            <button type="button" onclick="validateForm()" class="reg-btn-submit">Submit for Approval</button>
                         </div>
                     </form>
                 </main>
