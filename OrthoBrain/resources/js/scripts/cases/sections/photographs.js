@@ -48,6 +48,17 @@
         activeTileId: '',
       },
 
+      cameraModal: {
+        activeTileId: '',
+        facingMode: 'environment',
+        canSwitch: false,
+        isReady: false,
+        isCapturing: false,
+        error: null,
+      },
+
+      cameraSupported: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+
       dragSourceTileId: null,
 
       errors: {
@@ -62,6 +73,8 @@
       // Internal (non-reactive in effect, but pre-declared per Alpine rule)
       _tileModalInstance: null,
       _pendingReplaceTileId: null,
+      _cameraModalInstance: null,
+      _cameraStream: null,
 
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
@@ -78,6 +91,29 @@
               setTimeout(function () { self._openFilePicker(tid); }, 50);
             }
           });
+        }
+
+        var camModalEl = document.getElementById('photoCameraModal');
+        if (camModalEl && this.cameraSupported) {
+          this._cameraModalInstance = new bootstrap.Modal(camModalEl);
+          camModalEl.addEventListener('shown.bs.modal', function () {
+            self._startCamera();
+            if (window.feather) window.feather.replace();
+          });
+          camModalEl.addEventListener('hidden.bs.modal', function () {
+            self._stopCameraStream();
+            self.cameraModal.activeTileId = '';
+            self.cameraModal.error = null;
+            self.cameraModal.isReady = false;
+            self.cameraModal.isCapturing = false;
+          });
+
+          if (navigator.mediaDevices.enumerateDevices) {
+            navigator.mediaDevices.enumerateDevices().then(function (devices) {
+              var cams = devices.filter(function (d) { return d.kind === 'videoinput'; });
+              self.cameraModal.canSwitch = cams.length > 1;
+            }).catch(function () { /* ignore — we'll just hide the switch button */ });
+          }
         }
 
         var draft = window.AddCaseState && window.AddCaseState.photographs;
@@ -97,23 +133,39 @@
 
       _hydrate: function (d) {
         this.dateOfPhotos = d.dateOfPhotos || '';
-        var hadFilled = false;
         var self = this;
+        var caseId = this._getCaseId();
+        var pendingRestores = [];
+
         PHOTO_TILE_ORDER.forEach(function (id) {
-          if (d.tiles && d.tiles[id] && d.tiles[id].filled) {
-            hadFilled = true;
-          }
-          // TODO: replace with presigned S3 upload; persist S3 keys in draft state.
-          // When swapped to S3, hydration will restore actual image previews from S3 URLs.
           self.tiles[id].filled = false;
           self.tiles[id].originalFile = null;
           self.tiles[id].croppedBlob = null;
           self.tiles[id].previewUrl = null;
           self.tiles[id].cropParams = (d.tiles && d.tiles[id]) ? (d.tiles[id].cropParams || null) : null;
+
+          if (d.tiles && d.tiles[id] && d.tiles[id].filled && window.CaseImageStore) {
+            pendingRestores.push(
+              window.CaseImageStore.get(caseId, 'photographs', id).then(function (blob) {
+                if (!blob) return { id: id, ok: false };
+                self.tiles[id].filled = true;
+                self.tiles[id].originalFile = blob;
+                self.tiles[id].croppedBlob = null;
+                self.tiles[id].previewUrl = URL.createObjectURL(blob);
+                return { id: id, ok: true };
+              }).catch(function () { return { id: id, ok: false }; })
+            );
+          } else if (d.tiles && d.tiles[id] && d.tiles[id].filled) {
+            // No CaseImageStore loaded — flag the gap so the banner shows.
+            pendingRestores.push(Promise.resolve({ id: id, ok: false }));
+          }
         });
-        if (hadFilled) {
-          this.showReuploadAlert = true;
-        }
+
+        // TODO: when S3 lands, replace IDB lookup with presigned-URL fetch (see CaseImageStore notes).
+        Promise.all(pendingRestores).then(function (results) {
+          var anyMissing = results.some(function (r) { return !r.ok; });
+          if (anyMissing) self.showReuploadAlert = true;
+        });
       },
 
       // ── State sync ──────────────────────────────────────────────────────────
@@ -160,6 +212,9 @@
           this.tiles[tileId].cropParams = null;
           this.tiles[tileId].isDragOver = false;
           this.syncToState();
+          // Fire-and-forget: persist binary so the preview survives a refresh.
+          // TODO: replace with presigned S3 PUT — same call site, same semantics.
+          this._persistTile(tileId, file);
           return true;
         } catch (err) {
           this.bulkError = 'Failed to process image. Please try another file.';
@@ -167,6 +222,28 @@
           setTimeout(function () { self.bulkError = null; }, 6000);
           return false;
         }
+      },
+
+      _persistTile: function (tileId, blob) {
+        if (!window.CaseImageStore) return;
+        window.CaseImageStore.put(this._getCaseId(), 'photographs', tileId, blob)
+          .catch(function (e) { console.warn('CaseImageStore.put failed', tileId, e); });
+      },
+
+      _forgetTile: function (tileId) {
+        if (!window.CaseImageStore) return;
+        window.CaseImageStore.remove(this._getCaseId(), 'photographs', tileId)
+          .catch(function (e) { console.warn('CaseImageStore.remove failed', tileId, e); });
+      },
+
+      _getCaseId: function () {
+        if (window.AddCaseSave && typeof window.AddCaseSave.currentCaseId === 'function') {
+          var id = window.AddCaseSave.currentCaseId();
+          if (id) return String(id);
+        }
+        if (window.CASE_ID) return String(window.CASE_ID);
+        if (window.AddCaseState && window.AddCaseState.caseId) return String(window.AddCaseState.caseId);
+        return 'new';
       },
 
       // ── Tile click ──────────────────────────────────────────────────────────
@@ -233,6 +310,7 @@
         this.tiles[tileId].previewUrl = null;
         this.tiles[tileId].cropParams = null;
         this.syncToState();
+        this._forgetTile(tileId);
       },
 
       cropTile: function () {
@@ -258,6 +336,7 @@
                 self.tiles[tileId].previewUrl = URL.createObjectURL(croppedBlob);
                 self.tiles[tileId].cropParams = cropParams;
                 self.syncToState();
+                self._persistTile(tileId, croppedBlob);
               },
               onCancel: function () {
                 URL.revokeObjectURL(preview.url);
@@ -344,6 +423,12 @@
           this.tiles[sourceId].cropParams   = null;
         }
         this.syncToState();
+
+        // Re-write IDB so blobs follow their new tile slots after the swap/move.
+        var newSrcBlob = this.tiles[sourceId].croppedBlob || this.tiles[sourceId].originalFile;
+        var newTgtBlob = this.tiles[targetId].croppedBlob || this.tiles[targetId].originalFile;
+        if (newSrcBlob) { this._persistTile(sourceId, newSrcBlob); } else { this._forgetTile(sourceId); }
+        if (newTgtBlob) { this._persistTile(targetId, newTgtBlob); } else { this._forgetTile(targetId); }
       },
 
       // ── Bulk upload ─────────────────────────────────────────────────────────
@@ -395,6 +480,102 @@
         this.validateField('dateOfPhotos');
         this.validateField('tiles');
         return !this.errors.dateOfPhotos && !this.errors.tiles;
+      },
+
+      // ── Camera capture ──────────────────────────────────────────────────────
+
+      onTileCameraClick: function (tileId) {
+        if (!this.cameraSupported) {
+          this._openFilePicker(tileId);
+          return;
+        }
+        this.cameraModal.activeTileId = tileId;
+        this.cameraModal.error = null;
+        this.cameraModal.isReady = false;
+        this.cameraModal.isCapturing = false;
+        // Stream starts on shown.bs.modal so the <video> element is in the DOM.
+        if (this._cameraModalInstance) this._cameraModalInstance.show();
+      },
+
+      _startCamera: async function () {
+        var self = this;
+        this._stopCameraStream();
+        this.cameraModal.isReady = false;
+        this.cameraModal.error = null;
+        try {
+          this._cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: this.cameraModal.facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+            audio: false,
+          });
+          var video = this.$refs.cameraVideo;
+          if (!video) {
+            this._stopCameraStream();
+            this.cameraModal.error = 'Camera UI not ready. Close and try again.';
+            return;
+          }
+          video.srcObject = this._cameraStream;
+          video.onloadedmetadata = function () { self.cameraModal.isReady = true; };
+        } catch (err) {
+          this._stopCameraStream();
+          if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
+            this.cameraModal.error = 'Camera access blocked. Allow it in browser settings or use the file picker instead.';
+          } else if (err && err.name === 'NotFoundError') {
+            this.cameraModal.error = 'No camera detected on this device.';
+          } else {
+            this.cameraModal.error = 'Could not start camera: ' + (err && err.message ? err.message : 'unknown error');
+          }
+        }
+      },
+
+      switchCamera: function () {
+        this.cameraModal.facingMode = (this.cameraModal.facingMode === 'user') ? 'environment' : 'user';
+        this._startCamera();
+      },
+
+      capturePhoto: async function () {
+        if (!this.cameraModal.isReady || this.cameraModal.isCapturing) return;
+        var tileId = this.cameraModal.activeTileId;
+        if (!tileId) return;
+
+        this.cameraModal.isCapturing = true;
+        try {
+          var video = this.$refs.cameraVideo;
+          var canvas = document.createElement('canvas');
+          canvas.width  = video.videoWidth  || 1280;
+          canvas.height = video.videoHeight || 720;
+          var ctx = canvas.getContext('2d');
+          // Front-cam preview is mirrored via CSS for natural feedback;
+          // un-mirror at capture so the saved frame matches reality.
+          // Rear-cam preview is not mirrored, so leave the frame as-is.
+          if (this.cameraModal.facingMode === 'user') {
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+          }
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          var self = this;
+          var blob = await new Promise(function (resolve) {
+            canvas.toBlob(function (b) { resolve(b); }, 'image/jpeg', 0.92);
+          });
+          if (!blob) {
+            this.cameraModal.error = 'Capture failed. Try again.';
+            return;
+          }
+          var file = new File([blob], 'camera-' + tileId + '-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+          if (this._cameraModalInstance) this._cameraModalInstance.hide();
+          await self._processFile(tileId, file);
+        } finally {
+          this.cameraModal.isCapturing = false;
+        }
+      },
+
+      _stopCameraStream: function () {
+        if (this._cameraStream) {
+          this._cameraStream.getTracks().forEach(function (t) { t.stop(); });
+          this._cameraStream = null;
+        }
+        var video = this.$refs && this.$refs.cameraVideo;
+        if (video) { video.srcObject = null; }
       },
 
     };

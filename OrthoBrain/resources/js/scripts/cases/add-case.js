@@ -57,6 +57,7 @@
     if (caseId !== 'new') return Promise.resolve();
     if (!window.CaseApi) return Promise.resolve();
 
+    var oldCaseId = caseId;
     return window.CaseApi.createShell().then(function (res) {
       caseId = String(res.id);
       draftKey = 'addCaseDraft:' + caseId;
@@ -69,6 +70,12 @@
       if (badge && badgeNum) {
         badgeNum.textContent = caseId;
         badge.style.display = '';
+      }
+
+      // Migrate any IDB-stored images keyed under the placeholder 'new' to the real ID.
+      if (window.CaseImageStore && oldCaseId !== caseId) {
+        window.CaseImageStore.rekey(oldCaseId, caseId)
+          .catch(function (e) { console.warn('CaseImageStore.rekey failed', e); });
       }
     });
   }

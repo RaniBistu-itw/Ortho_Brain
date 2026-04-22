@@ -477,6 +477,47 @@
 .media-tile__file-input {
   display: none !important;
 }
+.media-tile__camera-btn {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid rgba(89, 192, 212, 0.45);
+  background: #fff;
+  color: #59c0d4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  opacity: 0.85;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+.media-tile__camera-btn:hover, .media-tile__camera-btn:focus {
+  background: #59c0d4;
+  color: #fff;
+  opacity: 1;
+  outline: none;
+  transform: scale(1.05);
+}
+.media-tile__camera-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.photo-camera__video {
+  display: block;
+  max-height: 60vh;
+  background: #000;
+  -o-object-fit: contain;
+     object-fit: contain;
+}
+.photo-camera__video--mirrored {
+  transform: scaleX(-1);
+}
 
 .media-grid {
   display: grid;
