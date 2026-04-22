@@ -14,7 +14,7 @@
             @include('admin._partials.view_field', ['label' => 'Status', 'value' => $zipcode->status === 'ACTIVE' ? 'Active' : 'Inactive', 'required' => true])
         </div>
         <div class="d-flex mt-2">
-            <a href="{{ route('admin.zipcodes.edit', $zipcode) }}" class="btn btn-primary me-1">Edit</a>
+            <a href="{{ route('admin.zipcodes.index', ['edit' => $zipcode->id]) }}" class="btn btn-primary me-1">Edit</a>
             <a href="{{ route('admin.zipcodes.index') }}" class="btn btn-outline-secondary">Back</a>
         </div>
     </div>

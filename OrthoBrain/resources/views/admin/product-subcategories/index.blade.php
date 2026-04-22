@@ -4,6 +4,19 @@
 
 @push('styles')
 <style>
+    /* ── KPI strip ─────────────────────────────────────────────────── */
+    .psc-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+    @media (max-width: 767.98px) { .psc-kpis { grid-template-columns: 1fr; } }
+    .psc-kpi { display: flex; align-items: center; gap: .9rem; padding: 1rem 1.1rem; border-radius: .6rem;
+               background: #fff; box-shadow: 0 2px 8px rgba(34, 41, 47, .05); border: 1px solid rgba(34, 41, 47, .05); }
+    .psc-kpi__icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; }
+    .psc-kpi__icon svg { width: 20px; height: 20px; }
+    .psc-kpi__icon--total    { background: rgba(var(--bs-primary-rgb), .12); color: var(--bs-primary); }
+    .psc-kpi__icon--active   { background: rgba(var(--bs-success-rgb), .12); color: var(--bs-success); }
+    .psc-kpi__icon--inactive { background: rgba(var(--bs-danger-rgb), .12);  color: var(--bs-danger); }
+    .psc-kpi__label { font-size: .78rem; color: #6e6b7b; text-transform: uppercase; letter-spacing: .04em; }
+    .psc-kpi__value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; color: #5e5873; }
+
     /* ── Product Sub Categories — drawer + table polish ───────────────── */
     .psc-card { border: 1px solid rgba(34, 41, 47, .05); box-shadow: 0 2px 10px rgba(34, 41, 47, .05); }
     .psc-toolbar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid rgba(34, 41, 47, .06); }
@@ -44,6 +57,32 @@
 
 @section('content')
 <section id="subcategories-list">
+
+    {{-- ── KPI strip ───────────────────────────────────────────── --}}
+    <div class="psc-kpis">
+        <div class="psc-kpi">
+            <div class="psc-kpi__icon psc-kpi__icon--total"><i data-feather="layers"></i></div>
+            <div>
+                <div class="psc-kpi__label">Total</div>
+                <div class="psc-kpi__value" data-stat="total">{{ $stats['total'] }}</div>
+            </div>
+        </div>
+        <div class="psc-kpi">
+            <div class="psc-kpi__icon psc-kpi__icon--active"><i data-feather="check-circle"></i></div>
+            <div>
+                <div class="psc-kpi__label">Active</div>
+                <div class="psc-kpi__value" data-stat="active">{{ $stats['active'] }}</div>
+            </div>
+        </div>
+        <div class="psc-kpi">
+            <div class="psc-kpi__icon psc-kpi__icon--inactive"><i data-feather="slash"></i></div>
+            <div>
+                <div class="psc-kpi__label">Inactive</div>
+                <div class="psc-kpi__value" data-stat="inactive">{{ $stats['inactive'] }}</div>
+            </div>
+        </div>
+    </div>
+
     <div class="card psc-card">
 
         {{-- ── Toolbar: filter / search / add ───────────────────── --}}
@@ -223,6 +262,16 @@
     };
 
     const $tbody = $('#pscTbody');
+
+    function bumpStat(key, delta) {
+        const el = document.querySelector(`[data-stat="${key}"]`);
+        if (!el) return;
+        el.textContent = (parseInt(el.textContent, 10) || 0) + delta;
+    }
+    function incrementStatsFor(status) {
+        bumpStat('total', 1);
+        bumpStat(status === 'ACTIVE' ? 'active' : 'inactive', 1);
+    }
 
     function escapeHtml(s) {
         return String(s ?? '').replace(/[&<>"']/g, c => ({
@@ -417,8 +466,18 @@
         $.ajax({ url, method: 'POST', data, dataType: 'json' })
             .done((res) => {
                 if (!res || !res.ok) return;
-                if (isEdit) updateRow(res.subcategory);
-                else        insertRow(res.subcategory);
+                if (isEdit) {
+                    const $prevStatus = $(`#pscTbody tr[data-id="${res.subcategory.id}"] .psc-status`);
+                    const prev = $prevStatus.data('status');
+                    if (prev && prev !== res.subcategory.status) {
+                        bumpStat(prev === 'ACTIVE' ? 'active' : 'inactive', -1);
+                        bumpStat(res.subcategory.status === 'ACTIVE' ? 'active' : 'inactive', 1);
+                    }
+                    updateRow(res.subcategory);
+                } else {
+                    insertRow(res.subcategory);
+                    incrementStatsFor(res.subcategory.status);
+                }
                 toast('success', res.message);
                 drawer.hide();
             })

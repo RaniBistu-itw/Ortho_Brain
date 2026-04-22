@@ -36,46 +36,24 @@ class CityController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $stats = [
+            'total'    => City::count(),
+            'active'   => City::where('status', 'ACTIVE')->count(),
+            'inactive' => City::where('status', 'INACTIVE')->count(),
+        ];
+
         return view('admin.cities.index', [
             'cities'    => $cities,
             'countries' => Country::where('status', 'ACTIVE')->orderBy('name')->get(),
             'states'    => State::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name', 'country_id']),
+            'stats'     => $stats,
         ]);
-    }
-
-    public function create()
-    {
-        return view('admin.cities.create', [
-            'city'      => new City(['status' => 'ACTIVE']),
-            'countries' => Country::where('status', 'ACTIVE')->orderBy('name')->get(),
-        ]);
-    }
-
-    public function store(CityRequest $request)
-    {
-        City::create($request->safe()->only(['state_id', 'name', 'status']));
-        return redirect()->route('admin.cities.index')->with('success', 'City created successfully.');
     }
 
     public function show(City $city)
     {
         $city->loadMissing('state.country')->loadCount('zipcodes');
         return view('admin.cities.show', compact('city'));
-    }
-
-    public function edit(City $city)
-    {
-        $city->loadMissing('state.country');
-        return view('admin.cities.edit', [
-            'city'      => $city,
-            'countries' => Country::where('status', 'ACTIVE')->orderBy('name')->get(),
-        ]);
-    }
-
-    public function update(CityRequest $request, City $city)
-    {
-        $city->update($request->safe()->only(['state_id', 'name', 'status']));
-        return redirect()->route('admin.cities.index')->with('success', 'City updated successfully.');
     }
 
     public function destroy(City $city)
@@ -85,5 +63,48 @@ class CityController extends Controller
         }
         $city->delete();
         return redirect()->route('admin.cities.index')->with('success', 'City deleted.');
+    }
+
+    // ─── AJAX endpoints for drawer create / edit ────────────────────────
+
+    public function ajaxStore(CityRequest $request)
+    {
+        $city = City::create($request->safe()->only(['state_id', 'name', 'status']));
+        $city->loadMissing('state.country')->loadCount('zipcodes');
+
+        return response()->json([
+            'ok'      => true,
+            'city'    => $this->presentRow($city),
+            'message' => 'City created.',
+        ]);
+    }
+
+    public function ajaxUpdate(CityRequest $request, City $city)
+    {
+        $city->update($request->safe()->only(['state_id', 'name', 'status']));
+        $city->loadMissing('state.country')->loadCount('zipcodes');
+
+        return response()->json([
+            'ok'      => true,
+            'city'    => $this->presentRow($city),
+            'message' => 'City updated.',
+        ]);
+    }
+
+    private function presentRow(City $c): array
+    {
+        return [
+            'id'             => $c->id,
+            'state_id'       => $c->state_id,
+            'state_name'     => $c->state?->name ?? '—',
+            'country_id'     => $c->state?->country_id,
+            'country_name'   => $c->state?->country?->name ?? '—',
+            'name'           => $c->name,
+            'status'         => $c->status,
+            'zipcodes_count' => (int) ($c->zipcodes_count ?? 0),
+            'update_url'     => route('admin.cities.ajax.update', $c),
+            'destroy_url'    => route('admin.cities.destroy', $c),
+            'show_url'       => route('admin.cities.show', $c),
+        ];
     }
 }

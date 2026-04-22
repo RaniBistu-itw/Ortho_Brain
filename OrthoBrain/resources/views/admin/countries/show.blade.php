@@ -13,7 +13,7 @@
         </div>
 
         <div class="d-flex mt-2">
-            <a href="{{ route('admin.countries.edit', $country) }}" class="btn btn-primary me-1">Edit</a>
+            <a href="{{ route('admin.countries.index', ['edit' => $country->id]) }}" class="btn btn-primary me-1">Edit</a>
             <a href="{{ route('admin.countries.index') }}" class="btn btn-outline-secondary">Back</a>
         </div>
     </div>

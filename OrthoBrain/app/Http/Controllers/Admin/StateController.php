@@ -23,44 +23,23 @@ class StateController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $stats = [
+            'total'    => State::count(),
+            'active'   => State::where('status', 'ACTIVE')->count(),
+            'inactive' => State::where('status', 'INACTIVE')->count(),
+        ];
+
         return view('admin.states.index', [
             'states'    => $states,
             'countries' => Country::where('status', 'ACTIVE')->orderBy('name')->get(),
+            'stats'     => $stats,
         ]);
-    }
-
-    public function create()
-    {
-        return view('admin.states.create', [
-            'state'     => new State(['status' => 'ACTIVE']),
-            'countries' => Country::where('status', 'ACTIVE')->orderBy('name')->get(),
-        ]);
-    }
-
-    public function store(StateRequest $request)
-    {
-        State::create($request->validated());
-        return redirect()->route('admin.states.index')->with('success', 'State created successfully.');
     }
 
     public function show(State $state)
     {
         $state->loadMissing('country')->loadCount('cities');
         return view('admin.states.show', compact('state'));
-    }
-
-    public function edit(State $state)
-    {
-        return view('admin.states.edit', [
-            'state'     => $state,
-            'countries' => Country::where('status', 'ACTIVE')->orderBy('name')->get(),
-        ]);
-    }
-
-    public function update(StateRequest $request, State $state)
-    {
-        $state->update($request->validated());
-        return redirect()->route('admin.states.index')->with('success', 'State updated successfully.');
     }
 
     public function destroy(State $state)
@@ -70,5 +49,47 @@ class StateController extends Controller
         }
         $state->delete();
         return redirect()->route('admin.states.index')->with('success', 'State deleted.');
+    }
+
+    // ─── AJAX endpoints for drawer create / edit ────────────────────────
+
+    public function ajaxStore(StateRequest $request)
+    {
+        $state = State::create($request->validated());
+        $state->loadMissing('country')->loadCount('cities');
+
+        return response()->json([
+            'ok'      => true,
+            'state'   => $this->presentRow($state),
+            'message' => 'State created.',
+        ]);
+    }
+
+    public function ajaxUpdate(StateRequest $request, State $state)
+    {
+        $state->update($request->validated());
+        $state->loadMissing('country')->loadCount('cities');
+
+        return response()->json([
+            'ok'      => true,
+            'state'   => $this->presentRow($state),
+            'message' => 'State updated.',
+        ]);
+    }
+
+    private function presentRow(State $s): array
+    {
+        return [
+            'id'           => $s->id,
+            'country_id'   => $s->country_id,
+            'country_name' => $s->country?->name ?? '—',
+            'name'         => $s->name,
+            'state_code'   => $s->state_code,
+            'status'       => $s->status,
+            'cities_count' => (int) ($s->cities_count ?? 0),
+            'update_url'   => route('admin.states.ajax.update', $s),
+            'destroy_url'  => route('admin.states.destroy', $s),
+            'show_url'     => route('admin.states.show', $s),
+        ];
     }
 }

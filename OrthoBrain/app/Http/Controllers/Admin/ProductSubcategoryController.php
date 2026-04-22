@@ -22,6 +22,11 @@ class ProductSubcategoryController extends Controller
         return view('admin.product-subcategories.index', [
             'subcategories' => $subcategories,
             'categories'    => ProductCategory::where('status', 'ACTIVE')->orderBy('name')->get(),
+            'stats'         => [
+                'total'    => ProductSubcategory::count(),
+                'active'   => ProductSubcategory::where('status', true)->count(),
+                'inactive' => ProductSubcategory::where('status', false)->count(),
+            ],
         ]);
     }
 
