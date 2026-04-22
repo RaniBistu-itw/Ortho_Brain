@@ -4,7 +4,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <title>Forgot Password - OrthoBrain</title>
+        <title>Reset Password - OrthoBrain</title>
 
         {{-- Vuexy theme stylesheets --}}
         <link rel="stylesheet" href="{{ asset('vuexy/vendors/css/vendors.min.css') }}" />
@@ -17,8 +17,7 @@
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
             html, body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
             body {
-                height: 100vh;
-                overflow: hidden;
+                min-height: 100vh;
                 background: #f8f8f8;
                 color: #6e6b7b;
                 display: flex;
@@ -26,6 +25,7 @@
                 align-items: center;
                 justify-content: center;
                 margin: 0;
+                padding: 24px 0;
             }
             .ortho-auth-wrap { width: 100%; max-width: 440px; margin: 0 auto; padding: 0 1rem; }
             .ortho-card {
@@ -73,6 +73,10 @@
                 background: transparent;
             }
             .ortho-input-group input::placeholder { color: #b9b9c3; }
+            .ortho-input-group input[readonly] { background: #f8f8f8; color: #b9b9c3; }
+            .ortho-input-group .toggle-pw {
+                background: transparent; border: 0; padding: 0 0.75rem; color: #b9b9c3; cursor: pointer;
+            }
             .ortho-btn-primary {
                 width: 100%;
                 background: #5bc0de;
@@ -87,29 +91,10 @@
                 transition: background .2s, border-color .2s;
             }
             .ortho-btn-primary:hover { background: #46b8da; border-color: #46b8da; }
-            .ortho-alert-success {
-                background: #e2f8eb;
-                border: 1px solid #28c76f;
-                color: #28c76f;
-                padding: 0.5rem 1rem;
-                border-radius: 0.358rem;
-                margin-bottom: 0.75rem;
-                font-size: 0.85rem;
-                text-align: left;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-            .ortho-back-link {
-                color: #5bc0de;
-                font-weight: 500;
-                text-decoration: none;
-                display: inline-flex;
-                align-items: center;
-                gap: 0.25rem;
-            }
+            .ortho-back-link { color: #5bc0de; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem; }
             .ortho-back-link:hover { color: #46b8da; }
             .ortho-error-text { color: #ea5455; font-size: 0.78rem; margin: 0.125rem 0 0; }
+            .ortho-pw-hint { font-size: 0.72rem; color: #b9b9c3; margin: 0.25rem 0 0; line-height: 1.4; }
         </style>
     </head>
     <body>
@@ -131,34 +116,50 @@
 
                 {{-- Heading --}}
                 <div class="text-start mb-3">
-                    <h1 class="ortho-heading">Forgot Password? 🔒</h1>
-                    <p class="ortho-sub">Enter your email and we'll send you a link to reset your password.</p>
+                    <h1 class="ortho-heading">Reset Password 🔐</h1>
+                    <p class="ortho-sub">Choose a new password for your account.</p>
                 </div>
 
-                @if (session('status'))
-                    <div class="ortho-alert-success">
-                        <i class="bi bi-check-circle-fill"></i>
-                        <span>{{ session('status') }}</span>
-                    </div>
-                @endif
-
                 {{-- Form --}}
-                <form action="{{ url('/forgot-password') }}" method="POST" class="text-start" novalidate>
+                <form action="{{ route('password.update') }}" method="POST" class="text-start" novalidate>
                     @csrf
+                    <input type="hidden" name="token" value="{{ $token }}">
 
                     <div class="mb-3">
                         <label for="email" class="ortho-label">Email</label>
                         <div class="ortho-input-group @error('email') is-invalid @enderror">
                             <span class="input-icon"><i class="bi bi-envelope"></i></span>
-                            <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus placeholder="Enter your email">
+                            <input id="email" name="email" type="email" value="{{ $email }}" readonly>
                         </div>
                         @error('email')
                             <p class="ortho-error-text">{{ $message }}</p>
                         @enderror
                     </div>
 
+                    <div class="mb-3">
+                        <label for="password" class="ortho-label">New Password</label>
+                        <div class="ortho-input-group @error('password') is-invalid @enderror">
+                            <span class="input-icon"><i class="bi bi-lock"></i></span>
+                            <input id="password" name="password" type="password" required placeholder="Enter new password" autofocus>
+                            <button type="button" class="toggle-pw" onclick="togglePw('password', this)"><i class="bi bi-eye"></i></button>
+                        </div>
+                        <p class="ortho-pw-hint">Min 8 characters with uppercase, lowercase, number &amp; special character.</p>
+                        @error('password')
+                            <p class="ortho-error-text">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password_confirmation" class="ortho-label">Confirm Password</label>
+                        <div class="ortho-input-group">
+                            <span class="input-icon"><i class="bi bi-lock"></i></span>
+                            <input id="password_confirmation" name="password_confirmation" type="password" required placeholder="Re-enter new password">
+                            <button type="button" class="toggle-pw" onclick="togglePw('password_confirmation', this)"><i class="bi bi-eye"></i></button>
+                        </div>
+                    </div>
+
                     <div class="pt-1">
-                        <button type="submit" class="ortho-btn-primary">Send Reset Link</button>
+                        <button type="submit" class="ortho-btn-primary">Set New Password</button>
                     </div>
                 </form>
 
@@ -171,5 +172,14 @@
                 </div>
             </div>
         </div>
+
+        <script>
+            function togglePw(id, btn) {
+                const el = document.getElementById(id);
+                const icon = btn.querySelector('i');
+                if (el.type === 'password') { el.type = 'text'; icon.className = 'bi bi-eye-slash'; }
+                else                         { el.type = 'password'; icon.className = 'bi bi-eye'; }
+            }
+        </script>
     </body>
 </html>

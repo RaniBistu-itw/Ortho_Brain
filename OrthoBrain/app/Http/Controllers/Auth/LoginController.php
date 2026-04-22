@@ -23,6 +23,24 @@ class LoginController extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $user = Auth::user();
 
+            // Doctors must be APPROVED before they can log in.
+            if ($user->role === 'DOCTOR') {
+                $status = $user->doctor?->approval_status;
+                if ($status !== 'APPROVED') {
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+
+                    $msg = match ($status) {
+                        'PENDING'   => 'Your account is pending admin approval. You\'ll receive an email once it\'s approved.',
+                        'REJECTED'  => 'Your registration was not approved. Please contact support for details.',
+                        'SUSPENDED' => 'Your account has been suspended. Please contact support.',
+                        default     => 'Your account is not yet active. Please contact support.',
+                    };
+                    return back()->withErrors(['email' => $msg])->onlyInput('email');
+                }
+            }
+
             // Update last_login_at (ERD field)
             $user->forceFill(['last_login_at' => now()])->save();
 

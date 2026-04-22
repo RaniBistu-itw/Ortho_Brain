@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\ScannerController;
 use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\ZipcodeController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CasesController;
 use App\Http\Controllers\DashboardController as DoctorDashboardController;
@@ -33,10 +34,10 @@ Route::post('/register',        [\App\Http\Controllers\Auth\RegisterController::
 
 Route::redirect('/admin/login', '/login');
 
-Route::match(['get', 'post'], '/forgot-password', function (\Illuminate\Http\Request $request) {
-    $status = $request->isMethod('post');
-    return view('forgot-password', ['status' => $status]);
-});
+Route::get('/forgot-password',  [ForgotPasswordController::class, 'showForm'])->name('password.request');
+Route::post('/forgot-password', [ForgotPasswordController::class, 'send'])->middleware('throttle:5,1');
+Route::get('/reset-password/{token}',  [ForgotPasswordController::class, 'showReset'])->name('password.reset');
+Route::post('/reset-password',         [ForgotPasswordController::class, 'reset'])->name('password.update');
 
 // Public practice-search (used by the register page autocomplete on Practice Name)
 Route::get('/practice-search', [PracticeController::class, 'search'])->name('practice.search');
