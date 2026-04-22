@@ -22,4 +22,9 @@ class Admin extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function avatarUrl(): ?string
+    {
+        return $this->profile_photo_s3_key ? '/storage/' . ltrim($this->profile_photo_s3_key, '/') : null;
+    }
 }
