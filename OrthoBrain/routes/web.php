@@ -92,6 +92,15 @@ Route::middleware(['web', 'admin'])
         Route::delete('/profile/photo',   [AdminProfileController::class, 'deleteAvatar'])->name('profile.photo.delete');
 
         Route::resource('products', ProductController::class);
+
+        // Product Categories — AJAX endpoints for inline / drawer / bulk flows
+        // (must be registered BEFORE the resource so `/ajax` is not captured by {product_category})
+        Route::post('product-categories/ajax', [ProductCategoryController::class, 'ajaxStore'])
+            ->name('product-categories.ajax.store');
+        Route::post('product-categories/ajax/bulk', [ProductCategoryController::class, 'ajaxBulk'])
+            ->name('product-categories.ajax.bulk');
+        Route::put('product-categories/ajax/{productCategory}', [ProductCategoryController::class, 'ajaxUpdate'])
+            ->name('product-categories.ajax.update');
         Route::resource('product-categories', ProductCategoryController::class);
         Route::resource('product-subcategories', ProductSubcategoryController::class)
             ->parameters(['product-subcategories' => 'product_subcategory']);
