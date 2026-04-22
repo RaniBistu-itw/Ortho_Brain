@@ -10,7 +10,7 @@
              : ($isEdit ? 'Edit Address'
              :            'Add ' . ucfirst($type) . ' Address');
 
-    $practice = $doctor?->practice_name ?? '';
+    $practice = $doctor?->practice?->name ?? '';
     $docName  = trim(($doctor?->first_name ?? '') . ' ' . ($doctor?->last_name ?? ''));
 
     // Pre-fill values when editing / viewing an existing address.
