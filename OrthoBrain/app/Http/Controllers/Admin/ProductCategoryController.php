@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ProductCategoryRequest;
 use App\Models\ProductCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class ProductCategoryController extends Controller
 {
@@ -18,7 +20,13 @@ class ProductCategoryController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.product-categories.index', compact('categories'));
+        $stats = [
+            'total'    => ProductCategory::count(),
+            'active'   => ProductCategory::where('status', 'ACTIVE')->count(),
+            'inactive' => ProductCategory::where('status', 'INACTIVE')->count(),
+        ];
+
+        return view('admin.product-categories.index', compact('categories', 'stats'));
     }
 
     public function create()
@@ -56,5 +64,81 @@ class ProductCategoryController extends Controller
         }
         $productCategory->delete();
         return redirect()->route('admin.product-categories.index')->with('success', 'Category deleted.');
+    }
+
+    // ─── AJAX endpoints for inline / drawer / bulk flows ────────────────
+
+    public function ajaxStore(ProductCategoryRequest $request)
+    {
+        $category = ProductCategory::create($request->validated());
+        return response()->json([
+            'ok'       => true,
+            'category' => $this->presentRow($category->loadCount(['subcategories', 'products'])),
+            'message'  => 'Category created.',
+        ]);
+    }
+
+    public function ajaxUpdate(ProductCategoryRequest $request, ProductCategory $productCategory)
+    {
+        $productCategory->update($request->validated());
+        $productCategory->loadCount(['subcategories', 'products']);
+        return response()->json([
+            'ok'       => true,
+            'category' => $this->presentRow($productCategory),
+            'message'  => 'Category updated.',
+        ]);
+    }
+
+    public function ajaxBulk(Request $request)
+    {
+        $payload = $request->input('categories', []);
+
+        $validator = Validator::make(['categories' => $payload], [
+            'categories'          => ['required', 'array', 'min:1', 'max:50'],
+            'categories.*.name'   => ['required', 'string', 'max:255'],
+            'categories.*.status' => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'ok'     => false,
+                'errors' => $validator->errors()->messages(),
+            ], 422);
+        }
+
+        $created = DB::transaction(function () use ($payload) {
+            $rows = [];
+            foreach ($payload as $row) {
+                $c = ProductCategory::create([
+                    'name'   => $row['name'],
+                    'status' => $row['status'],
+                ]);
+                $c->loadCount(['subcategories', 'products']);
+                $rows[] = $c;
+            }
+            return $rows;
+        });
+
+        return response()->json([
+            'ok'         => true,
+            'categories' => array_map(fn ($c) => $this->presentRow($c), $created),
+            'message'    => count($created) === 1
+                ? 'Category created.'
+                : count($created) . ' categories created.',
+        ]);
+    }
+
+    private function presentRow(ProductCategory $c): array
+    {
+        return [
+            'id'                  => $c->id,
+            'name'                => $c->name,
+            'status'              => $c->status,
+            'subcategories_count' => (int) ($c->subcategories_count ?? 0),
+            'products_count'      => (int) ($c->products_count ?? 0),
+            'edit_url'            => route('admin.product-categories.ajax.update', $c),
+            'destroy_url'         => route('admin.product-categories.destroy', $c),
+            'show_url'            => route('admin.product-categories.show', $c),
+        ];
     }
 }

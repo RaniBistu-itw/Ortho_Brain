@@ -93,10 +93,34 @@ Route::middleware(['web', 'admin'])
         Route::delete('/profile/photo',   [AdminProfileController::class, 'deleteAvatar'])->name('profile.photo.delete');
 
         Route::resource('products', ProductController::class);
+
+        // Product Categories — AJAX endpoints for inline / drawer / bulk flows
+        // (must be registered BEFORE the resource so `/ajax` is not captured by {product_category})
+        Route::post('product-categories/ajax', [ProductCategoryController::class, 'ajaxStore'])
+            ->name('product-categories.ajax.store');
+        Route::post('product-categories/ajax/bulk', [ProductCategoryController::class, 'ajaxBulk'])
+            ->name('product-categories.ajax.bulk');
+        Route::put('product-categories/ajax/{productCategory}', [ProductCategoryController::class, 'ajaxUpdate'])
+            ->name('product-categories.ajax.update');
         Route::resource('product-categories', ProductCategoryController::class);
+
+        // Product Subcategories — AJAX endpoints for drawer create / edit flow
+        // (must be registered BEFORE the resource so `/ajax` is not captured by {product_subcategory})
+        Route::post('product-subcategories/ajax', [ProductSubcategoryController::class, 'ajaxStore'])
+            ->name('product-subcategories.ajax.store');
+        Route::put('product-subcategories/ajax/{product_subcategory}', [ProductSubcategoryController::class, 'ajaxUpdate'])
+            ->name('product-subcategories.ajax.update');
         Route::resource('product-subcategories', ProductSubcategoryController::class)
+            ->only(['index', 'show', 'destroy'])
             ->parameters(['product-subcategories' => 'product_subcategory']);
-        Route::resource('scanners', ScannerController::class);
+        // Scanners — AJAX endpoints for drawer create / edit flow
+        // (must be registered BEFORE the resource so `/ajax` is not captured by {scanner})
+        Route::post('scanners/ajax', [ScannerController::class, 'ajaxStore'])
+            ->name('scanners.ajax.store');
+        Route::put('scanners/ajax/{scanner}', [ScannerController::class, 'ajaxUpdate'])
+            ->name('scanners.ajax.update');
+        Route::resource('scanners', ScannerController::class)
+            ->only(['index', 'show', 'destroy']);
 
         // Admin Cases — full visibility + edit (owner: Devansh)
         Route::get('/cases',                          [AdminCasesController::class, 'index'])->name('cases.index');
@@ -112,10 +136,37 @@ Route::middleware(['web', 'admin'])
         Route::post('doctors/{doctor}/suspend',    [AdminDoctorController::class, 'suspend'])->name('doctors.suspend');
         Route::post('doctors/{doctor}/reactivate', [AdminDoctorController::class, 'reactivate'])->name('doctors.reactivate');
 
-        Route::resource('countries', CountryController::class);
-        Route::resource('states',    StateController::class);
-        Route::resource('cities',    CityController::class);
-        Route::resource('zipcodes',  ZipcodeController::class);
+        // Countries — AJAX drawer endpoints (must precede resource)
+        Route::post('countries/ajax', [CountryController::class, 'ajaxStore'])
+            ->name('countries.ajax.store');
+        Route::put('countries/ajax/{country}', [CountryController::class, 'ajaxUpdate'])
+            ->name('countries.ajax.update');
+        Route::resource('countries', CountryController::class)
+            ->only(['index', 'show', 'destroy']);
+
+        // States — AJAX drawer endpoints
+        Route::post('states/ajax', [StateController::class, 'ajaxStore'])
+            ->name('states.ajax.store');
+        Route::put('states/ajax/{state}', [StateController::class, 'ajaxUpdate'])
+            ->name('states.ajax.update');
+        Route::resource('states', StateController::class)
+            ->only(['index', 'show', 'destroy']);
+
+        // Cities — AJAX drawer endpoints
+        Route::post('cities/ajax', [CityController::class, 'ajaxStore'])
+            ->name('cities.ajax.store');
+        Route::put('cities/ajax/{city}', [CityController::class, 'ajaxUpdate'])
+            ->name('cities.ajax.update');
+        Route::resource('cities', CityController::class)
+            ->only(['index', 'show', 'destroy']);
+
+        // Zipcodes — AJAX drawer endpoints
+        Route::post('zipcodes/ajax', [ZipcodeController::class, 'ajaxStore'])
+            ->name('zipcodes.ajax.store');
+        Route::put('zipcodes/ajax/{zipcode}', [ZipcodeController::class, 'ajaxUpdate'])
+            ->name('zipcodes.ajax.update');
+        Route::resource('zipcodes', ZipcodeController::class)
+            ->only(['index', 'show', 'destroy']);
 
         Route::prefix('ajax')->name('ajax.')->group(function () {
             Route::get('states',        [LookupController::class, 'statesByCountry'])->name('states');

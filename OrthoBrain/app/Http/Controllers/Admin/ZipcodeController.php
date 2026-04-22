@@ -38,26 +38,19 @@ class ZipcodeController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $stats = [
+            'total'    => Zipcode::count(),
+            'active'   => Zipcode::where('status', 'ACTIVE')->count(),
+            'inactive' => Zipcode::where('status', 'INACTIVE')->count(),
+        ];
+
         return view('admin.zipcodes.index', [
             'zipcodes'  => $zipcodes,
             'countries' => Country::where('status', 'ACTIVE')->orderBy('name')->get(),
             'states'    => State::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name', 'country_id']),
             'cities'    => City::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name', 'state_id']),
+            'stats'     => $stats,
         ]);
-    }
-
-    public function create()
-    {
-        return view('admin.zipcodes.create', [
-            'zipcode'   => new Zipcode(['status' => 'ACTIVE']),
-            'countries' => Country::where('status', 'ACTIVE')->orderBy('name')->get(),
-        ]);
-    }
-
-    public function store(ZipcodeRequest $request)
-    {
-        Zipcode::create($request->safe()->only(['city_id', 'code', 'details', 'status']));
-        return redirect()->route('admin.zipcodes.index')->with('success', 'Zip code created successfully.');
     }
 
     public function show(Zipcode $zipcode)
@@ -66,24 +59,54 @@ class ZipcodeController extends Controller
         return view('admin.zipcodes.show', compact('zipcode'));
     }
 
-    public function edit(Zipcode $zipcode)
-    {
-        $zipcode->loadMissing('city.state.country');
-        return view('admin.zipcodes.edit', [
-            'zipcode'   => $zipcode,
-            'countries' => Country::where('status', 'ACTIVE')->orderBy('name')->get(),
-        ]);
-    }
-
-    public function update(ZipcodeRequest $request, Zipcode $zipcode)
-    {
-        $zipcode->update($request->safe()->only(['city_id', 'code', 'details', 'status']));
-        return redirect()->route('admin.zipcodes.index')->with('success', 'Zip code updated successfully.');
-    }
-
     public function destroy(Zipcode $zipcode)
     {
         $zipcode->delete();
         return redirect()->route('admin.zipcodes.index')->with('success', 'Zip code deleted.');
+    }
+
+    // ─── AJAX endpoints for drawer create / edit ────────────────────────
+
+    public function ajaxStore(ZipcodeRequest $request)
+    {
+        $zipcode = Zipcode::create($request->safe()->only(['city_id', 'code', 'details', 'status']));
+        $zipcode->loadMissing('city.state.country');
+
+        return response()->json([
+            'ok'      => true,
+            'zipcode' => $this->presentRow($zipcode),
+            'message' => 'Zip code created.',
+        ]);
+    }
+
+    public function ajaxUpdate(ZipcodeRequest $request, Zipcode $zipcode)
+    {
+        $zipcode->update($request->safe()->only(['city_id', 'code', 'details', 'status']));
+        $zipcode->loadMissing('city.state.country');
+
+        return response()->json([
+            'ok'      => true,
+            'zipcode' => $this->presentRow($zipcode),
+            'message' => 'Zip code updated.',
+        ]);
+    }
+
+    private function presentRow(Zipcode $z): array
+    {
+        return [
+            'id'           => $z->id,
+            'city_id'      => $z->city_id,
+            'city_name'    => $z->city?->name ?? '—',
+            'state_id'     => $z->city?->state_id,
+            'state_name'   => $z->city?->state?->name ?? '—',
+            'country_id'   => $z->city?->state?->country_id,
+            'country_name' => $z->city?->state?->country?->name ?? '—',
+            'code'         => $z->code,
+            'details'      => (string) ($z->details ?? ''),
+            'status'       => $z->status,
+            'update_url'   => route('admin.zipcodes.ajax.update', $z),
+            'destroy_url'  => route('admin.zipcodes.destroy', $z),
+            'show_url'     => route('admin.zipcodes.show', $z),
+        ];
     }
 }

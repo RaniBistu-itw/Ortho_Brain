@@ -47,6 +47,11 @@ class ProductController extends Controller
             'products'     => $products,
             'categories'   => ProductCategory::where('status', 'ACTIVE')->orderBy('name')->get(),
             'subcategories' => ProductSubcategory::where('status', true)->orderBy('name')->get(['id', 'name', 'category_id']),
+            'stats' => [
+                'total'    => Product::count(),
+                'active'   => Product::where('status', 'ACTIVE')->count(),
+                'inactive' => Product::where('status', 'INACTIVE')->count(),
+            ],
         ]);
     }
 

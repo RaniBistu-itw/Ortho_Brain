@@ -18,18 +18,13 @@ class ScannerController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('admin.scanners.index', compact('scanners'));
-    }
+        $stats = [
+            'total'    => Scanner::count(),
+            'active'   => Scanner::where('status', 'ACTIVE')->count(),
+            'inactive' => Scanner::where('status', 'INACTIVE')->count(),
+        ];
 
-    public function create()
-    {
-        return view('admin.scanners.create', ['scanner' => new Scanner(['status' => 'ACTIVE'])]);
-    }
-
-    public function store(ScannerRequest $request)
-    {
-        Scanner::create($request->validated());
-        return redirect()->route('admin.scanners.index')->with('success', 'Scanner created successfully.');
+        return view('admin.scanners.index', compact('scanners', 'stats'));
     }
 
     public function show(Scanner $scanner)
@@ -37,20 +32,48 @@ class ScannerController extends Controller
         return view('admin.scanners.show', compact('scanner'));
     }
 
-    public function edit(Scanner $scanner)
-    {
-        return view('admin.scanners.edit', compact('scanner'));
-    }
-
-    public function update(ScannerRequest $request, Scanner $scanner)
-    {
-        $scanner->update($request->validated());
-        return redirect()->route('admin.scanners.index')->with('success', 'Scanner updated successfully.');
-    }
-
     public function destroy(Scanner $scanner)
     {
         $scanner->delete();
         return redirect()->route('admin.scanners.index')->with('success', 'Scanner deleted.');
+    }
+
+    // ─── AJAX endpoints for drawer create / edit ────────────────────────
+
+    public function ajaxStore(ScannerRequest $request)
+    {
+        $scanner = Scanner::create($request->validated());
+
+        return response()->json([
+            'ok'      => true,
+            'scanner' => $this->presentRow($scanner),
+            'message' => 'Scanner created.',
+        ]);
+    }
+
+    public function ajaxUpdate(ScannerRequest $request, Scanner $scanner)
+    {
+        $scanner->update($request->validated());
+
+        return response()->json([
+            'ok'      => true,
+            'scanner' => $this->presentRow($scanner),
+            'message' => 'Scanner updated.',
+        ]);
+    }
+
+    private function presentRow(Scanner $s): array
+    {
+        return [
+            'id'              => $s->id,
+            'name'            => $s->name,
+            'description'     => (string) ($s->description ?? ''),
+            'portal_link'     => (string) ($s->portal_link ?? ''),
+            'portal_password' => (string) ($s->portal_password ?? ''),
+            'status'          => $s->status,
+            'update_url'      => route('admin.scanners.ajax.update', $s),
+            'destroy_url'     => route('admin.scanners.destroy', $s),
+            'show_url'        => route('admin.scanners.show', $s),
+        ];
     }
 }
