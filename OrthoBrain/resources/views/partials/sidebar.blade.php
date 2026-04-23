@@ -122,4 +122,11 @@
             </li>
         </ul>
     </div>
+
+    {{-- ── Sidebar footer ────────────────────────────────────── --}}
+    <div class="ob-sb-foot">
+        <p class="ob-sb-quote">&ldquo;Every smile deserves the best care.&rdquo;</p>
+    </div>
+    {{-- ── /Sidebar footer ──────────────────────────────────── --}}
+
 </div>
