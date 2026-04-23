@@ -125,7 +125,6 @@ class RegisterController extends Controller
         // Friendly messages for the array-pathed additional_practices.* rules.
         // Laravel exposes :attribute as "additional_practices.0.phone_number" by default
         // which is unreadable; we override per-path to say "Other Practice #1".
-        $attributes = [];
         $extraMessages = [];
         foreach (($request->input('additional_practices') ?? []) as $i => $_row) {
             $label = 'Other Practice #' . ($i + 1);
@@ -211,7 +210,9 @@ class RegisterController extends Controller
                     'city_id'            => $data['city_id'],
                     'state_id'           => $data['state_id'],
                     'country_id'         => $data['country_id'],
-                    'status'             => 'ACTIVE',
+                    // Doctor-submitted practices land as INACTIVE — admin must activate
+                    // them in /admin/practices before any doctor can use them.
+                    'status'             => 'INACTIVE',
                 ]);
                 $practiceId = $newPractice->id;
             }

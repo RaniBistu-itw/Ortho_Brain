@@ -61,6 +61,7 @@
             @include('admin.doctors._partials.card-preferences', ['editSection' => $editSection])
             @include('admin.doctors._partials.card-clinical',    ['editSection' => $editSection])
             @include('admin.doctors._partials.card-ortho',       ['editSection' => $editSection])
+            @include('admin.doctors._partials.card-practice-approvals', ['doctor' => $doctor])
         </div>
         <div class="col-lg-4">
             @include('admin.doctors._partials.card-approval')

@@ -26,11 +26,12 @@ class ActivePractice
         $id = Session::get(self::SESSION_KEY);
 
         if ($id) {
-            $link = $doctor->activePractices()->wherePivot('practice_id', $id)->first();
+            // activePractices() already filters to practices.status = ACTIVE,
+            // so a session pointer at a now-deactivated practice is dropped.
+            $link = $doctor->activePractices()->where('practices.id', $id)->first();
             if ($link) {
                 return $link;
             }
-            // Stale session pointer: doctor was removed from this practice.
             Session::forget(self::SESSION_KEY);
         }
 
@@ -56,8 +57,9 @@ class ActivePractice
             return false;
         }
 
+        // Only switch to a practice that is both linked AND globally ACTIVE.
         $allowed = $doctor->activePractices()
-            ->wherePivot('practice_id', $practiceId)
+            ->where('practices.id', $practiceId)
             ->exists();
 
         if (! $allowed) {

@@ -77,7 +77,8 @@ class PracticeMembershipController extends Controller
     }
 
     /**
-     * Doctor cancels a pending request of their own.
+     * Doctor cancels a pending request of their own — only meaningful while
+     * the practice is INACTIVE (admin hasn't activated it yet).
      */
     public function cancel(int $link)
     {
@@ -87,8 +88,9 @@ class PracticeMembershipController extends Controller
         $row = DB::table('doctor_practice')->where('id', $link)->first();
         abort_unless($row && (int) $row->doctor_id === $doctor->id, 404);
 
-        if ($row->approval_status !== 'PENDING') {
-            return back()->with('error', 'Only pending requests can be cancelled.');
+        $practiceStatus = DB::table('practices')->where('id', $row->practice_id)->value('status');
+        if ($practiceStatus !== 'INACTIVE') {
+            return back()->with('error', 'You can only cancel a link to a practice that is still pending admin approval.');
         }
 
         DB::table('doctor_practice')->where('id', $link)->update([
@@ -100,8 +102,9 @@ class PracticeMembershipController extends Controller
     }
 
     /**
-     * Doctor leaves a practice they were active at.
-     * Cannot leave the only active practice (would orphan their session).
+     * Doctor leaves a practice they were active at — only meaningful while
+     * the practice is ACTIVE (otherwise there's nothing to "leave").
+     * Cannot leave their only ACTIVE practice (would orphan their session).
      */
     public function leave(int $link)
     {
@@ -111,8 +114,9 @@ class PracticeMembershipController extends Controller
         $row = DB::table('doctor_practice')->where('id', $link)->first();
         abort_unless($row && (int) $row->doctor_id === $doctor->id, 404);
 
-        if ($row->approval_status !== 'APPROVED') {
-            return back()->with('error', 'Only active links can be left.');
+        $practiceStatus = DB::table('practices')->where('id', $row->practice_id)->value('status');
+        if ($practiceStatus !== 'ACTIVE') {
+            return back()->with('error', 'You can only leave a practice that is currently active.');
         }
 
         $activeCount = $doctor->activePractices()->count();
@@ -127,7 +131,6 @@ class PracticeMembershipController extends Controller
             'updated_at'      => now(),
         ]);
 
-        // If they left their currently-active session practice, drop the session pointer.
         if (session(ActivePractice::SESSION_KEY) == $row->practice_id) {
             ActivePractice::clear();
         }
@@ -136,7 +139,7 @@ class PracticeMembershipController extends Controller
     }
 
     /**
-     * Doctor marks a different active link as their primary.
+     * Doctor marks a different active practice as their primary.
      */
     public function makePrimary(int $link)
     {
@@ -146,8 +149,9 @@ class PracticeMembershipController extends Controller
         $row = DB::table('doctor_practice')->where('id', $link)->first();
         abort_unless($row && (int) $row->doctor_id === $doctor->id, 404);
 
-        if ($row->approval_status !== 'APPROVED') {
-            return back()->with('error', 'Only active practice links can be set as primary.');
+        $practiceStatus = DB::table('practices')->where('id', $row->practice_id)->value('status');
+        if ($practiceStatus !== 'ACTIVE') {
+            return back()->with('error', 'Only active practices can be set as primary.');
         }
 
         DB::transaction(function () use ($doctor, $link) {
