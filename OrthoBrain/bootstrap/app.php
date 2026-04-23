@@ -12,7 +12,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
+            'admin'           => \App\Http\Middleware\EnsureSuperAdmin::class,
+            'active.practice' => \App\Http\Middleware\EnsureActivePractice::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

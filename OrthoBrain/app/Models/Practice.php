@@ -44,6 +44,33 @@ class Practice extends Model
         return $this->hasMany(Doctor::class, 'practice_id');
     }
 
+    public function doctors()
+    {
+        return $this->belongsToMany(Doctor::class, 'doctor_practice')
+            ->withPivot([
+                'id',
+                'approval_status',
+                'is_primary',
+                'requested_at',
+                'approved_at',
+                'approved_by_admin_id',
+                'rejected_at',
+                'rejection_reason',
+                'left_at',
+            ])
+            ->withTimestamps();
+    }
+
+    public function activeDoctors()
+    {
+        return $this->doctors()->wherePivot('approval_status', 'APPROVED');
+    }
+
+    public function pendingDoctors()
+    {
+        return $this->doctors()->wherePivot('approval_status', 'PENDING');
+    }
+
     public function zipcode(): BelongsTo
     {
         return $this->belongsTo(Zipcode::class, 'zip_id');

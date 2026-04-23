@@ -23,14 +23,15 @@ class DoctorSeeder extends Seeder
             ]
         );
 
-        // Affiliate the test doctor with the first seeded practice (if any).
-        $practiceId = Practice::where('status', 'ACTIVE')->orderBy('id')->value('id');
+        // Pick first three ACTIVE practices: primary + two demo extras
+        $practiceIds = Practice::where('status', 'ACTIVE')->orderBy('id')->limit(3)->pluck('id')->all();
+        $primaryPracticeId = $practiceIds[0] ?? null;
 
         // 2. Create the doctor profile (clinical layer)
-        Doctor::updateOrCreate(
+        $doctor = Doctor::updateOrCreate(
             ['user_id' => $user->id],
             [
-                'practice_id'                        => $practiceId,
+                'practice_id'                        => $primaryPracticeId,
                 'first_name'                         => 'Test',
                 'last_name'                          => 'Doctor',
                 'preferred_language'                 => 'English',
@@ -50,5 +51,33 @@ class DoctorSeeder extends Seeder
                 'approved_at'                        => now(),
             ]
         );
+
+        // 3. Multi-practice demo: primary APPROVED, second APPROVED, third PENDING.
+        // Reset to a known shape so re-runs are deterministic.
+        $doctor->practices()->detach();
+
+        if (isset($practiceIds[0])) {
+            $doctor->practices()->attach($practiceIds[0], [
+                'approval_status' => 'APPROVED',
+                'is_primary'      => true,
+                'requested_at'    => now(),
+                'approved_at'     => now(),
+            ]);
+        }
+        if (isset($practiceIds[1])) {
+            $doctor->practices()->attach($practiceIds[1], [
+                'approval_status' => 'APPROVED',
+                'is_primary'      => false,
+                'requested_at'    => now(),
+                'approved_at'     => now(),
+            ]);
+        }
+        if (isset($practiceIds[2])) {
+            $doctor->practices()->attach($practiceIds[2], [
+                'approval_status' => 'PENDING',
+                'is_primary'      => false,
+                'requested_at'    => now(),
+            ]);
+        }
     }
 }

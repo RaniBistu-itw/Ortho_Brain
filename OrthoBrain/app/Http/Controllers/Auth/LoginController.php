@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\ActivePractice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -46,9 +47,15 @@ class LoginController extends Controller
 
             $request->session()->regenerate();
 
-            // Admins → /admin dashboard; doctors → cases list
+            // Admins → /admin dashboard; doctors → cases list (or pending page if no active practice yet)
             if ($user->role === 'ADMIN') {
                 return redirect()->intended(route('admin.dashboard'));
+            }
+
+            // Bootstrap the active-practice session pointer; if the doctor has no
+            // approved practices yet, send them to the pending page instead of cases.
+            if (! ActivePractice::get()) {
+                return redirect()->route('doctor.practices.pending');
             }
 
             return redirect()->intended('/dev/cases/list');
