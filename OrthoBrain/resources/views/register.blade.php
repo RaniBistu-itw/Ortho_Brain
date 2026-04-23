@@ -342,9 +342,21 @@
                 </aside>
 
                 <main class="reg-main">
+                    {{-- Surface server-side validation errors so silent bounce-backs are impossible --}}
+                    @if($errors->any())
+                        <div style="background:#fdecea;border:1px solid #f5c6cb;color:#721c24;padding:0.85rem 1rem;border-radius:6px;margin-bottom:1rem;">
+                            <strong>Please fix the following before continuing:</strong>
+                            <ul style="margin:0.4rem 0 0 1.2rem;padding:0;">
+                                @foreach($errors->all() as $err)
+                                    <li>{{ $err }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <form id="registrationForm" action="{{ url('/register') }}" method="POST" novalidate onsubmit="return validateForm(event)">
                         @csrf
-                        
+
                         {{-- Doctor Information Card --}}
                         <div id="step-account" class="reg-card">
                             <div class="reg-card-head">
@@ -357,7 +369,7 @@
                                     <label class="reg-label">Email (Username)<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-email">
                                         <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
-                                        <input id="in-email" name="email" type="email" required title="Please enter an email address" class="reg-input" placeholder="Enter email" oninput="clearError('email')" />
+                                        <input id="in-email" name="email" type="email" required title="Please enter an email address" class="reg-input" placeholder="Enter email" value="{{ old('email') }}" oninput="clearError('email')" />
                                     </div>
                                     <p id="err-email" class="reg-err hidden"></p>
                                 </div>
@@ -366,7 +378,7 @@
                                     <label class="reg-label">First Name<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-firstName">
                                         <span class="reg-input-icon"><i class="bi bi-person"></i></span>
-                                        <input id="in-firstName" name="first_name" type="text" class="reg-input" placeholder="Enter first name" oninput="clearError('firstName')" />
+                                        <input id="in-firstName" name="first_name" type="text" class="reg-input" placeholder="Enter first name" value="{{ old('first_name') }}" oninput="clearError('firstName')" />
                                     </div>
                                     <p id="err-firstName" class="reg-err hidden"></p>
                                 </div>
@@ -375,7 +387,7 @@
                                     <label class="reg-label">Last Name<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-lastName">
                                         <span class="reg-input-icon"><i class="bi bi-person"></i></span>
-                                        <input id="in-lastName" name="last_name" type="text" class="reg-input" placeholder="Enter last name" oninput="clearError('lastName')" />
+                                        <input id="in-lastName" name="last_name" type="text" class="reg-input" placeholder="Enter last name" value="{{ old('last_name') }}" oninput="clearError('lastName')" />
                                     </div>
                                     <p id="err-lastName" class="reg-err hidden"></p>
                                 </div>
@@ -418,13 +430,14 @@
                                     <label class="reg-label">Practice Name<span class="reg-required">*</span></label>
                                     <div class="reg-autocomplete">
                                         {{-- Hidden: set when an existing practice is picked; empty = new practice --}}
-                                        <input type="hidden" id="hid-practiceId" name="practice_id" value="">
+                                        <input type="hidden" id="hid-practiceId" name="practice_id" value="{{ old('practice_id') }}">
                                         <div class="reg-input-group" id="box-practiceName">
                                             <span class="reg-input-icon"><i class="bi bi-building"></i></span>
                                             <input id="in-practiceName" name="practice_name" type="text"
                                                    autocomplete="off"
                                                    class="reg-input"
                                                    placeholder="Start typing your practice name…"
+                                                   value="{{ old('practice_name') }}"
                                                    oninput="onPracticeInput(event)"
                                                    onkeydown="onPracticeKey(event)"
                                                    onblur="onPracticeBlur(event)" />
@@ -444,7 +457,7 @@
                                             <option value="+1_CA">+1 (CA)</option>
                                             <option value="+61_AU">+61 (AU)</option>
                                         </select>
-                                        <input id="in-phone" name="practice_phone_number" type="text" maxlength="10" placeholder="XXX-XXX-XXXX" oninput="clearError('phone')" />
+                                        <input id="in-phone" name="practice_phone_number" type="text" maxlength="10" placeholder="XXX-XXX-XXXX" value="{{ old('practice_phone_number') }}" oninput="clearError('phone')" />
                                     </div>
                                     <p id="err-phone" class="reg-err hidden"></p>
                                 </div>
@@ -453,7 +466,7 @@
                                     <label class="reg-label">Practice Website<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-website">
                                         <span class="reg-input-icon"><i class="bi bi-globe"></i></span>
-                                        <input id="in-website" type="text" name="practice_website" class="reg-input" placeholder="www.example.com" oninput="clearError('website')" />
+                                        <input id="in-website" type="text" name="practice_website" class="reg-input" placeholder="www.example.com" value="{{ old('practice_website') }}" oninput="clearError('website')" />
                                     </div>
                                     <p id="err-website" class="reg-err hidden"></p>
                                 </div>
@@ -487,7 +500,7 @@
                                     <label class="reg-label">Street Address<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-address1">
                                         <span class="reg-input-icon"><i class="bi bi-geo-alt"></i></span>
-                                        <input id="in-address1" type="text" name="street_address_1" class="reg-input" placeholder="Street address 1" oninput="clearError('address1')" />
+                                        <input id="in-address1" type="text" name="street_address_1" class="reg-input" placeholder="Street address 1" value="{{ old('street_address_1') }}" oninput="clearError('address1')" />
                                     </div>
                                     <p id="err-address1" class="reg-err hidden"></p>
                                 </div>
@@ -496,16 +509,17 @@
                                     <label class="reg-label">Street Address 2</label>
                                     <div class="reg-input-group" id="box-address2">
                                         <span class="reg-input-icon"><i class="bi bi-geo-alt"></i></span>
-                                        <input id="in-address2" type="text" name="street_address_2" class="reg-input" placeholder="Street address 2" />
+                                        <input id="in-address2" type="text" name="street_address_2" class="reg-input" placeholder="Street address 2" value="{{ old('street_address_2') }}" />
                                     </div>
                                 </div>
                                 {{-- Zip (master-driven) --}}
                                 <div>
                                     <label class="reg-label">Zip<span class="reg-required">*</span></label>
                                     <select id="in-zip" name="zip_id" required class="reg-select" onchange="onRegZipChange()">
-                                        <option value="" disabled selected>Select zip code</option>
+                                        <option value="" disabled {{ old('zip_id') ? '' : 'selected' }}>Select zip code</option>
                                         @foreach(($zipcodes ?? []) as $z)
                                             <option value="{{ $z->id }}"
+                                                    @selected(old('zip_id') == $z->id)
                                                     data-city-id="{{ $z->city?->id }}"
                                                     data-city="{{ $z->city?->name }}"
                                                     data-state-id="{{ $z->city?->state?->id }}"
@@ -540,6 +554,50 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        {{-- Additional Practices (optional) --}}
+                        <div id="step-extra-practices" class="reg-card">
+                            <div class="reg-card-head">
+                                <h2>Other Practices You Work At <span style="font-weight:400;font-size:0.9rem;color:#6e6b7b;">(optional)</span></h2>
+                                <p>Add up to 5 other practices. Pick existing ones from the search, or create new ones inline. Each is reviewed by the admin separately.</p>
+                            </div>
+
+                            <div id="extra-practice-rows"></div>
+
+                            <div style="margin-top:1rem;">
+                                <button type="button" id="btn-add-extra-practice" onclick="addExtraPracticeRow()"
+                                        style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.55rem 1.1rem;background:#fff;border:1px dashed #7367f0;color:#7367f0;font-weight:600;border-radius:6px;cursor:pointer;transition:all 0.15s ease;"
+                                        onmouseover="this.style.background='#7367f0';this.style.color='#fff';"
+                                        onmouseout="this.style.background='#fff';this.style.color='#7367f0';">
+                                    <i class="bi bi-plus-circle" style="font-size:1.05rem;"></i>
+                                    <span>Add another practice</span>
+                                </button>
+                                <small class="text-muted" style="margin-left:0.75rem;">Up to 5 additional practices.</small>
+                            </div>
+
+                            {{-- Server-side old() dump: if validation bounces the form,
+                                 this JSON contains the rows the doctor had entered so JS
+                                 can rebuild them on load (see DOMContentLoaded handler). --}}
+                            @if(old('additional_practices'))
+                                <script type="application/json" id="extra-old-data">@json(old('additional_practices'))</script>
+                            @endif
+
+                            {{-- Zip options reused per-row in JS template (avoids repeating the @foreach above) --}}
+                            <template id="extra-prac-zip-options">
+                                <option value="" disabled selected>Select zip code</option>
+                                @foreach(($zipcodes ?? []) as $z)
+                                    <option value="{{ $z->id }}"
+                                            data-city-id="{{ $z->city?->id }}"
+                                            data-city="{{ $z->city?->name }}"
+                                            data-state-id="{{ $z->city?->state?->id }}"
+                                            data-state="{{ $z->city?->state?->name }}"
+                                            data-country-id="{{ $z->city?->state?->country?->id }}"
+                                            data-country="{{ $z->city?->state?->country?->name }}">
+                                        {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
+                                    </option>
+                                @endforeach
+                            </template>
                         </div>
 
                         {{-- Additional --}}
@@ -1382,11 +1440,427 @@
                     return false;
                 }
 
+                // Per-row validation for additional practices — shows inline errors
+                // on each row's fields. Failing rows keep the doctor on the page
+                // instead of making the round-trip to the server.
+                let extraRowsOk = true;
+                document.querySelectorAll('.extra-prac-row').forEach(row => {
+                    if (!epValidateRow(row.dataset.idx)) extraRowsOk = false;
+                });
+
+                if (isValid && !extraRowsOk) {
+                    // Scroll to the first invalid extra-row so the doctor sees the error
+                    const firstBad = document.querySelector('.extra-prac-row .reg-err:not(.hidden)');
+                    if (firstBad) {
+                        window.scrollTo({
+                            top: window.scrollY + firstBad.getBoundingClientRect().top - 100,
+                            behavior: 'smooth'
+                        });
+                    }
+                    return false;
+                }
+
                 if (isValid) {
+                    // Drop incomplete extra-practice rows — see cleanExtraRows() below.
+                    cleanExtraRows();
                     document.getElementById('registrationForm').submit();
                 }
                 return isValid;
             }
+
+            // ────────────────────────────────────────────────────────────────
+            //  Other Practices (optional) — repeating rows, two modes per row:
+            //    EXISTING : autocomplete-pick from /practice-search, then
+            //               row locks into a readonly summary card ("Change" to re-open)
+            //    NEW      : full inline form with live per-field validation on blur
+            //
+            //  Each row submits as additional_practices[<idx>][...] so the controller
+            //  can validate per-row with required_if rules.
+            //  On validation failure, the server dumps old('additional_practices') into
+            //  the #extra-old-data element and this JS rebuilds rows with prior data.
+            // ────────────────────────────────────────────────────────────────
+            let extraPracticeSeq = 0;
+            const MAX_EXTRA_PRACTICES = 5;
+            const extraRowState = {};   // idx -> {mode, picked: {id,name,phone,website,city,...}}
+
+            const epWebsiteRe = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z]{2,})+$/i;
+
+            function addExtraPracticeRow() {
+                const visible = document.querySelectorAll('.extra-prac-row').length;
+                if (visible >= MAX_EXTRA_PRACTICES) {
+                    alert('You can add up to ' + MAX_EXTRA_PRACTICES + ' additional practices.');
+                    return;
+                }
+                const idx = extraPracticeSeq++;
+
+                const wrap = document.createElement('div');
+                wrap.className = 'extra-prac-row';
+                wrap.style.cssText = 'border:1px solid #e0dee8;border-radius:8px;padding:1rem;margin-top:0.75rem;background:#fafafd;position:relative;';
+                wrap.dataset.idx = idx;
+
+                wrap.innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem;">
+                        <div style="display:flex;gap:1rem;align-items:center;">
+                            <strong style="color:#5e5873;">Practice <span class="ep-label-num">#</span></strong>
+                            <label style="margin:0;display:inline-flex;align-items:center;gap:0.35rem;cursor:pointer;">
+                                <input type="radio" name="additional_practices[${idx}][mode]" value="existing" checked onchange="onExtraModeChange(${idx})"> Existing
+                            </label>
+                            <label style="margin:0;display:inline-flex;align-items:center;gap:0.35rem;cursor:pointer;">
+                                <input type="radio" name="additional_practices[${idx}][mode]" value="new" onchange="onExtraModeChange(${idx})"> Create new
+                            </label>
+                        </div>
+                        <button type="button" class="reg-btn-delete" onclick="removeExtraRow(${idx})" title="Remove"><i class="bi bi-trash"></i></button>
+                    </div>
+
+                    {{-- EXISTING mode --}}
+                    <div id="ep-existing-${idx}" class="ep-pane">
+                        <div style="position:relative;">
+                            <input type="hidden" name="additional_practices[${idx}][practice_id]" id="ep-id-${idx}" value="">
+                            <div class="reg-input-group">
+                                <span class="reg-input-icon"><i class="bi bi-search"></i></span>
+                                <input type="text" id="ep-search-${idx}" class="reg-input"
+                                       placeholder="Search existing practice by name…"
+                                       autocomplete="off"
+                                       oninput="onExtraSearch(${idx}, event)"
+                                       onblur="setTimeout(() => hideExtraMenu(${idx}), 150)" />
+                            </div>
+                            <div id="ep-menu-${idx}" class="reg-autocomplete-menu" role="listbox"></div>
+                        </div>
+                        <p class="reg-err hidden" id="ep-err-existing-${idx}"></p>
+                    </div>
+
+                    {{-- NEW mode --}}
+                    <div id="ep-new-${idx}" class="ep-pane" style="display:none;">
+                        <div class="reg-grid">
+                            <div>
+                                <label class="reg-label">Practice Name<span class="reg-required">*</span></label>
+                                <div class="reg-input-group"><span class="reg-input-icon"><i class="bi bi-building"></i></span>
+                                    <input type="text" name="additional_practices[${idx}][name]" class="reg-input" placeholder="Practice name"
+                                           onblur="epValidateField(${idx}, 'name')"
+                                           oninput="epValidateField(${idx}, 'name')" />
+                                </div>
+                                <p class="reg-err hidden ep-err-name-${idx}"></p>
+                            </div>
+                            <div>
+                                <label class="reg-label">Phone Number<span class="reg-required">*</span></label>
+                                <div class="reg-phone">
+                                    <span class="reg-input-icon" style="border-right:0"><i class="bi bi-telephone"></i></span>
+                                    <select name="additional_practices[${idx}][phone_country_code]">
+                                        <option value="+1_US">+1 (US)</option>
+                                        <option value="+1_CA">+1 (CA)</option>
+                                        <option value="+61_AU">+61 (AU)</option>
+                                    </select>
+                                    <input type="text" name="additional_practices[${idx}][phone_number]" maxlength="10"
+                                           placeholder="10 digits, no dashes"
+                                           onblur="epValidateField(${idx}, 'phone_number')"
+                                           oninput="epValidateField(${idx}, 'phone_number')" />
+                                </div>
+                                <p class="reg-err hidden ep-err-phone_number-${idx}"></p>
+                            </div>
+                            <div>
+                                <label class="reg-label">Website<span class="reg-required">*</span></label>
+                                <div class="reg-input-group"><span class="reg-input-icon"><i class="bi bi-globe"></i></span>
+                                    <input type="text" name="additional_practices[${idx}][website]" class="reg-input" placeholder="www.example.com"
+                                           onblur="epValidateField(${idx}, 'website')"
+                                           oninput="epValidateField(${idx}, 'website')" />
+                                </div>
+                                <p class="reg-err hidden ep-err-website-${idx}"></p>
+                            </div>
+                            <div>
+                                <label class="reg-label">Street Address<span class="reg-required">*</span></label>
+                                <div class="reg-input-group"><span class="reg-input-icon"><i class="bi bi-geo-alt"></i></span>
+                                    <input type="text" name="additional_practices[${idx}][street_address_1]" class="reg-input" placeholder="Street address 1"
+                                           onblur="epValidateField(${idx}, 'street_address_1')"
+                                           oninput="epValidateField(${idx}, 'street_address_1')" />
+                                </div>
+                                <p class="reg-err hidden ep-err-street_address_1-${idx}"></p>
+                            </div>
+                            <div>
+                                <label class="reg-label">Street Address 2</label>
+                                <div class="reg-input-group"><span class="reg-input-icon"><i class="bi bi-geo-alt"></i></span>
+                                    <input type="text" name="additional_practices[${idx}][street_address_2]" class="reg-input" placeholder="Street address 2 (optional)" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="reg-label">Zip<span class="reg-required">*</span></label>
+                                <input type="hidden" name="additional_practices[${idx}][city_id]"    id="ep-h-city-${idx}">
+                                <input type="hidden" name="additional_practices[${idx}][state_id]"   id="ep-h-state-${idx}">
+                                <input type="hidden" name="additional_practices[${idx}][country_id]" id="ep-h-country-${idx}">
+                                <select name="additional_practices[${idx}][zip_id]" id="ep-zip-${idx}" class="reg-select" onchange="onExtraZipChange(${idx})"></select>
+                                <p class="reg-err hidden ep-err-zip-${idx}"></p>
+                            </div>
+                            <div>
+                                <label class="reg-label">City</label>
+                                <div class="reg-input-group" style="background:#f8f8f8">
+                                    <input type="text" id="ep-city-${idx}" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" readonly />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="reg-label">State / Country</label>
+                                <div class="reg-input-group" style="background:#f8f8f8">
+                                    <input type="text" id="ep-state-${idx}" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" readonly />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('extra-practice-rows').appendChild(wrap);
+
+                // Clone zip options from the template
+                const zipSel = document.getElementById('ep-zip-' + idx);
+                const tpl = document.getElementById('extra-prac-zip-options');
+                if (zipSel && tpl) zipSel.innerHTML = tpl.innerHTML;
+
+                renumberExtraRows();
+            }
+
+            function removeExtraRow(idx) {
+                const row = document.querySelector(`.extra-prac-row[data-idx="${idx}"]`);
+                if (row) row.remove();
+                delete extraRowState[idx];
+                renumberExtraRows();
+            }
+
+            function renumberExtraRows() {
+                document.querySelectorAll('.extra-prac-row').forEach((row, i) => {
+                    const lbl = row.querySelector('.ep-label-num');
+                    if (lbl) lbl.textContent = String(i + 1);
+                });
+            }
+
+            function onExtraModeChange(idx) {
+                const mode = document.querySelector(`input[name="additional_practices[${idx}][mode]"]:checked`)?.value;
+                const ex = document.getElementById('ep-existing-' + idx);
+                const nw = document.getElementById('ep-new-' + idx);
+                if (mode === 'new') { ex.style.display = 'none'; nw.style.display = ''; }
+                else                { ex.style.display = '';     nw.style.display = 'none'; }
+            }
+
+            const extraSearchState = {};
+            async function onExtraSearch(idx, e) {
+                document.getElementById('ep-id-' + idx).value = '';
+                const q = e.target.value.trim();
+                clearTimeout(extraSearchState[idx]?.timer);
+                if (q.length < 2) { hideExtraMenu(idx); return; }
+                extraSearchState[idx] = extraSearchState[idx] || {};
+                extraSearchState[idx].timer = setTimeout(async () => {
+                    try {
+                        const res = await fetch(PRACTICE_SEARCH_URL + '?q=' + encodeURIComponent(q), {
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        });
+                        if (!res.ok) return;
+                        const items = await res.json();
+                        const primaryId = document.getElementById('hid-practiceId').value;
+                        const alreadyPicked = Array.from(document.querySelectorAll('input[name^="additional_practices"][name$="[practice_id]"]'))
+                            .map(i => i.value).filter(Boolean);
+                        const filtered = items.filter(p => String(p.id) !== String(primaryId) && !alreadyPicked.includes(String(p.id)));
+                        // Save results per-row so pick handler can look them up by index (avoids HTML-escape issues with names containing quotes)
+                        extraSearchState[idx].items = filtered;
+                        renderExtraMenu(idx, filtered);
+                    } catch (err) { /* ignore */ }
+                }, 300);
+            }
+
+            function renderExtraMenu(idx, items) {
+                const menu = document.getElementById('ep-menu-' + idx);
+                if (!menu) return;
+                if (!items.length) {
+                    menu.innerHTML = '<div class="reg-autocomplete-empty">No match. Switch to "Create new" to register a new practice.</div>';
+                } else {
+                    menu.innerHTML = items.map((p, i) =>
+                        `<div class="reg-autocomplete-item" role="option" data-item-idx="${i}" onmousedown="pickExtraExistingByIndex(${idx}, ${i})">${escapeHtml(p.label)}</div>`
+                    ).join('');
+                }
+                menu.classList.add('open');
+            }
+
+            function hideExtraMenu(idx) {
+                const menu = document.getElementById('ep-menu-' + idx);
+                if (!menu) return;
+                menu.classList.remove('open');
+                menu.innerHTML = '';
+            }
+
+            // Called by the dropdown; looks up the picked item from the per-row state
+            // so names / special characters are never HTML-interpolated.
+            function pickExtraExistingByIndex(idx, itemIdx) {
+                const items = extraSearchState[idx]?.items;
+                if (!items || !items[itemIdx]) return;
+                lockExtraRowAsPicked(idx, items[itemIdx]);
+            }
+
+            // Replace the row's existing-mode pane with a readonly summary card.
+            // Hidden inputs for additional_practices[idx][practice_id] + mode stay in place.
+            function lockExtraRowAsPicked(idx, p) {
+                extraRowState[idx] = { mode: 'existing', picked: p };
+
+                document.getElementById('ep-id-' + idx).value = p.id;
+                const pane = document.getElementById('ep-existing-' + idx);
+                if (!pane) return;
+
+                const addressLine = [p.street_address_1, p.city, p.state_code].filter(Boolean).join(', ');
+                pane.innerHTML = `
+                    <input type="hidden" name="additional_practices[${idx}][practice_id]" id="ep-id-${idx}" value="${p.id}">
+                    <div style="background:#f0f9ff;border:1px solid #b6e3fa;border-radius:6px;padding:0.85rem 1rem;display:flex;justify-content:space-between;align-items:flex-start;">
+                        <div>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <strong style="color:#5e5873;">${escapeHtml(p.name)}</strong>
+                                <span style="font-size:0.75rem;color:#7367f0;background:#ece9fb;padding:0.15rem 0.55rem;border-radius:10rem;font-weight:600;">Existing</span>
+                            </div>
+                            <div style="font-size:0.82rem;color:#6e6b7b;margin-top:0.4rem;display:flex;flex-wrap:wrap;gap:0.65rem 1.25rem;">
+                                ${p.website ? `<span><i class="bi bi-globe"></i> ${escapeHtml(p.website)}</span>` : ''}
+                                ${p.phone_number ? `<span><i class="bi bi-telephone"></i> ${escapeHtml(p.phone_number)}</span>` : ''}
+                                ${addressLine ? `<span><i class="bi bi-geo-alt"></i> ${escapeHtml(addressLine)}</span>` : ''}
+                            </div>
+                        </div>
+                        <button type="button" class="reg-change-link" onclick="unlockExtraRow(${idx})">Change</button>
+                    </div>
+                `;
+            }
+
+            function unlockExtraRow(idx) {
+                const pane = document.getElementById('ep-existing-' + idx);
+                if (!pane) return;
+                extraRowState[idx] = { mode: 'existing', picked: null };
+                pane.innerHTML = `
+                    <div style="position:relative;">
+                        <input type="hidden" name="additional_practices[${idx}][practice_id]" id="ep-id-${idx}" value="">
+                        <div class="reg-input-group">
+                            <span class="reg-input-icon"><i class="bi bi-search"></i></span>
+                            <input type="text" id="ep-search-${idx}" class="reg-input"
+                                   placeholder="Search existing practice by name…"
+                                   autocomplete="off"
+                                   oninput="onExtraSearch(${idx}, event)"
+                                   onblur="setTimeout(() => hideExtraMenu(${idx}), 150)" />
+                        </div>
+                        <div id="ep-menu-${idx}" class="reg-autocomplete-menu" role="listbox"></div>
+                    </div>
+                    <p class="reg-err hidden" id="ep-err-existing-${idx}"></p>
+                `;
+            }
+
+            function onExtraZipChange(idx) {
+                const sel = document.getElementById('ep-zip-' + idx);
+                const opt = sel?.options[sel.selectedIndex];
+                if (!opt || !opt.value) return;
+                document.getElementById('ep-city-' + idx).value     = opt.dataset.city || '';
+                document.getElementById('ep-state-' + idx).value    = (opt.dataset.state || '') + (opt.dataset.country ? ' / ' + opt.dataset.country : '');
+                document.getElementById('ep-h-city-' + idx).value    = opt.dataset.cityId || '';
+                document.getElementById('ep-h-state-' + idx).value   = opt.dataset.stateId || '';
+                document.getElementById('ep-h-country-' + idx).value = opt.dataset.countryId || '';
+                epValidateField(idx, 'zip');
+            }
+
+            // ── Per-row inline validation for NEW-mode fields ───────────────
+            //    Fires on blur (via onblur attribute set below) and on submit.
+            //    Shows/clears the reg-err paragraph under each field, not a top banner.
+            function epValidateField(idx, field) {
+                const row = document.querySelector(`.extra-prac-row[data-idx="${idx}"]`);
+                if (!row) return true;
+                const get = (name) => row.querySelector(`[name="additional_practices[${idx}][${name}]"]`);
+                const setErr = (sel, msg) => {
+                    const el = row.querySelector(sel);
+                    if (!el) return;
+                    if (msg) { el.textContent = msg; el.classList.remove('hidden'); }
+                    else     { el.textContent = '';  el.classList.add('hidden'); }
+                };
+
+                let msg = '';
+                const val = (get(field)?.value || '').trim();
+                switch (field) {
+                    case 'name':
+                        msg = !val ? 'Practice name is required' : (val.length < 2 ? 'At least 2 characters' : '');
+                        break;
+                    case 'phone_number':
+                        msg = !val ? 'Phone number is required'
+                            : !/^\d{10}$/.test(val) ? 'Phone must be 10 digits (no spaces or dashes)' : '';
+                        break;
+                    case 'website':
+                        msg = !val ? 'Website is required'
+                            : !epWebsiteRe.test(val) ? 'Enter a valid website (e.g. www.example.com)' : '';
+                        break;
+                    case 'street_address_1':
+                        msg = !val ? 'Street address is required'
+                            : val.length < 5 ? 'At least 5 characters' : '';
+                        break;
+                    case 'zip':
+                        msg = !get('zip_id')?.value ? 'Please select a zip code' : '';
+                        break;
+                }
+                setErr(`.ep-err-${field}-${idx}`, msg);
+                return !msg;
+            }
+
+            function epValidateRow(idx) {
+                const row = document.querySelector(`.extra-prac-row[data-idx="${idx}"]`);
+                if (!row) return true;
+                const mode = row.querySelector(`input[name="additional_practices[${idx}][mode]"]:checked`)?.value || 'existing';
+                if (mode === 'existing') {
+                    const pid = row.querySelector(`input[name="additional_practices[${idx}][practice_id]"]`)?.value;
+                    return !!pid;   // if they picked, row is valid; otherwise cleaned on submit
+                }
+                let ok = true;
+                ['name','phone_number','website','street_address_1','zip'].forEach(f => {
+                    if (!epValidateField(idx, f)) ok = false;
+                });
+                return ok;
+            }
+
+            // Drop rows that are clearly empty so the server doesn't see junk:
+            //  - existing mode with no practice_id picked
+            //  - new mode with no practice name typed
+            function cleanExtraRows() {
+                document.querySelectorAll('.extra-prac-row').forEach(row => {
+                    const idx = row.dataset.idx;
+                    const mode = row.querySelector(`input[name="additional_practices[${idx}][mode]"]:checked`)?.value || 'existing';
+                    if (mode === 'existing') {
+                        const hid = row.querySelector(`input[name="additional_practices[${idx}][practice_id]"]`);
+                        if (!hid || !hid.value) row.remove();
+                    } else {
+                        const nameInp = row.querySelector(`input[name="additional_practices[${idx}][name]"]`);
+                        if (!nameInp || !nameInp.value.trim()) row.remove();
+                    }
+                });
+            }
+
+            // On load: if the server bounced the form back with old('additional_practices'),
+            // rebuild the rows from that data so the doctor doesn't lose what they typed.
+            document.addEventListener('DOMContentLoaded', () => {
+                const dataEl = document.getElementById('extra-old-data');
+                if (!dataEl) return;
+                let rows = [];
+                try { rows = JSON.parse(dataEl.textContent || '[]'); } catch (e) { return; }
+                if (!Array.isArray(rows) || !rows.length) return;
+
+                rows.forEach(row => {
+                    addExtraPracticeRow();
+                    const idx = extraPracticeSeq - 1;
+                    const wrap = document.querySelector(`.extra-prac-row[data-idx="${idx}"]`);
+                    if (!wrap) return;
+
+                    const mode = (row.mode === 'new') ? 'new' : 'existing';
+                    wrap.querySelector(`input[name="additional_practices[${idx}][mode]"][value="${mode}"]`).checked = true;
+                    onExtraModeChange(idx);
+
+                    if (mode === 'new') {
+                        ['name','website','phone_country_code','phone_number','street_address_1','street_address_2','zip_id','city_id','state_id','country_id'].forEach(k => {
+                            const el = wrap.querySelector(`[name="additional_practices[${idx}][${k}]"]`);
+                            if (el && row[k] != null) el.value = row[k];
+                        });
+                        // Re-run zip change to refresh visible city/state fields
+                        if (row.zip_id) onExtraZipChange(idx);
+                    } else if (row.practice_id) {
+                        // Just stash the ID; we don't have the full practice details to render a locked card,
+                        // so show the search field with "(prev. selected: #id)" placeholder — admin form will re-resolve on submit.
+                        const hid = wrap.querySelector(`input[name="additional_practices[${idx}][practice_id]"]`);
+                        if (hid) hid.value = row.practice_id;
+                        const search = wrap.querySelector(`#ep-search-${idx}`);
+                        if (search) search.placeholder = 'Previously selected — re-pick if you want to change';
+                    }
+                });
+            });
         </script>
     </body>
 </html>

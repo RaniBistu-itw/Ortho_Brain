@@ -47,6 +47,14 @@ Route::middleware(['web', 'auth'])
     ->prefix('dev')
     ->name('doctor.')
     ->group(function () {
+        // Multi-practice support: switcher, pending-page, add-practice request
+        Route::post('/practice/switch',         [\App\Http\Controllers\PracticeMembershipController::class, 'switch'])->name('practice.switch');
+        Route::get('/practices/pending',        [\App\Http\Controllers\PracticeMembershipController::class, 'pending'])->name('practices.pending');
+        Route::post('/practices/request',       [\App\Http\Controllers\PracticeMembershipController::class, 'request'])->name('practices.request');
+        Route::post('/practices/{link}/cancel', [\App\Http\Controllers\PracticeMembershipController::class, 'cancel'])->name('practices.cancel');
+        Route::post('/practices/{link}/leave',  [\App\Http\Controllers\PracticeMembershipController::class, 'leave'])->name('practices.leave');
+        Route::post('/practices/{link}/primary',[\App\Http\Controllers\PracticeMembershipController::class, 'makePrimary'])->name('practices.primary');
+
         // Legacy route — login still redirects here. Keep as a redirect to the real list.
         Route::redirect('/cases/list', '/dev/cases')->name('cases.list');
 

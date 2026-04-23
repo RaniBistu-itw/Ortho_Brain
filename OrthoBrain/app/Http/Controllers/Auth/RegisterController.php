@@ -33,6 +33,25 @@ class RegisterController extends Controller
 
     public function store(Request $request)
     {
+        // Drop "Other Practice" rows that are visibly empty BEFORE validation:
+        //  - existing-mode: no practice_id picked
+        //  - new-mode: no name typed
+        // Otherwise required_if rules would fire on rows the user clearly never filled in.
+        if ($request->has('additional_practices')) {
+            $rows = collect((array) $request->input('additional_practices'))
+                ->filter(function ($row) {
+                    if (! is_array($row)) return false;
+                    $mode = $row['mode'] ?? 'existing';
+                    if ($mode === 'existing') {
+                        return ! empty($row['practice_id']);
+                    }
+                    return isset($row['name']) && trim((string) $row['name']) !== '';
+                })
+                ->values()
+                ->all();
+            $request->merge(['additional_practices' => $rows]);
+        }
+
         // Branch: existing practice picked from autocomplete (practice_id present)
         //         vs new practice (all practice + address fields expected)
         $isExisting = $request->filled('practice_id');
@@ -69,6 +88,21 @@ class RegisterController extends Controller
             'treatment_modalities.*' => 'integer|exists:treatment_modalities,id',
             'buccal_corridors'      => 'nullable|array',
             'buccal_corridors.*'    => 'integer|exists:buccal_corridor_options,id',
+
+            // Other practices the doctor also works at — each row has a mode, then conditional fields.
+            'additional_practices'                          => 'nullable|array|max:5',
+            'additional_practices.*.mode'                   => 'required_with:additional_practices|in:existing,new',
+            'additional_practices.*.practice_id'            => 'required_if:additional_practices.*.mode,existing|nullable|integer|exists:practices,id',
+            'additional_practices.*.name'                   => 'required_if:additional_practices.*.mode,new|nullable|string|max:200',
+            'additional_practices.*.website'                => 'required_if:additional_practices.*.mode,new|nullable|string|max:500',
+            'additional_practices.*.phone_country_code'     => ['nullable', 'required_if:additional_practices.*.mode,new', Rule::in(['+1_US', '+1_CA', '+61_AU'])],
+            'additional_practices.*.phone_number'           => 'required_if:additional_practices.*.mode,new|nullable|string|regex:/^\d{10}$/',
+            'additional_practices.*.street_address_1'       => 'required_if:additional_practices.*.mode,new|nullable|string|min:5|max:255',
+            'additional_practices.*.street_address_2'       => 'nullable|string|max:255',
+            'additional_practices.*.zip_id'                 => 'required_if:additional_practices.*.mode,new|nullable|integer|exists:zipcodes,id',
+            'additional_practices.*.city_id'                => 'required_if:additional_practices.*.mode,new|nullable|integer|exists:cities,id',
+            'additional_practices.*.state_id'               => 'required_if:additional_practices.*.mode,new|nullable|integer|exists:states,id',
+            'additional_practices.*.country_id'             => 'required_if:additional_practices.*.mode,new|nullable|integer|exists:countries,id',
         ];
 
         if ($isExisting) {
@@ -88,11 +122,32 @@ class RegisterController extends Controller
             ]);
         }
 
-        $data = $request->validate($rules, [
+        // Friendly messages for the array-pathed additional_practices.* rules.
+        // Laravel exposes :attribute as "additional_practices.0.phone_number" by default
+        // which is unreadable; we override per-path to say "Other Practice #1".
+        $attributes = [];
+        $extraMessages = [];
+        foreach (($request->input('additional_practices') ?? []) as $i => $_row) {
+            $label = 'Other Practice #' . ($i + 1);
+            $extraMessages["additional_practices.$i.mode.required_with"]      = "$label: pick existing or create new.";
+            $extraMessages["additional_practices.$i.practice_id.required_if"] = "$label: please pick a practice from the search.";
+            $extraMessages["additional_practices.$i.name.required_if"]        = "$label: practice name is required.";
+            $extraMessages["additional_practices.$i.website.required_if"]     = "$label: website is required.";
+            $extraMessages["additional_practices.$i.phone_country_code.required_if"] = "$label: phone country code is required.";
+            $extraMessages["additional_practices.$i.phone_number.required_if"]       = "$label: phone number is required.";
+            $extraMessages["additional_practices.$i.phone_number.regex"]             = "$label: phone must be exactly 10 digits.";
+            $extraMessages["additional_practices.$i.street_address_1.required_if"]   = "$label: street address is required.";
+            $extraMessages["additional_practices.$i.zip_id.required_if"]             = "$label: please pick a zip code.";
+            $extraMessages["additional_practices.$i.city_id.required_if"]            = "$label: city is required (select a zip code).";
+            $extraMessages["additional_practices.$i.state_id.required_if"]           = "$label: state is required (select a zip code).";
+            $extraMessages["additional_practices.$i.country_id.required_if"]         = "$label: country is required (select a zip code).";
+        }
+
+        $data = $request->validate($rules, array_merge([
             'password.regex'              => 'Password must include uppercase, lowercase, number & special character.',
             'practice_phone_number.regex' => 'Phone must be exactly 10 digits.',
             'terms_agreed.accepted'       => 'You must accept the Terms and Conditions to continue.',
-        ]);
+        ], $extraMessages));
 
         $contactMap = [
             'doctor'   => 'DOCTOR_ONLY',
@@ -103,7 +158,27 @@ class RegisterController extends Controller
         $createdUser   = null;
         $createdDoctor = null;
 
-        DB::transaction(function () use ($data, $contactMap, $isExisting, $resurrecting, &$createdUser, &$createdDoctor) {
+        // Split additional rows into "pick existing" vs "create new" lists.
+        // De-dupe existing IDs and exclude the primary practice if also picked.
+        $primaryExistingId = $isExisting ? (int) ($data['practice_id'] ?? 0) : 0;
+        $existingIds = [];
+        $newRows     = [];
+        $seenExisting = $primaryExistingId ? [$primaryExistingId] : [];
+
+        foreach (($data['additional_practices'] ?? []) as $row) {
+            $mode = $row['mode'] ?? 'existing';
+            if ($mode === 'existing') {
+                $pid = (int) ($row['practice_id'] ?? 0);
+                if ($pid && ! in_array($pid, $seenExisting, true)) {
+                    $existingIds[]  = $pid;
+                    $seenExisting[] = $pid;
+                }
+            } else {
+                $newRows[] = $row;
+            }
+        }
+
+        DB::transaction(function () use ($data, $contactMap, $isExisting, $resurrecting, $existingIds, $newRows, &$createdUser, &$createdDoctor) {
             if ($resurrecting) {
                 $user = $resurrecting;
                 $user->password_hash = Hash::make($data['password']);
@@ -173,9 +248,55 @@ class RegisterController extends Controller
             }
             $createdDoctor = $doctor;
 
-            // Stamp ownership on the just-created practice
+            // Stamp ownership on the just-created primary practice (if it was new).
             if ($newPractice) {
                 $newPractice->update(['owner_id' => $doctor->id]);
+            }
+
+            // ─── Practice links (pivot rows) ───────────────────────────────
+            // Wipe any prior pivot rows when resurrecting a rejected doctor.
+            $doctor->practices()->detach();
+
+            // Primary practice link — pending until admin approves it explicitly.
+            $doctor->practices()->attach($practiceId, [
+                'approval_status' => 'PENDING',
+                'is_primary'      => true,
+                'requested_at'    => now(),
+            ]);
+
+            // Additional existing-practice claims — all pending.
+            foreach ($existingIds as $aid) {
+                $doctor->practices()->attach($aid, [
+                    'approval_status' => 'PENDING',
+                    'is_primary'      => false,
+                    'requested_at'    => now(),
+                ]);
+            }
+
+            // Additional new-practice creations — create Practice rows owned by
+            // this doctor, then attach as PENDING. Admin still has to approve
+            // each one (per product decision: every practice needs admin review).
+            foreach ($newRows as $row) {
+                $created = Practice::create([
+                    'owner_id'           => $doctor->id,
+                    'name'               => $row['name'],
+                    'website'            => $row['website'],
+                    'phone_country_code' => $row['phone_country_code'],
+                    'phone_number'       => $row['phone_number'],
+                    'street_address_1'   => $row['street_address_1'],
+                    'street_address_2'   => $row['street_address_2'] ?? null,
+                    'zip_id'             => $row['zip_id'],
+                    'city_id'            => $row['city_id'],
+                    'state_id'           => $row['state_id'],
+                    'country_id'         => $row['country_id'],
+                    'status'             => 'ACTIVE',
+                ]);
+
+                $doctor->practices()->attach($created->id, [
+                    'approval_status' => 'PENDING',
+                    'is_primary'      => false,
+                    'requested_at'    => now(),
+                ]);
             }
 
             // Per product decision: do NOT create a shipping/billing DoctorAddress here.

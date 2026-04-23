@@ -152,6 +152,13 @@
                             <span class="nav-sub">Doctor Information</span>
                         </span>
                     </a>
+                    <a href="?tab=practices" id="practices" class="list-group-item {{ $tab == 'practices' ? 'active' : '' }}">
+                        <span class="nav-icon"><i data-feather="briefcase"></i></span>
+                        <span>
+                            <span class="nav-label d-block">My Practices</span>
+                            <span class="nav-sub">All practice associations</span>
+                        </span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -249,18 +256,6 @@
                             </div>
                         </div>
 
-                        <div class="col-12 mt-1 mb-1">
-                            <div class="d-flex flex-wrap gap-2">
-                                <div class="form-check form-switch me-3">
-                                    <input type="checkbox" class="form-check-input" id="notif-1" checked>
-                                    <label class="form-check-label" for="notif-1">Notification</label>
-                                </div>
-                                <div class="form-check form-switch">
-                                    <input type="checkbox" class="form-check-input" id="notif-2" checked>
-                                    <label class="form-check-label" for="notif-2">Notification</label>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="d-flex mt-2">
@@ -867,6 +862,133 @@
                 </div>
 
                 </form>{{-- /#additionalForm --}}
+                @endif
+
+                {{-- ─── Tab: My Practices ─── --}}
+                @if($tab == 'practices')
+                @php
+                    $myDoctor = \App\Models\Doctor::where('user_id', auth()->id())->first();
+                    $active   = $myDoctor?->activePractices()->get()    ?? collect();
+                    $pending  = $myDoctor?->pendingPractices()->get()   ?? collect();
+                    $rejected = $myDoctor?->rejectedPractices()->get()  ?? collect();
+                    $activeId = currentPractice()?->id;
+                @endphp
+                <h4 class="card-title mb-3">My Practices</h4>
+                <p class="text-muted">Every practice you work at, with admin approval status. Use the topbar switcher to change which practice is currently active.</p>
+
+                @if($active->isNotEmpty())
+                    <h6 class="mt-3 text-success"><i data-feather="check-circle"></i> Active ({{ $active->count() }})</h6>
+                    <ul class="list-group mb-3">
+                        @foreach($active as $p)
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge" style="background:#28c76f;color:#fff;font-weight:600;">APPROVED</span>
+                                    <strong class="ms-2">{{ $p->name }}</strong>
+                                    @if($p->pivot->is_primary)
+                                        <span class="badge bg-light-primary ms-1">primary</span>
+                                    @endif
+                                    @if($p->id == $activeId)
+                                        <span class="badge bg-light-success ms-1">currently active</span>
+                                    @endif
+                                </div>
+                                <div>
+                                    @if(!$p->pivot->is_primary)
+                                        <form method="POST" action="{{ route('doctor.practices.primary', $p->pivot->id) }}" class="d-inline m-0">
+                                            @csrf
+                                            <button class="btn btn-sm btn-outline-primary" type="submit">Make primary</button>
+                                        </form>
+                                    @endif
+                                    @if($active->count() > 1)
+                                        <form method="POST" action="{{ route('doctor.practices.leave', $p->pivot->id) }}" class="d-inline m-0"
+                                              onsubmit="return confirm('Leave {{ $p->name }}?')">
+                                            @csrf
+                                            <button class="btn btn-sm btn-outline-danger" type="submit">Leave</button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                @if($pending->isNotEmpty())
+                    <h6 class="mt-3 text-warning"><i data-feather="clock"></i> Pending ({{ $pending->count() }})</h6>
+                    <ul class="list-group mb-3">
+                        @foreach($pending as $p)
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge" style="background:#ff9f43;color:#fff;font-weight:600;">PENDING</span>
+                                    <strong class="ms-2">{{ $p->name }}</strong>
+                                    @if($p->pivot->is_primary)
+                                        <span class="badge bg-light-primary ms-1">primary</span>
+                                    @endif
+                                    <small class="text-muted d-block ms-1" style="margin-top:0.25rem;">Requested {{ \Carbon\Carbon::parse($p->pivot->requested_at ?? $p->pivot->created_at)->diffForHumans() }} — awaiting admin review</small>
+                                </div>
+                                <form method="POST" action="{{ route('doctor.practices.cancel', $p->pivot->id) }}" class="m-0"
+                                      onsubmit="return confirm('Cancel this request?')">
+                                    @csrf
+                                    <button class="btn btn-sm btn-outline-secondary" type="submit">Cancel request</button>
+                                </form>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                @if($rejected->isNotEmpty())
+                    <h6 class="mt-3 text-danger"><i data-feather="x-circle"></i> Rejected ({{ $rejected->count() }})</h6>
+                    <ul class="list-group mb-3">
+                        @foreach($rejected as $p)
+                            <li class="list-group-item">
+                                <span class="badge" style="background:#ea5455;color:#fff;font-weight:600;">REJECTED</span>
+                                <strong class="ms-2">{{ $p->name }}</strong>
+                                @if($p->pivot->rejection_reason)
+                                    <small class="text-muted d-block">Reason: {{ $p->pivot->rejection_reason }}</small>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+
+                <hr class="my-4">
+                <h6>Request Another Practice</h6>
+                <form method="POST" action="{{ route('doctor.practices.request') }}" class="row g-2 align-items-end">
+                    @csrf
+                    <div class="col-md-9 position-relative">
+                        <label class="form-label">Search by name</label>
+                        <input type="hidden" name="practice_id" id="profile-req-pid" required>
+                        <input type="text" id="profile-req-pname" class="form-control" placeholder="Type a practice name…" autocomplete="off" oninput="profileReqInput(event)">
+                        <div id="profile-req-menu" class="list-group position-absolute w-100" style="z-index:10;max-height:240px;overflow:auto;display:none;"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Submit Request</button>
+                    </div>
+                </form>
+
+                <script>
+                    let profileReqTimer = null;
+                    async function profileReqInput(e) {
+                        document.getElementById('profile-req-pid').value = '';
+                        const q = e.target.value.trim();
+                        clearTimeout(profileReqTimer);
+                        const menu = document.getElementById('profile-req-menu');
+                        if (q.length < 2) { menu.style.display = 'none'; menu.innerHTML = ''; return; }
+                        profileReqTimer = setTimeout(async () => {
+                            const res = await fetch('{{ route('practice.search') }}?q=' + encodeURIComponent(q),
+                                { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+                            if (!res.ok) return;
+                            const items = await res.json();
+                            menu.innerHTML = items.length
+                                ? items.map(p => `<button type="button" class="list-group-item list-group-item-action" onclick="profileReqPick(${p.id}, ${JSON.stringify(p.name)})">${p.label.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</button>`).join('')
+                                : '<div class="list-group-item text-muted">No matching practice.</div>';
+                            menu.style.display = 'block';
+                        }, 250);
+                    }
+                    function profileReqPick(id, name) {
+                        document.getElementById('profile-req-pid').value = id;
+                        document.getElementById('profile-req-pname').value = name;
+                        document.getElementById('profile-req-menu').style.display = 'none';
+                    }
+                </script>
                 @endif
 
             </div>

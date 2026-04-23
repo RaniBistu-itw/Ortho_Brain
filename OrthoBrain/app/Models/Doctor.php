@@ -64,6 +64,45 @@ class Doctor extends Model
         return $this->hasMany(Practice::class, 'owner_id');
     }
 
+    public function practices()
+    {
+        return $this->belongsToMany(Practice::class, 'doctor_practice')
+            ->withPivot([
+                'id',
+                'approval_status',
+                'is_primary',
+                'requested_at',
+                'approved_at',
+                'approved_by_admin_id',
+                'rejected_at',
+                'rejection_reason',
+                'left_at',
+            ])
+            ->withTimestamps();
+    }
+
+    public function activePractices()
+    {
+        return $this->practices()->wherePivot('approval_status', 'APPROVED');
+    }
+
+    public function pendingPractices()
+    {
+        return $this->practices()->wherePivot('approval_status', 'PENDING');
+    }
+
+    public function rejectedPractices()
+    {
+        return $this->practices()->wherePivot('approval_status', 'REJECTED');
+    }
+
+    public function primaryPractice()
+    {
+        return $this->practices()
+            ->wherePivot('approval_status', 'APPROVED')
+            ->wherePivot('is_primary', true);
+    }
+
     public function approverAdmin()
     {
         return $this->belongsTo(Admin::class, 'approved_by_admin_id');
