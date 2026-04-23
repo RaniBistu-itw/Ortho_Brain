@@ -81,16 +81,30 @@ class Doctor extends Model
             ->withTimestamps();
     }
 
+    /**
+     * Practices the doctor can actually USE right now.
+     * Gate is the practice's global status (ACTIVE) — admin controls this from
+     * /admin/practices. The pivot's approval_status is no longer load-bearing
+     * for gating, only for audit/history.
+     */
     public function activePractices()
     {
-        return $this->practices()->wherePivot('approval_status', 'APPROVED');
+        return $this->practices()->where('practices.status', 'ACTIVE');
     }
 
+    /**
+     * Practices the doctor has registered against but admin has not yet activated.
+     * Drives the "awaiting admin approval" UI on the doctor side.
+     */
     public function pendingPractices()
     {
-        return $this->practices()->wherePivot('approval_status', 'PENDING');
+        return $this->practices()->where('practices.status', 'INACTIVE');
     }
 
+    /**
+     * Kept for the profile UI's "Rejected" group. Stale data only; the new model
+     * doesn't produce REJECTED links anymore — admin deactivates instead.
+     */
     public function rejectedPractices()
     {
         return $this->practices()->wherePivot('approval_status', 'REJECTED');
@@ -99,7 +113,7 @@ class Doctor extends Model
     public function primaryPractice()
     {
         return $this->practices()
-            ->wherePivot('approval_status', 'APPROVED')
+            ->where('practices.status', 'ACTIVE')
             ->wherePivot('is_primary', true);
     }
 
