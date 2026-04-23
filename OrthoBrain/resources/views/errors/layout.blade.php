@@ -87,7 +87,12 @@
             align-items: center;
             gap: 0.75rem;
         }
-        .brandbar img { height: 36px; width: auto; }
+        .brand-mark {
+            width: 40px; height: 36px;
+            flex: 0 0 auto;
+            color: var(--ob-cyan);
+        }
+        .brand-mark svg { width: 100%; height: 100%; display: block; }
         .brand-text { font-size: 1.1rem; font-weight: 600; letter-spacing: -0.01em; line-height: 1; }
         .brand-ortho { color: var(--ob-cyan); }
         .brand-brain { color: var(--ob-green); }
@@ -277,9 +282,64 @@
             50%     { transform: translate(8px,-12px); }
         }
 
+        /* ── Illustration variant (used by 404 / 503 to lead with a friendly graphic
+               instead of the bare status number) ───────────────────────────── */
+        .err-illustration {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 0.1s;
+        }
+        .err-illustration svg { width: 100%; height: auto; max-height: 240px; display: block; }
+
+        .err-code-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.3rem 0.75rem 0.3rem 0.6rem;
+            background: #fff;
+            border: 1px solid #e2e4ec;
+            color: var(--ob-muted);
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 0.9rem;
+            box-shadow: 0 2px 6px rgba(24, 28, 40, 0.04);
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 0.15s;
+        }
+        .err-code-pill::before {
+            content: '';
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--ob-cyan);
+            box-shadow: 0 0 0 3px rgba(91, 192, 222, 0.18);
+        }
+        .err-code-pill.tone-warning::before {
+            background: var(--ob-warning);
+            box-shadow: 0 0 0 3px rgba(255, 159, 67, 0.2);
+            animation: pulseDot 1.6s ease-in-out infinite;
+        }
+        .err-code-pill.tone-danger::before {
+            background: var(--ob-danger);
+            box-shadow: 0 0 0 3px rgba(234, 84, 85, 0.2);
+        }
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1);   box-shadow: 0 0 0 3px rgba(255, 159, 67, 0.2); }
+            50%      { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(255, 159, 67, 0.12); }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .orb, .err-number > span, .err-orbit, .err-orbit .orbiter,
-            .err-dot, .err-title, .err-sub, .err-actions, .err-support {
+            .err-dot, .err-title, .err-sub, .err-actions, .err-support,
+            .err-illustration, .err-code-pill, .err-illustration * {
                 animation: none !important;
                 opacity: 1 !important;
             }
@@ -295,7 +355,13 @@
 
     <header class="brandbar">
         <a href="{{ url('/') }}" style="text-decoration:none; display:flex; align-items:center; gap:.75rem;">
-            <img src="{{ asset('vuexy/images/logo/logo.svg') }}" alt="orthobrain" onerror="this.style.display='none'">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 64 64" fill="none" stroke="#b8b8b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M32 12c-3.5 0-5.5 2-5.5 4 0 2-2 4-4.5 4-4.5 0-7 3-7 7.5 0 2.5-2 4-3 6-1.5 3.5 1 7 4 7 1 0 2 1 2 2.5 0 3.5 3.5 5.5 6.5 5.5 2 0 3-1.5 4.5-3 2-2 5.5-2 7.5 0 1.5 1.5 2.5 3 4.5 3 3 0 6.5-2 6.5-5.5 0-1.5 1-2.5 2-2.5 3 0 5.5-3.5 4-7-1-2-3-3.5-3-6 0-4.5-2.5-7.5-7-7.5-2.5 0-4.5-2-4.5-4 0-2-2-4-5.5-4z" fill="#ffffff"/>
+                    <path d="M32 16v18M23 26c2 1 2 5 0 7M41 26c-2 1-2 5 0 7"/>
+                    <path d="M30 46 l-4 8 h6 l-2 6 8-10 h-6 z" fill="#b8b8b8" stroke="none"/>
+                </svg>
+            </span>
             <div>
                 <div class="brand-text">
                     <span class="brand-ortho">ortho</span><span class="brand-brain">brain</span><span class="brand-tm">&trade;</span>
@@ -312,27 +378,38 @@
             <span class="err-dot err-dot--3"></span>
             <span class="err-dot err-dot--4"></span>
 
-            <div class="err-number" aria-label="@yield('page_code', 'Error')">
-                <span class="digit first">@yield('digit_first')</span>
-                <span class="err-orbit" aria-hidden="true">
-                    <svg viewBox="0 0 120 120" fill="none">
-                        <defs>
-                            <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0%" stop-color="#5bc0de"/>
-                                <stop offset="100%" stop-color="#8cc63f"/>
-                            </linearGradient>
-                        </defs>
-                        <circle cx="60" cy="60" r="46" stroke="url(#ringGrad)" stroke-width="14" fill="none"
-                                stroke-linecap="round" stroke-dasharray="260 40" stroke-dashoffset="0">
-                            <animate attributeName="stroke-dashoffset" from="0" to="-300" dur="6s" repeatCount="indefinite"/>
-                        </circle>
-                    </svg>
-                    <span class="orbiter @yield('orbiter_tone', 'orbiter--cyan')" aria-hidden="true">
-                        @yield('orbiter_icon')
+            @hasSection('illustration')
+                <div class="err-illustration" aria-hidden="true">
+                    @yield('illustration')
+                </div>
+                <div>
+                    <span class="err-code-pill @yield('code_pill_tone', '')">
+                        Status @yield('page_code', 'Error') · @yield('code_pill_label', 'Something went wrong')
                     </span>
-                </span>
-                <span class="digit last">@yield('digit_last')</span>
-            </div>
+                </div>
+            @else
+                <div class="err-number" aria-label="@yield('page_code', 'Error')">
+                    <span class="digit first">@yield('digit_first')</span>
+                    <span class="err-orbit" aria-hidden="true">
+                        <svg viewBox="0 0 120 120" fill="none">
+                            <defs>
+                                <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stop-color="#5bc0de"/>
+                                    <stop offset="100%" stop-color="#8cc63f"/>
+                                </linearGradient>
+                            </defs>
+                            <circle cx="60" cy="60" r="46" stroke="url(#ringGrad)" stroke-width="14" fill="none"
+                                    stroke-linecap="round" stroke-dasharray="260 40" stroke-dashoffset="0">
+                                <animate attributeName="stroke-dashoffset" from="0" to="-300" dur="6s" repeatCount="indefinite"/>
+                            </circle>
+                        </svg>
+                        <span class="orbiter @yield('orbiter_tone', 'orbiter--cyan')" aria-hidden="true">
+                            @yield('orbiter_icon')
+                        </span>
+                    </span>
+                    <span class="digit last">@yield('digit_last')</span>
+                </div>
+            @endif
 
             <h1 class="err-title">@yield('error_title')</h1>
             <p class="err-sub">@yield('error_sub')</p>

@@ -54,6 +54,13 @@
                 </a>
             </li>
 
+            <li class="nav-item {{ $active('admin.practices.*') }}">
+                <a href="{{ route('admin.practices.index') }}" class="d-flex align-items-center">
+                    <i data-feather="briefcase"></i>
+                    <span class="menu-title text-truncate">Practices</span>
+                </a>
+            </li>
+
             <li class="navigation-header ob-section-head" data-ob-section="manage-types">
                 <span>Manage Types</span>
                 <svg class="ob-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>

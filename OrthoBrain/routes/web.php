@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DoctorController as AdminDoctorController;
+use App\Http\Controllers\Admin\PracticeController as AdminPracticeController;
 use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductSubcategoryController;
@@ -135,6 +136,10 @@ Route::middleware(['web', 'admin'])
         Route::post('doctors/{doctor}/reject',     [AdminDoctorController::class, 'reject'])->name('doctors.reject');
         Route::post('doctors/{doctor}/suspend',    [AdminDoctorController::class, 'suspend'])->name('doctors.suspend');
         Route::post('doctors/{doctor}/reactivate', [AdminDoctorController::class, 'reactivate'])->name('doctors.reactivate');
+
+        // Admin Practices — read-only list + detail (no add)
+        Route::resource('practices', AdminPracticeController::class)
+            ->only(['index', 'show']);
 
         // Countries — AJAX drawer endpoints (must precede resource)
         Route::post('countries/ajax', [CountryController::class, 'ajaxStore'])
