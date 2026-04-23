@@ -402,6 +402,32 @@ body #ob-dash .ob-hero .ob-hero-sub     { color: rgba(255,255,255,.72) !importan
 .dark-layout .ob-mini-tiles    { border-top-color: rgba(255,255,255,.08); }
 .dark-layout .ob-qa-btn        { background: #3b4253; border-color: rgba(255,255,255,.08); color: #d0d2d6; }
 .dark-layout .ob-qa-btn:hover  { background: #0EA5C5; border-color: #0EA5C5; color: #fff; }
+/* ── Half-globe decoration ── */
+.ob-cov-globe-wrap {
+    position: relative;
+    width: 100%;
+    height: 160px;
+    overflow: hidden;
+    margin-top: 0.75rem;
+}
+.ob-cov-globe-wrap canvas {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: block;
+}
+.ob-cov-globe-fade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom,
+        rgba(15,23,42,1) 0%,
+        rgba(15,23,42,0.7) 25%,
+        rgba(15,23,42,0) 65%
+    );
+    pointer-events: none;
+    z-index: 2;
+}
 </style>
 @endpush
 
@@ -632,8 +658,13 @@ body #ob-dash .ob-hero .ob-hero-sub     { color: rgba(255,255,255,.72) !importan
                             </div>
                         </a>
                     @endforeach
+                </div>{{-- /.ob-cov-grid --}}
+                {{-- Half Globe --}}
+                <div class="ob-cov-globe-wrap">
+                    <canvas id="ob-half-globe" width="380" height="300"></canvas>
+                    <div class="ob-cov-globe-fade"></div>
                 </div>
-            </div>
+            </div>{{-- /.ob-coverage --}}
         </div>
 
     </div>
@@ -708,6 +739,115 @@ body #ob-dash .ob-hero .ob-hero-sub     { color: rgba(255,255,255,.72) !importan
         requestAnimationFrame(step);
     }
     document.querySelectorAll('[data-count-to]').forEach(animateCount);
+})();
+
+/// ── Half Globe ────────────────────────────────────────────
+// ── Half Globe ────────────────────────────────────────────
+(function () {
+    var canvas = document.getElementById('ob-half-globe');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W = 380, H = 300, cx = 190, cy = 300, R = 220;
+    var C = 'rgba(14,165,197,';
+    var rotY = 0;
+
+    function project(lat, lon) {
+        // lat: -PI/2 to PI/2, lon: 0 to 2PI
+        var cosLat = Math.cos(lat), sinLat = Math.sin(lat);
+        var cosLon = Math.cos(lon + rotY), sinLon = Math.sin(lon + rotY);
+        // 3D coords on unit sphere
+        var x = cosLat * sinLon;
+        var y = sinLat;
+        var z = cosLat * cosLon;
+        // Simple orthographic projection
+        return {
+            sx: cx + x * R,
+            sy: cy - y * R,
+            z: z   // positive = facing viewer
+        };
+    }
+
+    function drawArc(latOrLon, isLat) {
+        var steps = 120;
+        var firstVisible = true;
+        ctx.beginPath();
+        for (var i = 0; i <= steps; i++) {
+            var lat, lon;
+            if (isLat) {
+                lat = latOrLon;
+                lon = (i / steps) * 2 * Math.PI;
+            } else {
+                lat = (i / steps) * Math.PI - Math.PI / 2; // -90 to +90
+                lon = latOrLon;
+            }
+            var p = project(lat, lon);
+            // Only draw front-facing hemisphere
+            if (p.z < 0) { firstVisible = true; continue; }
+            // Only draw upper half (sy <= cy, i.e. above center)
+            if (p.sy > cy) { firstVisible = true; continue; }
+            // Clip to canvas
+            if (p.sy < 0 || p.sx < 0 || p.sx > W) { firstVisible = true; continue; }
+            if (firstVisible) { ctx.moveTo(p.sx, p.sy); firstVisible = false; }
+            else ctx.lineTo(p.sx, p.sy);
+        }
+        ctx.stroke();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        // Latitude rings
+        ctx.lineWidth = 0.7;
+        ctx.strokeStyle = C + '0.25)';
+        for (var lat = 0; lat <= 80; lat += 18) {
+            drawArc(lat * Math.PI / 180, true);
+        }
+
+        // Equator brighter
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = C + '0.65)';
+        drawArc(0, true);
+
+        // Longitude meridians
+        ctx.lineWidth = 0.7;
+        ctx.strokeStyle = C + '0.25)';
+        for (var lon = 0; lon < 360; lon += 20) {
+            drawArc(lon * Math.PI / 180, false);
+        }
+
+        // Glowing dots at intersections
+        for (var la = 0; la <= 72; la += 18) {
+            for (var lo = 0; lo < 360; lo += 20) {
+                var p = project(la * Math.PI / 180, lo * Math.PI / 180);
+                if (p.z < 0.05 || p.sy > cy || p.sy < 0) continue;
+                var brightness = p.z;
+                var distFromEdge = Math.min(p.sy / cy, 1);
+                ctx.beginPath();
+                ctx.arc(p.sx, p.sy, 1.8, 0, Math.PI * 2);
+                ctx.fillStyle = C + (0.2 + brightness * 0.7) * distFromEdge + ')';
+                ctx.fill();
+            }
+        }
+
+        // Horizon glow line at equator bottom
+        var grad = ctx.createLinearGradient(cx - R, 0, cx + R, 0);
+        grad.addColorStop(0,   C + '0)');
+        grad.addColorStop(0.3, C + '0.4)');
+        grad.addColorStop(0.5, C + '0.7)');
+        grad.addColorStop(0.7, C + '0.4)');
+        grad.addColorStop(1,   C + '0)');
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, R, R * 0.18, 0, Math.PI, 2 * Math.PI);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+
+    (function loop() {
+        rotY += 0.005;
+        draw();
+        requestAnimationFrame(loop);
+    })();
 })();
 </script>
 @endpush
