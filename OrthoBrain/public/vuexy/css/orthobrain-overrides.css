@@ -64,7 +64,7 @@
 /* Let the navbar-header grow so the brand tagline isn't clipped, and push
    the nav list down so Dashboard doesn't butt up against the logo. */
 .main-menu .navbar-header { height: auto !important; min-height: 5.25rem; padding-bottom: 0.75rem; }
-.main-menu .main-menu-content { padding-top: 0.5rem; }
+.main-menu .main-menu-content { padding-bottom: 0 !important; }
 
 /* Collapsible section headers (Manage Types, Locations) — clickable with
    a chevron that rotates when the section is collapsed. Chevron sits
@@ -591,6 +591,140 @@ p, label, .card-text { color: #1f1f1f; }
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
     pointer-events: none;
 }
+
+/* ════════════════════════════════════════════════════════════
+   GENTLE MEDICAL SIDEBAR  —  Soft Sky-Blue Palette
+   Inspired by clean dental/medical UI (light mode only).
+   Dark mode keeps the standard Vuexy dark sidebar but with
+   a cooler blue-navy tint.
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Container ─────────────────────────────────────────────── */
+body:not(.dark-layout) .main-menu {
+    background: #ffffff !important;
+    border-right: 1px solid rgba(14,165,197,.15) !important;
+    box-shadow: 3px 0 20px rgba(14,80,140,.08) !important;
+}
+body:not(.dark-layout) .main-menu .shadow-bottom {
+    background: linear-gradient(
+        rgba(255,255,255,1) 44%,
+        rgba(255,255,255,.5) 73%,
+        rgba(255,255,255,0)
+    ) !important;
+}
+body:not(.dark-layout) .main-menu .main-menu-content,
+body:not(.dark-layout) .main-menu .ps-container { background: transparent !important; }
+
+/* ── Brand / header area ───────────────────────────────────── */
+body:not(.dark-layout) .main-menu .navbar-header {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(14,165,197,.13) !important;
+}
+body:not(.dark-layout) .main-menu .navbar-brand .brand-ortho { color: #0EA5C5 !important; }
+body:not(.dark-layout) .main-menu .navbar-brand .brand-brain { color: #16A34A !important; }
+body:not(.dark-layout) .main-menu .navbar-brand .brand-tm    { color: #16A34A !important; }
+body:not(.dark-layout) .main-menu .navbar-brand .brand-tagline { color: #7AAEC8 !important; }
+
+/* ── Section headers (USERS, MANAGE TYPES, LOCATIONS) ─────── */
+body:not(.dark-layout) .main-menu .navigation-header span {
+    color: #7AAABF !important;
+    font-size: .64rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 1.1px !important;
+    text-transform: uppercase !important;
+}
+body:not(.dark-layout) .main-menu .navigation-header.ob-section-head { color: #7AAABF !important; }
+body:not(.dark-layout) .main-menu .navigation-header.ob-section-head .ob-chevron { stroke: #7AAABF !important; }
+
+/* ── All nav links — base reset ────────────────────────────── */
+body:not(.dark-layout) .main-menu .navigation > li > a {
+    margin: 2px 10px !important;
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+    color: #1A3B5E !important;
+    font-size: .875rem !important;
+    font-weight: 500 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transition: background .18s ease, color .18s ease !important;
+}
+
+/* Feather SVG icons */
+body:not(.dark-layout) .main-menu .navigation > li > a svg {
+    stroke: #4E82A8 !important;
+    width: 17px !important;
+    height: 17px !important;
+}
+body:not(.dark-layout) .main-menu .navigation > li > a .menu-title {
+    color: #1A3B5E !important;
+    font-size: .875rem !important;
+}
+
+/* ── Hover ──────────────────────────────────────────────────── */
+body:not(.dark-layout) .main-menu .navigation > li:not(.active) > a:hover {
+    background: rgba(14,165,197,.1) !important;
+    color: #0A6E8A !important;
+}
+body:not(.dark-layout) .main-menu .navigation > li:not(.active) > a:hover svg {
+    stroke: #0EA5C5 !important;
+}
+body:not(.dark-layout) .main-menu .navigation > li:not(.active) > a:hover .menu-title {
+    color: #0A6E8A !important;
+}
+
+/* ── Active ─────────────────────────────────────────────────── */
+body:not(.dark-layout) .main-menu .navigation > li.active > a {
+    background: rgba(14,165,197,.17) !important;
+    color: #0A6E8A !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 14px rgba(14,165,197,.18) !important;
+}
+body:not(.dark-layout) .main-menu .navigation > li.active > a svg { stroke: #0EA5C5 !important; }
+body:not(.dark-layout) .main-menu .navigation > li.active > a .menu-title { color: #0A6E8A !important; }
+
+/* Remove Vuexy's default active accent strip pseudo-element */
+body:not(.dark-layout) .main-menu .navigation > li.active > a::before,
+body:not(.dark-layout) .main-menu .navigation > li.active > a::after { display: none !important; }
+
+/* ── Dark mode sidebar — cooler blue-navy ──────────────────── */
+body.dark-layout .main-menu {
+    background: linear-gradient(185deg, #172238 0%, #1E2E45 100%) !important;
+    border-right: 1px solid rgba(14,165,197,.1) !important;
+}
+body.dark-layout .main-menu .navigation-header span { color: rgba(14,165,197,.55) !important; }
+body.dark-layout .main-menu .navigation > li.active > a {
+    background: rgba(14,165,197,.2) !important;
+    box-shadow: 0 4px 14px rgba(14,165,197,.15) !important;
+}
+body.dark-layout .main-menu .navigation > li.active > a svg { stroke: #0EA5C5 !important; }
+body.dark-layout .main-menu .navigation > li:not(.active) > a:hover {
+    background: rgba(14,165,197,.12) !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   SIDEBAR FOOTER — quote
+   ════════════════════════════════════════════════════════════ */
+
+.main-menu .main-menu-content { padding-bottom: 64px !important; }
+
+.ob-sb-foot {
+    position: absolute;
+    bottom: 20px; left: 0; right: 0;
+    padding: 0 1.1rem;
+    background: #ffffff;
+    z-index: 10;
+}
+.ob-sb-quote {
+    margin: 0;
+    font-size: .71rem;
+    font-style: italic;
+    color: #8BBBD4;
+    line-height: 1.5;
+    text-align: center;
+    font-weight: 500;
+}
+
+body.dark-layout .ob-sb-quote { color: rgba(14,165,197,.35); }
 
 /* ────────────────────────────────────────────────────────────
    Show view — read-only gallery
