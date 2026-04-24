@@ -75,6 +75,17 @@
     </button>
   @endif
 
+  {{-- Hover-to-remove overlay — only when tile has content --}}
+  <button type="button"
+          class="media-tile__remove-btn"
+          x-show="tiles['{{ $tileId }}'].filled"
+          @click.stop="removeTile('{{ $tileId }}')"
+          aria-label="Remove {{ $poseLabel }}"
+          title="Remove {{ $poseLabel }}"
+          style="display:none;">
+    <i data-feather="x"></i>
+  </button>
+
   {{-- Hidden file input — triggered programmatically on empty-tile click --}}
   <input type="file"
          id="tile-file-{{ $tileId }}"

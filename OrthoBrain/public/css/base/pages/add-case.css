@@ -1212,3 +1212,88 @@
   background-color: var(--ob-surface-2);
   border-color: var(--ob-border);
 }
+
+/* ── Hover-to-remove overlay on filled media tiles ─────────────────────── */
+.media-tile__remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 4;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--ob-danger, #EA5455);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.85);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+.media-tile__remove-btn svg,
+.media-tile__remove-btn i {
+  width: 16px;
+  height: 16px;
+  stroke-width: 3;
+}
+.media-tile:hover .media-tile__remove-btn,
+.media-tile:focus-within .media-tile__remove-btn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+.media-tile__remove-btn:hover,
+.media-tile__remove-btn:focus {
+  filter: brightness(0.92);
+  outline: none;
+}
+
+/* ── Shared undo-toast for tile removal ────────────────────────────────── */
+.media-undo-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1090;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem 0.6rem 1rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #fff;
+  font-size: 0.85rem;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.media-undo-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.media-undo-toast__label {
+  white-space: nowrap;
+}
+.media-undo-toast__undo {
+  background: transparent;
+  border: none;
+  color: var(--ob-primary, #3B82F6);
+  font-weight: 600;
+  padding: 0.15rem 0.35rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 0.8rem;
+}
+.media-undo-toast__undo:hover,
+.media-undo-toast__undo:focus {
+  text-decoration: underline;
+  outline: none;
+}

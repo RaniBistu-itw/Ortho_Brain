@@ -30,7 +30,7 @@
 
     {{-- Intro text --}}
     <p class="text-muted small mb-1">
-      Please drag and drop files from your computer onto the template, or click each photo to upload the corresponding patient photo. Maximum upload size is 20MB. Files should be formatted as png, gif, jpeg, jpg, tiff, bmp, heic.
+      Please drag and drop files from your computer onto the template, or click each photo to upload the corresponding patient photo.
     </p>
 
     {{-- Date of Photos --}}
@@ -92,6 +92,9 @@
              multiple
              accept="image/png,image/gif,image/jpeg,image/tiff,image/bmp,image/heic"
              @change="onBulkInputChange()">
+      <div class="text-muted small mt-50">
+        Maximum upload size is 5MB. Files should be formatted as png, gif, jpeg, jpg, tiff, bmp, heic.
+      </div>
     </div>
 
     {{-- Camera capture modal (live webcam → snap → fed into _processFile) --}}

@@ -151,37 +151,6 @@
     .doc-nav__user-head-name { font-weight: 700; color: #111827; font-size: 0.95rem; line-height: 1.2; }
     .doc-nav__user-head-sub  { font-size: 0.78rem; color: #6b7280; line-height: 1.3; margin-top: 0.15rem; word-break: break-all; }
 
-    /* Theme toggle row */
-    .doc-nav__theme-row {
-        display: flex; align-items: center; gap: 0.6rem;
-        padding: 0.55rem 1rem;
-        font-size: 0.88rem;
-        color: #374151;
-        cursor: pointer;
-    }
-    .doc-nav__theme-row:hover { background: #f3f4f6; }
-    .doc-nav__theme-row i { width: 16px; color: #6b7280; }
-    .doc-nav__theme-switch {
-        margin-left: auto;
-        width: 30px; height: 18px;
-        border-radius: 999px;
-        background: #e5e7eb;
-        position: relative;
-        transition: background 0.15s ease;
-    }
-    .doc-nav__theme-switch::after {
-        content: '';
-        position: absolute;
-        top: 2px; left: 2px;
-        width: 14px; height: 14px;
-        background: #fff;
-        border-radius: 50%;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        transition: transform 0.15s ease;
-    }
-    html[data-theme="dark"] .doc-nav__theme-switch { background: #5bc0de; }
-    html[data-theme="dark"] .doc-nav__theme-switch::after { transform: translateX(12px); }
-
     /* Switcher + notifications specific */
     .doc-nav__switcher-active {
         display: flex; align-items: flex-start; gap: 0.55rem;
@@ -230,24 +199,28 @@
         flex-shrink: 0;
         box-shadow: 0 0 0 2px #fff, 0 0 8px rgba(91, 192, 222, 0.4);
     }
-    .doc-nav__notif-close {
-        position: absolute;
-        top: 50%; right: 0.6rem;
-        transform: translateY(-50%);
-        width: 26px; height: 26px;
-        border: 0; background: transparent;
-        border-radius: 6px;
-        color: #94a3b8;
-        display: inline-flex; align-items: center; justify-content: center;
-        font-size: 0.85rem;
-        cursor: pointer;
-        z-index: 2;
-        transition: all 0.2s ease;
+
+    /* Dark-mode overrides */
+    html[data-theme="dark"] .doc-nav {
+        background: #1f2a37;
+        border-color: #374151;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
-    .doc-nav__notif-close:hover { background: #fee2e2; color: #ef4444; }
-    
-    html[data-theme="dark"] .doc-nav__notif-item { background: #1f2937; border-bottom-color: #374151; border-left-color: #5bc0de; color: #e2e8f0; }
-    html[data-theme="dark"] .doc-nav__notif-item.is-read { background: #111827; border-left-color: transparent; }
+    html[data-theme="dark"] .doc-nav__icon-btn { color: #9ca3af; }
+    html[data-theme="dark"] .doc-nav__icon-btn:hover { background: #374151; color: #fff; }
+    html[data-theme="dark"] .doc-nav__user-btn { color: #e5e7eb; }
+    html[data-theme="dark"] .doc-nav__user-btn:hover { background: #374151; border-color: #4b5563; color: #fff; }
+    html[data-theme="dark"] .doc-nav .dropdown-menu {
+        background: #1f2a37;
+        border-color: #374151;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    }
+    html[data-theme="dark"] .doc-nav .dropdown-menu .dropdown-item { color: #e5e7eb; }
+    html[data-theme="dark"] .doc-nav .dropdown-menu .dropdown-item:hover { background: #374151; color: #fff; }
+    html[data-theme="dark"] .doc-nav__user-head-name { color: #f3f4f6; }
+    html[data-theme="dark"] .doc-nav__user-head-sub { color: #9ca3af; }
+    html[data-theme="dark"] .doc-nav .dropdown-menu .dropdown-divider { border-color: #374151; }
+    html[data-theme="dark"] .doc-nav__notif-item { color: #e5e7eb; }
     html[data-theme="dark"] .doc-nav__notif-item:hover { background: #374151; }
     html[data-theme="dark"] .doc-nav__notif-title { color: #f1f5f9; }
     html[data-theme="dark"] .doc-nav__notif-body { color: #94a3b8; }
@@ -303,6 +276,11 @@
     @endif
 
     <div class="doc-nav__spacer"></div>
+
+    {{-- Theme toggle --}}
+    <a class="doc-nav__icon-btn" href="#" data-theme-toggle title="Toggle dark / light mode" aria-label="Toggle dark mode">
+        <i class="bi bi-moon" data-theme-toggle-icon></i>
+    </a>
 
     {{-- Help --}}
     <a class="doc-nav__icon-btn" href="{{ route('doctor.help.index') }}" title="Help &amp; FAQ" aria-label="Help">
@@ -423,12 +401,6 @@
             </a>
             <a class="dropdown-item" href="{{ route('doctor.profile.settings') }}">
                 <i class="bi bi-key"></i>Change Password
-            </a>
-            <div class="dropdown-divider"></div>
-            <a href="#" class="doc-nav__theme-row" data-theme-toggle aria-label="Toggle dark mode">
-                <i class="bi bi-moon" data-theme-toggle-icon></i>
-                <span>Dark mode</span>
-                <span class="doc-nav__theme-switch" aria-hidden="true"></span>
             </a>
             <div class="dropdown-divider"></div>
             <form method="POST" action="{{ route('logout') }}" class="m-0">
