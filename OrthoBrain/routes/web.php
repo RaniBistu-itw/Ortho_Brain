@@ -20,6 +20,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CasesController;
 use App\Http\Controllers\DashboardController as DoctorDashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PracticeController;
 use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\ProfileController;
@@ -60,6 +61,14 @@ Route::middleware(['web', 'auth'])
 
         // Doctor dashboard (landing page after login)
         Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
+
+        // Notifications — bell dropdown + "View All" modal actions
+        Route::get('/notifications',                  [NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/read-all',        [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+        Route::delete('/notifications',               [NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
+        Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+        Route::delete('/notifications/{notification}',    [NotificationController::class, 'destroy'])->name('notifications.destroy');
+        Route::delete('/notifications/pending/{link}',    [NotificationController::class, 'cancelPending'])->name('notifications.pending.cancel');
 
         // Legacy route — kept as a redirect to the real list.
         Route::redirect('/cases/list', '/dev/cases')->name('cases.list');

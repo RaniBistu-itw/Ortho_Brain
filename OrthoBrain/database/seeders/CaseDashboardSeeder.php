@@ -27,32 +27,47 @@ class CaseDashboardSeeder extends Seeder
      *
      * Chosen to exercise every dashboard widget:
      *   - all 5 status counts non-zero
-     *   - 2 stale DRAFTs (>3 days) to fire the stale-draft alert
-     *   - created_at spread across the last 14 days for the pulse sparkline
+     *   - 3 stale DRAFTs (>3 days) to fire the stale-draft alert
+     *   - created_at spread across the last 30 days (14 days' worth of dense
+     *     activity for the pulse sparkline + older cases for longitudinal charts)
      *   - REJECTED + APPROVED present for focus items & alerts
      */
     private const CASE_MIX = [
-        ['D-001', 'DRAFT',     12, 10, null],
-        ['D-002', 'DRAFT',      9,  6, null],
-        ['D-003', 'DRAFT',      1,  0, null],
+        // DRAFT — 5 cases (3 stale, 2 fresh)
+        ['D-001', 'DRAFT',     20, 18, null],
+        ['D-002', 'DRAFT',     14, 10, null],
+        ['D-003', 'DRAFT',      8,  5, null],
+        ['D-004', 'DRAFT',      2,  1, null],
+        ['D-005', 'DRAFT',      1,  0, null],
 
-        ['S-001', 'SUBMITTED', 11,  8,  8],
-        ['S-002', 'SUBMITTED',  7,  5,  5],
-        ['S-003', 'SUBMITTED',  4,  2,  2],
-        ['S-004', 'SUBMITTED',  2,  1,  1],
+        // SUBMITTED — 6 cases
+        ['S-001', 'SUBMITTED', 24, 22, 22],
+        ['S-002', 'SUBMITTED', 18, 15, 15],
+        ['S-003', 'SUBMITTED', 12,  9,  9],
+        ['S-004', 'SUBMITTED',  7,  5,  5],
+        ['S-005', 'SUBMITTED',  3,  2,  2],
+        ['S-006', 'SUBMITTED',  1,  0,  0],
 
-        ['R-001', 'IN_REVIEW', 10,  4,  9],
-        ['R-002', 'IN_REVIEW',  6,  3,  5],
-        ['R-003', 'IN_REVIEW',  3,  1,  2],
+        // IN_REVIEW — 5 cases
+        ['R-001', 'IN_REVIEW', 22, 14, 20],
+        ['R-002', 'IN_REVIEW', 16,  8, 14],
+        ['R-003', 'IN_REVIEW', 10,  4,  8],
+        ['R-004', 'IN_REVIEW',  6,  2,  4],
+        ['R-005', 'IN_REVIEW',  2,  1,  1],
 
-        ['A-001', 'APPROVED',  13,  9, 12],
-        ['A-002', 'APPROVED',  10,  7,  9],
-        ['A-003', 'APPROVED',   8,  5,  7],
-        ['A-004', 'APPROVED',   5,  2,  4],
-        ['A-005', 'APPROVED',   2,  0,  1],
+        // APPROVED — 7 cases
+        ['A-001', 'APPROVED',  28, 25, 26],
+        ['A-002', 'APPROVED',  22, 18, 20],
+        ['A-003', 'APPROVED',  17, 13, 15],
+        ['A-004', 'APPROVED',  12,  9, 10],
+        ['A-005', 'APPROVED',   8,  5,  6],
+        ['A-006', 'APPROVED',   4,  2,  3],
+        ['A-007', 'APPROVED',   1,  0,  0],
 
-        ['X-001', 'REJECTED',   9,  6,  8],
-        ['X-002', 'REJECTED',   4,  1,  3],
+        // REJECTED — 3 cases
+        ['X-001', 'REJECTED',  19, 16, 17],
+        ['X-002', 'REJECTED',   9,  5,  7],
+        ['X-003', 'REJECTED',   3,  1,  2],
     ];
 
     public function run(): void
