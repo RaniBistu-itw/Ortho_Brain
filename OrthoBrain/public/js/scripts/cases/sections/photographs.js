@@ -544,7 +544,11 @@
         }.bind(this));
 
         if (files.length > emptyTiles.length) {
-          this.bulkError = 'You have ' + emptyTiles.length + ' empty slot(s) remaining, but selected ' + files.length + ' image(s). Please select ' + emptyTiles.length + ' or fewer.';
+          if (emptyTiles.length === 0) {
+            this.bulkError = 'All photo slots are filled. Remove or replace an existing photo before uploading more.';
+          } else {
+            this.bulkError = 'Only ' + emptyTiles.length + ' photo slot(s) remain — please select at most ' + emptyTiles.length + ' file(s), or remove existing photos first.';
+          }
           input.value = '';
           return;
         }

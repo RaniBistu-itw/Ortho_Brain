@@ -149,11 +149,31 @@
 @endsection
 
 @push('scripts')
+  @php
+    $activePractice = \App\Support\ActivePractice::get();
+    if ($activePractice) {
+        $activePractice->loadMissing('zipcode', 'city', 'state', 'country');
+    }
+    $activePracticeAddress = $activePractice ? [
+        'practiceName'   => $activePractice->name,
+        'streetAddress'  => $activePractice->street_address_1,
+        'streetAddress2' => $activePractice->street_address_2,
+        'zipId'          => $activePractice->zip_id,
+        'zipCode'        => $activePractice->zipcode?->code,
+        'cityId'         => $activePractice->city_id,
+        'city'           => $activePractice->city?->name,
+        'stateId'        => $activePractice->state_id,
+        'state'          => $activePractice->state?->name,
+        'countryId'      => $activePractice->country_id,
+        'country'        => $activePractice->country?->country_code,
+    ] : null;
+  @endphp
   <script>
     window.CASE_ID = '{{ $caseId ?? 'new' }}';
     window.__addCasePrefill = @json($prescriptionPrefill ?? null);
     window.CASE_API_BASE = @json($apiBase);
     window.CASE_ADMIN_MODE = @json((bool) $adminMode);
+    window.ACTIVE_PRACTICE_ADDRESS = @json($activePracticeAddress);
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
   {{-- Cropper.js v1 — required by the shared crop modal (Photographs + X-Rays). --}}
