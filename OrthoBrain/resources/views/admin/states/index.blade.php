@@ -52,6 +52,11 @@
     .st-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: #fafafa; }
     .st-drawer .form-label { font-weight: 500; }
     .st-drawer .select2-container--default .select2-selection--single { height: calc(2.4rem + 2px); padding: .3rem .4rem; }
+
+    /* Bulk-add drawer rows */
+    .st-bulk-row { display: grid; grid-template-columns: 1fr 120px 120px 36px; gap: .5rem; align-items: start; margin-bottom: .5rem; }
+    .st-bulk-row .st-bulk-remove { width: 36px; height: 38px; padding: 0; display: grid; place-items: center; }
+    .st-bulk-row__err { grid-column: 1 / -1; font-size: .78rem; color: #ea5455; margin-top: -.25rem; }
 </style>
 @endpush
 
@@ -115,6 +120,9 @@
             </form>
             <div class="st-toolbar__spacer"></div>
             <div class="st-toolbar__actions">
+                <button type="button" class="btn btn-outline-primary" id="stBulkOpen">
+                    <i data-feather="layers" class="me-25"></i> Bulk add
+                </button>
                 <button type="button" class="btn btn-primary" id="stDrawerOpen">
                     <i data-feather="plus" class="me-25"></i> Add State
                 </button>
@@ -249,6 +257,40 @@
     </div>
 </div>
 
+{{-- ── Bulk-add drawer ────────────────────────────────────────── --}}
+<div class="offcanvas offcanvas-end st-drawer" tabindex="-1" id="stBulkDrawer" aria-labelledby="stBulkTitle" style="width: min(640px, 100vw);">
+    <div class="offcanvas-header">
+        <div>
+            <h5 class="offcanvas-title mb-0" id="stBulkTitle">Bulk add states</h5>
+            <small class="text-muted">Pick a country, then add up to 50 states in one save.</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="mb-2">
+            <label class="form-label" for="stBulkCountry">Country<span class="text-danger">*</span></label>
+            <select id="stBulkCountry" class="form-select">
+                <option value="">Select country</option>
+                @foreach ($countries as $c)
+                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                @endforeach
+            </select>
+            <div class="invalid-feedback d-block" id="stBulkCountryErr"></div>
+        </div>
+        <div id="stBulkRows"></div>
+        <button type="button" class="btn btn-outline-primary btn-sm mt-1" id="stBulkAddRow">
+            <i data-feather="plus" style="width:14px;height:14px;"></i> Add another row
+        </button>
+    </div>
+    <div class="offcanvas-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Cancel</button>
+        <button type="button" class="btn btn-primary" id="stBulkSubmit">
+            <span class="st-bulk-label">Save all</span>
+            <span class="spinner-border spinner-border-sm d-none ms-25" role="status"></span>
+        </button>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 (function () {
@@ -264,6 +306,7 @@
     const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const ROUTES = {
         store: @json(route('admin.states.ajax.store')),
+        bulk:  @json(route('admin.states.ajax.bulk')),
     };
 
     const $tbody = $('#stTbody');
@@ -497,6 +540,148 @@
                 $btn.prop('disabled', false);
                 $btn.find('.spinner-border').addClass('d-none');
             });
+    });
+
+    // ── Bulk-add drawer ────────────────────────────────────────
+    const bulkEl = document.getElementById('stBulkDrawer');
+    const bulk   = new bootstrap.Offcanvas(bulkEl);
+    let bulkSelect2Ready = false;
+
+    function ensureBulkSelect2() {
+        if (bulkSelect2Ready) return;
+        window.obSearchable('#stBulkCountry', { dropdownParent: $(bulkEl) });
+        bulkSelect2Ready = true;
+    }
+
+    function buildBulkRow(name = '', code = '', status = 'ACTIVE') {
+        const $row = $(`
+            <div class="st-bulk-row">
+                <input type="text" class="form-control st-bulk-name" placeholder="State name" maxlength="100">
+                <input type="text" class="form-control st-bulk-code" placeholder="Code" maxlength="100">
+                <select class="form-select st-bulk-status">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <button type="button" class="btn btn-outline-danger st-bulk-remove" title="Remove row">
+                    <i data-feather="x" style="width:14px;height:14px;"></i>
+                </button>
+                <div class="st-bulk-row__err"></div>
+            </div>
+        `);
+        $row.find('.st-bulk-name').val(name);
+        $row.find('.st-bulk-code').val(code);
+        $row.find('.st-bulk-status').val(status);
+        return $row;
+    }
+
+    function resetBulk() {
+        ensureBulkSelect2();
+        const preCountry = $('#statesFilter select[name="country_id"]').val() || '';
+        $('#stBulkCountry').val(preCountry).trigger('change.select2');
+        $('#stBulkCountry').removeClass('is-invalid');
+        $('#stBulkCountryErr').text('');
+        $('#stBulkRows').empty()
+            .append(buildBulkRow())
+            .append(buildBulkRow());
+        if (window.feather) window.feather.replace();
+    }
+
+    $('#stBulkOpen').on('click', () => { resetBulk(); bulk.show(); });
+
+    $('#stBulkAddRow').on('click', () => {
+        const $r = buildBulkRow();
+        $('#stBulkRows').append($r);
+        if (window.feather) window.feather.replace();
+        $r.find('.st-bulk-name').trigger('focus');
+    });
+
+    $(document).on('click', '.st-bulk-remove', function () {
+        const $rows = $('#stBulkRows .st-bulk-row');
+        if ($rows.length <= 1) {
+            $(this).closest('.st-bulk-row').find('input').val('');
+            return;
+        }
+        $(this).closest('.st-bulk-row').remove();
+    });
+
+    $('#stBulkSubmit').on('click', function () {
+        const countryId = $('#stBulkCountry').val();
+        $('#stBulkCountry').removeClass('is-invalid');
+        $('#stBulkCountryErr').text('');
+        if (!countryId) {
+            $('#stBulkCountry').addClass('is-invalid').trigger('focus');
+            $('#stBulkCountryErr').text('Country is required.');
+            return;
+        }
+
+        const rows = [];
+        const $rowEls = $('#stBulkRows .st-bulk-row');
+        $rowEls.find('.st-bulk-row__err').text('');
+        $rowEls.find('input').removeClass('is-invalid');
+
+        let firstInvalid = null;
+        const markBad = ($row, $input, msg) => {
+            $input.addClass('is-invalid');
+            const $err = $row.find('.st-bulk-row__err');
+            $err.text($err.text() ? ($err.text() + ' ' + msg) : msg);
+            if (!firstInvalid) firstInvalid = $input;
+        };
+
+        $rowEls.each(function (i) {
+            const $row = $(this);
+            const name   = $row.find('.st-bulk-name').val().trim();
+            const code   = $row.find('.st-bulk-code').val().trim();
+            const status = $row.find('.st-bulk-status').val();
+
+            const hasAny = name || code;
+            if (!hasAny && i !== 0) return;
+
+            if (!name) markBad($row, $row.find('.st-bulk-name'), 'Name is required.');
+            if (!code) markBad($row, $row.find('.st-bulk-code'), 'Code is required.');
+            if (name && code) rows.push({ country_id: countryId, name, state_code: code, status });
+        });
+
+        if (firstInvalid) { firstInvalid.trigger('focus'); return; }
+        if (rows.length === 0) { toast('info', 'Add at least one state.'); return; }
+
+        const $btn = $('#stBulkSubmit').prop('disabled', true);
+        $btn.find('.spinner-border').removeClass('d-none');
+
+        $.ajax({
+            url: ROUTES.bulk,
+            method: 'POST',
+            data: { _token: CSRF, states: rows },
+            dataType: 'json'
+        })
+        .done((res) => {
+            if (!res || !res.ok) return;
+            res.states.forEach((s) => { insertRow(s); incrementStatsFor(s.status); });
+            toast('success', res.message);
+            bulk.hide();
+        })
+        .fail((xhr) => {
+            const errs = xhr.responseJSON?.errors || {};
+            const inputClass = { name: '.st-bulk-name', state_code: '.st-bulk-code', status: '.st-bulk-status' };
+            Object.keys(errs).forEach((key) => {
+                const m = key.match(/^states\.(\d+)\.(country_id|name|state_code|status)$/);
+                if (!m) return;
+                if (m[2] === 'country_id') {
+                    $('#stBulkCountry').addClass('is-invalid');
+                    $('#stBulkCountryErr').text(errs[key][0]);
+                    return;
+                }
+                const $row = $('#stBulkRows .st-bulk-row').eq(parseInt(m[1], 10));
+                if (!$row.length) return;
+                $row.find(inputClass[m[2]]).addClass('is-invalid');
+                const $err = $row.find('.st-bulk-row__err');
+                $err.text($err.text() ? ($err.text() + ' ' + errs[key][0]) : errs[key][0]);
+            });
+            toast('error', 'Please fix the highlighted rows.');
+        })
+        .always(() => {
+            $btn.prop('disabled', false);
+            $btn.find('.spinner-border').addClass('d-none');
+        });
     });
 
     if (window.feather) window.feather.replace();

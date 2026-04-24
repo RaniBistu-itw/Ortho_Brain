@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CountryRequest;
 use App\Models\Country;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class CountryController extends Controller
 {
@@ -67,6 +70,62 @@ class CountryController extends Controller
             'ok'      => true,
             'country' => $this->presentRow($country),
             'message' => 'Country updated.',
+        ]);
+    }
+
+    public function ajaxBulk(Request $request)
+    {
+        $payload = $request->input('countries', []);
+
+        $validator = Validator::make(['countries' => $payload], [
+            'countries'                => ['required', 'array', 'min:1', 'max:50'],
+            'countries.*.name'         => ['required', 'string', 'max:100'],
+            'countries.*.country_code' => ['required', 'string', 'max:10', Rule::unique('countries', 'country_code')->whereNull('deleted_at')],
+            'countries.*.phone_code'   => ['required', 'string', 'max:10'],
+            'countries.*.status'       => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+
+        // Catch duplicates within the same batch (server-side guard for the unique index).
+        $validator->after(function ($v) use ($payload) {
+            $seen = [];
+            foreach ($payload as $i => $row) {
+                $code = strtolower(trim($row['country_code'] ?? ''));
+                if ($code === '') continue;
+                if (isset($seen[$code])) {
+                    $v->errors()->add("countries.{$i}.country_code", 'Duplicate country code in this batch.');
+                }
+                $seen[$code] = true;
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json([
+                'ok'     => false,
+                'errors' => $validator->errors()->messages(),
+            ], 422);
+        }
+
+        $created = DB::transaction(function () use ($payload) {
+            $rows = [];
+            foreach ($payload as $row) {
+                $c = Country::create([
+                    'name'         => $row['name'],
+                    'country_code' => $row['country_code'],
+                    'phone_code'   => $row['phone_code'],
+                    'status'       => $row['status'],
+                ]);
+                $c->loadCount('states');
+                $rows[] = $c;
+            }
+            return $rows;
+        });
+
+        return response()->json([
+            'ok'        => true,
+            'countries' => array_map(fn ($c) => $this->presentRow($c), $created),
+            'message'   => count($created) === 1
+                ? 'Country created.'
+                : count($created) . ' countries created.',
         ]);
     }
 

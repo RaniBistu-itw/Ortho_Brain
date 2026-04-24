@@ -7,6 +7,9 @@ use App\Http\Requests\Admin\StateRequest;
 use App\Models\Country;
 use App\Models\State;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class StateController extends Controller
 {
@@ -74,6 +77,73 @@ class StateController extends Controller
             'ok'      => true,
             'state'   => $this->presentRow($state),
             'message' => 'State updated.',
+        ]);
+    }
+
+    public function ajaxBulk(Request $request)
+    {
+        $payload = $request->input('states', []);
+
+        $validator = Validator::make(['states' => $payload], [
+            'states'              => ['required', 'array', 'min:1', 'max:50'],
+            'states.*.country_id' => ['required', 'integer', Rule::exists('countries', 'id')->whereNull('deleted_at')],
+            'states.*.name'       => ['required', 'string', 'max:100'],
+            'states.*.state_code' => ['required', 'string', 'max:100'],
+            'states.*.status'     => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+
+        // state_code is unique per country — guard both within-batch and against existing rows.
+        $validator->after(function ($v) use ($payload) {
+            $seen = [];
+            foreach ($payload as $i => $row) {
+                $countryId = $row['country_id'] ?? null;
+                $code      = $row['state_code'] ?? '';
+                if (! $countryId || $code === '') continue;
+
+                $key = $countryId . '|' . strtolower(trim($code));
+                if (isset($seen[$key])) {
+                    $v->errors()->add("states.{$i}.state_code", 'Duplicate state code for this country in the batch.');
+                }
+                $seen[$key] = true;
+
+                $exists = State::where('country_id', $countryId)
+                    ->where('state_code', $code)
+                    ->whereNull('deleted_at')
+                    ->exists();
+                if ($exists) {
+                    $v->errors()->add("states.{$i}.state_code", 'A state with this code already exists for the selected country.');
+                }
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json([
+                'ok'     => false,
+                'errors' => $validator->errors()->messages(),
+            ], 422);
+        }
+
+        $created = DB::transaction(function () use ($payload) {
+            $rows = [];
+            foreach ($payload as $row) {
+                $s = State::create([
+                    'country_id' => $row['country_id'],
+                    'name'       => $row['name'],
+                    'state_code' => $row['state_code'],
+                    'status'     => $row['status'],
+                ]);
+                $s->loadMissing('country')->loadCount('cities');
+                $rows[] = $s;
+            }
+            return $rows;
+        });
+
+        return response()->json([
+            'ok'      => true,
+            'states'  => array_map(fn ($s) => $this->presentRow($s), $created),
+            'message' => count($created) === 1
+                ? 'State created.'
+                : count($created) . ' states created.',
         ]);
     }
 

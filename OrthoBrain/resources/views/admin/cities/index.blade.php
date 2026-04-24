@@ -53,6 +53,11 @@
     .ci-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: #fafafa; }
     .ci-drawer .form-label { font-weight: 500; }
     .ci-drawer .select2-container--default .select2-selection--single { height: calc(2.4rem + 2px); padding: .3rem .4rem; }
+
+    /* Bulk-add drawer rows */
+    .ci-bulk-row { display: grid; grid-template-columns: 1fr 140px 36px; gap: .5rem; align-items: start; margin-bottom: .5rem; }
+    .ci-bulk-row .ci-bulk-remove { width: 36px; height: 38px; padding: 0; display: grid; place-items: center; }
+    .ci-bulk-row__err { grid-column: 1 / -1; font-size: .78rem; color: #ea5455; margin-top: -.25rem; }
 </style>
 @endpush
 
@@ -124,6 +129,9 @@
             </form>
             <div class="ci-toolbar__spacer"></div>
             <div class="ci-toolbar__actions">
+                <button type="button" class="btn btn-outline-primary" id="ciBulkOpen">
+                    <i data-feather="layers" class="me-25"></i> Bulk add
+                </button>
                 <button type="button" class="btn btn-primary" id="ciDrawerOpen">
                     <i data-feather="plus" class="me-25"></i> Add City
                 </button>
@@ -261,6 +269,49 @@
     </div>
 </div>
 
+{{-- ── Bulk-add drawer ────────────────────────────────────────── --}}
+<div class="offcanvas offcanvas-end ci-drawer" tabindex="-1" id="ciBulkDrawer" aria-labelledby="ciBulkTitle" style="width: min(640px, 100vw);">
+    <div class="offcanvas-header">
+        <div>
+            <h5 class="offcanvas-title mb-0" id="ciBulkTitle">Bulk add cities</h5>
+            <small class="text-muted">Pick a country and state, then add up to 50 cities in one save.</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="row g-2 mb-2">
+            <div class="col-sm-6">
+                <label class="form-label" for="ciBulkCountry">Country<span class="text-danger">*</span></label>
+                <select id="ciBulkCountry" class="form-select">
+                    <option value="">Select country</option>
+                    @foreach ($countries as $c)
+                        <option value="{{ $c->id }}">{{ $c->name }}</option>
+                    @endforeach
+                </select>
+                <div class="invalid-feedback d-block" id="ciBulkCountryErr"></div>
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label" for="ciBulkState">State<span class="text-danger">*</span></label>
+                <select id="ciBulkState" class="form-select" disabled>
+                    <option value="">Select state</option>
+                </select>
+                <div class="invalid-feedback d-block" id="ciBulkStateErr"></div>
+            </div>
+        </div>
+        <div id="ciBulkRows"></div>
+        <button type="button" class="btn btn-outline-primary btn-sm mt-1" id="ciBulkAddRow">
+            <i data-feather="plus" style="width:14px;height:14px;"></i> Add another row
+        </button>
+    </div>
+    <div class="offcanvas-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Cancel</button>
+        <button type="button" class="btn btn-primary" id="ciBulkSubmit">
+            <span class="ci-bulk-label">Save all</span>
+            <span class="spinner-border spinner-border-sm d-none ms-25" role="status"></span>
+        </button>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 (function () {
@@ -281,6 +332,7 @@
     const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const ROUTES = {
         store:  @json(route('admin.cities.ajax.store')),
+        bulk:   @json(route('admin.cities.ajax.bulk')),
         states: @json(route('admin.ajax.states')),
     };
 
@@ -550,6 +602,176 @@
                 $btn.prop('disabled', false);
                 $btn.find('.spinner-border').addClass('d-none');
             });
+    });
+
+    // ── Bulk-add drawer ────────────────────────────────────────
+    const bulkEl = document.getElementById('ciBulkDrawer');
+    const bulk   = new bootstrap.Offcanvas(bulkEl);
+    let bulkSelect2Ready = false;
+
+    function ensureBulkSelect2() {
+        if (bulkSelect2Ready) return;
+        window.obSearchable('#ciBulkCountry', { dropdownParent: $(bulkEl) });
+        window.obSearchable('#ciBulkState',   { dropdownParent: $(bulkEl) });
+        bulkSelect2Ready = true;
+    }
+
+    function loadBulkStates(countryId, preselect) {
+        const $state = $('#ciBulkState');
+        if (!countryId) {
+            $state.prop('disabled', true)
+                  .empty()
+                  .append(new Option('Select state', ''))
+                  .val('')
+                  .trigger('change.select2');
+            return $.Deferred().resolve().promise();
+        }
+        $state.prop('disabled', true)
+              .empty()
+              .append(new Option('Loading…', ''))
+              .trigger('change.select2');
+        return $.getJSON(ROUTES.states, { country_id: countryId })
+            .done((items) => {
+                $state.empty().append(new Option('Select state', ''));
+                items.forEach((it) => $state.append(new Option(it.name, it.id)));
+                if (preselect) $state.val(String(preselect));
+                $state.prop('disabled', false).trigger('change.select2');
+            })
+            .fail(() => {
+                $state.empty().append(new Option('Failed to load', ''));
+            });
+    }
+
+    $('#ciBulkCountry').on('change', function () {
+        loadBulkStates($(this).val(), null);
+    });
+
+    function buildBulkRow(name = '', status = 'ACTIVE') {
+        const $row = $(`
+            <div class="ci-bulk-row">
+                <input type="text" class="form-control ci-bulk-name" placeholder="City name" maxlength="100">
+                <select class="form-select ci-bulk-status">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <button type="button" class="btn btn-outline-danger ci-bulk-remove" title="Remove row">
+                    <i data-feather="x" style="width:14px;height:14px;"></i>
+                </button>
+                <div class="ci-bulk-row__err"></div>
+            </div>
+        `);
+        $row.find('.ci-bulk-name').val(name);
+        $row.find('.ci-bulk-status').val(status);
+        return $row;
+    }
+
+    function resetBulk() {
+        ensureBulkSelect2();
+        const preCountry = $('#filter_country_id').val() || '';
+        const preState   = $('#filter_state_id').val() || '';
+        $('#ciBulkCountry').val(preCountry).trigger('change.select2');
+        $('#ciBulkCountry, #ciBulkState').removeClass('is-invalid');
+        $('#ciBulkCountryErr, #ciBulkStateErr').text('');
+        loadBulkStates(preCountry, preState);
+        $('#ciBulkRows').empty()
+            .append(buildBulkRow())
+            .append(buildBulkRow());
+        if (window.feather) window.feather.replace();
+    }
+
+    $('#ciBulkOpen').on('click', () => { resetBulk(); bulk.show(); });
+
+    $('#ciBulkAddRow').on('click', () => {
+        const $r = buildBulkRow();
+        $('#ciBulkRows').append($r);
+        if (window.feather) window.feather.replace();
+        $r.find('.ci-bulk-name').trigger('focus');
+    });
+
+    $(document).on('click', '.ci-bulk-remove', function () {
+        const $rows = $('#ciBulkRows .ci-bulk-row');
+        if ($rows.length <= 1) {
+            $(this).closest('.ci-bulk-row').find('.ci-bulk-name').val('');
+            return;
+        }
+        $(this).closest('.ci-bulk-row').remove();
+    });
+
+    $('#ciBulkSubmit').on('click', function () {
+        const countryId = $('#ciBulkCountry').val();
+        const stateId   = $('#ciBulkState').val();
+
+        $('#ciBulkCountry, #ciBulkState').removeClass('is-invalid');
+        $('#ciBulkCountryErr, #ciBulkStateErr').text('');
+
+        if (!countryId) {
+            $('#ciBulkCountry').addClass('is-invalid').trigger('focus');
+            $('#ciBulkCountryErr').text('Country is required.');
+            return;
+        }
+        if (!stateId) {
+            $('#ciBulkState').addClass('is-invalid').trigger('focus');
+            $('#ciBulkStateErr').text('State is required.');
+            return;
+        }
+
+        const rows = [];
+        const $rowEls = $('#ciBulkRows .ci-bulk-row');
+        $rowEls.find('.ci-bulk-row__err').text('');
+        $rowEls.find('.ci-bulk-name').removeClass('is-invalid');
+
+        let firstInvalid = null;
+        $rowEls.each(function (i) {
+            const name   = $(this).find('.ci-bulk-name').val().trim();
+            const status = $(this).find('.ci-bulk-status').val();
+            if (name) {
+                rows.push({ state_id: stateId, name, status });
+            } else if (i === 0) {
+                if (!firstInvalid) firstInvalid = $(this);
+                $(this).find('.ci-bulk-name').addClass('is-invalid');
+                $(this).find('.ci-bulk-row__err').text('Name is required.');
+            }
+        });
+
+        if (firstInvalid) { firstInvalid.find('.ci-bulk-name').trigger('focus'); return; }
+        if (rows.length === 0) { toast('info', 'Add at least one city.'); return; }
+
+        const $btn = $('#ciBulkSubmit').prop('disabled', true);
+        $btn.find('.spinner-border').removeClass('d-none');
+
+        $.ajax({
+            url: ROUTES.bulk,
+            method: 'POST',
+            data: { _token: CSRF, cities: rows },
+            dataType: 'json'
+        })
+        .done((res) => {
+            if (!res || !res.ok) return;
+            res.cities.forEach((c) => { insertRow(c); incrementStatsFor(c.status); });
+            toast('success', res.message);
+            bulk.hide();
+        })
+        .fail((xhr) => {
+            const errs = xhr.responseJSON?.errors || {};
+            Object.keys(errs).forEach((key) => {
+                const m = key.match(/^cities\.(\d+)\.(state_id|name|status)$/);
+                if (!m) return;
+                if (m[2] === 'state_id') {
+                    $('#ciBulkState').addClass('is-invalid');
+                    $('#ciBulkStateErr').text(errs[key][0]);
+                    return;
+                }
+                const $row = $('#ciBulkRows .ci-bulk-row').eq(parseInt(m[1], 10));
+                if (!$row.length) return;
+                $row.find('.ci-bulk-name').addClass('is-invalid');
+                $row.find('.ci-bulk-row__err').text(errs[key][0]);
+            });
+            toast('error', 'Please fix the highlighted rows.');
+        })
+        .always(() => {
+            $btn.prop('disabled', false);
+            $btn.find('.spinner-border').addClass('d-none');
+        });
     });
 
     if (window.feather) window.feather.replace();

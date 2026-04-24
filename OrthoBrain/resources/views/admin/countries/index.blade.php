@@ -50,6 +50,11 @@
     .co-drawer .offcanvas-body { overflow-y: auto; }
     .co-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: #fafafa; }
     .co-drawer .form-label { font-weight: 500; }
+
+    /* Bulk-add drawer rows */
+    .co-bulk-row { display: grid; grid-template-columns: 1fr 90px 90px 120px 36px; gap: .5rem; align-items: start; margin-bottom: .5rem; }
+    .co-bulk-row .co-bulk-remove { width: 36px; height: 38px; padding: 0; display: grid; place-items: center; }
+    .co-bulk-row__err { grid-column: 1 / -1; font-size: .78rem; color: #ea5455; margin-top: -.25rem; }
 </style>
 @endpush
 
@@ -105,6 +110,9 @@
             </form>
             <div class="co-toolbar__spacer"></div>
             <div class="co-toolbar__actions">
+                <button type="button" class="btn btn-outline-primary" id="coBulkOpen">
+                    <i data-feather="layers" class="me-25"></i> Bulk add
+                </button>
                 <button type="button" class="btn btn-primary" id="coDrawerOpen">
                     <i data-feather="plus" class="me-25"></i> Add Country
                 </button>
@@ -234,6 +242,30 @@
     </div>
 </div>
 
+{{-- ── Bulk-add drawer ────────────────────────────────────────── --}}
+<div class="offcanvas offcanvas-end co-drawer" tabindex="-1" id="coBulkDrawer" aria-labelledby="coBulkTitle" style="width: min(720px, 100vw);">
+    <div class="offcanvas-header">
+        <div>
+            <h5 class="offcanvas-title mb-0" id="coBulkTitle">Bulk add countries</h5>
+            <small class="text-muted">Add up to 50 countries in a single save.</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div id="coBulkRows"></div>
+        <button type="button" class="btn btn-outline-primary btn-sm mt-1" id="coBulkAddRow">
+            <i data-feather="plus" style="width:14px;height:14px;"></i> Add another row
+        </button>
+    </div>
+    <div class="offcanvas-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Cancel</button>
+        <button type="button" class="btn btn-primary" id="coBulkSubmit">
+            <span class="co-bulk-label">Save all</span>
+            <span class="spinner-border spinner-border-sm d-none ms-25" role="status"></span>
+        </button>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 (function () {
@@ -249,6 +281,7 @@
     const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const ROUTES = {
         store: @json(route('admin.countries.ajax.store')),
+        bulk:  @json(route('admin.countries.ajax.bulk')),
     };
 
     const $tbody = $('#coTbody');
@@ -473,6 +506,127 @@
                 $btn.prop('disabled', false);
                 $btn.find('.spinner-border').addClass('d-none');
             });
+    });
+
+    // ── Bulk-add drawer ────────────────────────────────────────
+    const bulkEl = document.getElementById('coBulkDrawer');
+    const bulk   = new bootstrap.Offcanvas(bulkEl);
+
+    function buildBulkRow(name = '', code = '', phone = '', status = 'ACTIVE') {
+        const $row = $(`
+            <div class="co-bulk-row">
+                <input type="text" class="form-control co-bulk-name" placeholder="Country name" maxlength="100">
+                <input type="text" class="form-control co-bulk-code" placeholder="Code" maxlength="10">
+                <input type="text" class="form-control co-bulk-phone" placeholder="+Phone" maxlength="10">
+                <select class="form-select co-bulk-status">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <button type="button" class="btn btn-outline-danger co-bulk-remove" title="Remove row">
+                    <i data-feather="x" style="width:14px;height:14px;"></i>
+                </button>
+                <div class="co-bulk-row__err"></div>
+            </div>
+        `);
+        $row.find('.co-bulk-name').val(name);
+        $row.find('.co-bulk-code').val(code);
+        $row.find('.co-bulk-phone').val(phone);
+        $row.find('.co-bulk-status').val(status);
+        return $row;
+    }
+
+    function resetBulk() {
+        $('#coBulkRows').empty()
+            .append(buildBulkRow())
+            .append(buildBulkRow());
+        if (window.feather) window.feather.replace();
+    }
+
+    $('#coBulkOpen').on('click', () => { resetBulk(); bulk.show(); });
+
+    $('#coBulkAddRow').on('click', () => {
+        const $r = buildBulkRow();
+        $('#coBulkRows').append($r);
+        if (window.feather) window.feather.replace();
+        $r.find('.co-bulk-name').trigger('focus');
+    });
+
+    $(document).on('click', '.co-bulk-remove', function () {
+        const $rows = $('#coBulkRows .co-bulk-row');
+        if ($rows.length <= 1) {
+            $(this).closest('.co-bulk-row').find('input').val('');
+            return;
+        }
+        $(this).closest('.co-bulk-row').remove();
+    });
+
+    $('#coBulkSubmit').on('click', function () {
+        const rows = [];
+        const $rowEls = $('#coBulkRows .co-bulk-row');
+        $rowEls.find('.co-bulk-row__err').text('');
+        $rowEls.find('input').removeClass('is-invalid');
+
+        let firstInvalid = null;
+        const markBad = ($row, $input, msg) => {
+            $input.addClass('is-invalid');
+            const $err = $row.find('.co-bulk-row__err');
+            $err.text($err.text() ? ($err.text() + ' ' + msg) : msg);
+            if (!firstInvalid) firstInvalid = $input;
+        };
+
+        $rowEls.each(function (i) {
+            const $row = $(this);
+            const name  = $row.find('.co-bulk-name').val().trim();
+            const code  = $row.find('.co-bulk-code').val().trim();
+            const phone = $row.find('.co-bulk-phone').val().trim();
+            const status = $row.find('.co-bulk-status').val();
+
+            // Only validate rows the user has started filling, except the first which must be complete.
+            const hasAny = name || code || phone;
+            if (!hasAny && i !== 0) return;
+
+            if (!name)  markBad($row, $row.find('.co-bulk-name'),  'Name is required.');
+            if (!code)  markBad($row, $row.find('.co-bulk-code'),  'Code is required.');
+            if (!phone) markBad($row, $row.find('.co-bulk-phone'), 'Phone is required.');
+            if (name && code && phone) rows.push({ name, country_code: code, phone_code: phone, status });
+        });
+
+        if (firstInvalid) { firstInvalid.trigger('focus'); return; }
+        if (rows.length === 0) { toast('info', 'Add at least one country.'); return; }
+
+        const $btn = $('#coBulkSubmit').prop('disabled', true);
+        $btn.find('.spinner-border').removeClass('d-none');
+
+        $.ajax({
+            url: ROUTES.bulk,
+            method: 'POST',
+            data: { _token: CSRF, countries: rows },
+            dataType: 'json'
+        })
+        .done((res) => {
+            if (!res || !res.ok) return;
+            res.countries.forEach((c) => { insertRow(c); incrementStatsFor(c.status); });
+            toast('success', res.message);
+            bulk.hide();
+        })
+        .fail((xhr) => {
+            const errs = xhr.responseJSON?.errors || {};
+            const inputClass = { name: '.co-bulk-name', country_code: '.co-bulk-code', phone_code: '.co-bulk-phone', status: '.co-bulk-status' };
+            Object.keys(errs).forEach((key) => {
+                const m = key.match(/^countries\.(\d+)\.(name|country_code|phone_code|status)$/);
+                if (!m) return;
+                const $row = $('#coBulkRows .co-bulk-row').eq(parseInt(m[1], 10));
+                if (!$row.length) return;
+                $row.find(inputClass[m[2]]).addClass('is-invalid');
+                const $err = $row.find('.co-bulk-row__err');
+                $err.text($err.text() ? ($err.text() + ' ' + errs[key][0]) : errs[key][0]);
+            });
+            toast('error', 'Please fix the highlighted rows.');
+        })
+        .always(() => {
+            $btn.prop('disabled', false);
+            $btn.find('.spinner-border').addClass('d-none');
+        });
     });
 
     if (window.feather) window.feather.replace();

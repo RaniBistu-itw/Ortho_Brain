@@ -52,6 +52,11 @@
     .psc-drawer .form-label { font-weight: 500; }
     /* Keep Select2 inside the drawer visually consistent */
     .psc-drawer .select2-container--default .select2-selection--single { height: calc(2.4rem + 2px); padding: .3rem .4rem; }
+
+    /* Bulk-add drawer rows */
+    .psc-bulk-row { display: grid; grid-template-columns: 1fr 140px 36px; gap: .5rem; align-items: start; margin-bottom: .5rem; }
+    .psc-bulk-row .psc-bulk-remove { width: 36px; height: 38px; padding: 0; display: grid; place-items: center; }
+    .psc-bulk-row__err { grid-column: 1 / -1; font-size: .78rem; color: #ea5455; margin-top: -.25rem; }
 </style>
 @endpush
 
@@ -108,6 +113,9 @@
             </form>
             <div class="psc-toolbar__spacer"></div>
             <div class="psc-toolbar__actions">
+                <button type="button" class="btn btn-outline-primary" id="pscBulkOpen">
+                    <i data-feather="layers" class="me-25"></i> Bulk add
+                </button>
                 <button type="button" class="btn btn-primary" id="pscDrawerOpen">
                     <i data-feather="plus" class="me-25"></i> Add Sub Category
                 </button>
@@ -243,6 +251,40 @@
     </div>
 </div>
 
+{{-- ── Bulk-add drawer ────────────────────────────────────────── --}}
+<div class="offcanvas offcanvas-end psc-drawer" tabindex="-1" id="pscBulkDrawer" aria-labelledby="pscBulkTitle">
+    <div class="offcanvas-header">
+        <div>
+            <h5 class="offcanvas-title mb-0" id="pscBulkTitle">Bulk add sub-categories</h5>
+            <small class="text-muted">Pick a category, then add up to 50 sub-categories in one save.</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="mb-2">
+            <label class="form-label" for="pscBulkCategory">Category<span class="text-danger">*</span></label>
+            <select id="pscBulkCategory" class="form-select">
+                <option value="">Select category</option>
+                @foreach ($categories as $c)
+                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                @endforeach
+            </select>
+            <div class="invalid-feedback d-block" id="pscBulkCategoryErr"></div>
+        </div>
+        <div id="pscBulkRows"></div>
+        <button type="button" class="btn btn-outline-primary btn-sm mt-1" id="pscBulkAddRow">
+            <i data-feather="plus" style="width:14px;height:14px;"></i> Add another row
+        </button>
+    </div>
+    <div class="offcanvas-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Cancel</button>
+        <button type="button" class="btn btn-primary" id="pscBulkSubmit">
+            <span class="psc-bulk-label">Save all</span>
+            <span class="spinner-border spinner-border-sm d-none ms-25" role="status"></span>
+        </button>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 (function () {
@@ -259,6 +301,7 @@
     const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const ROUTES = {
         store: @json(route('admin.product-subcategories.ajax.store')),
+        bulk:  @json(route('admin.product-subcategories.ajax.bulk')),
     };
 
     const $tbody = $('#pscTbody');
@@ -501,6 +544,135 @@
                 $btn.prop('disabled', false);
                 $btn.find('.spinner-border').addClass('d-none');
             });
+    });
+
+    // ── Bulk-add drawer ────────────────────────────────────────
+    const bulkEl = document.getElementById('pscBulkDrawer');
+    const bulk   = new bootstrap.Offcanvas(bulkEl);
+    let bulkSelect2Ready = false;
+
+    function ensureBulkSelect2() {
+        if (bulkSelect2Ready) return;
+        window.obSearchable('#pscBulkCategory', { dropdownParent: $(bulkEl) });
+        bulkSelect2Ready = true;
+    }
+
+    function buildBulkRow(name = '', status = 'ACTIVE') {
+        const $row = $(`
+            <div class="psc-bulk-row">
+                <input type="text" class="form-control psc-bulk-name" placeholder="Sub-category name" maxlength="100">
+                <select class="form-select psc-bulk-status">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <button type="button" class="btn btn-outline-danger psc-bulk-remove" title="Remove row">
+                    <i data-feather="x" style="width:14px;height:14px;"></i>
+                </button>
+                <div class="psc-bulk-row__err"></div>
+            </div>
+        `);
+        $row.find('.psc-bulk-name').val(name);
+        $row.find('.psc-bulk-status').val(status);
+        return $row;
+    }
+
+    function resetBulk() {
+        ensureBulkSelect2();
+        const preCategory = $('#subcategoriesFilter select[name="category_id"]').val() || '';
+        $('#pscBulkCategory').val(preCategory).trigger('change.select2');
+        $('#pscBulkCategory').removeClass('is-invalid');
+        $('#pscBulkCategoryErr').text('');
+        $('#pscBulkRows').empty()
+            .append(buildBulkRow())
+            .append(buildBulkRow());
+        if (window.feather) window.feather.replace();
+    }
+
+    $('#pscBulkOpen').on('click', () => { resetBulk(); bulk.show(); });
+
+    $('#pscBulkAddRow').on('click', () => {
+        const $r = buildBulkRow();
+        $('#pscBulkRows').append($r);
+        if (window.feather) window.feather.replace();
+        $r.find('.psc-bulk-name').trigger('focus');
+    });
+
+    $(document).on('click', '.psc-bulk-remove', function () {
+        const $rows = $('#pscBulkRows .psc-bulk-row');
+        if ($rows.length <= 1) {
+            $(this).closest('.psc-bulk-row').find('.psc-bulk-name').val('');
+            return;
+        }
+        $(this).closest('.psc-bulk-row').remove();
+    });
+
+    $('#pscBulkSubmit').on('click', function () {
+        const categoryId = $('#pscBulkCategory').val();
+        $('#pscBulkCategory').removeClass('is-invalid');
+        $('#pscBulkCategoryErr').text('');
+        if (!categoryId) {
+            $('#pscBulkCategory').addClass('is-invalid').trigger('focus');
+            $('#pscBulkCategoryErr').text('Category is required.');
+            return;
+        }
+
+        const rows = [];
+        const $rowEls = $('#pscBulkRows .psc-bulk-row');
+        $rowEls.find('.psc-bulk-row__err').text('');
+        $rowEls.find('.psc-bulk-name').removeClass('is-invalid');
+
+        let firstInvalid = null;
+        $rowEls.each(function (i) {
+            const name   = $(this).find('.psc-bulk-name').val().trim();
+            const status = $(this).find('.psc-bulk-status').val();
+            if (name) {
+                rows.push({ category_id: categoryId, name, status });
+            } else if (i === 0) {
+                if (!firstInvalid) firstInvalid = $(this);
+                $(this).find('.psc-bulk-name').addClass('is-invalid');
+                $(this).find('.psc-bulk-row__err').text('Name is required.');
+            }
+        });
+
+        if (firstInvalid) { firstInvalid.find('.psc-bulk-name').trigger('focus'); return; }
+        if (rows.length === 0) { toast('info', 'Add at least one sub-category.'); return; }
+
+        const $btn = $('#pscBulkSubmit').prop('disabled', true);
+        $btn.find('.spinner-border').removeClass('d-none');
+
+        $.ajax({
+            url: ROUTES.bulk,
+            method: 'POST',
+            data: { _token: CSRF, subcategories: rows },
+            dataType: 'json'
+        })
+        .done((res) => {
+            if (!res || !res.ok) return;
+            res.subcategories.forEach((s) => { insertRow(s); incrementStatsFor(s.status); });
+            toast('success', res.message);
+            bulk.hide();
+        })
+        .fail((xhr) => {
+            const errs = xhr.responseJSON?.errors || {};
+            Object.keys(errs).forEach((key) => {
+                const m = key.match(/^subcategories\.(\d+)\.(category_id|name|status)$/);
+                if (!m) return;
+                const $row = $('#pscBulkRows .psc-bulk-row').eq(parseInt(m[1], 10));
+                if (!$row.length) return;
+                if (m[2] === 'category_id') {
+                    $('#pscBulkCategory').addClass('is-invalid');
+                    $('#pscBulkCategoryErr').text(errs[key][0]);
+                } else {
+                    $row.find('.psc-bulk-name').addClass('is-invalid');
+                    $row.find('.psc-bulk-row__err').text(errs[key][0]);
+                }
+            });
+            toast('error', 'Please fix the highlighted rows.');
+        })
+        .always(() => {
+            $btn.prop('disabled', false);
+            $btn.find('.spinner-border').addClass('d-none');
+        });
     });
 
     if (window.feather) window.feather.replace();

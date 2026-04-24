@@ -136,6 +136,8 @@ Route::middleware(['web', 'admin'])
         // (must be registered BEFORE the resource so `/ajax` is not captured by {product_subcategory})
         Route::post('product-subcategories/ajax', [ProductSubcategoryController::class, 'ajaxStore'])
             ->name('product-subcategories.ajax.store');
+        Route::post('product-subcategories/ajax/bulk', [ProductSubcategoryController::class, 'ajaxBulk'])
+            ->name('product-subcategories.ajax.bulk');
         Route::put('product-subcategories/ajax/{product_subcategory}', [ProductSubcategoryController::class, 'ajaxUpdate'])
             ->name('product-subcategories.ajax.update');
         Route::resource('product-subcategories', ProductSubcategoryController::class)
@@ -187,6 +189,8 @@ Route::middleware(['web', 'admin'])
         // Countries — AJAX drawer endpoints (must precede resource)
         Route::post('countries/ajax', [CountryController::class, 'ajaxStore'])
             ->name('countries.ajax.store');
+        Route::post('countries/ajax/bulk', [CountryController::class, 'ajaxBulk'])
+            ->name('countries.ajax.bulk');
         Route::put('countries/ajax/{country}', [CountryController::class, 'ajaxUpdate'])
             ->name('countries.ajax.update');
         Route::resource('countries', CountryController::class)
@@ -195,6 +199,8 @@ Route::middleware(['web', 'admin'])
         // States — AJAX drawer endpoints
         Route::post('states/ajax', [StateController::class, 'ajaxStore'])
             ->name('states.ajax.store');
+        Route::post('states/ajax/bulk', [StateController::class, 'ajaxBulk'])
+            ->name('states.ajax.bulk');
         Route::put('states/ajax/{state}', [StateController::class, 'ajaxUpdate'])
             ->name('states.ajax.update');
         Route::resource('states', StateController::class)
@@ -203,6 +209,8 @@ Route::middleware(['web', 'admin'])
         // Cities — AJAX drawer endpoints
         Route::post('cities/ajax', [CityController::class, 'ajaxStore'])
             ->name('cities.ajax.store');
+        Route::post('cities/ajax/bulk', [CityController::class, 'ajaxBulk'])
+            ->name('cities.ajax.bulk');
         Route::put('cities/ajax/{city}', [CityController::class, 'ajaxUpdate'])
             ->name('cities.ajax.update');
         Route::resource('cities', CityController::class)
