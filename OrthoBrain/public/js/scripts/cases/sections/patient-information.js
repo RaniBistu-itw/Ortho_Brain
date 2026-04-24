@@ -21,18 +21,10 @@
     return parts[1] + '-' + parts[2] + '-' + parts[0];
   }
 
-  /** Convert MM-DD-YYYY → YYYY-MM-DD for storage */
-  function displayToIso(display) {
-    if (!display) return '';
-    var parts = display.split('-');
-    if (parts.length !== 3 || parts[2].length !== 4) return '';
-    return parts[2] + '-' + parts[0] + '-' + parts[1];
-  }
-
-  /** Validate a display-format date string (MM-DD-YYYY) */
-  function validateDob(display) {
-    if (!/^\d{2}-\d{2}-\d{4}$/.test(display)) return 'Enter date as MM-DD-YYYY.';
-    var iso = displayToIso(display);
+  /** Validate an ISO date string (YYYY-MM-DD from native <input type="date">) */
+  function validateDob(iso) {
+    if (!iso) return 'Date of birth is required.';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return 'Enter a valid date.';
     var d = new Date(iso);
     if (isNaN(d.getTime())) return 'Invalid date.';
     var now = new Date();
@@ -135,7 +127,7 @@
         : null,
       firstName: (elFirstName.value || '').trim(),
       lastName: (elLastName.value || '').trim(),
-      dateOfBirth: displayToIso(elDob.value || ''),
+      dateOfBirth: elDob.value || '',
       biologicalGender: elGender.value || '',
       biologicalGenderOther: elGenderOther.value || '',
       patientChartId: (elChartId.value || '').trim(),
@@ -188,7 +180,7 @@
   function loadPatient(p) {
     elFirstName.value  = p.firstName;
     elLastName.value   = p.lastName;
-    elDob.value        = isoToDisplay(p.dob);
+    elDob.value        = p.dob || '';
     elGender.value     = p.gender;
     elGenderOther.value = p.genderOther || '';
     elChartId.value    = p.chartId;
@@ -249,8 +241,8 @@
   function findExistingPatient() {
     var fn  = (elFirstName.value || '').trim().toLowerCase();
     var ln  = (elLastName.value || '').trim().toLowerCase();
-    var dob = displayToIso(elDob.value || '');
-    if (!fn || !ln || !dob || validateDob(elDob.value)) return null;
+    var dob = elDob.value || '';
+    if (!fn || !ln || !dob || validateDob(dob)) return null;
     return (window.MOCK_PATIENTS || []).find(function (p) {
       return p.firstName.toLowerCase() === fn &&
              p.lastName.toLowerCase() === ln &&
@@ -294,20 +286,14 @@
   }
 
   if (elDob) {
-    elDob.addEventListener('input', function () {
-      // Auto-format: insert hyphens after MM and DD
-      var raw = this.value.replace(/[^0-9]/g, '');
-      var formatted = raw;
-      if (raw.length > 2) formatted = raw.slice(0, 2) + '-' + raw.slice(2);
-      if (raw.length > 4) formatted = raw.slice(0, 2) + '-' + raw.slice(2, 4) + '-' + raw.slice(4, 8);
-      this.value = formatted;
+    elDob.addEventListener('change', function () {
       onExistenceFieldChange();
-      if (!validateDob(this.value)) clearError(elDob, errDob);
-    });
-    elDob.addEventListener('blur', function () {
       var err = validateDob(this.value);
       showError(elDob, errDob, err);
       if (!err) checkExistence();
+    });
+    elDob.addEventListener('blur', function () {
+      showError(elDob, errDob, validateDob(this.value));
     });
   }
 
@@ -377,7 +363,7 @@
 
     if (elFirstName)  elFirstName.value  = pi.firstName  || '';
     if (elLastName)   elLastName.value   = pi.lastName   || '';
-    if (elDob)        elDob.value        = pi.dateOfBirth ? isoToDisplay(pi.dateOfBirth) : '';
+    if (elDob)        elDob.value        = pi.dateOfBirth || '';
     if (elGender)     elGender.value     = pi.biologicalGender || '';
     if (elGenderOther) elGenderOther.value = pi.biologicalGenderOther || '';
     if (elChartId)    elChartId.value    = pi.patientChartId || '';

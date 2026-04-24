@@ -48,16 +48,23 @@
 
       // ── Data loading ────────────────────────────────────────────────────────
 
-      // TODO: replace with API call to GET /api/practices/{id}/clinic-address
+      // Prefer the real active-practice address (embedded in the page by
+      // add-case.blade.php). Falls back to the mock for dev/offline scenarios.
       _prefillFromClinic: function () {
-        var c = window.MOCK_CLINIC_ADDRESS;
+        var c = window.ACTIVE_PRACTICE_ADDRESS || window.MOCK_CLINIC_ADDRESS;
         if (!c) return;
-        this.practice       = c.practice       || '';
+        this.practice       = c.practiceName   || c.practice    || '';
         this.doctorName     = c.doctorName     || '';
         this.streetAddress  = c.streetAddress  || '';
         this.streetAddress2 = c.streetAddress2 || '';
         this.zipId          = c.zipId          || null;
-        this._resolveZipQuery(c.zipId);
+        // If a raw zip code came through (real data, no MOCK_ZIP_ENTRIES match),
+        // use it as the display label so the user sees something familiar.
+        if (c.zipCode && !this.zipQuery) {
+          this.zipQuery = c.zipCode;
+        } else {
+          this._resolveZipQuery(c.zipId);
+        }
         this.city    = c.city    || '';
         this.state   = c.state   || '';
         this.country = c.country || '';

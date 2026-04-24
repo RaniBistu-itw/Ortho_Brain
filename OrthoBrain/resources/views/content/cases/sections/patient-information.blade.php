@@ -80,12 +80,10 @@
         <div class="input-group">
           <span class="input-group-text"><i data-feather="calendar"></i></span>
           <input
-            type="text"
+            type="date"
             class="form-control"
             id="pi-dob"
             name="dateOfBirth"
-            placeholder="MM-DD-YYYY"
-            maxlength="10"
             autocomplete="bday"
           />
         </div>
