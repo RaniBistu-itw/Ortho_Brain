@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\ScannerController;
 use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\ZipcodeController;
+use App\Http\Controllers\AI\ImageAnalysisController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CasesController;
@@ -57,6 +58,10 @@ Route::middleware(['web', 'auth'])
         Route::get('/cases/{case}/edit',        [CasesController::class, 'edit'])->name('cases.edit');
         Route::post('/cases/{case}/submit',     [CasesController::class, 'submit'])->name('cases.submit');
         Route::post('/cases/{case}/prescription',[PrescriptionController::class, 'update'])->name('cases.prescription.update');
+
+        // AI vision — photo QC + Perfect Smile Plan generation
+        Route::post('/cases/{case}/photos/classify',      [ImageAnalysisController::class, 'classify'])->name('cases.photos.classify');
+        Route::post('/cases/{case}/smile-plan/generate',  [ImageAnalysisController::class, 'smilePlan'])->name('cases.smile-plan.generate');
 
         Route::get('/profile/index',     [ProfileController::class, 'index'])->name('profile.index');
         Route::post('/profile/index',    [ProfileController::class, 'update'])->name('profile.update');
@@ -103,6 +108,10 @@ Route::middleware(['web', 'admin'])
         Route::get('/cases/{case}/edit',              [AdminCasesController::class, 'edit'])->name('cases.edit');
         Route::post('/cases/{case}/status',           [AdminCasesController::class, 'updateStatus'])->name('cases.status');
         Route::post('/cases/{case}/prescription',     [PrescriptionController::class, 'update'])->name('cases.prescription.update');
+
+        // AI vision — admins can trigger classification / smile plan on any case
+        Route::post('/cases/{case}/photos/classify',      [ImageAnalysisController::class, 'classify'])->name('cases.photos.classify');
+        Route::post('/cases/{case}/smile-plan/generate',  [ImageAnalysisController::class, 'smilePlan'])->name('cases.smile-plan.generate');
 
         // Admin Doctors — review + approve/reject/suspend (PR #17)
         Route::resource('doctors', AdminDoctorController::class)

@@ -24,7 +24,7 @@
     ['id' => 'patient-information',    'label' => 'Patient Information',    'subtitle' => 'Personal Details',         'icon' => 'user',       'placeholder' => false],
     ['id' => 'prescription',           'label' => 'Prescription',           'subtitle' => 'Prescription Information', 'icon' => 'file-text',  'placeholder' => false],
     ['id' => 'additional-information', 'label' => 'Additional Information', 'subtitle' => 'Additional Information',   'icon' => 'plus-circle','placeholder' => false],
-    ['id' => 'perfect-smile-plan',     'label' => 'Perfect Smile Plan',     'subtitle' => 'Perfect Smile Plan',       'icon' => 'smile',      'placeholder' => true],
+    ['id' => 'perfect-smile-plan',     'label' => 'Perfect Smile Plan',     'subtitle' => 'AI-assisted narrative',     'icon' => 'smile',      'placeholder' => false],
     ['id' => 'impressions',            'label' => 'Impressions',            'subtitle' => 'Impression Method',        'icon' => 'check-square','placeholder' => false],
     ['id' => 'photographs',            'label' => 'Photographs',            'subtitle' => 'Upload Photographs',       'icon' => 'image',      'placeholder' => false],
     ['id' => 'xrays',                  'label' => 'X-Rays',                 'subtitle' => 'Upload X-Ray photos',      'icon' => 'radio',      'placeholder' => false],
@@ -154,13 +154,14 @@
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
   {{-- heic2any — HEIC → JPEG conversion for preview on Photograph / X-Ray uploads. --}}
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
-  <script src="{{ asset('js/scripts/cases/case-api.js') }}"></script>
+  <script src="{{ asset('js/scripts/cases/case-api.js') }}?v={{ @filemtime(public_path('js/scripts/cases/case-api.js')) ?: time() }}"></script>
   {{-- IndexedDB-backed image store; must load before photographs.js so its init() can hydrate. --}}
   <script src="{{ asset('js/scripts/cases/case-image-store.js') }}"></script>
   @php
     $voiceInputVer = @filemtime(public_path('js/scripts/cases/voice-input.js')) ?: time();
     $cropModalVer  = @filemtime(public_path('js/scripts/cases/sections/crop-modal.js')) ?: time();
     $photographsVer = @filemtime(public_path('js/scripts/cases/sections/photographs.js')) ?: time();
+    $smilePlanVer  = @filemtime(public_path('js/scripts/cases/sections/perfect-smile-plan.js')) ?: time();
   @endphp
   <script src="{{ asset('js/scripts/cases/voice-input.js') }}?v={{ $voiceInputVer }}"></script>
   <script src="{{ asset('js/scripts/cases/mock-patients.js') }}"></script>
@@ -180,6 +181,7 @@
   <script src="{{ asset('js/scripts/cases/sections/crop-modal.js') }}?v={{ $cropModalVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/photographs.js') }}?v={{ $photographsVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/xrays.js') }}"></script>
+  <script src="{{ asset('js/scripts/cases/sections/perfect-smile-plan.js') }}?v={{ $smilePlanVer }}"></script>
   {{-- Phase 7: submit orchestrator --}}
   <script src="{{ asset('js/scripts/cases/add-case-submit.js') }}"></script>
   <script>
