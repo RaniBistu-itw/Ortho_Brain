@@ -402,31 +402,63 @@ body #ob-dash .ob-hero .ob-hero-sub     { color: rgba(255,255,255,.72) !importan
 .dark-layout .ob-mini-tiles    { border-top-color: rgba(255,255,255,.08); }
 .dark-layout .ob-qa-btn        { background: #3b4253; border-color: rgba(255,255,255,.08); color: #d0d2d6; }
 .dark-layout .ob-qa-btn:hover  { background: #0EA5C5; border-color: #0EA5C5; color: #fff; }
-/* ── Half-globe decoration ── */
-.ob-cov-globe-wrap {
+/* ── Tooth Accent ── */
+.ob-cov-tooth-wrap {
     position: relative;
     width: 100%;
-    height: 160px;
-    overflow: hidden;
-    margin-top: 0.75rem;
+    height: 120px;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 600px;
 }
-.ob-cov-globe-wrap canvas {
+.ob-cov-tooth-wrap::before {
+    content: '';
     position: absolute;
-    bottom: 0;
-    left: 50%;
+    left: 50%; bottom: 10px;
+    width: 90px; height: 14px;
     transform: translateX(-50%);
-    display: block;
+    background: radial-gradient(ellipse at center,
+        rgba(14,165,197,0.45) 0%,
+        rgba(14,165,197,0) 70%);
+    filter: blur(3px);
+    animation: ob-tooth-shadow 3.6s ease-in-out infinite;
 }
-.ob-cov-globe-fade {
+.ob-tooth-3d {
+    width: 78px;
+    height: 88px;
+    transform-style: preserve-3d;
+    animation: ob-tooth-float 3.6s ease-in-out infinite;
+    filter: drop-shadow(0 8px 14px rgba(14,165,197,0.25));
+}
+.ob-tooth-3d svg { width: 100%; height: 100%; display: block; }
+
+@keyframes ob-tooth-float {
+    0%, 100% { transform: translateY(0) rotateY(-12deg) rotateX(4deg); }
+    50%      { transform: translateY(-6px) rotateY(12deg) rotateX(-2deg); }
+}
+@keyframes ob-tooth-shadow {
+    0%, 100% { opacity: 0.75; width: 90px; }
+    50%      { opacity: 0.45; width: 72px; }
+}
+
+/* Orbital sparkles */
+.ob-tooth-spark {
     position: absolute;
-    inset: 0;
-    background: linear-gradient(to bottom,
-        rgba(15,23,42,1) 0%,
-        rgba(15,23,42,0.7) 25%,
-        rgba(15,23,42,0) 65%
-    );
-    pointer-events: none;
-    z-index: 2;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: #7DD3FC;
+    box-shadow: 0 0 8px rgba(125,211,252,0.9);
+    opacity: 0;
+    animation: ob-spark 2.8s ease-in-out infinite;
+}
+.ob-tooth-spark.s1 { top: 20%; left: 30%; animation-delay: 0s;   }
+.ob-tooth-spark.s2 { top: 32%; right: 26%; animation-delay: 0.9s; }
+.ob-tooth-spark.s3 { bottom: 30%; left: 28%; animation-delay: 1.8s;}
+@keyframes ob-spark {
+    0%, 100% { opacity: 0; transform: scale(0.6); }
+    50%      { opacity: 1; transform: scale(1.2); }
 }
 </style>
 @endpush
@@ -659,10 +691,67 @@ body #ob-dash .ob-hero .ob-hero-sub     { color: rgba(255,255,255,.72) !importan
                         </a>
                     @endforeach
                 </div>{{-- /.ob-cov-grid --}}
-                {{-- Half Globe --}}
-                <div class="ob-cov-globe-wrap">
-                    <canvas id="ob-half-globe" width="380" height="300"></canvas>
-                    <div class="ob-cov-globe-fade"></div>
+                {{-- Tooth Accent --}}
+                <div class="ob-cov-tooth-wrap">
+                    <span class="ob-tooth-spark s1"></span>
+                    <span class="ob-tooth-spark s2"></span>
+                    <span class="ob-tooth-spark s3"></span>
+                    <div class="ob-tooth-3d">
+                        <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="obToothBody" x1="0.15" y1="0.05" x2="0.85" y2="1">
+                                    <stop offset="0"    stop-color="#FFFFFF"/>
+                                    <stop offset="0.35" stop-color="#E6F4FA"/>
+                                    <stop offset="0.75" stop-color="#9CCBDE"/>
+                                    <stop offset="1"    stop-color="#4E8CA6"/>
+                                </linearGradient>
+                                <radialGradient id="obToothShine" cx="0.3" cy="0.25" r="0.55">
+                                    <stop offset="0"   stop-color="#FFFFFF" stop-opacity="0.85"/>
+                                    <stop offset="0.6" stop-color="#FFFFFF" stop-opacity="0.15"/>
+                                    <stop offset="1"   stop-color="#FFFFFF" stop-opacity="0"/>
+                                </radialGradient>
+                                <linearGradient id="obBracket" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stop-color="#22D3EE"/>
+                                    <stop offset="1" stop-color="#0891B2"/>
+                                </linearGradient>
+                            </defs>
+
+                            {{-- Tooth body --}}
+                            <path d="M60 12
+                                     C 34 12, 20 28, 20 54
+                                     C 20 72, 23 86, 26 94
+                                     C 28 108, 34 130, 42 130
+                                     C 50 130, 54 116, 56 100
+                                     C 57 94, 58 92, 60 92
+                                     C 62 92, 63 94, 64 100
+                                     C 66 116, 70 130, 78 130
+                                     C 86 130, 92 108, 94 94
+                                     C 97 86, 100 72, 100 54
+                                     C 100 28, 86 12, 60 12 Z"
+                                  fill="url(#obToothBody)"
+                                  stroke="rgba(255,255,255,0.25)"
+                                  stroke-width="0.8"/>
+
+                            {{-- Glossy highlight --}}
+                            <ellipse cx="45" cy="42" rx="16" ry="26"
+                                     fill="url(#obToothShine)"/>
+
+                            {{-- Orthodontic bracket --}}
+                            <g transform="translate(48 58)">
+                                <rect x="0" y="0" width="24" height="14" rx="2.5"
+                                      fill="url(#obBracket)"/>
+                                <rect x="2" y="2" width="20" height="3" rx="1"
+                                      fill="rgba(255,255,255,0.35)"/>
+                                <circle cx="6"  cy="9" r="1.4" fill="#E0F8FF"/>
+                                <circle cx="18" cy="9" r="1.4" fill="#E0F8FF"/>
+                            </g>
+
+                            {{-- Archwire across --}}
+                            <path d="M14 65 Q60 72 106 65"
+                                  stroke="#22D3EE" stroke-width="1.4"
+                                  fill="none" opacity="0.7"/>
+                        </svg>
+                    </div>
                 </div>
             </div>{{-- /.ob-coverage --}}
         </div>
@@ -739,115 +828,6 @@ body #ob-dash .ob-hero .ob-hero-sub     { color: rgba(255,255,255,.72) !importan
         requestAnimationFrame(step);
     }
     document.querySelectorAll('[data-count-to]').forEach(animateCount);
-})();
-
-/// ── Half Globe ────────────────────────────────────────────
-// ── Half Globe ────────────────────────────────────────────
-(function () {
-    var canvas = document.getElementById('ob-half-globe');
-    if (!canvas) return;
-    var ctx = canvas.getContext('2d');
-    var W = 380, H = 300, cx = 190, cy = 300, R = 220;
-    var C = 'rgba(14,165,197,';
-    var rotY = 0;
-
-    function project(lat, lon) {
-        // lat: -PI/2 to PI/2, lon: 0 to 2PI
-        var cosLat = Math.cos(lat), sinLat = Math.sin(lat);
-        var cosLon = Math.cos(lon + rotY), sinLon = Math.sin(lon + rotY);
-        // 3D coords on unit sphere
-        var x = cosLat * sinLon;
-        var y = sinLat;
-        var z = cosLat * cosLon;
-        // Simple orthographic projection
-        return {
-            sx: cx + x * R,
-            sy: cy - y * R,
-            z: z   // positive = facing viewer
-        };
-    }
-
-    function drawArc(latOrLon, isLat) {
-        var steps = 120;
-        var firstVisible = true;
-        ctx.beginPath();
-        for (var i = 0; i <= steps; i++) {
-            var lat, lon;
-            if (isLat) {
-                lat = latOrLon;
-                lon = (i / steps) * 2 * Math.PI;
-            } else {
-                lat = (i / steps) * Math.PI - Math.PI / 2; // -90 to +90
-                lon = latOrLon;
-            }
-            var p = project(lat, lon);
-            // Only draw front-facing hemisphere
-            if (p.z < 0) { firstVisible = true; continue; }
-            // Only draw upper half (sy <= cy, i.e. above center)
-            if (p.sy > cy) { firstVisible = true; continue; }
-            // Clip to canvas
-            if (p.sy < 0 || p.sx < 0 || p.sx > W) { firstVisible = true; continue; }
-            if (firstVisible) { ctx.moveTo(p.sx, p.sy); firstVisible = false; }
-            else ctx.lineTo(p.sx, p.sy);
-        }
-        ctx.stroke();
-    }
-
-    function draw() {
-        ctx.clearRect(0, 0, W, H);
-
-        // Latitude rings
-        ctx.lineWidth = 0.7;
-        ctx.strokeStyle = C + '0.25)';
-        for (var lat = 0; lat <= 80; lat += 18) {
-            drawArc(lat * Math.PI / 180, true);
-        }
-
-        // Equator brighter
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = C + '0.65)';
-        drawArc(0, true);
-
-        // Longitude meridians
-        ctx.lineWidth = 0.7;
-        ctx.strokeStyle = C + '0.25)';
-        for (var lon = 0; lon < 360; lon += 20) {
-            drawArc(lon * Math.PI / 180, false);
-        }
-
-        // Glowing dots at intersections
-        for (var la = 0; la <= 72; la += 18) {
-            for (var lo = 0; lo < 360; lo += 20) {
-                var p = project(la * Math.PI / 180, lo * Math.PI / 180);
-                if (p.z < 0.05 || p.sy > cy || p.sy < 0) continue;
-                var brightness = p.z;
-                var distFromEdge = Math.min(p.sy / cy, 1);
-                ctx.beginPath();
-                ctx.arc(p.sx, p.sy, 1.8, 0, Math.PI * 2);
-                ctx.fillStyle = C + (0.2 + brightness * 0.7) * distFromEdge + ')';
-                ctx.fill();
-            }
-        }
-
-        // Horizon glow line at equator bottom
-        var grad = ctx.createLinearGradient(cx - R, 0, cx + R, 0);
-        grad.addColorStop(0,   C + '0)');
-        grad.addColorStop(0.3, C + '0.4)');
-        grad.addColorStop(0.5, C + '0.7)');
-        grad.addColorStop(0.7, C + '0.4)');
-        grad.addColorStop(1,   C + '0)');
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, R, R * 0.18, 0, Math.PI, 2 * Math.PI);
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-    }
-
-    (function loop() {
-        rotY += 0.005;
-        draw();
-        requestAnimationFrame(loop);
-    })();
 })();
 </script>
 @endpush

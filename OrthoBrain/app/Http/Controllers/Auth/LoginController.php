@@ -47,7 +47,7 @@ class LoginController extends Controller
 
             $request->session()->regenerate();
 
-            // Admins → /admin dashboard; doctors → cases list (or pending page if no active practice yet)
+            // Admins → /admin dashboard; doctors → dashboard (or pending page if no active practice yet)
             if ($user->role === 'ADMIN') {
                 return redirect()->intended(route('admin.dashboard'));
             }
@@ -58,7 +58,7 @@ class LoginController extends Controller
                 return redirect()->route('doctor.practices.pending');
             }
 
-            return redirect()->intended('/dev/cases/list');
+            return redirect()->intended(route('doctor.dashboard'));
         }
 
         return back()->withErrors([
