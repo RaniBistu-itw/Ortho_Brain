@@ -1,6 +1,9 @@
 @php
     $active = fn ($pattern) => request()->routeIs($pattern) ? 'active' : '';
     $open   = fn (array $patterns) => collect($patterns)->contains(fn ($p) => request()->routeIs($p)) ? 'open' : '';
+    $pendingPracticeRequests = \Illuminate\Support\Facades\DB::table('doctor_practice')
+        ->where('approval_status', 'PENDING')
+        ->count();
 @endphp
 
 <div class="main-menu menu-fixed menu-light menu-accordion menu-shadow" data-scroll-to-active="true">
@@ -58,6 +61,9 @@
                 <a href="{{ route('admin.practices.index') }}" class="d-flex align-items-center">
                     <i data-feather="briefcase"></i>
                     <span class="menu-title text-truncate">Practices</span>
+                    @if ($pendingPracticeRequests > 0)
+                        <span class="badge rounded-pill bg-warning ms-auto">{{ $pendingPracticeRequests }}</span>
+                    @endif
                 </a>
             </li>
 

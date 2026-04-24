@@ -10,8 +10,8 @@
             <i class="bi bi-hourglass-split me-2"></i>
             <strong>{{ $bannerPending }}</strong>
             practice {{ \Illuminate\Support\Str::plural('request', $bannerPending) }}
-            awaiting admin approval.
+            {{ $bannerPending === 1 ? 'is' : 'are' }} under review.
         </div>
-        <a href="{{ route('doctor.profile.index') }}?tab=practices" class="btn btn-sm btn-warning">View status</a>
+        <a href="{{ route('doctor.profile.index', ['tab' => 'practices']) }}" class="btn btn-sm btn-warning">View details</a>
     </div>
 @endif

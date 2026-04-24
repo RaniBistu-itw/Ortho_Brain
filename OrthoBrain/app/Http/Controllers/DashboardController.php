@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\CaseModel;
 use App\Support\ActivePractice;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -14,17 +13,24 @@ class DashboardController extends Controller
         $user   = Auth::user();
         $doctor = $user?->doctor;
 
+        // Scope every query below by $practice when a doctor has an active
+        // practice. Falls back to doctor-only scoping when the doctor hasn't
+        // selected/been approved for a practice yet (single-practice compat).
         $practice = ActivePractice::get();
+
+        $scoped = fn ($q) => $q
+            ->when($doctor,   fn ($q) => $q->where('doctor_id', $doctor->id))
+            ->when($practice, fn ($q) => $q->forPractice($practice->id));
 
         // ─── Case counts by status ───────────────────────────────────────
         $byStatus = CaseModel::query()
-            ->when($doctor, fn ($q) => $q->where('doctor_id', $doctor->id))
+            ->tap($scoped)
             ->selectRaw('status, count(*) as n')
             ->groupBy('status')
             ->pluck('n', 'status');
 
         $staleDraftCount = CaseModel::query()
-            ->when($doctor, fn ($q) => $q->where('doctor_id', $doctor->id))
+            ->tap($scoped)
             ->where('status', 'DRAFT')
             ->where('updated_at', '<', now()->subDays(3))
             ->count();
@@ -44,21 +50,21 @@ class DashboardController extends Controller
 
         // ─── Today's Focus (derived actionable items) ────────────────────
         $recentRejected = CaseModel::query()
-            ->when($doctor, fn ($q) => $q->where('doctor_id', $doctor->id))
+            ->tap($scoped)
             ->where('status', 'REJECTED')
             ->latest('updated_at')
             ->take(2)
             ->get(['id', 'case_code', 'status', 'updated_at']);
 
         $recentDrafts = CaseModel::query()
-            ->when($doctor, fn ($q) => $q->where('doctor_id', $doctor->id))
+            ->tap($scoped)
             ->where('status', 'DRAFT')
             ->latest('updated_at')
             ->take(2)
             ->get(['id', 'case_code', 'status', 'updated_at']);
 
         $recentApproved = CaseModel::query()
-            ->when($doctor, fn ($q) => $q->where('doctor_id', $doctor->id))
+            ->tap($scoped)
             ->where('status', 'APPROVED')
             ->latest('updated_at')
             ->take(1)
@@ -140,7 +146,7 @@ class DashboardController extends Controller
 
         // ─── Treatment Pipeline (latest 5 non-draft cases) ───────────────
         $pipeline = CaseModel::query()
-            ->when($doctor, fn ($q) => $q->where('doctor_id', $doctor->id))
+            ->tap($scoped)
             ->whereIn('status', ['SUBMITTED', 'IN_REVIEW', 'APPROVED'])
             ->latest('updated_at')
             ->take(5)
@@ -165,7 +171,7 @@ class DashboardController extends Controller
         // ─── Patient Pulse (14-day case activity sparkline) ──────────────
         $start = now()->subDays(13)->startOfDay();
         $raw = CaseModel::query()
-            ->when($doctor, fn ($q) => $q->where('doctor_id', $doctor->id))
+            ->tap($scoped)
             ->where('created_at', '>=', $start)
             ->selectRaw('DATE(created_at) as d, count(*) as n')
             ->groupBy('d')

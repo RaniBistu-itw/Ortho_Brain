@@ -290,7 +290,7 @@ class RegisterController extends Controller
                     'city_id'            => $row['city_id'],
                     'state_id'           => $row['state_id'],
                     'country_id'         => $row['country_id'],
-                    'status'             => 'ACTIVE',
+                    'status'             => 'INACTIVE',
                 ]);
 
                 $doctor->practices()->attach($created->id, [

@@ -64,13 +64,18 @@ Route::middleware(['web', 'auth'])
         // Legacy route — kept as a redirect to the real list.
         Route::redirect('/cases/list', '/dev/cases')->name('cases.list');
 
-        // Add Case + Case List feature (owner: Devansh)
-        Route::get('/cases',                    [CasesController::class, 'index'])->name('cases.index');
-        Route::get('/cases/create',             [CasesController::class, 'create'])->name('cases.create');
-        Route::post('/cases',                   [CasesController::class, 'store'])->name('cases.store');
-        Route::get('/cases/{case}/edit',        [CasesController::class, 'edit'])->name('cases.edit');
-        Route::post('/cases/{case}/submit',     [CasesController::class, 'submit'])->name('cases.submit');
-        Route::post('/cases/{case}/prescription',[PrescriptionController::class, 'update'])->name('cases.prescription.update');
+        // Help / FAQ — plain static page.
+        Route::view('/help', 'doctor.help')->name('help.index');
+
+        // Cases require an approved active practice — middleware redirects to pending page if none.
+        Route::middleware(['active.practice'])->group(function () {
+            Route::get('/cases',                    [CasesController::class, 'index'])->name('cases.index');
+            Route::get('/cases/create',             [CasesController::class, 'create'])->name('cases.create');
+            Route::post('/cases',                   [CasesController::class, 'store'])->name('cases.store');
+            Route::get('/cases/{case}/edit',        [CasesController::class, 'edit'])->name('cases.edit');
+            Route::post('/cases/{case}/submit',     [CasesController::class, 'submit'])->name('cases.submit');
+            Route::post('/cases/{case}/prescription',[PrescriptionController::class, 'update'])->name('cases.prescription.update');
+        });
 
         // AI vision — photo QC + Perfect Smile Plan generation
         Route::post('/cases/{case}/photos/classify',      [ImageAnalysisController::class, 'classify'])->name('cases.photos.classify');
@@ -166,11 +171,16 @@ Route::middleware(['web', 'admin'])
         Route::post('doctors/{doctor}/suspend',    [AdminDoctorController::class, 'suspend'])->name('doctors.suspend');
         Route::post('doctors/{doctor}/reactivate', [AdminDoctorController::class, 'reactivate'])->name('doctors.reactivate');
 
-        // Per-doctor-practice-link approval (rendered inside the doctor show page)
+        // Per-doctor-practice-link approval (legacy — used by admin doctor show page).
         Route::post('doctors/{doctor}/practices/{link}/approve', [\App\Http\Controllers\Admin\DoctorPracticeController::class, 'approve'])->name('doctors.practices.approve');
         Route::post('doctors/{doctor}/practices/{link}/reject',  [\App\Http\Controllers\Admin\DoctorPracticeController::class, 'reject'])->name('doctors.practices.reject');
 
+        // Unified pivot-status endpoint — approve / reject / suspend / reactivate.
+        Route::post('doctors/{doctor}/practices/{link}/status', [\App\Http\Controllers\Admin\DoctorPracticeController::class, 'updatePivotStatus'])->name('doctors.practices.status');
+
         // Admin Practices — read-only list + detail (no add)
+        Route::post('practices/{practice}/status', [AdminPracticeController::class, 'updateStatus'])
+            ->name('practices.status');
         Route::resource('practices', AdminPracticeController::class)
             ->only(['index', 'show']);
 

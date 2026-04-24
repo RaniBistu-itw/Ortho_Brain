@@ -22,6 +22,8 @@ class ProfileController extends Controller
         $tab = $request->query('tab', 'account');
 
         $doctor = Doctor::with('practice')->where('user_id', Auth::id())->first();
+        $activePractice = currentPractice();
+
         $addresses = $doctor
             ? $doctor->addresses()->with('zipcode', 'city', 'state', 'country')->latest()->get()
             : collect();
@@ -36,10 +38,20 @@ class ProfileController extends Controller
         $selectedTreatmentModalityIds= $doctor ? $doctor->treatmentModalities()->pluck('treatment_modalities.id')->all() : [];
         $selectedBuccalCorridorIds   = $doctor ? $doctor->buccalCorridorOptions()->pluck('buccal_corridor_options.id')->all() : [];
 
+        // Zipcodes needed when rendering the "Request Another Practice → new" form.
+        $zipcodes = $tab === 'practices'
+            ? Zipcode::with('city.state.country')
+                ->where('status', 'ACTIVE')
+                ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
+                ->orderBy('code')
+                ->get()
+            : collect();
+
         return view('profile.index', compact(
-            'tab', 'doctor', 'addresses',
+            'tab', 'doctor', 'activePractice', 'addresses',
             'modalitiesList', 'specialtiesList', 'treatmentModalitiesList', 'buccalCorridorsList',
-            'selectedModalityIds', 'selectedSpecialtyIds', 'selectedTreatmentModalityIds', 'selectedBuccalCorridorIds'
+            'selectedModalityIds', 'selectedSpecialtyIds', 'selectedTreatmentModalityIds', 'selectedBuccalCorridorIds',
+            'zipcodes'
         ));
     }
 
@@ -77,11 +89,11 @@ class ProfileController extends Controller
                 'language'              => 'nullable|string|max:50',
             ]);
 
-            $doctor = Doctor::with('practice')->where('user_id', Auth::id())->first();
-            if (! $doctor?->practice) {
-                return back()->with('error', 'No practice is linked to your account.');
+            $doctor   = Doctor::where('user_id', Auth::id())->first();
+            $practice = currentPractice();
+            if (! $practice) {
+                return back()->with('error', 'No active practice to edit. Switch to a practice from the top bar.');
             }
-            $practice = $doctor->practice;
 
             $practice->name               = $request->practice_name;
             $practice->phone_number       = preg_replace('/\D/', '', $request->practice_phone_number);
@@ -90,7 +102,7 @@ class ProfileController extends Controller
             $practice->save();
 
             // preferred_language is a doctor-level attribute, not practice-level
-            if ($request->filled('language')) {
+            if ($doctor && $request->filled('language')) {
                 $doctor->preferred_language = $request->language;
                 $doctor->save();
             }
@@ -326,11 +338,10 @@ class ProfileController extends Controller
             'logo' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        $doctor = Doctor::with('practice')->where('user_id', Auth::id())->firstOrFail();
-        if (! $doctor->practice) {
-            return back()->with('error', 'No practice is linked to your account.');
+        $practice = currentPractice();
+        if (! $practice) {
+            return back()->with('error', 'No active practice to update. Switch to a practice from the top bar.');
         }
-        $practice = $doctor->practice;
 
         if ($practice->logo_path && Storage::disk('public')->exists($practice->logo_path)) {
             Storage::disk('public')->delete($practice->logo_path);
@@ -344,11 +355,10 @@ class ProfileController extends Controller
 
     public function deletePracticeLogo()
     {
-        $doctor = Doctor::with('practice')->where('user_id', Auth::id())->firstOrFail();
-        if (! $doctor->practice) {
-            return back()->with('error', 'No practice is linked to your account.');
+        $practice = currentPractice();
+        if (! $practice) {
+            return back()->with('error', 'No active practice to update.');
         }
-        $practice = $doctor->practice;
 
         if ($practice->logo_path && Storage::disk('public')->exists($practice->logo_path)) {
             Storage::disk('public')->delete($practice->logo_path);

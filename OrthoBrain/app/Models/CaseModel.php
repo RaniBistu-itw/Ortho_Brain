@@ -14,6 +14,7 @@ class CaseModel extends Model
 
     protected $fillable = [
         'doctor_id',
+        'practice_id',
         'case_code',
         'status',
         'submitted_at',
@@ -28,8 +29,18 @@ class CaseModel extends Model
         return $this->belongsTo(Doctor::class);
     }
 
+    public function practice()
+    {
+        return $this->belongsTo(Practice::class);
+    }
+
     public function prescription()
     {
         return $this->hasOne(Prescription::class, 'case_id');
+    }
+
+    public function scopeForPractice($query, int $practiceId)
+    {
+        return $query->where('practice_id', $practiceId);
     }
 }
