@@ -38,6 +38,31 @@
   <div class="media-tile__label">{{ $poseLabel }}</div>
 
   @if($sectionType === 'photograph')
+    {{-- AI QC badge — only visible for photograph tiles with an AI signal. --}}
+    <div class="media-tile__ai-badge"
+         x-show="tiles['{{ $tileId }}'].filled && (tiles['{{ $tileId }}'].aiState === 'checking' || tiles['{{ $tileId }}'].aiWarning)"
+         :class="{
+           'media-tile__ai-badge--checking': tiles['{{ $tileId }}'].aiState === 'checking',
+           'media-tile__ai-badge--warn':     tiles['{{ $tileId }}'].aiState === 'warn'
+         }"
+         :title="tiles['{{ $tileId }}'].aiWarning || 'Checking with AI…'"
+         @click.stop
+         style="display:none;">
+      <template x-if="tiles['{{ $tileId }}'].aiState === 'checking'">
+        <span class="media-tile__ai-badge-text">
+          <i data-feather="loader"></i> AI
+        </span>
+      </template>
+      <template x-if="tiles['{{ $tileId }}'].aiState === 'warn'">
+        <span class="media-tile__ai-badge-text">
+          <i data-feather="alert-triangle"></i>
+          <span x-text="tiles['{{ $tileId }}'].aiWarning"></span>
+        </span>
+      </template>
+    </div>
+  @endif
+
+  @if($sectionType === 'photograph')
     {{-- Camera entry — only when empty AND device exposes a camera --}}
     <button type="button"
             class="media-tile__camera-btn"
