@@ -91,5 +91,113 @@
               x-show="narrative || !isGenerating"
               placeholder="Click 'Generate from Photos' to let the AI draft a clinical narrative from the uploaded images. You can freely edit the result before submission."></textarea>
 
+    {{-- ──────────────────────────────────────────────────────────── --}}
+    {{-- Before/After Smile Visualisation                              --}}
+    {{-- ──────────────────────────────────────────────────────────── --}}
+    <hr class="my-2">
+
+    <div class="d-flex align-items-baseline gap-50 mb-50">
+      <h6 class="mb-0 fw-semibold">Before / After Smile Visualisation</h6>
+      <span class="badge bg-light-info">AI</span>
+    </div>
+    <p class="text-muted font-small-2 mb-1">
+      Generate a predicted post-treatment view from the Frontal Smile photograph and the current prescription. The result is an AI visualisation, not a clinical guarantee.
+    </p>
+
+    <div class="alert alert-info mb-1"
+         x-show="!frontalSmileReady"
+         style="display:none;">
+      Upload the <strong>Frontal Smile</strong> photograph first (in the Photographs section).
+    </div>
+
+    <div class="alert alert-danger alert-dismissible fade show mb-1"
+         x-show="visualiseError"
+         role="alert"
+         style="display:none;">
+      <span x-text="visualiseError"></span>
+      <button type="button" class="btn-close" @click="visualiseError = null" aria-label="Close"></button>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-50 mb-1">
+      <button type="button"
+              class="btn btn-primary btn-sm d-flex align-items-center gap-25"
+              :disabled="!frontalSmileReady || !caseIsSaved || isVisualising"
+              @click="visualise()">
+        <i data-feather="image"></i>
+        <span x-text="previewImage ? 'Regenerate Visualisation' : 'Visualise Outcome'"></span>
+      </button>
+
+      <button type="button"
+              class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-25"
+              x-show="isVisualising"
+              @click="cancelVisualise()"
+              style="display:none;">
+        <i data-feather="x"></i> Cancel
+      </button>
+
+      <button type="button"
+              class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-25"
+              x-show="previewImage && !isVisualising"
+              @click="downloadPreview()"
+              style="display:none;">
+        <i data-feather="download"></i> Download
+      </button>
+
+      <button type="button"
+              class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-25"
+              x-show="previewImage && !isVisualising"
+              @click="clearPreview()"
+              style="display:none;">
+        <i data-feather="eye-off"></i> Hide
+      </button>
+
+      <span class="text-muted font-small-2 ms-auto"
+            x-show="previewProvider && previewGeneratedAt"
+            x-text="'Generated via ' + previewProvider"
+            style="display:none;"></span>
+    </div>
+
+    {{-- Side-by-side before/after grid. Stacks on narrow screens. --}}
+    <div class="row g-1"
+         x-show="previewOriginal || previewImage || isVisualising"
+         style="display:none;">
+
+      <div class="col-md-6">
+        <div class="perfect-smile-plan__preview-card">
+          <div class="perfect-smile-plan__preview-label">Current smile</div>
+          <img :src="previewOriginal || ''"
+               x-show="previewOriginal"
+               class="perfect-smile-plan__preview-img"
+               alt="Current frontal smile"
+               style="display:none;">
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="perfect-smile-plan__preview-card">
+          <div class="perfect-smile-plan__preview-label">Predicted outcome</div>
+
+          {{-- Loading skeleton --}}
+          <div class="placeholder-glow perfect-smile-plan__preview-skeleton"
+               x-show="isVisualising"
+               style="display:none;">
+            <span class="placeholder w-100"></span>
+          </div>
+
+          {{-- Predicted image + watermark overlay --}}
+          <div class="perfect-smile-plan__preview-wrapper"
+               x-show="previewImage && !isVisualising"
+               style="display:none;">
+            <img :src="previewImage || ''"
+                 class="perfect-smile-plan__preview-img"
+                 alt="Predicted post-treatment smile">
+            <div class="perfect-smile-plan__preview-watermark">
+              AI visualisation — not a clinical guarantee
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </section>

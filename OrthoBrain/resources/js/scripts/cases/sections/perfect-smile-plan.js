@@ -22,8 +22,18 @@
       uploadedCount: 0,
       hasEnoughPhotos: false,
       caseIsSaved: false,
+      frontalSmileReady: false,
+
+      // Before/after smile visualisation state
+      previewImage: null,       // data URL of the predicted image
+      previewOriginal: null,    // blob URL of the current frontal-smile (for side-by-side)
+      previewProvider: null,
+      previewGeneratedAt: null,
+      isVisualising: false,
+      visualiseError: null,
 
       _abortController: null,
+      _previewAbortController: null,
       _pollHandle: null,
 
       init: function () {
@@ -37,15 +47,18 @@
         function refresh() {
           var state = window.AddCaseState && window.AddCaseState.photographs;
           var count = 0;
+          var frontalSmile = false;
           if (state && state.tiles) {
             PHOTO_TILE_ORDER.forEach(function (id) {
               if (state.tiles[id] && state.tiles[id].filled) count += 1;
             });
+            frontalSmile = !!(state.tiles['frontal-smile'] && state.tiles['frontal-smile'].filled);
           }
-          self.uploadedCount    = count;
-          self.hasEnoughPhotos  = count >= MIN_PHOTOS;
+          self.uploadedCount     = count;
+          self.hasEnoughPhotos   = count >= MIN_PHOTOS;
+          self.frontalSmileReady = frontalSmile;
           var id = self._caseId();
-          self.caseIsSaved      = !!id && id !== 'new';
+          self.caseIsSaved       = !!id && id !== 'new';
         }
         refresh();
         this._pollHandle = setInterval(refresh, 1500);
@@ -104,6 +117,101 @@
 
       cancel: function () {
         if (this._abortController) this._abortController.abort();
+      },
+
+      // ── Before/after smile visualisation ──────────────────────────────────
+      visualise: async function () {
+        if (this.isVisualising) return;
+        if (!this.frontalSmileReady) {
+          this.visualiseError = 'Upload the Frontal Smile photograph first.';
+          return;
+        }
+        if (!this.caseIsSaved) {
+          this.visualiseError = 'Save the case as a draft first, then try again.';
+          return;
+        }
+        if (!window.CaseApi || !window.CaseApi.generateSmilePreview) {
+          this.visualiseError = 'Smile preview API is not available.';
+          return;
+        }
+        if (!window.CaseImageStore || !window.CaseImageStore.get) {
+          this.visualiseError = 'Image store not available.';
+          return;
+        }
+
+        var blob = null;
+        try {
+          blob = await window.CaseImageStore.get(this._caseId(), 'photographs', 'frontal-smile');
+        } catch (e) {
+          console.warn('CaseImageStore.get failed', e);
+        }
+        if (!blob) {
+          this.visualiseError = 'Frontal Smile photo not found in draft storage.';
+          return;
+        }
+
+        // Revoke any previous original-preview URL before creating a new one
+        if (this.previewOriginal) {
+          try { URL.revokeObjectURL(this.previewOriginal); } catch (e) { /* ignore */ }
+        }
+        this.previewOriginal   = URL.createObjectURL(blob);
+        this.visualiseError    = null;
+        this.isVisualising     = true;
+        this.previewImage      = null;
+        this.previewProvider   = null;
+        this.previewGeneratedAt = null;
+
+        this._previewAbortController = new AbortController();
+        var self = this;
+        try {
+          var res = await window.CaseApi.generateSmilePreview(this._caseId(), blob, this._previewAbortController.signal);
+          self.previewImage       = res && res.image ? res.image : null;
+          self.previewProvider    = res && res.provider ? res.provider : null;
+          self.previewGeneratedAt = res && res.generatedAt ? res.generatedAt : null;
+          if (!self.previewImage) {
+            self.visualiseError = 'The AI did not return an image. Please try again.';
+          }
+          if (window.feather) window.feather.replace();
+        } catch (err) {
+          if (err && err.name === 'AbortError') {
+            // user cancelled — silent
+          } else if (err && err.status === 429) {
+            self.visualiseError = 'Too many requests. Please wait a minute and try again.';
+          } else if (err && err.status === 503) {
+            self.visualiseError = 'AI is temporarily unavailable. Please try again shortly.';
+          } else {
+            self.visualiseError = (err && err.data && err.data.message) || 'Could not generate the preview.';
+            console.warn('generateSmilePreview failed', err);
+          }
+        } finally {
+          self.isVisualising = false;
+          self._previewAbortController = null;
+        }
+      },
+
+      cancelVisualise: function () {
+        if (this._previewAbortController) this._previewAbortController.abort();
+      },
+
+      clearPreview: function () {
+        if (this.previewOriginal) {
+          try { URL.revokeObjectURL(this.previewOriginal); } catch (e) { /* ignore */ }
+        }
+        this.previewImage       = null;
+        this.previewOriginal    = null;
+        this.previewProvider    = null;
+        this.previewGeneratedAt = null;
+        this.visualiseError     = null;
+      },
+
+      downloadPreview: function () {
+        if (!this.previewImage) return;
+        var a = document.createElement('a');
+        a.href = this.previewImage;
+        a.download = 'smile-preview-case-' + this._caseId() + '.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       },
 
       copyToClipboard: function () {
