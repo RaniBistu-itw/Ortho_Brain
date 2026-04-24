@@ -48,4 +48,18 @@ return [
         'right-buccal', 'frontal-retracted', 'left-buccal',
     ],
 
+    // Image-edit (before/after smile visualisation) runs on its own provider
+    // chain — gemini-2.5-flash-image for vision-capable image generation, then
+    // canned fallback for the demo case. Shares GEMINI_API_KEY with QC/Smile Plan.
+    'image_edit' => [
+        'provider_chain' => array_values(array_filter(array_map(
+            fn ($p) => trim($p),
+            explode(',', (string) env('AI_IMAGE_EDIT_PROVIDER_CHAIN', 'gemini,canned'))
+        ))),
+        'timeout_seconds' => (int) env('AI_IMAGE_EDIT_TIMEOUT_MS', 30000) / 1000,
+        'gemini' => [
+            'model' => env('AI_IMAGE_EDIT_MODEL', 'gemini-2.5-flash-image'),
+        ],
+    ],
+
 ];

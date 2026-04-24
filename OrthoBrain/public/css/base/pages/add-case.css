@@ -1008,3 +1008,60 @@
   background-color: #ebe9f1;
   margin: 0 0.25rem;
 }
+
+.perfect-smile-plan__preview-card {
+  position: relative;
+  background: #f8f8f8;
+  border: 1px solid #ebe9f1;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.perfect-smile-plan__preview-label {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  border-radius: 999px;
+  z-index: 2;
+}
+.perfect-smile-plan__preview-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.perfect-smile-plan__preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.perfect-smile-plan__preview-watermark {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.35rem 0.5rem;
+  background: rgba(234, 84, 85, 0.92);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.02em;
+  z-index: 2;
+}
+.perfect-smile-plan__preview-skeleton {
+  width: 85%;
+  height: 70%;
+}
+.perfect-smile-plan__preview-skeleton .placeholder {
+  height: 100%;
+  border-radius: 6px;
+}

@@ -110,5 +110,13 @@
       });
       return multipart(base() + '/' + encodeURIComponent(caseId) + '/smile-plan/generate', fd, signal);
     },
+
+    // AI image-edit — send the frontal-smile blob, get back a predicted-outcome
+    // image as a data URL. Returns { image, provider, generatedAt }.
+    generateSmilePreview: function (caseId, frontalSmileBlob, signal) {
+      var fd = new FormData();
+      fd.append('photo', frontalSmileBlob, 'frontal-smile.bin');
+      return multipart(base() + '/' + encodeURIComponent(caseId) + '/smile-preview/generate', fd, signal);
+    },
   };
 })();
