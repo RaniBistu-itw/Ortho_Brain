@@ -7,6 +7,7 @@ use App\Support\ActivePractice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class PracticeMembershipController extends Controller
 {
@@ -45,35 +46,109 @@ class PracticeMembershipController extends Controller
     }
 
     /**
-     * Doctor requests to join an existing practice (post-registration path).
-     * New pivot row, status PENDING.
+     * Doctor requests to join one or more practices post-registration.
+     * Form posts `practices[i][mode]=existing|new` with per-row fields — mirrors
+     * the registration block so the UX is the same.
      */
     public function request(Request $request)
     {
-        $data = $request->validate([
-            'practice_id' => 'required|integer|exists:practices,id',
-        ]);
-
         $doctor = Auth::user()?->doctor;
         abort_unless($doctor, 403);
 
-        $exists = DB::table('doctor_practice')
-            ->where('doctor_id', $doctor->id)
-            ->where('practice_id', $data['practice_id'])
-            ->whereIn('approval_status', ['PENDING', 'APPROVED'])
-            ->exists();
+        // Drop rows the user visibly never filled in (existing with no practice_id,
+        // new with no name). Prevents required_if firing on untouched rows.
+        $rows = collect((array) $request->input('practices', []))
+            ->filter(function ($row) {
+                if (! is_array($row)) return false;
+                $mode = $row['mode'] ?? 'existing';
+                if ($mode === 'existing') {
+                    return ! empty($row['practice_id']);
+                }
+                return isset($row['name']) && trim((string) $row['name']) !== '';
+            })
+            ->values()
+            ->all();
 
-        if ($exists) {
-            return back()->with('error', 'You already have a pending or active link to this practice.');
+        if (empty($rows)) {
+            return back()->with('error', 'Fill in at least one practice to submit.');
         }
 
-        $doctor->practices()->attach($data['practice_id'], [
-            'approval_status' => 'PENDING',
-            'is_primary'      => false,
-            'requested_at'    => now(),
+        $request->merge(['practices' => $rows]);
+
+        $request->validate([
+            'practices'                          => 'required|array|max:3',
+            'practices.*.mode'                   => 'required|in:existing,new',
+            'practices.*.practice_id'            => 'required_if:practices.*.mode,existing|nullable|integer|exists:practices,id',
+            'practices.*.name'                   => 'required_if:practices.*.mode,new|nullable|string|max:200',
+            'practices.*.website'                => 'required_if:practices.*.mode,new|nullable|string|max:500',
+            'practices.*.phone_country_code'     => ['nullable', 'required_if:practices.*.mode,new', Rule::in(['+1_US', '+1_CA', '+61_AU'])],
+            'practices.*.phone_number'           => 'required_if:practices.*.mode,new|nullable|string|regex:/^\d{10}$/',
+            'practices.*.street_address_1'       => 'required_if:practices.*.mode,new|nullable|string|min:5|max:255',
+            'practices.*.street_address_2'       => 'nullable|string|max:255',
+            'practices.*.zip_id'                 => 'required_if:practices.*.mode,new|nullable|integer|exists:zipcodes,id',
+            'practices.*.city_id'                => 'required_if:practices.*.mode,new|nullable|integer|exists:cities,id',
+            'practices.*.state_id'               => 'required_if:practices.*.mode,new|nullable|integer|exists:states,id',
+            'practices.*.country_id'             => 'required_if:practices.*.mode,new|nullable|integer|exists:countries,id',
+        ], [
+            'practices.*.phone_number.regex' => 'Phone must be exactly 10 digits.',
         ]);
 
-        return back()->with('success', 'Practice request submitted for admin review.');
+        $created = 0;
+        $duplicates = [];
+
+        DB::transaction(function () use ($rows, $doctor, &$created, &$duplicates) {
+            foreach ($rows as $row) {
+                if (($row['mode'] ?? 'existing') === 'existing') {
+                    $pid = (int) $row['practice_id'];
+
+                    $already = DB::table('doctor_practice')
+                        ->where('doctor_id', $doctor->id)
+                        ->where('practice_id', $pid)
+                        ->whereIn('approval_status', ['PENDING', 'APPROVED'])
+                        ->exists();
+                    if ($already) {
+                        $duplicates[] = Practice::where('id', $pid)->value('name') ?? "#$pid";
+                        continue;
+                    }
+
+                    $doctor->practices()->attach($pid, [
+                        'approval_status' => 'PENDING',
+                        'is_primary'      => false,
+                        'requested_at'    => now(),
+                    ]);
+                    $created++;
+                } else {
+                    $practice = Practice::create([
+                        'owner_id'           => $doctor->id,
+                        'name'               => $row['name'],
+                        'website'            => $row['website'],
+                        'phone_country_code' => $row['phone_country_code'],
+                        'phone_number'       => $row['phone_number'],
+                        'street_address_1'   => $row['street_address_1'],
+                        'street_address_2'   => $row['street_address_2'] ?? null,
+                        'zip_id'             => $row['zip_id'],
+                        'city_id'            => $row['city_id'],
+                        'state_id'           => $row['state_id'],
+                        'country_id'         => $row['country_id'],
+                        'status'             => 'INACTIVE',
+                    ]);
+                    $doctor->practices()->attach($practice->id, [
+                        'approval_status' => 'PENDING',
+                        'is_primary'      => false,
+                        'requested_at'    => now(),
+                    ]);
+                    $created++;
+                }
+            }
+        });
+
+        $msg = $created === 1
+            ? '1 practice request submitted — it will be reviewed shortly.'
+            : "{$created} practice requests submitted — each will be reviewed separately.";
+        if (! empty($duplicates)) {
+            $msg .= ' Skipped (already linked): ' . implode(', ', $duplicates) . '.';
+        }
+        return back()->with('success', $msg);
     }
 
     /**

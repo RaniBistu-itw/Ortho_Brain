@@ -286,6 +286,24 @@
                 @if($tab == 'practice')
                 <h4 class="card-title mb-2 pb-1 border-bottom">Practice</h4>
 
+                @if($activePractice ?? null)
+                    <div class="alert d-flex align-items-start gap-2 mb-2"
+                         style="background: rgba(91, 192, 222, 0.08); border: 1px solid rgba(91, 192, 222, 0.28); color: #1e6c85; border-radius: 0.5rem; padding: 0.65rem 0.85rem; font-size: 0.88rem;">
+                        <i class="bi bi-building" style="font-size: 1rem; margin-top: 0.1rem;"></i>
+                        <div style="flex: 1;">
+                            Editing practice: <strong>{{ $activePractice->name }}</strong>
+                            <div class="text-muted" style="font-size: 0.78rem; margin-top: 0.1rem;">
+                                Switch practices from the top bar to load a different practice here.
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="alert alert-secondary">
+                        No active practice to edit. Request one from the <a href="{{ route('doctor.profile.index', ['tab' => 'practices']) }}">My Practices</a> tab.
+                    </div>
+                @endif
+
+                @if($activePractice ?? null)
                 <form id="practiceForm" method="POST" action="/dev/profile/index?tab=practice" enctype="multipart/form-data" class="ob-form-validate" novalidate>
                     @csrf
                     <div class="row">
@@ -294,7 +312,7 @@
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><i data-feather="award"></i></span>
                                 <input id="in-prac-name" type="text" name="practice_name"
-                                       value="{{ old('practice_name', $doctor?->practice?->name ?? '') }}"
+                                       value="{{ old('practice_name', $activePractice?->name ?? '') }}"
                                        class="form-control">
                             </div>
                             <small id="err-prac-name" class="text-danger d-none"></small>
@@ -312,7 +330,7 @@
                                     <div class="input-group input-group-merge">
                                         <span class="input-group-text"><i data-feather="phone"></i></span>
                                         <input id="in-prac-phone" type="text" name="practice_phone_number"
-                                               value="{{ old('practice_phone_number', $doctor?->practice?->phone_number ?? '') }}"
+                                               value="{{ old('practice_phone_number', $activePractice?->phone_number ?? '') }}"
                                                placeholder="XXX-XXX-XXXX" class="form-control">
                                     </div>
                                 </div>
@@ -325,7 +343,7 @@
                             <div class="input-group input-group-merge">
                                 <span class="input-group-text"><i data-feather="globe"></i></span>
                                 <input id="in-prac-website" type="text" name="website"
-                                       value="{{ old('website', $doctor?->practice?->website ?? '') }}"
+                                       value="{{ old('website', $activePractice?->website ?? '') }}"
                                        placeholder="https://yoursite.com" class="form-control">
                             </div>
                             <small id="err-prac-website" class="text-danger d-none"></small>
@@ -341,7 +359,7 @@
                         <div class="col-12 mb-1">
                             <label class="form-label">Practice Photo</label>
                             <div class="d-flex align-items-center gap-3">
-                                @php $logoUrl = $doctor?->practice?->logoUrl(); @endphp
+                                @php $logoUrl = $activePractice?->logoUrl(); @endphp
                                 <div style="width:120px; height:120px; border-radius:.358rem; overflow:hidden; border:1px solid #ebe9f1; background:#f8f8f8; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                                     @if($logoUrl)
                                         <img src="{{ $logoUrl }}" alt="practice photo" style="width:100%; height:100%; object-fit:cover;">
@@ -385,7 +403,8 @@
                     'aspect'    => null,
                     'enableCam' => false,
                 ])
-                @endif
+                @endif {{-- /$activePractice --}}
+                @endif {{-- /tab == practice --}}
 
 
                 {{-- ─── Tab: Shipping ─── --}}
@@ -950,44 +969,335 @@
                 @endif
 
                 <hr class="my-4">
-                <h6>Request Another Practice</h6>
-                <form method="POST" action="{{ route('doctor.practices.request') }}" class="row g-2 align-items-end">
-                    @csrf
-                    <div class="col-md-9 position-relative">
-                        <label class="form-label">Search by name</label>
-                        <input type="hidden" name="practice_id" id="profile-req-pid" required>
-                        <input type="text" id="profile-req-pname" class="form-control" placeholder="Type a practice name…" autocomplete="off" oninput="profileReqInput(event)">
-                        <div id="profile-req-menu" class="list-group position-absolute w-100" style="z-index:10;max-height:240px;overflow:auto;display:none;"></div>
+                <h6 class="mb-0">Request Another Practice</h6>
+                <p class="text-muted small mb-3">Add up to 3 practices. Pick existing ones from the search, or create new ones inline. Each is reviewed separately.</p>
+
+                @if($errors->any())
+                    <div class="alert alert-danger py-2 mb-2" style="font-size:0.85rem;">
+                        <strong>Please fix the following:</strong>
+                        <ul class="mb-0 mt-1 ps-3">
+                            @foreach($errors->all() as $err)
+                                <li>{{ $err }}</li>
+                            @endforeach
+                        </ul>
                     </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary w-100">Submit Request</button>
+                @endif
+
+                <form method="POST" action="{{ route('doctor.practices.request') }}" id="profile-req-form">
+                    @csrf
+                    <div id="profile-req-rows"></div>
+
+                    <div class="d-flex align-items-center gap-2 mt-3">
+                        <button type="button" id="profile-req-add" onclick="profileReqAddRow()"
+                                class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus-circle"></i> Add another practice
+                        </button>
+                        <small class="text-muted">Up to 3 practices.</small>
+                    </div>
+
+                    <div class="d-flex mt-3">
+                        <button type="submit" class="btn btn-primary">Submit Request</button>
                     </div>
                 </form>
 
+                {{-- Zip options reused per-row in JS template (avoids repeating per row) --}}
+                <template id="profile-req-zip-options">
+                    <option value="" disabled selected>Select zip code</option>
+                    @foreach($zipcodes as $z)
+                        <option value="{{ $z->id }}"
+                            data-city-id="{{ $z->city?->id }}"
+                            data-city="{{ $z->city?->name }}"
+                            data-state-id="{{ $z->city?->state?->id }}"
+                            data-state="{{ $z->city?->state?->name }}"
+                            data-country-id="{{ $z->city?->state?->country?->id }}"
+                            data-country="{{ $z->city?->state?->country?->name }}">
+                            {{ $z->code }} — {{ $z->city?->name }}{{ $z->city?->state?->state_code ? ', ' . $z->city->state->state_code : '' }}
+                        </option>
+                    @endforeach
+                </template>
+
+                {{-- If validation failed, server-old data for rebuilding rows. --}}
+                @if(old('practices'))
+                    <script type="application/json" id="profile-req-old-data">@json(old('practices'))</script>
+                @endif
+
+                <style>
+                    .profile-req-row {
+                        border: 1px solid #e0dee8; border-radius: 0.5rem; padding: 1rem;
+                        margin-top: 0.75rem; background: #fafafd; position: relative;
+                    }
+                    .profile-req-row-head {
+                        display: flex; justify-content: space-between; align-items: center;
+                        gap: 1rem; margin-bottom: 0.75rem; flex-wrap: wrap;
+                    }
+                    .profile-req-row-head-left { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+                    .profile-req-btn-del {
+                        border: 1px solid #f5caca; background: #fdf0f0; color: #c53030;
+                        padding: 0.25rem 0.55rem; border-radius: 0.35rem; cursor: pointer;
+                    }
+                    .profile-req-btn-del:hover { background: #fde7e7; }
+                    .profile-req-btn-del[disabled] { opacity: 0.4; cursor: not-allowed; }
+                    .profile-req-menu {
+                        position: absolute; top: 100%; left: 0; right: 0;
+                        background: #fff; border: 1px solid #e5e7eb; border-radius: 0.35rem;
+                        box-shadow: 0 4px 12px rgba(24,28,40,0.08);
+                        z-index: 20; max-height: 240px; overflow-y: auto;
+                    }
+                    .profile-req-menu .list-group-item { border-radius: 0; cursor: pointer; }
+                    .profile-req-zip-preview {
+                        margin-top: 0.35rem; font-size: 0.78rem; color: #5a8f21;
+                        display: none;
+                    }
+                </style>
+
                 <script>
-                    let profileReqTimer = null;
-                    async function profileReqInput(e) {
-                        document.getElementById('profile-req-pid').value = '';
+                (function () {
+                    const MAX_ROWS = 3;
+                    let seq = 0;
+
+                    window.profileReqAddRow = function () {
+                        const rowsWrap = document.getElementById('profile-req-rows');
+                        const visible = rowsWrap.querySelectorAll('.profile-req-row').length;
+                        if (visible >= MAX_ROWS) {
+                            alert('You can add up to ' + MAX_ROWS + ' practices at a time.');
+                            return;
+                        }
+                        const idx = seq++;
+                        const row = document.createElement('div');
+                        row.className = 'profile-req-row';
+                        row.dataset.idx = idx;
+                        row.innerHTML = `
+                            <div class="profile-req-row-head">
+                                <div class="profile-req-row-head-left">
+                                    <strong>Practice <span class="profile-req-row-num">#</span></strong>
+                                    <label class="form-check form-check-inline m-0">
+                                        <input type="radio" class="form-check-input" name="practices[${idx}][mode]" value="existing" checked onchange="profileReqSetMode(${idx}, 'existing')">
+                                        <span class="form-check-label">Existing</span>
+                                    </label>
+                                    <label class="form-check form-check-inline m-0">
+                                        <input type="radio" class="form-check-input" name="practices[${idx}][mode]" value="new" onchange="profileReqSetMode(${idx}, 'new')">
+                                        <span class="form-check-label">Create new</span>
+                                    </label>
+                                </div>
+                                <button type="button" class="profile-req-btn-del" onclick="profileReqRemove(${idx})" title="Remove this row">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+
+                            <div class="profile-req-pane" data-pane="existing-${idx}">
+                                <label class="form-label">Search by name</label>
+                                <div style="position:relative;">
+                                    <input type="hidden" name="practices[${idx}][practice_id]" id="pr-pid-${idx}">
+                                    <input type="text" id="pr-pname-${idx}" class="form-control"
+                                           placeholder="Type a practice name…"
+                                           autocomplete="off"
+                                           oninput="profileReqSearch(${idx}, event)"
+                                           onblur="setTimeout(() => profileReqHideMenu(${idx}), 150)">
+                                    <div id="pr-menu-${idx}" class="profile-req-menu list-group" style="display:none;"></div>
+                                </div>
+                            </div>
+
+                            <div class="profile-req-pane" data-pane="new-${idx}" style="display:none;">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Practice Name<span class="text-danger">*</span></label>
+                                        <input type="text" name="practices[${idx}][name]" class="form-control" placeholder="Practice name">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Phone Number<span class="text-danger">*</span></label>
+                                        <div class="row g-1">
+                                            <div class="col-5 col-sm-4">
+                                                <select name="practices[${idx}][phone_country_code]" class="form-select">
+                                                    <option value="+1_US">+1 (US)</option>
+                                                    <option value="+1_CA">+1 (CA)</option>
+                                                    <option value="+61_AU">+61 (AU)</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-7 col-sm-8">
+                                                <input type="text" name="practices[${idx}][phone_number]" class="form-control" maxlength="10" placeholder="10 digits, no dashes">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Website<span class="text-danger">*</span></label>
+                                        <input type="text" name="practices[${idx}][website]" class="form-control" placeholder="www.example.com">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Street Address<span class="text-danger">*</span></label>
+                                        <input type="text" name="practices[${idx}][street_address_1]" class="form-control" placeholder="Street address 1">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Street Address 2</label>
+                                        <input type="text" name="practices[${idx}][street_address_2]" class="form-control" placeholder="Street address 2 (optional)">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Zip<span class="text-danger">*</span></label>
+                                        <input type="hidden" name="practices[${idx}][city_id]"    id="pr-city-${idx}">
+                                        <input type="hidden" name="practices[${idx}][state_id]"   id="pr-state-${idx}">
+                                        <input type="hidden" name="practices[${idx}][country_id]" id="pr-country-${idx}">
+                                        <select name="practices[${idx}][zip_id]" id="pr-zip-${idx}" class="form-select" onchange="profileReqZipChange(${idx})"></select>
+                                        <div id="pr-zip-preview-${idx}" class="profile-req-zip-preview"></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">City</label>
+                                        <input type="text" id="pr-city-disp-${idx}" class="form-control" placeholder="Auto-filled from zip" readonly style="background:#f5f6fa;">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">State / Country</label>
+                                        <input type="text" id="pr-state-disp-${idx}" class="form-control" placeholder="Auto-filled from zip" readonly style="background:#f5f6fa;">
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        rowsWrap.appendChild(row);
+
+                        // Clone zip options from the template.
+                        const zipSel = document.getElementById('pr-zip-' + idx);
+                        const tpl = document.getElementById('profile-req-zip-options');
+                        if (zipSel && tpl) zipSel.innerHTML = tpl.innerHTML;
+
+                        profileReqRenumber();
+                        profileReqUpdateDelState();
+                        return idx;
+                    };
+
+                    window.profileReqRemove = function (idx) {
+                        const row = document.querySelector(`.profile-req-row[data-idx="${idx}"]`);
+                        if (row) row.remove();
+                        profileReqRenumber();
+                        profileReqUpdateDelState();
+                    };
+
+                    function profileReqRenumber() {
+                        document.querySelectorAll('.profile-req-row').forEach((row, i) => {
+                            const n = row.querySelector('.profile-req-row-num');
+                            if (n) n.textContent = String(i + 1);
+                        });
+                    }
+
+                    function profileReqUpdateDelState() {
+                        const rows = document.querySelectorAll('.profile-req-row');
+                        rows.forEach((row, i) => {
+                            const del = row.querySelector('.profile-req-btn-del');
+                            if (del) del.disabled = (rows.length === 1);
+                        });
+                    }
+
+                    window.profileReqSetMode = function (idx, mode) {
+                        const row = document.querySelector(`.profile-req-row[data-idx="${idx}"]`);
+                        if (!row) return;
+                        row.querySelector(`[data-pane="existing-${idx}"]`).style.display = (mode === 'existing') ? '' : 'none';
+                        row.querySelector(`[data-pane="new-${idx}"]`).style.display      = (mode === 'new')      ? '' : 'none';
+                    };
+
+                    const searchTimers = {};
+                    window.profileReqSearch = function (idx, e) {
+                        document.getElementById('pr-pid-' + idx).value = '';
                         const q = e.target.value.trim();
-                        clearTimeout(profileReqTimer);
-                        const menu = document.getElementById('profile-req-menu');
+                        clearTimeout(searchTimers[idx]);
+                        const menu = document.getElementById('pr-menu-' + idx);
                         if (q.length < 2) { menu.style.display = 'none'; menu.innerHTML = ''; return; }
-                        profileReqTimer = setTimeout(async () => {
+                        searchTimers[idx] = setTimeout(async () => {
                             const res = await fetch('{{ route('practice.search') }}?q=' + encodeURIComponent(q),
                                 { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
                             if (!res.ok) return;
                             const items = await res.json();
-                            menu.innerHTML = items.length
-                                ? items.map(p => `<button type="button" class="list-group-item list-group-item-action" onclick="profileReqPick(${p.id}, ${JSON.stringify(p.name)})">${p.label.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</button>`).join('')
-                                : '<div class="list-group-item text-muted">No matching practice.</div>';
+                            menu.innerHTML = '';
+                            if (items.length) {
+                                items.forEach(p => {
+                                    const btn = document.createElement('button');
+                                    btn.type = 'button';
+                                    btn.className = 'list-group-item list-group-item-action';
+                                    btn.dataset.pid = p.id;
+                                    btn.dataset.pname = p.name;
+                                    btn.textContent = p.label; // textContent is safe — no HTML injection risk
+                                    // Use mousedown so the pick registers BEFORE the input's blur fires.
+                                    btn.addEventListener('mousedown', function (ev) {
+                                        ev.preventDefault();
+                                        profileReqPick(idx, p.id, p.name);
+                                    });
+                                    menu.appendChild(btn);
+                                });
+                            } else {
+                                const empty = document.createElement('div');
+                                empty.className = 'list-group-item text-muted';
+                                empty.innerHTML = 'No matching practice available. Switch to <strong>Create new</strong> to submit it.';
+                                menu.appendChild(empty);
+                            }
                             menu.style.display = 'block';
                         }, 250);
-                    }
-                    function profileReqPick(id, name) {
-                        document.getElementById('profile-req-pid').value = id;
-                        document.getElementById('profile-req-pname').value = name;
-                        document.getElementById('profile-req-menu').style.display = 'none';
-                    }
+                    };
+
+                    window.profileReqPick = function (idx, id, name) {
+                        document.getElementById('pr-pid-' + idx).value = id;
+                        document.getElementById('pr-pname-' + idx).value = name;
+                        document.getElementById('pr-menu-' + idx).style.display = 'none';
+                    };
+
+                    window.profileReqHideMenu = function (idx) {
+                        const m = document.getElementById('pr-menu-' + idx);
+                        if (m) m.style.display = 'none';
+                    };
+
+                    window.profileReqZipChange = function (idx) {
+                        const sel = document.getElementById('pr-zip-' + idx);
+                        const opt = sel.options[sel.selectedIndex];
+                        const city    = opt.getAttribute('data-city')    || '';
+                        const state   = opt.getAttribute('data-state')   || '';
+                        const country = opt.getAttribute('data-country') || '';
+                        document.getElementById('pr-city-' + idx).value    = opt.getAttribute('data-city-id')    || '';
+                        document.getElementById('pr-state-' + idx).value   = opt.getAttribute('data-state-id')   || '';
+                        document.getElementById('pr-country-' + idx).value = opt.getAttribute('data-country-id') || '';
+                        document.getElementById('pr-city-disp-' + idx).value  = city;
+                        document.getElementById('pr-state-disp-' + idx).value = [state, country].filter(Boolean).join(' / ');
+                        const prev = document.getElementById('pr-zip-preview-' + idx);
+                        if (city || state || country) {
+                            prev.innerHTML = '✓ Matched: <strong>' + city + '</strong>' +
+                                             (state ? ' · <strong>' + state + '</strong>' : '') +
+                                             (country ? ' · <strong>' + country + '</strong>' : '');
+                            prev.style.display = 'block';
+                        } else {
+                            prev.style.display = 'none';
+                            prev.innerHTML = '';
+                        }
+                    };
+
+                    // On load: always show at least one row. If validation failed, rebuild from old().
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const oldEl = document.getElementById('profile-req-old-data');
+                        if (oldEl) {
+                            try {
+                                const oldRows = JSON.parse(oldEl.textContent);
+                                if (Array.isArray(oldRows) && oldRows.length) {
+                                    oldRows.forEach(r => {
+                                        const idx = profileReqAddRow();
+                                        const mode = (r && r.mode) || 'existing';
+                                        const row = document.querySelector(`.profile-req-row[data-idx="${idx}"]`);
+                                        if (mode === 'new') {
+                                            row.querySelector(`input[name="practices[${idx}][mode]"][value="new"]`).checked = true;
+                                            profileReqSetMode(idx, 'new');
+                                            if (r.name)             row.querySelector(`input[name="practices[${idx}][name]"]`).value = r.name;
+                                            if (r.website)          row.querySelector(`input[name="practices[${idx}][website]"]`).value = r.website;
+                                            if (r.phone_country_code) row.querySelector(`select[name="practices[${idx}][phone_country_code]"]`).value = r.phone_country_code;
+                                            if (r.phone_number)     row.querySelector(`input[name="practices[${idx}][phone_number]"]`).value = r.phone_number;
+                                            if (r.street_address_1) row.querySelector(`input[name="practices[${idx}][street_address_1]"]`).value = r.street_address_1;
+                                            if (r.street_address_2) row.querySelector(`input[name="practices[${idx}][street_address_2]"]`).value = r.street_address_2;
+                                            if (r.zip_id) {
+                                                const zs = document.getElementById('pr-zip-' + idx);
+                                                zs.value = r.zip_id;
+                                                profileReqZipChange(idx);
+                                            }
+                                        } else if (r && r.practice_id) {
+                                            document.getElementById('pr-pid-' + idx).value = r.practice_id;
+                                        }
+                                    });
+                                    return;
+                                }
+                            } catch (e) {}
+                        }
+                        profileReqAddRow();
+                    });
+                })();
                 </script>
                 @endif
 

@@ -24,9 +24,19 @@ class PracticeController extends Controller
             return response()->json([]);
         }
 
+        $doctor = auth()->user()?->doctor;
+
         $practices = Practice::with(['zipcode', 'city', 'state', 'country'])
             ->where('status', 'ACTIVE')
             ->where('name', 'LIKE', '%' . $q . '%')
+            ->when($doctor, function ($query) use ($doctor) {
+                $query->whereNotIn('practices.id', function ($sub) use ($doctor) {
+                    $sub->select('practice_id')
+                        ->from('doctor_practice')
+                        ->where('doctor_id', $doctor->id)
+                        ->whereIn('approval_status', ['PENDING', 'APPROVED']);
+                });
+            })
             ->orderBy('name')
             ->limit(20)
             ->get();

@@ -244,6 +244,23 @@
     .ob-status--success   { background: var(--ob-accent-soft); color: #5a8f21; border-color: rgba(140, 198, 63, 0.28); }
     .ob-status--secondary { background: #eef0f4; color: #6c7283; border-color: #e2e4eb; }
 
+    .ob-pending-pill {
+        display: inline-block;
+        margin-left: 0.45rem;
+        padding: 0.15rem 0.55rem;
+        background: var(--ob-warning-soft);
+        color: #b9681a;
+        border: 1px solid #ffdcaf;
+        border-radius: 999px;
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        text-decoration: none;
+        vertical-align: middle;
+    }
+    .ob-pending-pill:hover { background: rgba(255, 159, 67, 0.22); color: #9c560e; }
+
     .ob-when { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--ob-text); }
     .ob-when svg { width: 13px; height: 13px; color: #9a9aab; }
 
@@ -296,17 +313,6 @@
 
 @section('content')
 @php
-    $tabs = [
-        ['key' => null,       'label' => 'All',      'tone' => null],
-        ['key' => 'ACTIVE',   'label' => 'Active',   'tone' => 'success'],
-        ['key' => 'INACTIVE', 'label' => 'Inactive', 'tone' => 'secondary'],
-    ];
-    $tabCount = fn ($key) => $key === null ? ($totalCount ?? 0) : (int) ($statusCounts[$key] ?? 0);
-    $statusToBadge = [
-        'ACTIVE'   => ['label' => 'Active',   'tone' => 'success'],
-        'INACTIVE' => ['label' => 'Inactive', 'tone' => 'secondary'],
-    ];
-
     $selectedCountry = request('country_id')
         ? optional($countries->firstWhere('id', (int) request('country_id')))->name
         : null;
@@ -331,30 +337,9 @@
             </div>
         </div>
 
-        {{-- Tabs --}}
-        <ul class="ob-tabs">
-            @foreach ($tabs as $tab)
-                @php
-                    $isActive = ($currentStatus ?? null) === $tab['key'];
-                    $href = $tab['key']
-                        ? route('admin.practices.index', ['status' => $tab['key']])
-                        : route('admin.practices.index');
-                @endphp
-                <li>
-                    <a href="{{ $href }}" class="ob-tab {{ $isActive ? 'is-active' : '' }}">
-                        {{ $tab['label'] }}
-                        <span class="ob-tab-count">{{ $tabCount($tab['key']) }}</span>
-                    </a>
-                </li>
-            @endforeach
-        </ul>
-
         {{-- Toolbar --}}
         <div class="ob-toolbar">
             <form id="practicesFilter" method="GET" class="row g-2 align-items-center">
-                @if ($currentStatus)
-                    <input type="hidden" name="status" value="{{ $currentStatus }}">
-                @endif
                 <div class="col-md-5">
                     <select name="country_id" class="js-searchable form-select">
                         <option value="">All countries</option>
@@ -405,8 +390,6 @@
                         <th>Location</th>
                         <th>Contact</th>
                         <th>Members</th>
-                        <th>Added</th>
-                        <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -414,7 +397,6 @@
                     @forelse ($practices as $practice)
                         @php
                             $initials = strtoupper(mb_substr(trim($practice->name ?? ''), 0, 2));
-                            $badge = $statusToBadge[$practice->status] ?? ['label' => $practice->status, 'tone' => 'secondary'];
                             $logoUrl = $practice->logoUrl();
 
                             $ownerName = $practice->owner
@@ -444,7 +426,16 @@
                                         @endif
                                     </span>
                                     <div>
-                                        <span class="ob-practice-name">{{ $practice->name }}</span>
+                                        <span class="ob-practice-name">
+                                            {{ $practice->name }}
+                                            @if (($practice->pending_pivot_count ?? 0) > 0)
+                                                <a href="{{ route('admin.practices.show', $practice) }}"
+                                                   class="ob-pending-pill"
+                                                   title="{{ $practice->pending_pivot_count }} pending doctor {{ \Illuminate\Support\Str::plural('approval', $practice->pending_pivot_count) }}">
+                                                    {{ $practice->pending_pivot_count }} pending
+                                                </a>
+                                            @endif
+                                        </span>
                                         @if ($practice->street_address_1)
                                             <span class="ob-practice-sub">{{ $practice->street_address_1 }}</span>
                                         @endif
@@ -490,17 +481,6 @@
                                     {{ (int) ($practice->members_count ?? 0) }}
                                 </span>
                             </td>
-                            <td>
-                                <span class="ob-when" title="{{ $practice->created_at?->toDayDateTimeString() }}">
-                                    <i data-feather="calendar"></i>
-                                    {{ $practice->created_at?->diffForHumans() ?? '—' }}
-                                </span>
-                            </td>
-                            <td>
-                                <span class="ob-status ob-status--{{ $badge['tone'] }}">
-                                    {{ $badge['label'] }}
-                                </span>
-                            </td>
                             <td class="text-end">
                                 <div class="ob-row-actions">
                                     <a href="{{ route('admin.practices.show', $practice) }}"
@@ -512,7 +492,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8">
+                            <td colspan="6">
                                 <div class="ob-empty">
                                     <div class="ob-empty-icon"><i data-feather="briefcase"></i></div>
                                     <div class="ob-empty-title">No practices found</div>

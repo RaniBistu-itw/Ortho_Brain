@@ -15,8 +15,10 @@ class CasesController extends Controller
     public function index()
     {
         $doctor = $this->currentDoctor();
+        $practiceId = currentPractice()->id;
 
         $cases = CaseModel::where('doctor_id', $doctor->id)
+            ->where('practice_id', $practiceId)
             ->latest()
             ->paginate(20);
 
@@ -39,9 +41,11 @@ class CasesController extends Controller
     public function store(Request $request)
     {
         $doctor = $this->currentDoctor();
+        $practiceId = currentPractice()->id;
 
         $case = CaseModel::create([
             'doctor_id' => $doctor->id,
+            'practice_id' => $practiceId,
             'status' => 'DRAFT',
         ]);
 
@@ -56,9 +60,11 @@ class CasesController extends Controller
     {
         $doctor = $this->currentDoctor();
         $doctor->loadMissing('practice:id,name');
+        $practiceId = currentPractice()->id;
 
         $case = CaseModel::with('prescription.toothRestrictions')
             ->where('doctor_id', $doctor->id)
+            ->where('practice_id', $practiceId)
             ->findOrFail($id);
 
         return view('content.cases.add-case', [
@@ -72,9 +78,11 @@ class CasesController extends Controller
     public function submit(int $id)
     {
         $doctor = $this->currentDoctor();
+        $practiceId = currentPractice()->id;
 
         $case = CaseModel::with('prescription.toothRestrictions')
             ->where('doctor_id', $doctor->id)
+            ->where('practice_id', $practiceId)
             ->findOrFail($id);
 
         if (! $case->prescription) {
