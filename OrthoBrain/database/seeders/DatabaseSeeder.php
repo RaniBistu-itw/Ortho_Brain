@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             PracticesSeeder::class,
             DoctorSeeder::class,
             CaseDemoSeeder::class,
+            CaseDashboardSeeder::class,
         ]);
     }
 }
