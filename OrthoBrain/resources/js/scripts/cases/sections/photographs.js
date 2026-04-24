@@ -20,7 +20,7 @@
   };
 
   var PHOTO_CONFIG = {
-    maxSizeBytes: 20 * 1024 * 1024,
+    maxSizeBytes: 5 * 1024 * 1024,
     allowedMimeTypes: ['image/png', 'image/gif', 'image/jpeg', 'image/tiff', 'image/bmp', 'image/heic'],
     formatError: 'Invalid file format. Accepted: png, gif, jpeg, jpg, tiff, bmp, heic.',
     acceptAttribute: 'image/png,image/gif,image/jpeg,image/tiff,image/bmp,image/heic',
@@ -337,12 +337,54 @@
         // _openFilePicker is called from the hidden.bs.modal handler
       },
 
-      removeTile: function () {
-        var tileId = this.tileModal.activeTileId;
-        if (!tileId) return;
-        if (!window.confirm('Remove this photo?')) return;
-        this._closeTileModal();
-        this._clearTile(tileId);
+      removeTile: function (tileId) {
+        var id = tileId || this.tileModal.activeTileId;
+        if (!id || !this.tiles[id].filled) return;
+
+        // Snapshot for undo (refs, not clones — blobs are immutable)
+        var snapshot = {
+          originalFile: this.tiles[id].originalFile,
+          croppedBlob: this.tiles[id].croppedBlob,
+          previewUrl:  this.tiles[id].previewUrl,
+          cropParams:  this.tiles[id].cropParams,
+          aiState:     this.tiles[id].aiState,
+          aiWarning:   this.tiles[id].aiWarning,
+          aiConfidence: this.tiles[id].aiConfidence,
+        };
+
+        // Visually clear, but DO NOT revoke the previewUrl or forget the blob
+        // until the undo window expires. Undo restores from the snapshot refs.
+        this.tiles[id].filled = false;
+        this.tiles[id].originalFile = null;
+        this.tiles[id].croppedBlob = null;
+        this.tiles[id].previewUrl = null;
+        this.tiles[id].cropParams = null;
+        this._resetTileAi(id);
+        this.syncToState();
+
+        if (this._tileModalInstance) this._closeTileModal();
+
+        var self = this;
+        window.MediaTileHelpers.showUndoToast(
+          'Removed ' + this.getTileLabel(id),
+          function onUndo() {
+            self.tiles[id].originalFile = snapshot.originalFile;
+            self.tiles[id].croppedBlob = snapshot.croppedBlob;
+            self.tiles[id].previewUrl = snapshot.previewUrl;
+            self.tiles[id].cropParams = snapshot.cropParams;
+            self.tiles[id].aiState = snapshot.aiState;
+            self.tiles[id].aiWarning = snapshot.aiWarning;
+            self.tiles[id].aiConfidence = snapshot.aiConfidence;
+            self.tiles[id].filled = true;
+            self.syncToState();
+            if (window.feather) window.feather.replace();
+          },
+          function onCommit() {
+            if (snapshot.previewUrl) URL.revokeObjectURL(snapshot.previewUrl);
+            self._forgetTile(id);
+          },
+          5000
+        );
       },
 
       _clearTile: function (tileId) {

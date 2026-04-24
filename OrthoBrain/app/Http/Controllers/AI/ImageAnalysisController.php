@@ -20,7 +20,7 @@ class ImageAnalysisController extends Controller
         'image/webp',
     ];
 
-    private const MAX_BYTES = 20 * 1024 * 1024;  // 20 MB per photographs.js
+    private const MAX_BYTES = 5 * 1024 * 1024;  // 5 MB per photographs.js
 
     public function __construct(private readonly VisionService $vision)
     {
