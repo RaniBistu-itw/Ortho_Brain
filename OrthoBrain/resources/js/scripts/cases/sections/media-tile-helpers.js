@@ -113,6 +113,41 @@ window.MediaTileHelpers = {
     container.classList.remove('is-visible');
     container.setAttribute('aria-hidden', 'true');
     var btnEl = container.querySelector('.media-undo-toast__undo');
-    if (btnEl) btnEl.onclick = null;
+    if (btnEl) {
+      btnEl.onclick = null;
+      btnEl.style.display = '';
+    }
+  },
+
+  // Simple notification toast — no action button. Shares the same DOM slot as
+  // showUndoToast; if a pending undo exists, commit it first (latest-wins).
+  showToast: function (label, autoCloseMs) {
+    var self = this;
+    var container = document.getElementById('media-undo-toast');
+    if (!container) return;
+
+    if (this._undoToastState) {
+      clearTimeout(this._undoToastState.timerId);
+      try { this._undoToastState.onCommit && this._undoToastState.onCommit(); } catch (e) {}
+      this._undoToastState = null;
+    }
+    if (this._plainToastTimer) {
+      clearTimeout(this._plainToastTimer);
+      this._plainToastTimer = null;
+    }
+
+    var labelEl = container.querySelector('.media-undo-toast__label');
+    var btnEl = container.querySelector('.media-undo-toast__undo');
+    if (!labelEl) return;
+
+    labelEl.textContent = label;
+    if (btnEl) btnEl.style.display = 'none';
+    container.classList.add('is-visible');
+    container.setAttribute('aria-hidden', 'false');
+
+    this._plainToastTimer = setTimeout(function () {
+      self._hideUndoToastContainer();
+      self._plainToastTimer = null;
+    }, autoCloseMs || 2000);
   },
 };

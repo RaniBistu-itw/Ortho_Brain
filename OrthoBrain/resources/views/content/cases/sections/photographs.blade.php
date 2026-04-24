@@ -83,7 +83,8 @@
 
     {{-- Bulk upload --}}
     <div class="mb-1">
-      <button type="button" class="btn btn-outline-primary btn-sm" @click="openBulkPicker()">
+      <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-50" @click="openBulkPicker()">
+        <i data-feather="upload"></i>
         Upload Images
       </button>
       <input type="file"
