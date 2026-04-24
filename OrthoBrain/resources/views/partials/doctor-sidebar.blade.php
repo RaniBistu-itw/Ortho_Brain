@@ -6,7 +6,7 @@
     <div class="navbar-header">
         <ul class="nav navbar-nav flex-row">
             <li class="nav-item me-auto">
-                <a class="navbar-brand" href="{{ route('doctor.cases.list') }}">
+                <a class="navbar-brand" href="{{ route('doctor.dashboard') }}">
                     <span class="brand-logo">
                         <svg width="34" height="30" viewBox="0 0 64 64" fill="none" stroke="#b8b8b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M32 12c-3.5 0-5.5 2-5.5 4 0 2-2 4-4.5 4-4.5 0-7 3-7 7.5 0 2.5-2 4-3 6-1.5 3.5 1 7 4 7 1 0 2 1 2 2.5 0 3.5 3.5 5.5 6.5 5.5 2 0 3-1.5 4.5-3 2-2 5.5-2 7.5 0 1.5 1.5 2.5 3 4.5 3 3 0 6.5-2 6.5-5.5 0-1.5 1-2.5 2-2.5 3 0 5.5-3.5 4-7-1-2-3-3.5-3-6 0-4.5-2.5-7.5-7-7.5-2.5 0-4.5-2-4.5-4 0-2-2-4-5.5-4z" fill="#ffffff"/>
@@ -27,8 +27,8 @@
     <div class="main-menu-content">
         <ul class="navigation navigation-main" id="main-menu-navigation" data-menu="menu-navigation">
 
-            <li class="nav-item {{ $active('doctor.cases.list') }}">
-                <a href="{{ route('doctor.cases.list') }}" class="d-flex align-items-center">
+            <li class="nav-item {{ $active('doctor.dashboard') }}">
+                <a href="{{ route('doctor.dashboard') }}" class="d-flex align-items-center">
                     <i data-feather="home"></i>
                     <span class="menu-title text-truncate">Dashboard</span>
                 </a>

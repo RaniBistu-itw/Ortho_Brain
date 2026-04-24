@@ -56,7 +56,10 @@ Route::middleware(['web', 'auth'])
         Route::post('/practices/{link}/leave',  [\App\Http\Controllers\PracticeMembershipController::class, 'leave'])->name('practices.leave');
         Route::post('/practices/{link}/primary',[\App\Http\Controllers\PracticeMembershipController::class, 'makePrimary'])->name('practices.primary');
 
-        // Legacy route — login still redirects here. Keep as a redirect to the real list.
+        // Doctor dashboard (landing page after login)
+        Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
+
+        // Legacy route — kept as a redirect to the real list.
         Route::redirect('/cases/list', '/dev/cases')->name('cases.list');
 
         // Add Case + Case List feature (owner: Devansh)
