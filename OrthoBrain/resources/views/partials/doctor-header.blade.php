@@ -11,8 +11,10 @@
             ->when($navActivePractice, fn ($q) => $q->where('practices.id', '!=', $navActivePractice->id))
             ->get()
         : collect();
-    $navPendingCount  = $navDoctor ? $navDoctor->pendingPractices()->count() : 0;
+    $navPendingList   = $navDoctor ? $navDoctor->pendingPractices()->get() : collect();
+    $navPendingCount  = $navPendingList->count();
     $navUnreadNotifs  = auth()->user()?->unreadNotifications()->count() ?? 0;
+    $navBellCount     = $navUnreadNotifs + $navPendingCount;
 @endphp
 
 <style>
@@ -201,6 +203,7 @@
     .doc-nav__notif-item:hover { background: #f9fafb; }
     .doc-nav__notif-item .bi-check-circle { color: #5a8f21; margin-top: 0.15rem; }
     .doc-nav__notif-item .bi-x-circle { color: #c53030; margin-top: 0.15rem; }
+    .doc-nav__notif-item .bi-hourglass-split { color: #b9681a; margin-top: 0.15rem; }
     .doc-nav__notif-title { font-weight: 600; color: #111827; font-size: 0.88rem; }
     .doc-nav__notif-body  { color: #4b5563; font-size: 0.8rem; margin-top: 0.1rem; }
     .doc-nav__notif-time  { color: #9ca3af; font-size: 0.72rem; margin-top: 0.2rem; display: block; }
@@ -299,18 +302,31 @@
     <div class="dropdown">
         <a class="doc-nav__icon-btn" href="#" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications" aria-label="Notifications">
             <i class="bi bi-bell"></i>
-            @if($navUnreadNotifs > 0)
-                <span class="doc-nav__count-dot">{{ $navUnreadNotifs > 9 ? '9+' : $navUnreadNotifs }}</span>
+            @if($navBellCount > 0)
+                <span class="doc-nav__count-dot">{{ $navBellCount > 9 ? '9+' : $navBellCount }}</span>
             @endif
         </a>
         <div class="dropdown-menu dropdown-menu-end" style="min-width:340px;max-width:360px;">
             <h6 class="dropdown-header" style="display:flex;justify-content:space-between;align-items:center;">
                 <span>Notifications</span>
-                @if($navUnreadNotifs > 0)
-                    <span style="font-size:0.7rem;font-weight:600;color:#1e6c85;">{{ $navUnreadNotifs }} new</span>
+                @if($navBellCount > 0)
+                    <span style="font-size:0.7rem;font-weight:600;color:#1e6c85;">{{ $navBellCount }} new</span>
                 @endif
             </h6>
             <div class="dropdown-divider" style="margin: 0 0 0.25rem;"></div>
+            @foreach($navPendingList as $pp)
+                <a class="doc-nav__notif-item" href="{{ route('doctor.profile.index', ['tab' => 'practices']) }}">
+                    <i class="bi bi-hourglass-split"></i>
+                    <span style="flex:1;">
+                        <span class="doc-nav__notif-title">Practice request under review</span>
+                        <span class="doc-nav__notif-body">Your request to join <strong>{{ $pp->name }}</strong> is awaiting admin review.</span>
+                        @if($pp->pivot?->created_at)
+                            <span class="doc-nav__notif-time">Requested {{ $pp->pivot->created_at->diffForHumans() }}</span>
+                        @endif
+                    </span>
+                    <span class="doc-nav__notif-unread"></span>
+                </a>
+            @endforeach
             @php $recent = auth()->user()?->notifications()->limit(8)->get() ?? collect(); @endphp
             @forelse($recent as $n)
                 @php
@@ -330,7 +346,9 @@
                     @if(!$n->read_at)<span class="doc-nav__notif-unread"></span>@endif
                 </a>
             @empty
-                <div class="doc-nav__notif-empty">No notifications yet.</div>
+                @if($navPendingList->isEmpty())
+                    <div class="doc-nav__notif-empty">No notifications yet.</div>
+                @endif
             @endforelse
         </div>
     </div>

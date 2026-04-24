@@ -73,7 +73,6 @@
             </div>
             <div class="content-body">
                 @include('partials.flash')
-                @include('partials.practice-pending-banner')
                 @yield('content')
             </div>
         </div>
