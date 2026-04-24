@@ -53,7 +53,7 @@
                 background: #fff;
                 transition: all .2s;
             }
-            .ortho-input-group:focus-within { border-color: #5bc0de; box-shadow: 0 0 0 0.2rem rgba(91,192,222,0.25); }
+            .ortho-input-group:focus-within { border-color: var(--ob-primary); box-shadow: 0 0 0 0.2rem rgba(59, 130, 246,0.25); }
             .ortho-input-group.is-invalid { border-color: #ea5455; }
             .ortho-input-group .input-icon {
                 display: flex; align-items: center; justify-content: center;
@@ -85,14 +85,14 @@
             .ortho-input-group .eye-toggle:hover { color: #6e6b7b; }
             .ortho-btn-primary {
                 width: 100%;
-                background: #5bc0de;
-                border: 1px solid #5bc0de;
+                background: var(--ob-primary);
+                border: 1px solid var(--ob-primary);
                 color: #fff;
                 font-weight: 500;
                 border-radius: 0.358rem;
                 padding: 0.55rem;
                 font-size: 0.95rem;
-                box-shadow: 0 2px 4px rgba(91,192,222,0.4);
+                box-shadow: 0 2px 4px rgba(59, 130, 246,0.4);
                 cursor: pointer;
                 transition: background .2s, border-color .2s;
             }
@@ -110,14 +110,14 @@
                 align-items: center;
                 gap: 0.5rem;
             }
-            .ortho-link { color: #5bc0de; font-weight: 500; text-decoration: none; }
+            .ortho-link { color: var(--ob-primary); font-weight: 500; text-decoration: none; }
             .ortho-link:hover { color: #46b8da; }
             .ortho-error-text { color: #ea5455; font-size: 0.78rem; margin: 0.125rem 0 0; }
             .ortho-remember { display: inline-flex; align-items: center; cursor: pointer; }
             .ortho-remember input {
                 width: 0.95rem; height: 0.95rem;
                 margin: 0 0.5rem 0 0;
-                accent-color: #5bc0de;
+                accent-color: var(--ob-primary);
                 cursor: pointer;
                 border: 1px solid #d8d6de;
                 border-radius: 3px;

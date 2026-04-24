@@ -54,8 +54,8 @@
             }
             .reg-nav-item .reg-nav-title { font-size: 0.95rem; color: var(--ob-text); font-weight: 500; transition: all 0.2s; }
             .reg-nav-item .reg-nav-sub { font-size: 0.8rem; color: var(--ob-text-muted); }
-            .reg-nav-item.active .reg-nav-icon { background: #5bc0de; color: #fff; box-shadow: 0 2px 4px rgba(91,192,222,0.4); }
-            .reg-nav-item.active .reg-nav-title { color: #5bc0de; }
+            .reg-nav-item.active .reg-nav-icon { background: var(--ob-primary); color: #fff; box-shadow: 0 2px 4px rgba(59, 130, 246,0.4); }
+            .reg-nav-item.active .reg-nav-title { color: var(--ob-primary); }
 
             .reg-main { flex: 1; width: 100%; display: flex; flex-direction: column; gap: 1.5rem; }
             .reg-card {
@@ -84,7 +84,7 @@
                 overflow: hidden;
                 transition: all .2s;
             }
-            .reg-input-group:focus-within { border-color: #5bc0de; box-shadow: 0 0 0 0.2rem rgba(91,192,222,0.25); }
+            .reg-input-group:focus-within { border-color: var(--ob-primary); box-shadow: 0 0 0 0.2rem rgba(59, 130, 246,0.25); }
             .reg-input-group.is-invalid { border-color: #ea5455; }
             .reg-input-icon {
                 display: flex; align-items: center; justify-content: center;
@@ -119,7 +119,7 @@
                 appearance: none;
                 -webkit-appearance: none;
             }
-            .reg-select:focus { border-color: #5bc0de; box-shadow: 0 0 0 0.2rem rgba(91,192,222,0.25); }
+            .reg-select:focus { border-color: var(--ob-primary); box-shadow: 0 0 0 0.2rem rgba(59, 130, 246,0.25); }
             .reg-select.is-invalid { border-color: #ea5455; }
             .reg-phone {
                 display: flex;
@@ -129,7 +129,7 @@
                 transition: all .2s;
                 overflow: hidden;
             }
-            .reg-phone:focus-within { border-color: #5bc0de; box-shadow: 0 0 0 0.2rem rgba(91,192,222,0.25); }
+            .reg-phone:focus-within { border-color: var(--ob-primary); box-shadow: 0 0 0 0.2rem rgba(59, 130, 246,0.25); }
             .reg-phone.is-invalid { border-color: #ea5455; }
             .reg-phone select {
                 padding: 0 0.75rem;
@@ -195,7 +195,7 @@
                 display: inline-block;
                 margin-top: 0.25rem;
                 font-size: 0.8rem;
-                color: #5bc0de;
+                color: var(--ob-primary);
                 cursor: pointer;
                 text-decoration: none;
             }
@@ -203,7 +203,7 @@
 
             /* Additional card */
             .reg-card-head-with-toggle { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; }
-            .reg-expand-btn { background: #5bc0de; color: #fff; border: 0; border-radius: 0.358rem; width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: background .2s; }
+            .reg-expand-btn { background: var(--ob-primary); color: #fff; border: 0; border-radius: 0.358rem; width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: background .2s; }
             .reg-expand-btn:hover { background: #46b8da; }
             .reg-additional-body { display: flex; flex-direction: column; gap: 1.5rem; transition: all .3s; }
             .reg-additional-body.hidden { display: none; }
@@ -214,7 +214,7 @@
             @media (min-width: 640px) { .reg-option-grid { grid-template-columns: 1fr 1fr; } }
             .reg-option { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem; color: var(--ob-text-muted); }
             .reg-option.align-start { align-items: flex-start; }
-            .reg-option input[type="radio"], .reg-option input[type="checkbox"] { accent-color: #5bc0de; width: 1rem; height: 1rem; min-width: 1rem; cursor: pointer; flex-shrink: 0; }
+            .reg-option input[type="radio"], .reg-option input[type="checkbox"] { accent-color: var(--ob-primary); width: 1rem; height: 1rem; min-width: 1rem; cursor: pointer; flex-shrink: 0; }
 
             .reg-form-box { background: #fbfbfb; border: 1px solid var(--ob-border-strong); border-radius: 0.358rem; padding: 1.25rem; }
             .reg-form-box.hidden { display: none; }
@@ -222,7 +222,7 @@
             .reg-email-row .reg-input-group { flex: 1; }
             .reg-btn-delete { width: 2.5rem; height: 2.5rem; background: rgba(234,84,85,0.125); color: #ea5455; border: 0; border-radius: 0.358rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .2s; }
             .reg-btn-delete:hover { background: rgba(234,84,85,0.2); }
-            .reg-btn-primary { background: #5bc0de; color: #fff; border: 0; padding: 0.5rem 1rem; border-radius: 0.358rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 4px rgba(91,192,222,0.3); transition: background .2s; }
+            .reg-btn-primary { background: var(--ob-primary); color: #fff; border: 0; padding: 0.5rem 1rem; border-radius: 0.358rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 4px rgba(59, 130, 246,0.3); transition: background .2s; }
             .reg-btn-primary:hover { background: #46b8da; }
 
             /* Doctor Preferences panel */
@@ -238,7 +238,7 @@
             .reg-pref-list { display: flex; flex-direction: column; gap: 0.5rem; }
             .reg-pref-item { display: flex; align-items: center; cursor: pointer; }
             .reg-pref-item.align-start { align-items: flex-start; }
-            .reg-pref-item input[type="radio"], .reg-pref-item input[type="checkbox"] { accent-color: #5bc0de; margin-right: 0.5rem; width: 1rem; height: 1rem; cursor: pointer; flex-shrink: 0; }
+            .reg-pref-item input[type="radio"], .reg-pref-item input[type="checkbox"] { accent-color: var(--ob-primary); margin-right: 0.5rem; width: 1rem; height: 1rem; cursor: pointer; flex-shrink: 0; }
             .reg-pref-item.align-start input { margin-top: 0.25rem; }
             .reg-pref-item span { color: var(--ob-text-muted); font-size: 0.95rem; }
 
@@ -249,23 +249,23 @@
             .reg-toggle-switch input.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
             .reg-toggle-bg { display: block; width: 2.5rem; height: 22px; background: var(--ob-border); border-radius: 9999px; transition: background .2s; }
             .reg-toggle-dot { position: absolute; width: 1rem; height: 1rem; background: #fff; border-radius: 50%; top: 3px; right: 3px; transform: translateX(-125%); transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-            .reg-toggle-switch input.sr-only:checked ~ .reg-toggle-bg { background: #5bc0de; }
+            .reg-toggle-switch input.sr-only:checked ~ .reg-toggle-bg { background: var(--ob-primary); }
             .reg-toggle-switch input.sr-only:checked ~ .reg-toggle-dot { transform: translateX(0); }
             .reg-toggle-text { margin-left: 0.75rem; font-size: 0.95rem; color: var(--ob-text-muted); }
             .reg-toggle-panel { margin-top: 0.75rem; padding: 1rem; background: var(--ob-surface-2); border: 1px solid var(--ob-border); border-radius: 0.358rem; display: flex; flex-direction: column; gap: 0.5rem; }
             .reg-toggle-panel.hidden { display: none; }
 
-            .reg-back-to-top { position: sticky; bottom: 0; background: #5bc0de; color: #fff; width: 2rem; height: 2rem; border-radius: 0.358rem; display: flex; justify-content: center; align-items: center; cursor: pointer; opacity: 0.9; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: -2rem; float: right; z-index: 10; margin-right: 0.5rem; }
+            .reg-back-to-top { position: sticky; bottom: 0; background: var(--ob-primary); color: #fff; width: 2rem; height: 2rem; border-radius: 0.358rem; display: flex; justify-content: center; align-items: center; cursor: pointer; opacity: 0.9; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: -2rem; float: right; z-index: 10; margin-right: 0.5rem; }
             .reg-back-to-top:hover { background: #46b8da; }
 
             /* Terms + actions */
             .reg-terms-wrap { margin-top: 1.5rem; padding: 0 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
             .reg-terms-label { display: flex; align-items: flex-start; color: var(--ob-text-muted); font-size: 0.9rem; cursor: pointer; }
-            .reg-terms-label input { margin: 0.2rem 0.75rem 0 0 !important; width: 1.1rem; height: 1.1rem; accent-color: #5bc0de; cursor: pointer; flex-shrink: 0; }
-            .reg-terms-link { color: #5bc0de; text-decoration: none; }
+            .reg-terms-label input { margin: 0.2rem 0.75rem 0 0 !important; width: 1.1rem; height: 1.1rem; accent-color: var(--ob-primary); cursor: pointer; flex-shrink: 0; }
+            .reg-terms-link { color: var(--ob-primary); text-decoration: none; }
             .reg-terms-link:hover { text-decoration: underline; }
             .reg-actions { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--ob-border); padding-top: 1.5rem; }
-            .reg-btn-back { padding: 0.6rem 1.25rem; background: #5bc0de; color: #fff; border-radius: 0.358rem; font-weight: 500; text-decoration: none; font-size: 0.95rem; box-shadow: 0 2px 4px rgba(91,192,222,0.3); transition: background .2s; }
+            .reg-btn-back { padding: 0.6rem 1.25rem; background: var(--ob-primary); color: #fff; border-radius: 0.358rem; font-weight: 500; text-decoration: none; font-size: 0.95rem; box-shadow: 0 2px 4px rgba(59, 130, 246,0.3); transition: background .2s; }
             .reg-btn-back:hover { background: #46b8da; color: #fff; }
             .reg-btn-submit { padding: 0.6rem 1.25rem; background: #8cc63f; color: #fff; border: 0; border-radius: 0.358rem; font-weight: 500; font-size: 0.95rem; letter-spacing: 0.025em; cursor: pointer; box-shadow: 0 2px 4px rgba(140,198,63,0.3); transition: background .2s; }
             .reg-btn-submit:hover { background: #7cb038; }
