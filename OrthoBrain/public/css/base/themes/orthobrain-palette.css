@@ -1,0 +1,241 @@
+/* ============================================================================
+   OrthoBrain palette — deeper navy + teal-accent system.
+   Works on top of Vuexy. Loaded AFTER vuexy/css/core.css + overrides.css so
+   these custom properties win. Activates dark mode via both `.dark-layout`
+   (Vuexy's hook) and `[data-bs-theme="dark"]` (Bootstrap 5 + theme-toggle.js).
+   ============================================================================ */
+
+/* Inter — crisper at UI sizes than Vuexy's default stack. Falls back cleanly
+   if Google Fonts is blocked (keeps Vuexy's Montserrat chain). */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ---------- LIGHT MODE (default — :root) ------------------------------------ */
+:root {
+  /* Brand anchor — same in both modes */
+  --ob-primary:            #2C5282;
+  --ob-primary-hover:      #244669;
+  --ob-primary-soft:       rgba(44, 82, 130, 0.08);
+
+  /* Page + surfaces */
+  --ob-bg:                 #F8FAFF;
+  --ob-surface-1:          #FFFFFF;
+  --ob-surface-2:          #F1F5F9;
+  --ob-border:             #E2E8F0;
+  --ob-border-strong:      #CBD5E1;
+
+  /* Text */
+  --ob-text:               #1E293B;
+  --ob-text-muted:         #64748B;
+  --ob-text-secondary:     #4A5568;
+
+  /* Semantic accents (muted for light mode) */
+  --ob-success:            #38A169;
+  --ob-warning:            #D69E2E;
+  --ob-danger:             #C53030;
+  --ob-info:               #3182CE;
+
+  /* Shadows — layered soft elevation instead of glass */
+  --ob-shadow-sm:          0 1px 2px rgba(15, 23, 42, 0.04);
+  --ob-shadow:             0 4px 12px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --ob-shadow-lg:          0 16px 32px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.05);
+
+  /* Motion */
+  --ob-ease:               cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---- Override Bootstrap/Vuexy vars so framework components adopt palette */
+  --bs-body-bg:            var(--ob-bg);
+  --bs-body-color:         var(--ob-text);
+  --bs-secondary-color:    var(--ob-text-muted);
+  --bs-border-color:       var(--ob-border);
+  --bs-primary:            var(--ob-primary);
+  --bs-primary-rgb:        44, 82, 130;
+  --bs-success:            var(--ob-success);
+  --bs-warning:            var(--ob-warning);
+  --bs-danger:             var(--ob-danger);
+  --bs-info:               var(--ob-info);
+  --bs-link-color:         var(--ob-primary);
+  --bs-link-hover-color:   var(--ob-primary-hover);
+}
+
+/* ---------- DARK MODE (energetic / saturated) ------------------------------ */
+/* Target both Vuexy's class hook AND Bootstrap 5's attribute. The team's
+   theme-toggle.js sets both; either alone should still work. */
+.dark-layout,
+[data-bs-theme="dark"] {
+  --ob-bg:                 #0F172A;
+  --ob-surface-1:          #1E293B;
+  --ob-surface-2:          #334155;
+  --ob-border:             rgba(148, 163, 184, 0.15);
+  --ob-border-strong:      rgba(148, 163, 184, 0.28);
+
+  --ob-text:               #E2E8F0;
+  --ob-text-muted:         #94A3B8;
+  --ob-text-secondary:     #CBD5E1;
+
+  /* Saturate accents for dark — muted colours look dead on navy */
+  --ob-success:            #34D399;
+  --ob-warning:            #F59E0B;
+  --ob-danger:             #EF4444;
+  --ob-info:               #60A5FA;
+
+  --ob-primary-soft:       rgba(96, 165, 250, 0.14);
+  --ob-primary-hover:      #3B6AA5;
+
+  --ob-shadow-sm:          0 1px 2px rgba(0, 0, 0, 0.35);
+  --ob-shadow:             0 4px 16px rgba(0, 0, 0, 0.40);
+  --ob-shadow-lg:          0 24px 48px rgba(0, 0, 0, 0.50);
+
+  --bs-body-bg:            var(--ob-bg);
+  --bs-body-color:         var(--ob-text);
+  --bs-secondary-color:    var(--ob-text-muted);
+  --bs-border-color:       var(--ob-border);
+  --bs-success:            var(--ob-success);
+  --bs-warning:            var(--ob-warning);
+  --bs-danger:             var(--ob-danger);
+  --bs-info:               var(--ob-info);
+}
+
+/* ---------- Typography ----------------------------------------------------- */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+               'Helvetica Neue', Arial, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11"; /* Inter's nicer glyphs */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--ob-bg);
+  color: var(--ob-text);
+  transition: background-color 0.25s var(--ob-ease),
+              color 0.25s var(--ob-ease);
+}
+
+/* ---------- Core surfaces: cards, modals, dropdowns, navbar --------------- */
+/* Use `attribute selectors` so these rules apply uniformly regardless of
+   which Vuexy component class is in play. */
+
+.card,
+.modal-content,
+.dropdown-menu,
+.navbar,
+.main-menu,
+.horizontal-menu-wrapper .header-navbar {
+  background-color: var(--ob-surface-1) !important;
+  border-color: var(--ob-border) !important;
+  color: var(--ob-text);
+  transition: background-color 0.25s var(--ob-ease),
+              border-color 0.25s var(--ob-ease),
+              box-shadow 0.2s var(--ob-ease);
+}
+
+.card {
+  box-shadow: var(--ob-shadow);
+  border-radius: 10px;
+}
+
+/* Subtle hover-lift on interactive cards — only when explicitly opted in with
+   `.ob-card-interactive`. Avoids messing with static content cards. */
+.ob-card-interactive {
+  cursor: pointer;
+}
+.ob-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ob-shadow-lg);
+}
+
+.card-header,
+.modal-header,
+.modal-footer {
+  background-color: transparent;
+  border-color: var(--ob-border);
+}
+
+/* ---------- Form controls -------------------------------------------------- */
+.form-control,
+.form-select,
+.input-group-text {
+  background-color: var(--ob-surface-1);
+  border-color: var(--ob-border-strong);
+  color: var(--ob-text);
+  transition: border-color 0.15s var(--ob-ease),
+              box-shadow 0.15s var(--ob-ease),
+              background-color 0.25s var(--ob-ease);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--ob-primary);
+  box-shadow: 0 0 0 3px var(--ob-primary-soft);
+}
+
+.dark-layout .form-control,
+.dark-layout .form-select,
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+  background-color: var(--ob-surface-2);
+  color: var(--ob-text);
+}
+
+.form-control::placeholder {
+  color: var(--ob-text-muted);
+  opacity: 0.7;
+}
+
+/* ---------- Buttons -------------------------------------------------------- */
+.btn-primary {
+  --bs-btn-bg:              var(--ob-primary);
+  --bs-btn-border-color:    var(--ob-primary);
+  --bs-btn-hover-bg:        var(--ob-primary-hover);
+  --bs-btn-hover-border-color: var(--ob-primary-hover);
+  --bs-btn-active-bg:       var(--ob-primary-hover);
+  --bs-btn-active-border-color: var(--ob-primary-hover);
+  --bs-btn-disabled-bg:     var(--ob-primary);
+  --bs-btn-disabled-border-color: var(--ob-primary);
+  font-weight: 500;
+}
+
+.btn-outline-primary {
+  --bs-btn-color:           var(--ob-primary);
+  --bs-btn-border-color:    var(--ob-primary);
+  --bs-btn-hover-bg:        var(--ob-primary);
+  --bs-btn-hover-border-color: var(--ob-primary);
+}
+
+.btn {
+  transition: background-color 0.15s var(--ob-ease),
+              border-color 0.15s var(--ob-ease),
+              transform 0.1s var(--ob-ease),
+              box-shadow 0.15s var(--ob-ease);
+  font-weight: 500;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+/* ---------- Tables --------------------------------------------------------- */
+.table {
+  --bs-table-bg:            transparent;
+  --bs-table-color:         var(--ob-text);
+  --bs-table-border-color:  var(--ob-border);
+  --bs-table-hover-bg:      var(--ob-surface-2);
+  --bs-table-hover-color:   var(--ob-text);
+}
+
+/* ---------- Links ---------------------------------------------------------- */
+a { color: var(--ob-primary); }
+a:hover { color: var(--ob-primary-hover); }
+
+/* ---------- Badges + alerts adopt semantic vars automatically via Bootstrap */
+.alert {
+  border: 1px solid var(--ob-border);
+  border-radius: 8px;
+}
+
+/* ---------- Text utilities align with palette ----------------------------- */
+.text-muted { color: var(--ob-text-muted) !important; }
+
+/* ---------- Scrollbar polish (dark-first, light inherits) ----------------- */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--ob-border-strong);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--ob-text-muted); }
