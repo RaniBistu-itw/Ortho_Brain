@@ -1,0 +1,531 @@
+/* ============================================================================
+   OrthoBrain palette — deeper navy + teal-accent system.
+   Works on top of Vuexy. Loaded AFTER vuexy/css/core.css + overrides.css so
+   these custom properties win. Activates dark mode via both `.dark-layout`
+   (Vuexy's hook) and `[data-bs-theme="dark"]` (Bootstrap 5 + theme-toggle.js).
+   ============================================================================ */
+
+/* Inter — crisper at UI sizes than Vuexy's default stack. Falls back cleanly
+   if Google Fonts is blocked (keeps Vuexy's Montserrat chain). */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ---------- LIGHT MODE (default — :root) ------------------------------------ */
+:root {
+  /* Brand anchor — same in both modes */
+  --ob-primary:            #2C5282;
+  --ob-primary-hover:      #244669;
+  --ob-primary-soft:       rgba(44, 82, 130, 0.08);
+
+  /* Page + surfaces */
+  --ob-bg:                 #F8FAFF;
+  --ob-surface-1:          #FFFFFF;
+  --ob-surface-2:          #F1F5F9;
+  --ob-border:             #E2E8F0;
+  --ob-border-strong:      #CBD5E1;
+
+  /* Text */
+  --ob-text:               #1E293B;
+  --ob-text-muted:         #64748B;
+  --ob-text-secondary:     #4A5568;
+
+  /* Semantic accents (muted for light mode) */
+  --ob-success:            #38A169;
+  --ob-warning:            #D69E2E;
+  --ob-danger:             #C53030;
+  --ob-info:               #3182CE;
+
+  /* Shadows — layered soft elevation instead of glass */
+  --ob-shadow-sm:          0 1px 2px rgba(15, 23, 42, 0.04);
+  --ob-shadow:             0 4px 12px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --ob-shadow-lg:          0 16px 32px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.05);
+
+  /* Motion */
+  --ob-ease:               cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---- Override Bootstrap/Vuexy vars so framework components adopt palette */
+  --bs-body-bg:            var(--ob-bg);
+  --bs-body-color:         var(--ob-text);
+  --bs-secondary-color:    var(--ob-text-muted);
+  --bs-border-color:       var(--ob-border);
+  --bs-primary:            var(--ob-primary);
+  --bs-primary-rgb:        44, 82, 130;
+  --bs-success:            var(--ob-success);
+  --bs-warning:            var(--ob-warning);
+  --bs-danger:             var(--ob-danger);
+  --bs-info:               var(--ob-info);
+  --bs-link-color:         var(--ob-primary);
+  --bs-link-hover-color:   var(--ob-primary-hover);
+}
+
+/* ---------- DARK MODE (energetic / saturated) ------------------------------ */
+/* Target both Vuexy's class hook AND Bootstrap 5's attribute. The team's
+   theme-toggle.js sets both; either alone should still work. */
+.dark-layout,
+[data-bs-theme="dark"] {
+  --ob-bg:                 #0F172A;
+  --ob-surface-1:          #1E293B;
+  --ob-surface-2:          #334155;
+  --ob-border:             rgba(148, 163, 184, 0.15);
+  --ob-border-strong:      rgba(148, 163, 184, 0.28);
+
+  --ob-text:               #E2E8F0;
+  --ob-text-muted:         #94A3B8;
+  --ob-text-secondary:     #CBD5E1;
+
+  /* Dark-mode primary shifts to a brighter blue — #2C5282 (light-mode navy) is
+     too muted against navy surfaces. #3B82F6 pops without screaming. */
+  --ob-primary:            #3B82F6;
+  --ob-primary-hover:      #60A5FA;
+  --ob-primary-soft:       rgba(59, 130, 246, 0.14);
+
+  /* Saturate accents for dark — muted colours look dead on navy */
+  --ob-success:            #34D399;
+  --ob-warning:            #F59E0B;
+  --ob-danger:             #EF4444;
+  --ob-info:               #60A5FA;
+
+  --ob-shadow-sm:          0 1px 2px rgba(0, 0, 0, 0.35);
+  --ob-shadow:             0 4px 16px rgba(0, 0, 0, 0.40);
+  --ob-shadow-lg:          0 24px 48px rgba(0, 0, 0, 0.50);
+
+  --bs-body-bg:            var(--ob-bg);
+  --bs-body-color:         var(--ob-text);
+  --bs-secondary-color:    var(--ob-text-muted);
+  --bs-border-color:       var(--ob-border);
+  --bs-primary:            var(--ob-primary);
+  --bs-primary-rgb:        59, 130, 246;
+  --bs-success:            var(--ob-success);
+  --bs-warning:            var(--ob-warning);
+  --bs-danger:             var(--ob-danger);
+  --bs-info:               var(--ob-info);
+}
+
+/* ---------- Typography ----------------------------------------------------- */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+               'Helvetica Neue', Arial, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11"; /* Inter's nicer glyphs */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--ob-bg);
+  color: var(--ob-text);
+  transition: background-color 0.25s var(--ob-ease),
+              color 0.25s var(--ob-ease);
+}
+
+/* ---------- Core surfaces: cards, modals, dropdowns, navbar --------------- */
+/* Use `attribute selectors` so these rules apply uniformly regardless of
+   which Vuexy component class is in play. */
+
+.card,
+.modal-content,
+.dropdown-menu,
+.navbar,
+.main-menu,
+.horizontal-menu-wrapper .header-navbar {
+  background-color: var(--ob-surface-1) !important;
+  border-color: var(--ob-border) !important;
+  color: var(--ob-text);
+  transition: background-color 0.25s var(--ob-ease),
+              border-color 0.25s var(--ob-ease),
+              box-shadow 0.2s var(--ob-ease);
+}
+
+.card {
+  box-shadow: var(--ob-shadow);
+  border-radius: 10px;
+}
+
+/* Subtle hover-lift on interactive cards — only when explicitly opted in with
+   `.ob-card-interactive`. Avoids messing with static content cards. */
+.ob-card-interactive {
+  cursor: pointer;
+}
+.ob-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ob-shadow-lg);
+}
+
+.card-header,
+.modal-header,
+.modal-footer {
+  background-color: transparent;
+  border-color: var(--ob-border);
+}
+
+/* ---------- Form controls -------------------------------------------------- */
+.form-control,
+.form-select,
+.input-group-text {
+  background-color: var(--ob-surface-1);
+  border-color: var(--ob-border-strong);
+  color: var(--ob-text);
+  transition: border-color 0.15s var(--ob-ease),
+              box-shadow 0.15s var(--ob-ease),
+              background-color 0.25s var(--ob-ease);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--ob-primary);
+  box-shadow: 0 0 0 3px var(--ob-primary-soft);
+}
+
+.dark-layout .form-control,
+.dark-layout .form-select,
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+  background-color: var(--ob-surface-2);
+  color: var(--ob-text);
+}
+
+.form-control::placeholder {
+  color: var(--ob-text-muted);
+  opacity: 0.7;
+}
+
+/* ---------- Buttons -------------------------------------------------------- */
+.btn-primary {
+  --bs-btn-bg:              var(--ob-primary);
+  --bs-btn-border-color:    var(--ob-primary);
+  --bs-btn-hover-bg:        var(--ob-primary-hover);
+  --bs-btn-hover-border-color: var(--ob-primary-hover);
+  --bs-btn-active-bg:       var(--ob-primary-hover);
+  --bs-btn-active-border-color: var(--ob-primary-hover);
+  --bs-btn-disabled-bg:     var(--ob-primary);
+  --bs-btn-disabled-border-color: var(--ob-primary);
+  font-weight: 500;
+}
+
+.btn-outline-primary {
+  --bs-btn-color:           var(--ob-primary);
+  --bs-btn-border-color:    var(--ob-primary);
+  --bs-btn-hover-bg:        var(--ob-primary);
+  --bs-btn-hover-border-color: var(--ob-primary);
+}
+
+.btn {
+  transition: background-color 0.15s var(--ob-ease),
+              border-color 0.15s var(--ob-ease),
+              transform 0.1s var(--ob-ease),
+              box-shadow 0.15s var(--ob-ease);
+  font-weight: 500;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+/* ---------- Tables --------------------------------------------------------- */
+.table {
+  --bs-table-bg:            transparent;
+  --bs-table-color:         var(--ob-text);
+  --bs-table-border-color:  var(--ob-border);
+  --bs-table-hover-bg:      var(--ob-surface-2);
+  --bs-table-hover-color:   var(--ob-text);
+}
+
+/* ---------- Links ---------------------------------------------------------- */
+a { color: var(--ob-primary); }
+a:hover { color: var(--ob-primary-hover); }
+
+/* ---------- Badges + alerts adopt semantic vars automatically via Bootstrap */
+.alert {
+  border: 1px solid var(--ob-border);
+  border-radius: 8px;
+}
+
+/* ---------- Text utilities align with palette ----------------------------- */
+.text-muted { color: var(--ob-text-muted) !important; }
+
+/* ---------- Scrollbar polish (dark-first, light inherits) ----------------- */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--ob-border-strong);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--ob-text-muted); }
+
+/* ============================================================================
+   DARK-MODE TUNE-UPS
+   These apply in dark mode only. They complement the `body:not(.dark-layout)`
+   guards in orthobrain-overrides.css — the guards stop the hardcoded `#111`
+   text rules from firing; these rules then paint the correct navy-mode tones.
+   ============================================================================ */
+
+/* Headings + title-ish text — use our slate --ob-text, preserve weight */
+.dark-layout h1, .dark-layout h2, .dark-layout h3,
+.dark-layout h4, .dark-layout h5, .dark-layout h6,
+.dark-layout .card-title,
+.dark-layout .page-title,
+.dark-layout .content-header-title,
+[data-bs-theme="dark"] h1, [data-bs-theme="dark"] h2, [data-bs-theme="dark"] h3,
+[data-bs-theme="dark"] h4, [data-bs-theme="dark"] h5, [data-bs-theme="dark"] h6,
+[data-bs-theme="dark"] .card-title,
+[data-bs-theme="dark"] .page-title,
+[data-bs-theme="dark"] .content-header-title {
+  color: var(--ob-text) !important;
+}
+
+/* Form field labels — need full-opacity slate, not muted */
+.dark-layout .form-label,
+[data-bs-theme="dark"] .form-label {
+  color: var(--ob-text) !important;
+  font-weight: 600;
+}
+
+/* Form control typed text — above surface, lighter than labels */
+.dark-layout .form-control,
+.dark-layout .form-select,
+.dark-layout .input-group-text,
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select,
+[data-bs-theme="dark"] .input-group-text {
+  color: var(--ob-text);
+}
+.dark-layout .form-control::placeholder,
+[data-bs-theme="dark"] .form-control::placeholder {
+  color: var(--ob-text-muted);
+  opacity: 0.75;
+}
+
+/* Tables — thead bright, tbody slightly dimmed */
+.dark-layout .table,
+[data-bs-theme="dark"] .table {
+  color: var(--ob-text);
+}
+.dark-layout .table thead th,
+[data-bs-theme="dark"] .table thead th {
+  color: var(--ob-text) !important;
+  font-weight: 700;
+  background-color: transparent;
+}
+.dark-layout .table td,
+[data-bs-theme="dark"] .table td {
+  color: var(--ob-text-secondary);
+}
+
+/* Body copy — paragraphs, labels, card-text — palette-driven */
+.dark-layout p,
+.dark-layout label,
+.dark-layout .card-text,
+[data-bs-theme="dark"] p,
+[data-bs-theme="dark"] label,
+[data-bs-theme="dark"] .card-text {
+  color: var(--ob-text);
+}
+
+/* Nav links / dropdown items — high contrast but not pure white */
+.dark-layout .nav-link,
+.dark-layout .dropdown-item,
+[data-bs-theme="dark"] .nav-link,
+[data-bs-theme="dark"] .dropdown-item {
+  color: var(--ob-text);
+}
+.dark-layout .nav-link:hover,
+.dark-layout .dropdown-item:hover,
+[data-bs-theme="dark"] .nav-link:hover,
+[data-bs-theme="dark"] .dropdown-item:hover {
+  color: var(--ob-primary);
+  background-color: var(--ob-surface-2);
+}
+
+/* Text-muted — palette-driven (wins over .text-muted with !important) */
+.dark-layout .text-muted,
+[data-bs-theme="dark"] .text-muted {
+  color: var(--ob-text-muted) !important;
+}
+
+/* Footer — Vuexy's footer-light defaults to white. Override in dark. */
+.dark-layout .footer,
+.dark-layout .footer-light,
+[data-bs-theme="dark"] .footer,
+[data-bs-theme="dark"] .footer-light {
+  background-color: var(--ob-surface-1) !important;
+  color: var(--ob-text-muted);
+  border-top: 1px solid var(--ob-border);
+}
+.dark-layout .footer a,
+[data-bs-theme="dark"] .footer a {
+  color: var(--ob-primary);
+}
+
+/* Admin floating navbar (the pill between sidebar and content) */
+.dark-layout .header-navbar.floating-nav,
+[data-bs-theme="dark"] .header-navbar.floating-nav {
+  background-color: var(--ob-surface-1);
+  border: 1px solid var(--ob-border);
+}
+
+/* Breadcrumb (shows under page title on admin pages) */
+.dark-layout .breadcrumb,
+[data-bs-theme="dark"] .breadcrumb {
+  background-color: transparent;
+}
+.dark-layout .breadcrumb-item,
+.dark-layout .breadcrumb-item.active,
+[data-bs-theme="dark"] .breadcrumb-item,
+[data-bs-theme="dark"] .breadcrumb-item.active {
+  color: var(--ob-text-muted);
+}
+.dark-layout .breadcrumb-item a,
+[data-bs-theme="dark"] .breadcrumb-item a {
+  color: var(--ob-primary);
+}
+
+/* Stat-card icon bubbles (admin index pages). Vuexy uses .avatar-stats
+   with solid pastel backgrounds — in dark mode, soften with our palette. */
+.dark-layout .avatar .avatar-content,
+[data-bs-theme="dark"] .avatar .avatar-content {
+  background-color: var(--ob-surface-2);
+}
+
+/* Section card headers (e.g. "Contact & Identity" on doctor details) inherit
+   primary as accent; ensure the edit-pencil button adopts dark surface. */
+.dark-layout .btn-icon,
+[data-bs-theme="dark"] .btn-icon {
+  color: var(--ob-text);
+}
+
+/* ============================================================================
+   PHASE 2 POLISH — circular FAB-style icon buttons, segmented control,
+   motion (modal fade+scale, skeleton shimmer), focus-ring bloom, card lift.
+   Utility classes are opt-in via `.ob-*`; existing components untouched.
+   ============================================================================ */
+
+/* Circular icon buttons — matches the reference-sheet FAB cluster.
+   Use for secondary quick-actions (copy / download / hide) next to a
+   primary labelled button. NOT for actions needing a word-label. */
+.ob-fab {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: transform 0.15s var(--ob-ease),
+              box-shadow 0.15s var(--ob-ease),
+              background-color 0.15s var(--ob-ease);
+}
+.ob-fab svg,
+.ob-fab .bi,
+.ob-fab [data-feather] {
+  width: 1rem;
+  height: 1rem;
+}
+.ob-fab:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--ob-shadow);
+}
+.ob-fab:active { transform: translateY(0); }
+
+.ob-fab--primary { background-color: var(--ob-primary); color: #fff; border: none; }
+.ob-fab--primary:hover { background-color: var(--ob-primary-hover); color: #fff; }
+.ob-fab--success { background-color: var(--ob-success); color: #fff; border: none; }
+.ob-fab--warning { background-color: var(--ob-warning); color: #fff; border: none; }
+.ob-fab--danger  { background-color: var(--ob-danger);  color: #fff; border: none; }
+.ob-fab--ghost {
+  background-color: transparent;
+  color: var(--ob-text-muted);
+  border: 1px solid var(--ob-border);
+}
+.ob-fab--ghost:hover {
+  color: var(--ob-primary);
+  border-color: var(--ob-primary);
+  background-color: var(--ob-primary-soft);
+}
+
+/* Segmented control — wraps a Bootstrap .btn-group without changing its markup.
+   Add class="btn-group ob-segmented" and the group gets a tighter pill look. */
+.ob-segmented.btn-group {
+  background-color: var(--ob-surface-2);
+  border: 1px solid var(--ob-border);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+  box-shadow: none;
+}
+.ob-segmented.btn-group > .btn {
+  border: none !important;
+  border-radius: 999px !important;
+  background-color: transparent;
+  color: var(--ob-text-muted);
+  font-weight: 500;
+  padding: 0.35rem 1rem;
+  box-shadow: none !important;
+  transition: background-color 0.15s var(--ob-ease),
+              color 0.15s var(--ob-ease);
+}
+.ob-segmented.btn-group > .btn:hover {
+  background-color: transparent;
+  color: var(--ob-text);
+}
+.ob-segmented.btn-group > .btn.active,
+.ob-segmented.btn-group > input[type="radio"]:checked + .btn,
+.ob-segmented.btn-group > .btn.btn-primary {
+  background-color: var(--ob-surface-1);
+  color: var(--ob-primary);
+  box-shadow: var(--ob-shadow-sm) !important;
+}
+.ob-segmented.btn-group > .btn:active,
+.ob-segmented.btn-group > .btn:focus-visible {
+  transform: none;
+}
+
+/* Skeleton shimmer — applied to elements with `.ob-shimmer`.
+   Works on dark and light mode; uses the border token for the highlight. */
+@keyframes ob-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.ob-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--ob-surface-2) 0%,
+    var(--ob-border-strong) 50%,
+    var(--ob-surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: ob-shimmer 1.8s var(--ob-ease) infinite;
+  border-radius: 6px;
+}
+
+/* Modal fade+scale — tasteful Vuexy-modal entrance replacement */
+.modal.fade .modal-dialog {
+  transition: transform 0.25s var(--ob-ease),
+              opacity 0.2s var(--ob-ease);
+  transform: scale(0.96) translateY(6px);
+  opacity: 0;
+}
+.modal.fade.show .modal-dialog {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* Focus-ring bloom — already set in palette; re-assert as the canonical shape
+   so Phase-2 adopters (FABs, segmented, form-control) all share one ring. */
+.form-control:focus,
+.form-select:focus,
+.ob-fab:focus-visible,
+.ob-segmented.btn-group > .btn:focus-visible,
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ob-primary-soft);
+  border-color: var(--ob-primary);
+}
+
+/* Opt-in pulse for AI-feature primary buttons — subtle, one-second cadence.
+   Stops on hover so doctors don't get distracted once they're interacting. */
+@keyframes ob-ai-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--ob-primary-soft); }
+  50%      { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+}
+.ob-btn-ai {
+  animation: ob-ai-pulse 2.2s var(--ob-ease) infinite;
+}
+.ob-btn-ai:hover,
+.ob-btn-ai:focus-visible,
+.ob-btn-ai:disabled {
+  animation: none;
+}

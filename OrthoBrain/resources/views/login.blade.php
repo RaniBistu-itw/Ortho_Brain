@@ -10,6 +10,8 @@
         <link rel="stylesheet" href="{{ asset('vuexy/css/core.css') }}" />
         <link rel="stylesheet" href="{{ asset('vuexy/css/overrides.css') }}" />
         <link rel="stylesheet" href="{{ asset('vuexy/css/orthobrain-overrides.css') }}" />
+        {{-- OrthoBrain palette — navy + Inter. Loaded LAST so it wins over Vuexy. --}}
+        <link rel="stylesheet" href="{{ asset('css/base/themes/orthobrain-palette.css') }}?v={{ @filemtime(public_path('css/base/themes/orthobrain-palette.css')) ?: time() }}" />
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
         <style>

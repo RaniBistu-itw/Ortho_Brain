@@ -513,6 +513,41 @@
   height: 1rem;
 }
 
+.media-tile__ai-badge {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  max-width: calc(100% - 2.8rem);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  background: rgba(89, 192, 212, 0.92);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 3;
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.media-tile__ai-badge--checking {
+  background: rgba(110, 110, 120, 0.9);
+}
+.media-tile__ai-badge--warn {
+  background: rgba(234, 84, 85, 0.95);
+}
+.media-tile__ai-badge-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.media-tile__ai-badge-text svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
 .photo-camera__video {
   display: block;
   max-height: 60vh;
@@ -972,4 +1007,208 @@
   height: 22px;
   background-color: #ebe9f1;
   margin: 0 0.25rem;
+}
+
+.perfect-smile-plan__preview-card {
+  position: relative;
+  background: #f8f8f8;
+  border: 1px solid #ebe9f1;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.perfect-smile-plan__preview-label {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  border-radius: 999px;
+  z-index: 2;
+}
+.perfect-smile-plan__preview-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.perfect-smile-plan__preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.perfect-smile-plan__preview-watermark {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.35rem 0.5rem;
+  background: rgba(234, 84, 85, 0.92);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.02em;
+  z-index: 2;
+}
+.perfect-smile-plan__preview-skeleton {
+  width: 85%;
+  height: 70%;
+}
+.perfect-smile-plan__preview-skeleton .placeholder {
+  height: 100%;
+  border-radius: 6px;
+}
+
+/* ============================================================================
+   DARK MODE OVERRIDES — reuses tokens from orthobrain-palette.css.
+   Targets both `.dark-layout` (Vuexy) and `[data-bs-theme="dark"]` (Bootstrap).
+   Lives at the end of the file so it cleanly overrides the light-mode rules
+   above without touching them.
+   ============================================================================ */
+.dark-layout .add-case-topbar,
+[data-bs-theme="dark"] .add-case-topbar {
+  background-color: var(--ob-surface-1);
+  box-shadow: var(--ob-shadow);
+  border-color: var(--ob-border) !important;
+}
+.dark-layout .add-case-rail__item:hover,
+[data-bs-theme="dark"] .add-case-rail__item:hover {
+  background-color: rgba(96, 165, 250, 0.08);
+}
+.dark-layout .add-case-rail__item--active,
+[data-bs-theme="dark"] .add-case-rail__item--active {
+  background-color: rgba(96, 165, 250, 0.12);
+}
+.dark-layout .add-case-rail__item--active .add-case-rail__label,
+[data-bs-theme="dark"] .add-case-rail__item--active .add-case-rail__label {
+  color: var(--ob-info);
+}
+.dark-layout .add-case-rail__item--active .add-case-rail__icon-tile,
+[data-bs-theme="dark"] .add-case-rail__item--active .add-case-rail__icon-tile {
+  background-color: var(--ob-info);
+}
+.dark-layout .add-case-rail__icon-tile,
+[data-bs-theme="dark"] .add-case-rail__icon-tile {
+  background-color: rgba(148, 163, 184, 0.1);
+}
+.dark-layout .add-case-rail__error-dot,
+[data-bs-theme="dark"] .add-case-rail__error-dot {
+  border-color: var(--ob-surface-1);
+}
+.dark-layout .add-case-rail__subtitle,
+[data-bs-theme="dark"] .add-case-rail__subtitle {
+  color: var(--ob-text-muted);
+}
+
+.dark-layout .case-section,
+[data-bs-theme="dark"] .case-section {
+  background-color: var(--ob-surface-1);
+  border-color: var(--ob-border);
+  box-shadow: var(--ob-shadow);
+}
+.dark-layout .case-section__header,
+[data-bs-theme="dark"] .case-section__header {
+  border-bottom-color: var(--ob-border);
+}
+.dark-layout .case-section__title,
+[data-bs-theme="dark"] .case-section__title {
+  color: var(--ob-text);
+}
+.dark-layout .case-section__subtitle,
+[data-bs-theme="dark"] .case-section__subtitle {
+  color: var(--ob-text-muted);
+}
+.dark-layout .case-section--placeholder,
+[data-bs-theme="dark"] .case-section--placeholder {
+  background-color: var(--ob-surface-2);
+}
+
+.dark-layout .pi-search-wrapper .pi-search-dropdown,
+[data-bs-theme="dark"] .pi-search-wrapper .pi-search-dropdown {
+  background-color: var(--ob-surface-2);
+  border-color: var(--ob-border);
+}
+.dark-layout .pi-search-wrapper .pi-search-dropdown .pi-search-option:hover,
+[data-bs-theme="dark"] .pi-search-wrapper .pi-search-dropdown .pi-search-option:hover {
+  background-color: rgba(96, 165, 250, 0.12);
+}
+
+.dark-layout .rx-pref-list,
+[data-bs-theme="dark"] .rx-pref-list,
+.dark-layout .rx-pref-row,
+[data-bs-theme="dark"] .rx-pref-row {
+  border-color: var(--ob-border) !important;
+}
+
+.dark-layout .tooth-picker,
+[data-bs-theme="dark"] .tooth-picker {
+  background-color: var(--ob-surface-2);
+  border-color: var(--ob-border);
+}
+.dark-layout .tooth-picker__tooth,
+[data-bs-theme="dark"] .tooth-picker__tooth {
+  background-color: var(--ob-surface-1);
+  border-color: var(--ob-border);
+  color: var(--ob-text-muted);
+}
+.dark-layout .tooth-picker__tooth:hover:not(.tooth-picker__tooth--selected),
+[data-bs-theme="dark"] .tooth-picker__tooth:hover:not(.tooth-picker__tooth--selected) {
+  border-color: var(--ob-info);
+  color: var(--ob-info);
+}
+.dark-layout .tooth-picker__tooth--selected,
+[data-bs-theme="dark"] .tooth-picker__tooth--selected {
+  background-color: var(--ob-info) !important;
+  border-color: var(--ob-info) !important;
+  color: #fff !important;
+}
+.dark-layout .tooth-picker__arch-divider,
+[data-bs-theme="dark"] .tooth-picker__arch-divider,
+.dark-layout .tooth-picker__midline,
+[data-bs-theme="dark"] .tooth-picker__midline {
+  border-color: var(--ob-border-strong);
+}
+
+.dark-layout .ai-subsection__title,
+[data-bs-theme="dark"] .ai-subsection__title {
+  color: var(--ob-text);
+}
+.dark-layout .ai-wnl-check,
+[data-bs-theme="dark"] .ai-wnl-check {
+  background-color: rgba(96, 165, 250, 0.08);
+  border-color: rgba(96, 165, 250, 0.18);
+}
+.dark-layout .ai-tooltip-icon,
+[data-bs-theme="dark"] .ai-tooltip-icon {
+  color: var(--ob-info);
+}
+
+.dark-layout .media-tile,
+[data-bs-theme="dark"] .media-tile {
+  background-color: var(--ob-surface-2);
+  border-color: var(--ob-border);
+}
+.dark-layout .media-tile__camera-btn,
+[data-bs-theme="dark"] .media-tile__camera-btn {
+  background-color: var(--ob-surface-1);
+  border-color: rgba(96, 165, 250, 0.4);
+  color: var(--ob-info);
+}
+.dark-layout .media-tile__camera-btn:hover,
+[data-bs-theme="dark"] .media-tile__camera-btn:hover {
+  background-color: var(--ob-info);
+  color: #fff;
+}
+
+.dark-layout .perfect-smile-plan__preview-card,
+[data-bs-theme="dark"] .perfect-smile-plan__preview-card {
+  background-color: var(--ob-surface-2);
+  border-color: var(--ob-border);
 }

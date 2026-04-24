@@ -33,15 +33,15 @@
       dateOfPhotos: '',
 
       tiles: {
-        'profile':           { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false },
-        'frontal-rest':      { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false },
-        'frontal-smile':     { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false },
-        'upper-occlusal':    { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false },
-        'frontal-bite':      { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false },
-        'lower-occlusal':    { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false },
-        'right-buccal':      { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false },
-        'frontal-retracted': { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false },
-        'left-buccal':       { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false },
+        'profile':           { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false, aiState: 'idle', aiWarning: null, aiConfidence: null },
+        'frontal-rest':      { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false, aiState: 'idle', aiWarning: null, aiConfidence: null },
+        'frontal-smile':     { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false, aiState: 'idle', aiWarning: null, aiConfidence: null },
+        'upper-occlusal':    { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false, aiState: 'idle', aiWarning: null, aiConfidence: null },
+        'frontal-bite':      { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false, aiState: 'idle', aiWarning: null, aiConfidence: null },
+        'lower-occlusal':    { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false, aiState: 'idle', aiWarning: null, aiConfidence: null },
+        'right-buccal':      { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false, aiState: 'idle', aiWarning: null, aiConfidence: null },
+        'frontal-retracted': { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false, aiState: 'idle', aiWarning: null, aiConfidence: null },
+        'left-buccal':       { filled: false, originalFile: null, croppedBlob: null, previewUrl: null, cropParams: null, isDragOver: false, aiState: 'idle', aiWarning: null, aiConfidence: null },
       },
 
       tileModal: {
@@ -215,6 +215,8 @@
           // Fire-and-forget: persist binary so the preview survives a refresh.
           // TODO: replace with presigned S3 PUT — same call site, same semantics.
           this._persistTile(tileId, file);
+          // Fire-and-forget: ask the AI whether this image matches the tile.
+          this._classifyTile(tileId, file);
           return true;
         } catch (err) {
           this.bulkError = 'Failed to process image. Please try another file.';
@@ -228,6 +230,49 @@
         if (!window.CaseImageStore) return;
         window.CaseImageStore.put(this._getCaseId(), 'photographs', tileId, blob)
           .catch(function (e) { console.warn('CaseImageStore.put failed', tileId, e); });
+      },
+
+      // Ask the AI whether `blob` matches the pose for `tileId`. Non-blocking.
+      // Skips silently if the case is still a 'new' shell — no endpoint to call.
+      _classifyTile: function (tileId, blob) {
+        var caseId = this._getCaseId();
+        if (!caseId || caseId === 'new') return;
+        if (!window.CaseApi || !window.CaseApi.classifyPhoto) return;
+
+        var self = this;
+        this.tiles[tileId].aiState = 'checking';
+        this.tiles[tileId].aiWarning = null;
+
+        window.CaseApi.classifyPhoto(caseId, tileId, blob)
+          .then(function (res) {
+            // Tile may have been cleared/replaced mid-flight — ignore stale result.
+            if (!self.tiles[tileId].filled) return;
+
+            if (res && res.mismatch) {
+              self.tiles[tileId].aiState = 'warn';
+              self.tiles[tileId].aiConfidence = res.confidence;
+              self.tiles[tileId].aiWarning = 'Looks like ' + self.getTileLabel(res.predicted_tile);
+            } else {
+              self.tiles[tileId].aiState = 'ok';
+              self.tiles[tileId].aiConfidence = res ? res.confidence : null;
+              self.tiles[tileId].aiWarning = null;
+            }
+            if (window.feather) window.feather.replace();
+          })
+          .catch(function (err) {
+            // AI is best-effort. Clear the checking state so the UI doesn't look stuck.
+            self.tiles[tileId].aiState = 'idle';
+            self.tiles[tileId].aiWarning = null;
+            if (err && err.status !== 503) {
+              console.warn('classifyPhoto failed', tileId, err);
+            }
+          });
+      },
+
+      _resetTileAi: function (tileId) {
+        this.tiles[tileId].aiState = 'idle';
+        this.tiles[tileId].aiWarning = null;
+        this.tiles[tileId].aiConfidence = null;
       },
 
       _forgetTile: function (tileId) {
@@ -309,6 +354,7 @@
         this.tiles[tileId].croppedBlob = null;
         this.tiles[tileId].previewUrl = null;
         this.tiles[tileId].cropParams = null;
+        this._resetTileAi(tileId);
         this.syncToState();
         this._forgetTile(tileId);
       },
@@ -337,6 +383,8 @@
                 self.tiles[tileId].cropParams = cropParams;
                 self.syncToState();
                 self._persistTile(tileId, croppedBlob);
+                // Cropped blob can change what the AI sees — re-classify.
+                self._classifyTile(tileId, croppedBlob);
               },
               onCancel: function () {
                 URL.revokeObjectURL(preview.url);
@@ -429,6 +477,12 @@
         var newTgtBlob = this.tiles[targetId].croppedBlob || this.tiles[targetId].originalFile;
         if (newSrcBlob) { this._persistTile(sourceId, newSrcBlob); } else { this._forgetTile(sourceId); }
         if (newTgtBlob) { this._persistTile(targetId, newTgtBlob); } else { this._forgetTile(targetId); }
+
+        // Blobs moved between slots — old AI verdicts are now meaningless. Re-classify.
+        this._resetTileAi(sourceId);
+        this._resetTileAi(targetId);
+        if (newSrcBlob) this._classifyTile(sourceId, newSrcBlob);
+        if (newTgtBlob) this._classifyTile(targetId, newTgtBlob);
       },
 
       // ── Bulk upload ─────────────────────────────────────────────────────────
