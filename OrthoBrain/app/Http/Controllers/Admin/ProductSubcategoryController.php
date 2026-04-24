@@ -7,6 +7,9 @@ use App\Http\Requests\Admin\ProductSubcategoryRequest;
 use App\Models\ProductCategory;
 use App\Models\ProductSubcategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class ProductSubcategoryController extends Controller
 {
@@ -72,6 +75,47 @@ class ProductSubcategoryController extends Controller
             'ok'          => true,
             'subcategory' => $this->presentRow($productSubcategory),
             'message'     => 'Sub-category updated.',
+        ]);
+    }
+
+    public function ajaxBulk(Request $request)
+    {
+        $payload = $request->input('subcategories', []);
+
+        $validator = Validator::make(['subcategories' => $payload], [
+            'subcategories'               => ['required', 'array', 'min:1', 'max:50'],
+            'subcategories.*.category_id' => ['required', 'integer', Rule::exists('products_category', 'id')->whereNull('deleted_at')],
+            'subcategories.*.name'        => ['required', 'string', 'max:100'],
+            'subcategories.*.status'      => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'ok'     => false,
+                'errors' => $validator->errors()->messages(),
+            ], 422);
+        }
+
+        $created = DB::transaction(function () use ($payload) {
+            $rows = [];
+            foreach ($payload as $row) {
+                $sub = ProductSubcategory::create([
+                    'category_id' => $row['category_id'],
+                    'name'        => $row['name'],
+                    'status'      => $row['status'] === 'ACTIVE',
+                ]);
+                $sub->loadMissing('category')->loadCount('products');
+                $rows[] = $sub;
+            }
+            return $rows;
+        });
+
+        return response()->json([
+            'ok'            => true,
+            'subcategories' => array_map(fn ($s) => $this->presentRow($s), $created),
+            'message'       => count($created) === 1
+                ? 'Sub-category created.'
+                : count($created) . ' sub-categories created.',
         ]);
     }
 

@@ -8,6 +8,9 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\State;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class CityController extends Controller
 {
@@ -88,6 +91,47 @@ class CityController extends Controller
             'ok'      => true,
             'city'    => $this->presentRow($city),
             'message' => 'City updated.',
+        ]);
+    }
+
+    public function ajaxBulk(Request $request)
+    {
+        $payload = $request->input('cities', []);
+
+        $validator = Validator::make(['cities' => $payload], [
+            'cities'            => ['required', 'array', 'min:1', 'max:50'],
+            'cities.*.state_id' => ['required', 'integer', Rule::exists('states', 'id')->whereNull('deleted_at')],
+            'cities.*.name'     => ['required', 'string', 'max:100'],
+            'cities.*.status'   => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'ok'     => false,
+                'errors' => $validator->errors()->messages(),
+            ], 422);
+        }
+
+        $created = DB::transaction(function () use ($payload) {
+            $rows = [];
+            foreach ($payload as $row) {
+                $city = City::create([
+                    'state_id' => $row['state_id'],
+                    'name'     => $row['name'],
+                    'status'   => $row['status'],
+                ]);
+                $city->loadMissing('state.country')->loadCount('zipcodes');
+                $rows[] = $city;
+            }
+            return $rows;
+        });
+
+        return response()->json([
+            'ok'      => true,
+            'cities'  => array_map(fn ($c) => $this->presentRow($c), $created),
+            'message' => count($created) === 1
+                ? 'City created.'
+                : count($created) . ' cities created.',
         ]);
     }
 
