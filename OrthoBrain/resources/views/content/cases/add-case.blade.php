@@ -139,6 +139,12 @@
     </main>
 
   </div>
+
+  {{-- Shared undo-toast for media-tile removal --}}
+  <div id="media-undo-toast" class="media-undo-toast" role="status" aria-live="polite" aria-hidden="true">
+    <span class="media-undo-toast__label"></span>
+    <button type="button" class="media-undo-toast__undo">Undo</button>
+  </div>
 </div>
 @endsection
 

@@ -54,4 +54,65 @@ window.MediaTileHelpers = {
       cleanup: function () { URL.revokeObjectURL(url); },
     };
   },
+
+  // ── Undo-toast for tile removal ──────────────────────────────────────────
+  // Single-slot toast. Latest-wins: a second call commits the prior pending
+  // action immediately (via its commit callback) and replaces the toast.
+  _undoToastState: null,
+
+  showUndoToast: function (label, onUndo, onCommit, autoCommitMs) {
+    var self = this;
+    var container = document.getElementById('media-undo-toast');
+    if (!container) return;
+
+    // Commit any prior pending toast first.
+    if (this._undoToastState) {
+      clearTimeout(this._undoToastState.timerId);
+      try { this._undoToastState.onCommit && this._undoToastState.onCommit(); } catch (e) {}
+      this._undoToastState = null;
+    }
+
+    var labelEl = container.querySelector('.media-undo-toast__label');
+    var btnEl = container.querySelector('.media-undo-toast__undo');
+    if (!labelEl || !btnEl) return;
+
+    labelEl.textContent = label;
+    container.classList.add('is-visible');
+    container.setAttribute('aria-hidden', 'false');
+
+    var handleUndo = function () {
+      if (!self._undoToastState) return;
+      clearTimeout(self._undoToastState.timerId);
+      var cb = self._undoToastState.onUndo;
+      self._undoToastState = null;
+      self._hideUndoToastContainer();
+      try { cb && cb(); } catch (e) {}
+    };
+
+    // Replace handler (avoid stacking listeners across successive toasts).
+    btnEl.onclick = handleUndo;
+
+    var timerId = setTimeout(function () {
+      if (!self._undoToastState) return;
+      var cb = self._undoToastState.onCommit;
+      self._undoToastState = null;
+      self._hideUndoToastContainer();
+      try { cb && cb(); } catch (e) {}
+    }, autoCommitMs || 5000);
+
+    this._undoToastState = {
+      onUndo: onUndo,
+      onCommit: onCommit,
+      timerId: timerId,
+    };
+  },
+
+  _hideUndoToastContainer: function () {
+    var container = document.getElementById('media-undo-toast');
+    if (!container) return;
+    container.classList.remove('is-visible');
+    container.setAttribute('aria-hidden', 'true');
+    var btnEl = container.querySelector('.media-undo-toast__undo');
+    if (btnEl) btnEl.onclick = null;
+  },
 };

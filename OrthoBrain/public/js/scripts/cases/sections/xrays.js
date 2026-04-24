@@ -10,7 +10,7 @@
   };
 
   var XRAY_CONFIG = {
-    maxSizeBytes: 20 * 1024 * 1024,
+    maxSizeBytes: 5 * 1024 * 1024,
     // No GIF — different from Photographs
     allowedMimeTypes: ['image/jpeg', 'image/bmp', 'image/tiff', 'image/heic', 'image/png'],
     formatError: 'Invalid file format. Accepted: JPG, BMP, TIF, HEIC, PNG.',
@@ -197,12 +197,43 @@
         this._closeTileModal();
       },
 
-      removeTile: function () {
-        var tileId = this.tileModal.activeTileId;
-        if (!tileId) return;
-        if (!window.confirm('Remove this x-ray?')) return;
-        this._closeTileModal();
-        this._clearTile(tileId);
+      removeTile: function (tileId) {
+        var id = tileId || this.tileModal.activeTileId;
+        if (!id || !this.tiles[id].filled) return;
+
+        var snapshot = {
+          originalFile: this.tiles[id].originalFile,
+          croppedBlob: this.tiles[id].croppedBlob,
+          previewUrl:  this.tiles[id].previewUrl,
+          cropParams:  this.tiles[id].cropParams,
+        };
+
+        this.tiles[id].filled = false;
+        this.tiles[id].originalFile = null;
+        this.tiles[id].croppedBlob = null;
+        this.tiles[id].previewUrl = null;
+        this.tiles[id].cropParams = null;
+        this.syncToState();
+
+        if (this._tileModalInstance) this._closeTileModal();
+
+        var self = this;
+        window.MediaTileHelpers.showUndoToast(
+          'Removed ' + this.getTileLabel(id),
+          function onUndo() {
+            self.tiles[id].originalFile = snapshot.originalFile;
+            self.tiles[id].croppedBlob = snapshot.croppedBlob;
+            self.tiles[id].previewUrl = snapshot.previewUrl;
+            self.tiles[id].cropParams = snapshot.cropParams;
+            self.tiles[id].filled = true;
+            self.syncToState();
+            if (window.feather) window.feather.replace();
+          },
+          function onCommit() {
+            if (snapshot.previewUrl) URL.revokeObjectURL(snapshot.previewUrl);
+          },
+          5000
+        );
       },
 
       _clearTile: function (tileId) {
