@@ -5,19 +5,22 @@
    (Vuexy's hook) and `[data-bs-theme="dark"]` (Bootstrap 5 + theme-toggle.js).
    ============================================================================ */
 
-/* Inter — crisper at UI sizes than Vuexy's default stack. Falls back cleanly
-   if Google Fonts is blocked (keeps Vuexy's Montserrat chain). */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Inter for body + label (crisper at UI sizes than Vuexy's default stack).
+   Public Sans for headlines (per 2026-04-24 design reference — pair with Inter
+   like stripe.com / digital.gov). Falls back cleanly if Google Fonts is blocked. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Public+Sans:wght@500;600;700;800&display=swap');
 
 /* ---------- LIGHT MODE (default — :root) ------------------------------------ */
 :root {
-  /* Brand anchor — same in both modes */
-  --ob-primary:            #2C5282;
-  --ob-primary-hover:      #244669;
-  --ob-primary-soft:       rgba(44, 82, 130, 0.08);
+  /* Brand anchor — shared across both modes per 2026-04-24 ref (#3B82F6).
+     Previously #2C5282; shifted to the vivid blue so brand colour is
+     consistent whether the toggle is light or dark. */
+  --ob-primary:            #3B82F6;
+  --ob-primary-hover:      #2563EB;
+  --ob-primary-soft:       rgba(59, 130, 246, 0.10);
 
   /* Page + surfaces */
-  --ob-bg:                 #F8FAFF;
+  --ob-bg:                 #F8FAFC;
   --ob-surface-1:          #FFFFFF;
   --ob-surface-2:          #F1F5F9;
   --ob-border:             #E2E8F0;
@@ -28,8 +31,8 @@
   --ob-text-muted:         #64748B;
   --ob-text-secondary:     #4A5568;
 
-  /* Semantic accents (muted for light mode) */
-  --ob-success:            #38A169;
+  /* Semantic accents */
+  --ob-success:            #4ADE80;
   --ob-warning:            #D69E2E;
   --ob-danger:             #C53030;
   --ob-info:               #3182CE;
@@ -48,7 +51,7 @@
   --bs-secondary-color:    var(--ob-text-muted);
   --bs-border-color:       var(--ob-border);
   --bs-primary:            var(--ob-primary);
-  --bs-primary-rgb:        44, 82, 130;
+  --bs-primary-rgb:        59, 130, 246;
   --bs-success:            var(--ob-success);
   --bs-warning:            var(--ob-warning);
   --bs-danger:             var(--ob-danger);
@@ -111,6 +114,19 @@ body {
   color: var(--ob-text);
   transition: background-color 0.25s var(--ob-ease),
               color 0.25s var(--ob-ease);
+}
+
+/* Headings use Public Sans — slightly more geometric + higher x-height, reads
+   as "display" vs Inter's neutral UI tone. Applies to Vuexy headings, card
+   titles, section titles, and the admin content-header title. */
+h1, h2, h3, h4, h5, h6,
+.card-title,
+.page-title,
+.content-header-title,
+.case-section__title {
+  font-family: 'Public Sans', 'Inter', -apple-system, BlinkMacSystemFont,
+               'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.01em;
 }
 
 /* ---------- Core surfaces: cards, modals, dropdowns, navbar --------------- */
@@ -528,4 +544,41 @@ a:hover { color: var(--ob-primary-hover); }
 .ob-btn-ai:focus-visible,
 .ob-btn-ai:disabled {
   animation: none;
+}
+
+/* ============================================================================
+   Search-input contrast in dark mode.
+   Admin toolbar search boxes wrap a <span class="input-group-text bg-white">
+   around the search icon, plus a `.form-control` for the input. In dark mode
+   the `.bg-white` class forces a bright white slab against navy, and the
+   input itself was picking up the same `#fff` visually. Override both.
+   ============================================================================ */
+.dark-layout .input-group-text,
+.dark-layout .input-group-text.bg-white,
+[data-bs-theme="dark"] .input-group-text,
+[data-bs-theme="dark"] .input-group-text.bg-white {
+  background-color: var(--ob-surface-2) !important;
+  border-color: var(--ob-border);
+  color: var(--ob-text-muted);
+}
+
+/* Anything inside an .input-group (form-control, form-select) adopts the
+   same surface so the whole pill reads as one cohesive control. */
+.dark-layout .input-group .form-control,
+.dark-layout .input-group .form-select,
+[data-bs-theme="dark"] .input-group .form-control,
+[data-bs-theme="dark"] .input-group .form-select {
+  background-color: var(--ob-surface-2);
+  border-color: var(--ob-border);
+  color: var(--ob-text);
+}
+
+/* Icons inside the input-group (e.g. the search svg) pick up the palette's
+   muted-text colour so they don't look black-on-dark. */
+.dark-layout .input-group-text svg,
+.dark-layout .input-group-text [data-feather],
+[data-bs-theme="dark"] .input-group-text svg,
+[data-bs-theme="dark"] .input-group-text [data-feather] {
+  color: var(--ob-text-muted);
+  stroke: currentColor;
 }
