@@ -72,14 +72,17 @@
   --ob-text-muted:         #94A3B8;
   --ob-text-secondary:     #CBD5E1;
 
+  /* Dark-mode primary shifts to a brighter blue — #2C5282 (light-mode navy) is
+     too muted against navy surfaces. #3B82F6 pops without screaming. */
+  --ob-primary:            #3B82F6;
+  --ob-primary-hover:      #60A5FA;
+  --ob-primary-soft:       rgba(59, 130, 246, 0.14);
+
   /* Saturate accents for dark — muted colours look dead on navy */
   --ob-success:            #34D399;
   --ob-warning:            #F59E0B;
   --ob-danger:             #EF4444;
   --ob-info:               #60A5FA;
-
-  --ob-primary-soft:       rgba(96, 165, 250, 0.14);
-  --ob-primary-hover:      #3B6AA5;
 
   --ob-shadow-sm:          0 1px 2px rgba(0, 0, 0, 0.35);
   --ob-shadow:             0 4px 16px rgba(0, 0, 0, 0.40);
@@ -89,6 +92,8 @@
   --bs-body-color:         var(--ob-text);
   --bs-secondary-color:    var(--ob-text-muted);
   --bs-border-color:       var(--ob-border);
+  --bs-primary:            var(--ob-primary);
+  --bs-primary-rgb:        59, 130, 246;
   --bs-success:            var(--ob-success);
   --bs-warning:            var(--ob-warning);
   --bs-danger:             var(--ob-danger);
@@ -239,3 +244,144 @@ a:hover { color: var(--ob-primary-hover); }
   border-radius: 8px;
 }
 *::-webkit-scrollbar-thumb:hover { background: var(--ob-text-muted); }
+
+/* ============================================================================
+   DARK-MODE TUNE-UPS
+   These apply in dark mode only. They complement the `body:not(.dark-layout)`
+   guards in orthobrain-overrides.css — the guards stop the hardcoded `#111`
+   text rules from firing; these rules then paint the correct navy-mode tones.
+   ============================================================================ */
+
+/* Headings + title-ish text — use our slate --ob-text, preserve weight */
+.dark-layout h1, .dark-layout h2, .dark-layout h3,
+.dark-layout h4, .dark-layout h5, .dark-layout h6,
+.dark-layout .card-title,
+.dark-layout .page-title,
+.dark-layout .content-header-title,
+[data-bs-theme="dark"] h1, [data-bs-theme="dark"] h2, [data-bs-theme="dark"] h3,
+[data-bs-theme="dark"] h4, [data-bs-theme="dark"] h5, [data-bs-theme="dark"] h6,
+[data-bs-theme="dark"] .card-title,
+[data-bs-theme="dark"] .page-title,
+[data-bs-theme="dark"] .content-header-title {
+  color: var(--ob-text) !important;
+}
+
+/* Form field labels — need full-opacity slate, not muted */
+.dark-layout .form-label,
+[data-bs-theme="dark"] .form-label {
+  color: var(--ob-text) !important;
+  font-weight: 600;
+}
+
+/* Form control typed text — above surface, lighter than labels */
+.dark-layout .form-control,
+.dark-layout .form-select,
+.dark-layout .input-group-text,
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select,
+[data-bs-theme="dark"] .input-group-text {
+  color: var(--ob-text);
+}
+.dark-layout .form-control::placeholder,
+[data-bs-theme="dark"] .form-control::placeholder {
+  color: var(--ob-text-muted);
+  opacity: 0.75;
+}
+
+/* Tables — thead bright, tbody slightly dimmed */
+.dark-layout .table,
+[data-bs-theme="dark"] .table {
+  color: var(--ob-text);
+}
+.dark-layout .table thead th,
+[data-bs-theme="dark"] .table thead th {
+  color: var(--ob-text) !important;
+  font-weight: 700;
+  background-color: transparent;
+}
+.dark-layout .table td,
+[data-bs-theme="dark"] .table td {
+  color: var(--ob-text-secondary);
+}
+
+/* Body copy — paragraphs, labels, card-text — palette-driven */
+.dark-layout p,
+.dark-layout label,
+.dark-layout .card-text,
+[data-bs-theme="dark"] p,
+[data-bs-theme="dark"] label,
+[data-bs-theme="dark"] .card-text {
+  color: var(--ob-text);
+}
+
+/* Nav links / dropdown items — high contrast but not pure white */
+.dark-layout .nav-link,
+.dark-layout .dropdown-item,
+[data-bs-theme="dark"] .nav-link,
+[data-bs-theme="dark"] .dropdown-item {
+  color: var(--ob-text);
+}
+.dark-layout .nav-link:hover,
+.dark-layout .dropdown-item:hover,
+[data-bs-theme="dark"] .nav-link:hover,
+[data-bs-theme="dark"] .dropdown-item:hover {
+  color: var(--ob-primary);
+  background-color: var(--ob-surface-2);
+}
+
+/* Text-muted — palette-driven (wins over .text-muted with !important) */
+.dark-layout .text-muted,
+[data-bs-theme="dark"] .text-muted {
+  color: var(--ob-text-muted) !important;
+}
+
+/* Footer — Vuexy's footer-light defaults to white. Override in dark. */
+.dark-layout .footer,
+.dark-layout .footer-light,
+[data-bs-theme="dark"] .footer,
+[data-bs-theme="dark"] .footer-light {
+  background-color: var(--ob-surface-1) !important;
+  color: var(--ob-text-muted);
+  border-top: 1px solid var(--ob-border);
+}
+.dark-layout .footer a,
+[data-bs-theme="dark"] .footer a {
+  color: var(--ob-primary);
+}
+
+/* Admin floating navbar (the pill between sidebar and content) */
+.dark-layout .header-navbar.floating-nav,
+[data-bs-theme="dark"] .header-navbar.floating-nav {
+  background-color: var(--ob-surface-1);
+  border: 1px solid var(--ob-border);
+}
+
+/* Breadcrumb (shows under page title on admin pages) */
+.dark-layout .breadcrumb,
+[data-bs-theme="dark"] .breadcrumb {
+  background-color: transparent;
+}
+.dark-layout .breadcrumb-item,
+.dark-layout .breadcrumb-item.active,
+[data-bs-theme="dark"] .breadcrumb-item,
+[data-bs-theme="dark"] .breadcrumb-item.active {
+  color: var(--ob-text-muted);
+}
+.dark-layout .breadcrumb-item a,
+[data-bs-theme="dark"] .breadcrumb-item a {
+  color: var(--ob-primary);
+}
+
+/* Stat-card icon bubbles (admin index pages). Vuexy uses .avatar-stats
+   with solid pastel backgrounds — in dark mode, soften with our palette. */
+.dark-layout .avatar .avatar-content,
+[data-bs-theme="dark"] .avatar .avatar-content {
+  background-color: var(--ob-surface-2);
+}
+
+/* Section card headers (e.g. "Contact & Identity" on doctor details) inherit
+   primary as accent; ensure the edit-pencil button adopts dark surface. */
+.dark-layout .btn-icon,
+[data-bs-theme="dark"] .btn-icon {
+  color: var(--ob-text);
+}
