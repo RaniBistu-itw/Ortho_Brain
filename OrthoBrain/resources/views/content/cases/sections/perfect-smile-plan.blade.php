@@ -29,6 +29,7 @@
     <div class="d-flex flex-wrap align-items-center gap-50 mb-1">
       <button type="button"
               class="btn btn-primary btn-sm d-flex align-items-center gap-25"
+              :class="{ 'ob-btn-ai': hasEnoughPhotos && caseIsSaved && !isGenerating && !narrative }"
               :disabled="!hasEnoughPhotos || isGenerating || !caseIsSaved"
               @click="generate()">
         <i data-feather="cpu"></i>
@@ -36,19 +37,23 @@
       </button>
 
       <button type="button"
-              class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-25"
+              class="btn ob-fab ob-fab--ghost"
               x-show="isGenerating"
               @click="cancel()"
+              title="Cancel generation"
+              aria-label="Cancel generation"
               style="display:none;">
-        <i data-feather="x"></i> Cancel
+        <i data-feather="x"></i>
       </button>
 
       <button type="button"
-              class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-25 ms-auto"
+              class="btn ob-fab ob-fab--ghost ms-auto"
               x-show="narrative && !isGenerating"
               @click="copyToClipboard()"
+              title="Copy narrative"
+              aria-label="Copy narrative"
               style="display:none;">
-        <i data-feather="copy"></i> Copy
+        <i data-feather="copy"></i>
       </button>
 
       <span class="text-muted font-small-2"
@@ -121,6 +126,7 @@
     <div class="d-flex flex-wrap align-items-center gap-50 mb-1">
       <button type="button"
               class="btn btn-primary btn-sm d-flex align-items-center gap-25"
+              :class="{ 'ob-btn-ai': frontalSmileReady && caseIsSaved && !isVisualising && !previewImage }"
               :disabled="!frontalSmileReady || !caseIsSaved || isVisualising"
               @click="visualise()">
         <i data-feather="image"></i>
@@ -128,27 +134,33 @@
       </button>
 
       <button type="button"
-              class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-25"
+              class="btn ob-fab ob-fab--ghost"
               x-show="isVisualising"
               @click="cancelVisualise()"
+              title="Cancel visualisation"
+              aria-label="Cancel visualisation"
               style="display:none;">
-        <i data-feather="x"></i> Cancel
+        <i data-feather="x"></i>
       </button>
 
       <button type="button"
-              class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-25"
+              class="btn ob-fab ob-fab--ghost"
               x-show="previewImage && !isVisualising"
               @click="downloadPreview()"
+              title="Download predicted image"
+              aria-label="Download predicted image"
               style="display:none;">
-        <i data-feather="download"></i> Download
+        <i data-feather="download"></i>
       </button>
 
       <button type="button"
-              class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-25"
+              class="btn ob-fab ob-fab--ghost"
               x-show="previewImage && !isVisualising"
               @click="clearPreview()"
+              title="Hide preview"
+              aria-label="Hide preview"
               style="display:none;">
-        <i data-feather="eye-off"></i> Hide
+        <i data-feather="eye-off"></i>
       </button>
 
       <span class="text-muted font-small-2 ms-auto"
@@ -163,7 +175,7 @@
          style="display:none;">
 
       <div class="col-md-6">
-        <div class="perfect-smile-plan__preview-card">
+        <div class="perfect-smile-plan__preview-card ob-card-interactive">
           <div class="perfect-smile-plan__preview-label">Current smile</div>
           <img :src="previewOriginal || ''"
                x-show="previewOriginal"
@@ -174,15 +186,13 @@
       </div>
 
       <div class="col-md-6">
-        <div class="perfect-smile-plan__preview-card">
+        <div class="perfect-smile-plan__preview-card ob-card-interactive">
           <div class="perfect-smile-plan__preview-label">Predicted outcome</div>
 
-          {{-- Loading skeleton --}}
-          <div class="placeholder-glow perfect-smile-plan__preview-skeleton"
+          {{-- Loading skeleton — Phase-2 shimmer replaces the Bootstrap placeholder pulse --}}
+          <div class="perfect-smile-plan__preview-skeleton ob-shimmer"
                x-show="isVisualising"
-               style="display:none;">
-            <span class="placeholder w-100"></span>
-          </div>
+               style="display:none;"></div>
 
           {{-- Predicted image + watermark overlay --}}
           <div class="perfect-smile-plan__preview-wrapper"

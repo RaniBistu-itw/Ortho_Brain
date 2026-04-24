@@ -13,25 +13,22 @@
       <p class="form-label fw-semibold mb-50">
         Arches to be Treated <span class="text-danger">*</span>
       </p>
-      <div class="d-flex flex-column gap-25">
-        <div class="form-check">
-          <input class="form-check-input" type="radio" id="rx-arches-both"
-                 name="rx-arches" value="both"
-                 x-model="arches" @change="syncToState()">
-          <label class="form-check-label" for="rx-arches-both">Both Maxillary and Mandibular</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="radio" id="rx-arches-maxillary"
-                 name="rx-arches" value="maxillary"
-                 x-model="arches" @change="syncToState()">
-          <label class="form-check-label" for="rx-arches-maxillary">Maxillary only</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" type="radio" id="rx-arches-mandibular"
-                 name="rx-arches" value="mandibular"
-                 x-model="arches" @change="syncToState()">
-          <label class="form-check-label" for="rx-arches-mandibular">Mandibular only</label>
-        </div>
+      {{-- Segmented control — same x-model, same values, tighter visual --}}
+      <div class="btn-group ob-segmented" role="group" aria-label="Arches to be treated">
+        <input type="radio" class="btn-check" id="rx-arches-both"
+               name="rx-arches" value="both"
+               x-model="arches" @change="syncToState()">
+        <label class="btn" for="rx-arches-both" title="Both Maxillary and Mandibular">Both</label>
+
+        <input type="radio" class="btn-check" id="rx-arches-maxillary"
+               name="rx-arches" value="maxillary"
+               x-model="arches" @change="syncToState()">
+        <label class="btn" for="rx-arches-maxillary" title="Maxillary only">Maxillary</label>
+
+        <input type="radio" class="btn-check" id="rx-arches-mandibular"
+               name="rx-arches" value="mandibular"
+               x-model="arches" @change="syncToState()">
+        <label class="btn" for="rx-arches-mandibular" title="Mandibular only">Mandibular</label>
       </div>
       <div class="small text-danger mt-25" x-show="errors.arches" x-text="errors.arches" style="display:none;"></div>
     </div>
