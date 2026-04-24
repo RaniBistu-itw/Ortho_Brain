@@ -80,6 +80,7 @@ class CaseDashboardSeeder extends Seeder
                     ['case_code' => $code],
                     [
                         'doctor_id'    => $doctor->id,
+                        'practice_id' => $doctor->practice_id,
                         'status'       => $status,
                         'submitted_at' => $submittedAt,
                         'created_at'   => $createdAt,
