@@ -14,6 +14,18 @@
       default     => 'badge rounded-pill badge-light-secondary',
     };
   };
+
+  $statusLabel = function ($status) {
+    return match ($status) {
+      'DRAFT'     => 'Draft',
+      'SUBMITTED' => 'Submitted',
+      'IN_REVIEW' => 'In Review',
+      'APPROVED'  => 'Approved',
+      'REJECTED'  => 'Rejected',
+      'ACTIVE'    => 'Active',
+      default     => $status,
+    };
+  };
 @endphp
 
 @section('content')
@@ -24,6 +36,43 @@
       <a href="{{ route('doctor.cases.create') }}" class="btn btn-primary">
         <i data-feather="plus" class="me-25"></i> New Case
       </a>
+    </div>
+
+    <div class="card-body border-bottom py-1">
+      <div class="d-flex flex-wrap align-items-center gap-50">
+        <a href="{{ route('doctor.cases.index') }}"
+           class="btn btn-sm {{ $activeStatus === null ? 'btn-primary' : 'btn-outline-secondary' }}">
+          All
+        </a>
+        <a href="{{ route('doctor.cases.index', ['status' => 'ACTIVE']) }}"
+           class="btn btn-sm {{ $activeStatus === 'ACTIVE' ? 'btn-primary' : 'btn-outline-secondary' }}">
+          Active
+        </a>
+        @foreach($statuses as $s)
+          <a href="{{ route('doctor.cases.index', ['status' => $s]) }}"
+             class="btn btn-sm {{ $activeStatus === $s && ! $staleOnly ? 'btn-primary' : 'btn-outline-secondary' }}">
+            {{ $statusLabel($s) }}
+          </a>
+        @endforeach
+        @if($staleOnly)
+          <a href="{{ route('doctor.cases.index', ['status' => 'DRAFT', 'stale' => 1]) }}"
+             class="btn btn-sm btn-warning">
+            Stale drafts only
+          </a>
+        @endif
+        @if($activeStatus)
+          <span class="text-muted small ms-1">
+            Showing
+            <strong>
+              @if($staleOnly) Stale drafts @else {{ $statusLabel($activeStatus) }} @endif
+            </strong>
+            ({{ $cases->total() }})
+            @if($staleOnly)
+              · <a href="{{ route('doctor.cases.index', ['status' => 'DRAFT']) }}">show all drafts</a>
+            @endif
+          </span>
+        @endif
+      </div>
     </div>
 
     <div class="table-responsive">
@@ -65,7 +114,14 @@
           @empty
             <tr>
               <td colspan="6" class="text-center text-muted py-2">
-                No cases yet. Click <strong>New Case</strong> above to get started.
+                @if($staleOnly)
+                  No stale drafts. <a href="{{ route('doctor.cases.index') }}">Clear filter</a>.
+                @elseif($activeStatus)
+                  No cases with status <strong>{{ $statusLabel($activeStatus) }}</strong>.
+                  <a href="{{ route('doctor.cases.index') }}">Clear filter</a>.
+                @else
+                  No cases yet. Click <strong>New Case</strong> above to get started.
+                @endif
               </td>
             </tr>
           @endforelse

@@ -12,17 +12,37 @@ use Illuminate\Support\Facades\Auth;
 
 class CasesController extends Controller
 {
-    public function index()
+    private const STATUSES        = ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
+    private const ACTIVE_STATUSES = ['SUBMITTED', 'IN_REVIEW', 'APPROVED'];
+
+    public function index(Request $request)
     {
         $doctor = $this->currentDoctor();
         $practiceId = currentPractice()->id;
 
+        $requested = strtoupper((string) $request->query('status', ''));
+        $allowed   = [...self::STATUSES, 'ACTIVE'];
+        $activeStatus = in_array($requested, $allowed, true) ? $requested : null;
+
+        // Stale flag only makes sense when filtering to DRAFT — matches the
+        // dashboard "X drafts stale" alert semantics (updated >3 days ago).
+        $staleOnly = $activeStatus === 'DRAFT' && $request->boolean('stale');
+
         $cases = CaseModel::where('doctor_id', $doctor->id)
             ->where('practice_id', $practiceId)
+            ->when($activeStatus === 'ACTIVE', fn ($q) => $q->whereIn('status', self::ACTIVE_STATUSES))
+            ->when($activeStatus && $activeStatus !== 'ACTIVE', fn ($q) => $q->where('status', $activeStatus))
+            ->when($staleOnly, fn ($q) => $q->where('updated_at', '<', now()->subDays(3)))
             ->latest()
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
-        return view('content.cases.case-list', compact('cases'));
+        return view('content.cases.case-list', [
+            'cases'        => $cases,
+            'activeStatus' => $activeStatus,
+            'statuses'     => self::STATUSES,
+            'staleOnly'    => $staleOnly,
+        ]);
     }
 
     public function create()

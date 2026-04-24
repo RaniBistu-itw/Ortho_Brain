@@ -712,7 +712,7 @@ body #ob-dash .ob-inbox-row-sub         { color: rgba(255,255,255,.55); }
     ══════════════════════════════════════════════════════ --}}
     <div class="row g-3 mb-2">
         <div class="col-xl-3 col-sm-6 ob-anim-1">
-            <a href="{{ route('doctor.cases.index') }}" class="ob-kpi ob-kpi--active">
+            <a href="{{ route('doctor.cases.index', ['status' => 'ACTIVE']) }}" class="ob-kpi ob-kpi--active">
                 <div class="ob-kpi-icon-wrap"><i data-feather="activity"></i></div>
                 <div class="ob-kpi-badge"><i data-feather="folder"></i>&nbsp;Active Cases</div>
                 <div class="ob-kpi-num" data-count-to="{{ $activeCount }}">{{ $activeCount }}</div>

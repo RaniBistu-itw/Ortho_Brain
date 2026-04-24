@@ -120,7 +120,7 @@ class DashboardController extends Controller
                 'title'  => $staleDraftCount . ' draft' . ($staleDraftCount > 1 ? 's' : '') . ' stale',
                 'sub'    => 'Not updated in 3+ days',
                 'action' => 'Resume',
-                'route'  => route('doctor.cases.index') . '?status=DRAFT',
+                'route'  => route('doctor.cases.index', ['status' => 'DRAFT', 'stale' => 1]),
             ];
         }
         if ($stats['approved'] > 0) {
