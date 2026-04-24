@@ -16,7 +16,7 @@
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
             html, body { font-family: 'Montserrat', ui-sans-serif, system-ui, sans-serif; }
-            body.reg-body { min-height: 100vh; background: #f8f8f8; color: #6e6b7b; padding-bottom: 2.5rem; margin: 0; }
+            body.reg-body { min-height: 100vh; background: var(--ob-surface-2); color: var(--ob-text-muted); padding-bottom: 2.5rem; margin: 0; }
 
             .reg-shell { padding: 2rem 1.5rem; width: 100%; }
             @media (min-width: 640px) { .reg-shell { padding: 2rem 2rem; } }
@@ -26,7 +26,7 @@
             .reg-logo-text .p1 { color: #5bc0de; }
             .reg-logo-text .p2 { color: #8cc63f; }
             .reg-logo-text .tm { color: #8cc63f; font-size: 0.8rem; margin-left: 1px; margin-top: 0.625rem; }
-            .reg-tagline { font-size: 12px; font-style: italic; color: #6e6b7b; margin-top: 0.25rem; letter-spacing: 0.025em; }
+            .reg-tagline { font-size: 12px; font-style: italic; color: var(--ob-text-muted); margin-top: 0.25rem; letter-spacing: 0.025em; }
 
             .reg-layout { display: flex; flex-direction: column; gap: 1.5rem; align-items: flex-start; position: relative; }
             @media (min-width: 768px) { .reg-layout { flex-direction: row; gap: 2rem; } }
@@ -47,13 +47,13 @@
                 display: flex; align-items: center; justify-content: center;
                 width: 2.5rem; height: 2.5rem;
                 border-radius: 0.358rem;
-                background: #f8f8f8;
-                color: #b9b9c3;
+                background: var(--ob-surface-2);
+                color: var(--ob-text-muted);
                 transition: all 0.2s;
                 flex-shrink: 0;
             }
-            .reg-nav-item .reg-nav-title { font-size: 0.95rem; color: #5e5873; font-weight: 500; transition: all 0.2s; }
-            .reg-nav-item .reg-nav-sub { font-size: 0.8rem; color: #b9b9c3; }
+            .reg-nav-item .reg-nav-title { font-size: 0.95rem; color: var(--ob-text); font-weight: 500; transition: all 0.2s; }
+            .reg-nav-item .reg-nav-sub { font-size: 0.8rem; color: var(--ob-text-muted); }
             .reg-nav-item.active .reg-nav-icon { background: #5bc0de; color: #fff; box-shadow: 0 2px 4px rgba(91,192,222,0.4); }
             .reg-nav-item.active .reg-nav-title { color: #5bc0de; }
 
@@ -66,19 +66,19 @@
                 scroll-margin-top: 1.5rem;
             }
             .reg-card-head { margin-bottom: 1.25rem; }
-            .reg-card-head h2 { font-size: 1.3rem; font-weight: 500; color: #5e5873; margin: 0 0 0.25rem; }
-            .reg-card-head p { font-size: 0.9rem; color: #6e6b7b; margin: 0; }
+            .reg-card-head h2 { font-size: 1.3rem; font-weight: 500; color: var(--ob-text); margin: 0 0 0.25rem; }
+            .reg-card-head p { font-size: 0.9rem; color: var(--ob-text-muted); margin: 0; }
             .reg-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
             @media (min-width: 768px) { .reg-grid { grid-template-columns: 1fr 1fr; } }
             .reg-col-span-2 { grid-column: span 1; }
             @media (min-width: 768px) { .reg-col-span-2 { grid-column: span 2; } }
 
-            .reg-label { display: block; font-size: 0.85rem; font-weight: 500; color: #5e5873; margin-bottom: 0.25rem; }
+            .reg-label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--ob-text); margin-bottom: 0.25rem; }
             .reg-required { color: #ea5455; }
             .reg-input-group {
                 display: flex;
                 align-items: center;
-                border: 1px solid #d8d6de;
+                border: 1px solid var(--ob-border-strong);
                 border-radius: 0.358rem;
                 background: #fff;
                 overflow: hidden;
@@ -89,9 +89,9 @@
             .reg-input-icon {
                 display: flex; align-items: center; justify-content: center;
                 padding: 0.5rem 0.5rem 0.5rem 0.75rem;
-                color: #b9b9c3;
+                color: var(--ob-text-muted);
                 background: #fff;
-                border-right: 1px solid #d8d6de;
+                border-right: 1px solid var(--ob-border-strong);
                 align-self: stretch;
             }
             .reg-input-group.is-invalid .reg-input-icon { border-right-color: #ea5455; }
@@ -101,21 +101,21 @@
                 outline: none;
                 padding: 0.5rem 0.75rem;
                 font-size: 0.95rem;
-                color: #6e6b7b;
+                color: var(--ob-text-muted);
                 background: transparent;
                 min-width: 0;
             }
-            .reg-input::placeholder { color: #b9b9c3; }
+            .reg-input::placeholder { color: var(--ob-text-muted); }
             .reg-select {
                 width: 100%;
                 height: 2.5rem;
                 padding: 0 0.75rem;
                 background: #fff;
-                border: 1px solid #d8d6de;
+                border: 1px solid var(--ob-border-strong);
                 border-radius: 0.358rem;
                 outline: none;
                 font-size: 0.95rem;
-                color: #6e6b7b;
+                color: var(--ob-text-muted);
                 appearance: none;
                 -webkit-appearance: none;
             }
@@ -123,7 +123,7 @@
             .reg-select.is-invalid { border-color: #ea5455; }
             .reg-phone {
                 display: flex;
-                border: 1px solid #d8d6de;
+                border: 1px solid var(--ob-border-strong);
                 border-radius: 0.358rem;
                 background: #fff;
                 transition: all .2s;
@@ -133,10 +133,10 @@
             .reg-phone.is-invalid { border-color: #ea5455; }
             .reg-phone select {
                 padding: 0 0.75rem;
-                background: #f8f8f8;
+                background: var(--ob-surface-2);
                 border: 0;
-                border-right: 1px solid #d8d6de;
-                color: #6e6b7b;
+                border-right: 1px solid var(--ob-border-strong);
+                color: var(--ob-text-muted);
                 font-size: 0.9rem;
                 outline: none;
             }
@@ -146,7 +146,7 @@
                 outline: none;
                 padding: 0.5rem 0.75rem;
                 font-size: 0.9rem;
-                color: #6e6b7b;
+                color: var(--ob-text-muted);
                 background: transparent;
                 min-width: 0;
             }
@@ -157,11 +157,11 @@
             .reg-card .reg-label { margin-bottom: 0.25rem; }
 
             /* Locked (read-only) state when an existing practice is picked */
-            .reg-input-group.is-locked { background: #f8f8f8; }
+            .reg-input-group.is-locked { background: var(--ob-surface-2); }
             .reg-input-group.is-locked input { background: transparent; }
-            .reg-phone.is-locked { background: #f8f8f8; }
+            .reg-phone.is-locked { background: var(--ob-surface-2); }
             .reg-phone.is-locked select, .reg-phone.is-locked input { background: transparent; pointer-events: none; }
-            .reg-select.is-locked { background: #f8f8f8; pointer-events: none; }
+            .reg-select.is-locked { background: var(--ob-surface-2); pointer-events: none; }
 
             /* Autocomplete wrapper + menu */
             .reg-autocomplete { position: relative; }
@@ -171,7 +171,7 @@
                 left: 0;
                 right: 0;
                 background: #fff;
-                border: 1px solid #d8d6de;
+                border: 1px solid var(--ob-border-strong);
                 border-radius: 0.358rem;
                 box-shadow: 0 4px 12px rgba(34,41,47,0.08);
                 max-height: 260px;
@@ -184,13 +184,13 @@
                 padding: 0.5rem 0.75rem;
                 cursor: pointer;
                 font-size: 0.9rem;
-                color: #6e6b7b;
+                color: var(--ob-text-muted);
                 border-bottom: 1px solid #f6f6f6;
             }
             .reg-autocomplete-item:last-child { border-bottom: 0; }
             .reg-autocomplete-item:hover,
-            .reg-autocomplete-item.active { background: #f8f8f8; color: #5e5873; }
-            .reg-autocomplete-empty { padding: 0.5rem 0.75rem; font-size: 0.85rem; color: #b9b9c3; font-style: italic; }
+            .reg-autocomplete-item.active { background: var(--ob-surface-2); color: var(--ob-text); }
+            .reg-autocomplete-empty { padding: 0.5rem 0.75rem; font-size: 0.85rem; color: var(--ob-text-muted); font-style: italic; }
             .reg-change-link {
                 display: inline-block;
                 margin-top: 0.25rem;
@@ -208,15 +208,15 @@
             .reg-additional-body { display: flex; flex-direction: column; gap: 1.5rem; transition: all .3s; }
             .reg-additional-body.hidden { display: none; }
 
-            .reg-section-label { display: block; font-size: 0.875rem; font-weight: 600; color: #5e5873; margin-bottom: 0.5rem; }
+            .reg-section-label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--ob-text); margin-bottom: 0.5rem; }
             .reg-option-list { display: flex; flex-direction: column; gap: 0.25rem; }
             .reg-option-grid { display: grid; grid-template-columns: 1fr; row-gap: 0.25rem; column-gap: 1rem; }
             @media (min-width: 640px) { .reg-option-grid { grid-template-columns: 1fr 1fr; } }
-            .reg-option { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem; color: #6e6b7b; }
+            .reg-option { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem; color: var(--ob-text-muted); }
             .reg-option.align-start { align-items: flex-start; }
             .reg-option input[type="radio"], .reg-option input[type="checkbox"] { accent-color: #5bc0de; width: 1rem; height: 1rem; min-width: 1rem; cursor: pointer; flex-shrink: 0; }
 
-            .reg-form-box { background: #fbfbfb; border: 1px solid #d8d6de; border-radius: 0.358rem; padding: 1.25rem; }
+            .reg-form-box { background: #fbfbfb; border: 1px solid var(--ob-border-strong); border-radius: 0.358rem; padding: 1.25rem; }
             .reg-form-box.hidden { display: none; }
             .reg-email-row { display: flex; gap: 0.5rem; }
             .reg-email-row .reg-input-group { flex: 1; }
@@ -226,33 +226,33 @@
             .reg-btn-primary:hover { background: #46b8da; }
 
             /* Doctor Preferences panel */
-            .reg-pref-panel { background: #fcfcfc; border: 1px solid #ebe9f1; border-radius: 0.358rem; overflow: hidden; display: flex; flex-direction: column; }
-            .reg-pref-header-bar { background: #fff; border-bottom: 1px solid #ebe9f1; padding: 0.75rem 1rem; font-weight: 700; color: #5e5873; font-size: 0.95rem; }
+            .reg-pref-panel { background: #fcfcfc; border: 1px solid var(--ob-border); border-radius: 0.358rem; overflow: hidden; display: flex; flex-direction: column; }
+            .reg-pref-header-bar { background: #fff; border-bottom: 1px solid var(--ob-border); padding: 0.75rem 1rem; font-weight: 700; color: var(--ob-text); font-size: 0.95rem; }
             .reg-pref-scroll { overflow-y: auto; max-height: 500px; background: #fff; position: relative; }
             .reg-pref-scroll::-webkit-scrollbar { width: 6px; }
             .reg-pref-scroll::-webkit-scrollbar-track { background: #fcfcfc; }
-            .reg-pref-scroll::-webkit-scrollbar-thumb { background: #d8d6de; border-radius: 4px; }
-            .reg-pref-scroll::-webkit-scrollbar-thumb:hover { background: #b9b9c3; }
-            .reg-pref-section { padding: 1.25rem 1rem 1rem; border-bottom: 1px solid #ebe9f1; }
-            .reg-pref-title { font-weight: 500; color: #5e5873; margin: 0 0 0.75rem; font-size: 0.95rem; }
+            .reg-pref-scroll::-webkit-scrollbar-thumb { background: var(--ob-border-strong); border-radius: 4px; }
+            .reg-pref-scroll::-webkit-scrollbar-thumb:hover { background: var(--ob-text-muted); }
+            .reg-pref-section { padding: 1.25rem 1rem 1rem; border-bottom: 1px solid var(--ob-border); }
+            .reg-pref-title { font-weight: 500; color: var(--ob-text); margin: 0 0 0.75rem; font-size: 0.95rem; }
             .reg-pref-list { display: flex; flex-direction: column; gap: 0.5rem; }
             .reg-pref-item { display: flex; align-items: center; cursor: pointer; }
             .reg-pref-item.align-start { align-items: flex-start; }
             .reg-pref-item input[type="radio"], .reg-pref-item input[type="checkbox"] { accent-color: #5bc0de; margin-right: 0.5rem; width: 1rem; height: 1rem; cursor: pointer; flex-shrink: 0; }
             .reg-pref-item.align-start input { margin-top: 0.25rem; }
-            .reg-pref-item span { color: #6e6b7b; font-size: 0.95rem; }
+            .reg-pref-item span { color: var(--ob-text-muted); font-size: 0.95rem; }
 
             /* Toggle switches */
             .reg-toggle-group { display: flex; flex-direction: column; gap: 1.25rem; }
             .reg-toggle-label { display: flex; align-items: center; cursor: pointer; }
             .reg-toggle-switch { position: relative; width: 2.5rem; height: 22px; }
             .reg-toggle-switch input.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-            .reg-toggle-bg { display: block; width: 2.5rem; height: 22px; background: #ebe9f1; border-radius: 9999px; transition: background .2s; }
+            .reg-toggle-bg { display: block; width: 2.5rem; height: 22px; background: var(--ob-border); border-radius: 9999px; transition: background .2s; }
             .reg-toggle-dot { position: absolute; width: 1rem; height: 1rem; background: #fff; border-radius: 50%; top: 3px; right: 3px; transform: translateX(-125%); transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
             .reg-toggle-switch input.sr-only:checked ~ .reg-toggle-bg { background: #5bc0de; }
             .reg-toggle-switch input.sr-only:checked ~ .reg-toggle-dot { transform: translateX(0); }
-            .reg-toggle-text { margin-left: 0.75rem; font-size: 0.95rem; color: #6e6b7b; }
-            .reg-toggle-panel { margin-top: 0.75rem; padding: 1rem; background: #f8f8f8; border: 1px solid #ebe9f1; border-radius: 0.358rem; display: flex; flex-direction: column; gap: 0.5rem; }
+            .reg-toggle-text { margin-left: 0.75rem; font-size: 0.95rem; color: var(--ob-text-muted); }
+            .reg-toggle-panel { margin-top: 0.75rem; padding: 1rem; background: var(--ob-surface-2); border: 1px solid var(--ob-border); border-radius: 0.358rem; display: flex; flex-direction: column; gap: 0.5rem; }
             .reg-toggle-panel.hidden { display: none; }
 
             .reg-back-to-top { position: sticky; bottom: 0; background: #5bc0de; color: #fff; width: 2rem; height: 2rem; border-radius: 0.358rem; display: flex; justify-content: center; align-items: center; cursor: pointer; opacity: 0.9; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: -2rem; float: right; z-index: 10; margin-right: 0.5rem; }
@@ -260,11 +260,11 @@
 
             /* Terms + actions */
             .reg-terms-wrap { margin-top: 1.5rem; padding: 0 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
-            .reg-terms-label { display: flex; align-items: flex-start; color: #6e6b7b; font-size: 0.9rem; cursor: pointer; }
+            .reg-terms-label { display: flex; align-items: flex-start; color: var(--ob-text-muted); font-size: 0.9rem; cursor: pointer; }
             .reg-terms-label input { margin: 0.2rem 0.75rem 0 0 !important; width: 1.1rem; height: 1.1rem; accent-color: #5bc0de; cursor: pointer; flex-shrink: 0; }
             .reg-terms-link { color: #5bc0de; text-decoration: none; }
             .reg-terms-link:hover { text-decoration: underline; }
-            .reg-actions { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.5rem; border-top: 1px solid #ebe9f1; padding-top: 1.5rem; }
+            .reg-actions { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--ob-border); padding-top: 1.5rem; }
             .reg-btn-back { padding: 0.6rem 1.25rem; background: #5bc0de; color: #fff; border-radius: 0.358rem; font-weight: 500; text-decoration: none; font-size: 0.95rem; box-shadow: 0 2px 4px rgba(91,192,222,0.3); transition: background .2s; }
             .reg-btn-back:hover { background: #46b8da; color: #fff; }
             .reg-btn-submit { padding: 0.6rem 1.25rem; background: #8cc63f; color: #fff; border: 0; border-radius: 0.358rem; font-weight: 500; font-size: 0.95rem; letter-spacing: 0.025em; cursor: pointer; box-shadow: 0 2px 4px rgba(140,198,63,0.3); transition: background .2s; }
@@ -397,7 +397,7 @@
                                     <div class="reg-input-group" id="box-password">
                                         <span class="reg-input-icon"><i class="bi bi-lock"></i></span>
                                         <input id="in-password" name="password" type="password" class="reg-input" placeholder="&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;" oninput="clearError('password')" />
-                                        <span class="reg-input-icon" style="border-right:0; border-left:1px solid #d8d6de; cursor:pointer;" onclick="const p=document.getElementById('in-password');p.type=p.type==='password'?'text':'password';this.querySelector('i').classList.toggle('bi-eye');this.querySelector('i').classList.toggle('bi-eye-slash');">
+                                        <span class="reg-input-icon" style="border-right:0; border-left:1px solid var(--ob-border-strong); cursor:pointer;" onclick="const p=document.getElementById('in-password');p.type=p.type==='password'?'text':'password';this.querySelector('i').classList.toggle('bi-eye');this.querySelector('i').classList.toggle('bi-eye-slash');">
                                             <i class="bi bi-eye-slash"></i>
                                         </span>
                                     </div>
@@ -409,7 +409,7 @@
                                     <div class="reg-input-group" id="box-confirmPassword">
                                         <span class="reg-input-icon"><i class="bi bi-lock"></i></span>
                                         <input id="in-confirmPassword" name="confirm_password" type="password" class="reg-input" placeholder="&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;" oninput="clearError('confirmPassword')" />
-                                        <span class="reg-input-icon" style="border-right:0; border-left:1px solid #d8d6de; cursor:pointer;" onclick="const p=document.getElementById('in-confirmPassword');p.type=p.type==='password'?'text':'password';this.querySelector('i').classList.toggle('bi-eye');this.querySelector('i').classList.toggle('bi-eye-slash');">
+                                        <span class="reg-input-icon" style="border-right:0; border-left:1px solid var(--ob-border-strong); cursor:pointer;" onclick="const p=document.getElementById('in-confirmPassword');p.type=p.type==='password'?'text':'password';this.querySelector('i').classList.toggle('bi-eye');this.querySelector('i').classList.toggle('bi-eye-slash');">
                                             <i class="bi bi-eye-slash"></i>
                                         </span>
                                     </div>
@@ -535,21 +535,21 @@
                                 {{-- City (auto-filled, readonly) --}}
                                 <div>
                                     <label class="reg-label">City<span class="reg-required">*</span></label>
-                                    <div class="reg-input-group" style="background:#f8f8f8">
+                                    <div class="reg-input-group" style="background:var(--ob-surface-2)">
                                         <input id="in-city" type="text" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
                                 </div>
                                 {{-- State/Province (auto-filled, readonly) --}}
                                 <div>
                                     <label class="reg-label">State/Province<span class="reg-required">*</span></label>
-                                    <div class="reg-input-group" style="background:#f8f8f8">
+                                    <div class="reg-input-group" style="background:var(--ob-surface-2)">
                                         <input id="in-state" type="text" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
                                 </div>
                                 {{-- Country (auto-filled, readonly) --}}
                                 <div>
                                     <label class="reg-label">Country<span class="reg-required">*</span></label>
-                                    <div class="reg-input-group" style="background:#f8f8f8">
+                                    <div class="reg-input-group" style="background:var(--ob-surface-2)">
                                         <input id="in-country" type="text" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
                                 </div>
@@ -559,7 +559,7 @@
                         {{-- Additional Practices (optional) --}}
                         <div id="step-extra-practices" class="reg-card">
                             <div class="reg-card-head">
-                                <h2>Other Practices You Work At <span style="font-weight:400;font-size:0.9rem;color:#6e6b7b;">(optional)</span></h2>
+                                <h2>Other Practices You Work At <span style="font-weight:400;font-size:0.9rem;color:var(--ob-text-muted);">(optional)</span></h2>
                                 <p>Add up to 5 other practices. Pick existing ones from the search, or create new ones inline. Each is reviewed by the admin separately.</p>
                             </div>
 
@@ -567,9 +567,9 @@
 
                             <div style="margin-top:1rem;">
                                 <button type="button" id="btn-add-extra-practice" onclick="addExtraPracticeRow()"
-                                        style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.55rem 1.1rem;background:#fff;border:1px dashed #7367f0;color:#7367f0;font-weight:600;border-radius:6px;cursor:pointer;transition:all 0.15s ease;"
-                                        onmouseover="this.style.background='#7367f0';this.style.color='#fff';"
-                                        onmouseout="this.style.background='#fff';this.style.color='#7367f0';">
+                                        style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.55rem 1.1rem;background:#fff;border:1px dashed var(--ob-primary);color:var(--ob-primary);font-weight:600;border-radius:6px;cursor:pointer;transition:all 0.15s ease;"
+                                        onmouseover="this.style.background='var(--ob-primary)';this.style.color='#fff';"
+                                        onmouseout="this.style.background='#fff';this.style.color='var(--ob-primary)';">
                                     <i class="bi bi-plus-circle" style="font-size:1.05rem;"></i>
                                     <span>Add another practice</span>
                                 </button>
@@ -604,8 +604,8 @@
                         <div id="step-additional" class="reg-card">
                             <div class="reg-card-head-with-toggle">
                                 <div>
-                                    <h2 style="font-size:1.3rem; font-weight:500; color:#5e5873; margin:0 0 0.25rem;">Additional Doctor Information</h2>
-                                    <p style="font-size:0.9rem; color:#6e6b7b; margin:0;">This information will automatically be saved to your account for all future submissions. You may edit this information at any time by visiting the My Profile tab.</p>
+                                    <h2 style="font-size:1.3rem; font-weight:500; color:var(--ob-text); margin:0 0 0.25rem;">Additional Doctor Information</h2>
+                                    <p style="font-size:0.9rem; color:var(--ob-text-muted); margin:0;">This information will automatically be saved to your account for all future submissions. You may edit this information at any time by visiting the My Profile tab.</p>
                                 </div>
                                 <button type="button" onclick="toggleAdditionalInfo()" id="btn-toggle-add" class="reg-expand-btn">
                                     <i id="icon-collapse" class="bi bi-dash-lg" style="font-size:1.1rem"></i>
@@ -913,7 +913,7 @@
                             <label class="reg-terms-label">
                                 <input type="checkbox" name="sms_agreed" />
                                 <span style="display:inline-flex; align-items:center;">I agree to receive SMS messages for authentication purposes.
-                                    <i class="bi bi-info-circle" style="margin-left:0.375rem; color:#5e5873; opacity:0.7; cursor:pointer;"></i>
+                                    <i class="bi bi-info-circle" style="margin-left:0.375rem; color:var(--ob-text); opacity:0.7; cursor:pointer;"></i>
                                 </span>
                             </label>
                         </div>
@@ -1501,7 +1501,7 @@
                 wrap.innerHTML = `
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem;">
                         <div style="display:flex;gap:1rem;align-items:center;">
-                            <strong style="color:#5e5873;">Practice <span class="ep-label-num">#</span></strong>
+                            <strong style="color:var(--ob-text);">Practice <span class="ep-label-num">#</span></strong>
                             <label style="margin:0;display:inline-flex;align-items:center;gap:0.35rem;cursor:pointer;">
                                 <input type="radio" name="additional_practices[${idx}][mode]" value="existing" checked onchange="onExtraModeChange(${idx})"> Existing
                             </label>
@@ -1591,13 +1591,13 @@
                             </div>
                             <div>
                                 <label class="reg-label">City</label>
-                                <div class="reg-input-group" style="background:#f8f8f8">
+                                <div class="reg-input-group" style="background:var(--ob-surface-2)">
                                     <input type="text" id="ep-city-${idx}" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" readonly />
                                 </div>
                             </div>
                             <div>
                                 <label class="reg-label">State / Country</label>
-                                <div class="reg-input-group" style="background:#f8f8f8">
+                                <div class="reg-input-group" style="background:var(--ob-surface-2)">
                                     <input type="text" id="ep-state-${idx}" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" readonly />
                                 </div>
                             </div>
@@ -1706,10 +1706,10 @@
                         <div>
                             <div style="display:flex;align-items:center;gap:0.5rem;">
                                 <i class="bi bi-check-circle-fill text-success"></i>
-                                <strong style="color:#5e5873;">${escapeHtml(p.name)}</strong>
-                                <span style="font-size:0.75rem;color:#7367f0;background:#ece9fb;padding:0.15rem 0.55rem;border-radius:10rem;font-weight:600;">Existing</span>
+                                <strong style="color:var(--ob-text);">${escapeHtml(p.name)}</strong>
+                                <span style="font-size:0.75rem;color:var(--ob-primary);background:#ece9fb;padding:0.15rem 0.55rem;border-radius:10rem;font-weight:600;">Existing</span>
                             </div>
-                            <div style="font-size:0.82rem;color:#6e6b7b;margin-top:0.4rem;display:flex;flex-wrap:wrap;gap:0.65rem 1.25rem;">
+                            <div style="font-size:0.82rem;color:var(--ob-text-muted);margin-top:0.4rem;display:flex;flex-wrap:wrap;gap:0.65rem 1.25rem;">
                                 ${p.website ? `<span><i class="bi bi-globe"></i> ${escapeHtml(p.website)}</span>` : ''}
                                 ${p.phone_number ? `<span><i class="bi bi-telephone"></i> ${escapeHtml(p.phone_number)}</span>` : ''}
                                 ${addressLine ? `<span><i class="bi bi-geo-alt"></i> ${escapeHtml(addressLine)}</span>` : ''}

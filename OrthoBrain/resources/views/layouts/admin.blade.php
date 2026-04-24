@@ -23,6 +23,8 @@
     <link rel="stylesheet" href="{{ asset('vuexy/css/base/core/menu/menu-types/vertical-menu.css') }}" />
     <link rel="stylesheet" href="{{ asset('vuexy/css/overrides.css') }}" />
     <link rel="stylesheet" href="{{ asset('vuexy/css/orthobrain-overrides.css') }}" />
+    {{-- OrthoBrain palette — navy + Inter. Loaded LAST so it wins over Vuexy. --}}
+    <link rel="stylesheet" href="{{ asset('css/base/themes/orthobrain-palette.css') }}?v={{ @filemtime(public_path('css/base/themes/orthobrain-palette.css')) ?: time() }}" />
     <link rel="stylesheet" href="{{ asset('vuexy/vendors/css/extensions/sweetalert2.min.css') }}" />
 
     {{-- Bootstrap Icons (already used across OrthoBrain views) --}}

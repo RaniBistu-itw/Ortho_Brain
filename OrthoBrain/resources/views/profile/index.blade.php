@@ -236,11 +236,11 @@
                             <label class="form-label">Profile Image</label>
                             <div class="d-flex align-items-center gap-3">
                                 @php $avatarUrl = $doctor?->avatarUrl(); @endphp
-                                <div style="width:96px; height:96px; border-radius:50%; overflow:hidden; border:1px solid #ebe9f1; background:#f8f8f8; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <div style="width:96px; height:96px; border-radius:50%; overflow:hidden; border:1px solid var(--ob-border); background:var(--ob-surface-2); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                                     @if($avatarUrl)
                                         <img src="{{ $avatarUrl }}" alt="avatar" style="width:100%; height:100%; object-fit:cover;">
                                     @else
-                                        <i class="bi bi-person" style="font-size:2.75rem; color:#b9b9c3;"></i>
+                                        <i class="bi bi-person" style="font-size:2.75rem; color:var(--ob-text-muted);"></i>
                                     @endif
                                 </div>
                                 <div>
@@ -342,11 +342,11 @@
                             <label class="form-label">Practice Photo</label>
                             <div class="d-flex align-items-center gap-3">
                                 @php $logoUrl = $doctor?->practice?->logoUrl(); @endphp
-                                <div style="width:120px; height:120px; border-radius:.358rem; overflow:hidden; border:1px solid #ebe9f1; background:#f8f8f8; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <div style="width:120px; height:120px; border-radius:.358rem; overflow:hidden; border:1px solid var(--ob-border); background:var(--ob-surface-2); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                                     @if($logoUrl)
                                         <img src="{{ $logoUrl }}" alt="practice photo" style="width:100%; height:100%; object-fit:cover;">
                                     @else
-                                        <i class="bi bi-building" style="font-size:3rem; color:#b9b9c3;"></i>
+                                        <i class="bi bi-building" style="font-size:3rem; color:var(--ob-text-muted);"></i>
                                     @endif
                                 </div>
                                 <div>
@@ -882,7 +882,7 @@
                         @foreach($active as $p)
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
-                                    <span class="badge" style="background:#28c76f;color:#fff;font-weight:600;">APPROVED</span>
+                                    <span class="badge" style="background:var(--ob-success);color:#fff;font-weight:600;">APPROVED</span>
                                     <strong class="ms-2">{{ $p->name }}</strong>
                                     @if($p->pivot->is_primary)
                                         <span class="badge bg-light-primary ms-1">primary</span>
@@ -917,7 +917,7 @@
                         @foreach($pending as $p)
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
-                                    <span class="badge" style="background:#ff9f43;color:#fff;font-weight:600;">PENDING</span>
+                                    <span class="badge" style="background:var(--ob-warning);color:#fff;font-weight:600;">PENDING</span>
                                     <strong class="ms-2">{{ $p->name }}</strong>
                                     @if($p->pivot->is_primary)
                                         <span class="badge bg-light-primary ms-1">primary</span>
@@ -939,7 +939,7 @@
                     <ul class="list-group mb-3">
                         @foreach($rejected as $p)
                             <li class="list-group-item">
-                                <span class="badge" style="background:#ea5455;color:#fff;font-weight:600;">REJECTED</span>
+                                <span class="badge" style="background:var(--ob-danger);color:#fff;font-weight:600;">REJECTED</span>
                                 <strong class="ms-2">{{ $p->name }}</strong>
                                 @if($p->pivot->rejection_reason)
                                     <small class="text-muted d-block">Reason: {{ $p->pivot->rejection_reason }}</small>
