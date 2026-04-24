@@ -112,59 +112,69 @@
    body and bump weight on labels/headings/tables so the whole
    project feels crisper and more readable.
    ──────────────────────────────────────────────────────────── */
-body {
+/* LIGHT-MODE-ONLY text-darkening overrides.
+   The `body:not(.dark-layout)` guards keep these from firing in dark mode,
+   where orthobrain-palette.css takes over and provides the navy/slate palette. */
+body:not(.dark-layout) {
     color: #1f1f1f;
     font-weight: 500;
 }
 
-/* Headings & titles — stronger, nearly-black */
-h1, h2, h3, h4, h5, h6,
-.card-title,
-.page-title,
-.content-header-title,
-.navbar-brand .brand-text {
+/* Headings & titles — stronger, nearly-black (light mode only) */
+body:not(.dark-layout) h1,
+body:not(.dark-layout) h2,
+body:not(.dark-layout) h3,
+body:not(.dark-layout) h4,
+body:not(.dark-layout) h5,
+body:not(.dark-layout) h6,
+body:not(.dark-layout) .card-title,
+body:not(.dark-layout) .page-title,
+body:not(.dark-layout) .content-header-title,
+body:not(.dark-layout) .navbar-brand .brand-text {
     color: #111 !important;
     font-weight: 600;
 }
 
-/* Form labels */
-.form-label {
+/* Form labels (light mode only) */
+body:not(.dark-layout) .form-label {
     color: #1a1a1a !important;
     font-weight: 600;
 }
 
-/* Inputs: typed text darker and a touch bolder; placeholders stay muted */
-.form-control,
-.form-select,
-.input-group-text {
+/* Inputs: typed text darker and a touch bolder; placeholders stay muted (light mode only) */
+body:not(.dark-layout) .form-control,
+body:not(.dark-layout) .form-select,
+body:not(.dark-layout) .input-group-text {
     color: #1f1f1f;
     font-weight: 500;
 }
-.form-control::placeholder { color: #9a9a9a; opacity: 1; }
+body:not(.dark-layout) .form-control::placeholder { color: #9a9a9a; opacity: 1; }
 
-/* Tables */
-.table { color: #1f1f1f; }
-.table thead th {
+/* Tables (light mode only) */
+body:not(.dark-layout) .table { color: #1f1f1f; }
+body:not(.dark-layout) .table thead th {
     color: #111;
     font-weight: 700;
 }
-.table td { font-weight: 500; }
+body:not(.dark-layout) .table td { font-weight: 500; }
 
-/* Body copy helpers */
-p, label, .card-text { color: #1f1f1f; }
+/* Body copy helpers (light mode only) */
+body:not(.dark-layout) p,
+body:not(.dark-layout) label,
+body:not(.dark-layout) .card-text { color: #1f1f1f; }
 
-/* Sidebar / nav links */
-.main-menu .navigation > li > a,
-.nav-link,
-.dropdown-item {
+/* Sidebar / nav links (light mode only — dark mode gets Vuexy's dark-layout rules) */
+body:not(.dark-layout) .main-menu .navigation > li > a,
+body:not(.dark-layout) .nav-link,
+body:not(.dark-layout) .dropdown-item {
     color: #1f1f1f;
 }
-.main-menu .navigation > li > a:hover {
+body:not(.dark-layout) .main-menu .navigation > li > a:hover {
     color: #000;
 }
 
 /* Keep text-muted distinctly muted (used for Showing N entries, etc.) */
-.text-muted { color: #6c757d !important; }
+body:not(.dark-layout) .text-muted { color: #6c757d !important; }
 
 /* Buttons keep Vuexy's white-on-cyan for contrast; no override here */
 
