@@ -101,6 +101,9 @@
         state.lastSavedAt = new Date().toISOString();
         state.isSaving = false;
         updateAutosaveIndicator();
+        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+          window.MediaTileHelpers.showToast('Saved \u2713', 2000);
+        }
       })
       .catch(function (err) {
         console.error('Autosave failed', err);
