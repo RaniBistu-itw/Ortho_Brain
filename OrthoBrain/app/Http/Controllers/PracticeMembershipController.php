@@ -36,12 +36,9 @@ class PracticeMembershipController extends Controller
         $doctor = Auth::user()?->doctor;
         abort_unless($doctor, 403);
 
-        $pending  = $doctor->pendingPractices()->get();
-        $rejected = $doctor->rejectedPractices()->get();
-
         return view('doctor.practices.pending', [
-            'pending'  => $pending,
-            'rejected' => $rejected,
+            'pending'  => $doctor->pendingPractices()->get(),
+            'rejected' => $doctor->rejectedPractices()->get(),
         ]);
     }
 

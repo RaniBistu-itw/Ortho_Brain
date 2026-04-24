@@ -3,97 +3,225 @@
 @section('title', 'Practices Pending Approval')
 @section('page_title', 'Practices Pending Approval')
 
+@push('styles')
+<style>
+    /* ── Alert banner ──────────────────────────────────────── */
+    .pend-alert {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        background: color-mix(in srgb, #fff8e7 80%, var(--ob-surface));
+        border: 1px solid color-mix(in srgb, #f5c249 35%, transparent);
+        border-radius: 0.6rem;
+        padding: 0.9rem 1rem;
+        box-shadow: 0 1px 3px rgba(24,28,40,0.04);
+    }
+    .pend-alert-icon {
+        flex: 0 0 auto;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.4rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #ee5a47;
+        color: #fff;
+        font-size: 1rem;
+    }
+    .pend-alert-body { flex: 1; font-size: 0.88rem; color: var(--ob-text); line-height: 1.45; }
+    .pend-alert-body strong { font-weight: 600; color: var(--ob-text); }
+    .pend-alert-highlight { color: #d43f3a; font-weight: 600; }
+
+    /* ── Card shell ────────────────────────────────────────── */
+    .pend-card {
+        background: var(--ob-surface);
+        border: 1px solid var(--ob-border);
+        border-radius: 0.7rem;
+        padding: 1.1rem 1.2rem;
+        box-shadow: 0 1px 3px rgba(24,28,40,0.04);
+    }
+
+    .pend-list-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    .pend-list-head h5 { margin: 0 0 0.15rem; font-weight: 600; color: var(--ob-text); }
+    .pend-list-head p { margin: 0; font-size: 0.82rem; color: var(--ob-text-muted); }
+
+    .pend-count-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.25rem 0.65rem;
+        background: color-mix(in srgb, var(--ob-primary) 10%, transparent);
+        color: var(--ob-primary);
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 999px;
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+
+    /* ── Pending row ───────────────────────────────────────── */
+    .pend-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        align-items: center;
+        gap: 0.85rem;
+        padding: 0.85rem 1rem;
+        background: var(--ob-surface);
+        border: 1px solid var(--ob-border);
+        border-left-width: 4px;
+        border-radius: 0.55rem;
+        box-shadow: 0 1px 2px rgba(24,28,40,0.03);
+    }
+    .pend-row + .pend-row { margin-top: 0.65rem; }
+
+    /* Rotating accent colors (left border + icon bg), cycling per row. */
+    .pend-row-c0 { border-left-color: #ef6e6e; }
+    .pend-row-c1 { border-left-color: #5bc48a; }
+    .pend-row-c2 { border-left-color: #7e7ce0; }
+
+    .pend-row-icon {
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 0.45rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+    }
+    .pend-row-c0 .pend-row-icon { background: #ef6e6e; }
+    .pend-row-c1 .pend-row-icon { background: #5bc48a; }
+    .pend-row-c2 .pend-row-icon { background: #7e7ce0; }
+
+    .pend-row-body { min-width: 0; }
+    .pend-row-body strong {
+        display: block;
+        color: var(--ob-text);
+        font-weight: 600;
+        font-size: 0.95rem;
+        line-height: 1.25;
+    }
+    .pend-row-body small {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        color: var(--ob-text-muted);
+        font-size: 0.78rem;
+        margin-top: 0.1rem;
+    }
+
+    .pend-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.55rem;
+        background: color-mix(in srgb, #f5a623 15%, transparent);
+        color: #b07015;
+        font-size: 0.72rem;
+        font-weight: 600;
+        border-radius: 999px;
+        white-space: nowrap;
+    }
+
+    .pend-cancel-ghost {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.65rem;
+        background: transparent;
+        border: 0;
+        color: var(--ob-text-muted);
+        font-size: 0.82rem;
+        font-weight: 500;
+        border-radius: 0.35rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .pend-cancel-ghost:hover { color: var(--ob-danger); background: color-mix(in srgb, var(--ob-danger) 7%, transparent); }
+</style>
+@endpush
+
 @section('content')
-<div class="card">
-    <div class="card-body">
-        <div class="alert alert-warning d-flex align-items-start">
-            <i class="bi bi-hourglass-split me-2 mt-1" style="font-size:1.2rem;"></i>
-            <div>
-                <strong>Your account is approved, but you don't have any active practice yet.</strong>
-                <div class="mt-1">An admin still needs to approve at least one of your practice requests before you can start working on cases.</div>
+<div class="row g-3">
+    <div class="col-12">
+        <div class="pend-alert mb-3">
+            <span class="pend-alert-icon"><i class="bi bi-hourglass-split"></i></span>
+            <div class="pend-alert-body">
+                <strong class="d-block mb-1">Account Approval in Progress</strong>
+                Your administrator account is currently being verified. You have
+                <span class="pend-alert-highlight">{{ $pending->count() }} pending active {{ $pending->count() === 1 ? 'practice' : 'practices' }}</span>
+                awaiting system integration.
             </div>
         </div>
 
-        <h5 class="mt-4">Pending Requests</h5>
-        @if($pending->isEmpty())
-            <p class="text-muted">No pending requests.</p>
-        @else
-            <ul class="list-group">
+        <div class="pend-card mb-3">
+            <div class="pend-list-head">
+                <div>
+                    <h5>Pending Requests</h5>
+                    <p>Manage your outgoing invitations to join existing clinical networks.</p>
+                </div>
+                @if($pending->isNotEmpty())
+                    <span class="pend-count-chip">
+                        <i class="bi bi-hourglass-split"></i>
+                        {{ $pending->count() }} Active {{ $pending->count() === 1 ? 'Request' : 'Requests' }}
+                    </span>
+                @endif
+            </div>
+
+            @if($pending->isEmpty())
+                <p class="text-muted mb-0" style="font-size:0.88rem;">No pending requests. Submit a new one from the <a href="{{ route('doctor.profile.index', ['tab' => 'practices']) }}">My Practices</a> tab on your profile.</p>
+            @else
                 @foreach($pending as $p)
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <i class="bi bi-hourglass-split text-warning me-2"></i>
+                    @php
+                        $cIdx = $loop->index % 3;
+                        $icon = ['bi-heart-pulse-fill','bi-emoji-smile-fill','bi-folder-fill'][$cIdx];
+                    @endphp
+                    <div class="pend-row pend-row-c{{ $cIdx }}">
+                        <span class="pend-row-icon"><i class="bi {{ $icon }}"></i></span>
+                        <div class="pend-row-body">
                             <strong>{{ $p->name }}</strong>
-                            <small class="text-muted d-block">Requested {{ \Carbon\Carbon::parse($p->pivot->requested_at ?? $p->pivot->created_at)->diffForHumans() }}</small>
+                            <small><i class="bi bi-clock"></i> Requested {{ \Carbon\Carbon::parse($p->pivot->requested_at ?? $p->pivot->created_at)->diffForHumans() }}</small>
                         </div>
+                        <span class="pend-status-pill"><i class="bi bi-hourglass-split"></i> Pending</span>
                         <form method="POST" action="{{ route('doctor.practices.cancel', $p->pivot->id) }}"
                               onsubmit="return confirm('Cancel this request?')" class="m-0">
                             @csrf
-                            <button class="btn btn-sm btn-outline-secondary" type="submit">Cancel</button>
+                            <button type="submit" class="pend-cancel-ghost">
+                                <i class="bi bi-x-circle"></i> Cancel Request
+                            </button>
                         </form>
-                    </li>
+                    </div>
                 @endforeach
-            </ul>
-        @endif
+            @endif
+        </div>
 
         @if($rejected->isNotEmpty())
-            <h5 class="mt-4">Recently Rejected</h5>
-            <ul class="list-group">
+            <div class="pend-card">
+                <div class="pend-list-head">
+                    <div><h5>Recently Rejected</h5></div>
+                </div>
                 @foreach($rejected as $p)
-                    <li class="list-group-item">
-                        <i class="bi bi-x-circle text-danger me-2"></i>
-                        <strong>{{ $p->name }}</strong>
-                        @if($p->pivot->rejection_reason)
-                            <small class="text-muted d-block">Reason: {{ $p->pivot->rejection_reason }}</small>
-                        @endif
-                    </li>
+                    <div class="pend-row pend-row-c0">
+                        <span class="pend-row-icon" style="background: var(--ob-danger);"><i class="bi bi-x-circle"></i></span>
+                        <div class="pend-row-body">
+                            <strong>{{ $p->name }}</strong>
+                            @if($p->pivot->rejection_reason)
+                                <small>Reason: {{ $p->pivot->rejection_reason }}</small>
+                            @endif
+                        </div>
+                        <span></span>
+                        <span></span>
+                    </div>
                 @endforeach
-            </ul>
+            </div>
         @endif
-
-        <hr class="my-4">
-        <h5>Request Another Practice</h5>
-        <form method="POST" action="{{ route('doctor.practices.request') }}" class="row g-2 align-items-end">
-            @csrf
-            <div class="col-md-9 position-relative">
-                <label class="form-label">Search by name</label>
-                <input type="hidden" name="practice_id" id="req-practice-id" required>
-                <input type="text" id="req-practice-name" class="form-control" placeholder="Type a practice name…" autocomplete="off" oninput="reqPracticeInput(event)">
-                <div id="req-practice-menu" class="list-group position-absolute w-100" style="z-index:10;max-height:240px;overflow:auto;display:none;"></div>
-            </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary w-100">Submit Request</button>
-            </div>
-        </form>
     </div>
 </div>
-
-<script>
-    let reqTimer = null;
-    async function reqPracticeInput(e) {
-        document.getElementById('req-practice-id').value = '';
-        const q = e.target.value.trim();
-        clearTimeout(reqTimer);
-        const menu = document.getElementById('req-practice-menu');
-        if (q.length < 2) { menu.style.display = 'none'; menu.innerHTML = ''; return; }
-        reqTimer = setTimeout(async () => {
-            const res = await fetch('{{ route('practice.search') }}?q=' + encodeURIComponent(q),
-                { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
-            if (!res.ok) return;
-            const items = await res.json();
-            menu.innerHTML = items.length
-                ? items.map(p => `<button type="button" class="list-group-item list-group-item-action" onclick="reqPickPractice(${p.id}, ${JSON.stringify(p.name)})">${escapeHtml(p.label)}</button>`).join('')
-                : '<div class="list-group-item text-muted">No matching practice.</div>';
-            menu.style.display = 'block';
-        }, 250);
-    }
-    function reqPickPractice(id, name) {
-        document.getElementById('req-practice-id').value = id;
-        document.getElementById('req-practice-name').value = name;
-        document.getElementById('req-practice-menu').style.display = 'none';
-    }
-    function escapeHtml(s) {
-        return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    }
-</script>
 @endsection
