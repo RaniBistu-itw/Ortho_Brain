@@ -30,6 +30,8 @@
     {{-- Bootstrap Icons (already used across OrthoBrain views) --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
+    @livewireStyles
+
     @stack('styles')
 </head>
 
@@ -89,25 +91,34 @@
     <button class="btn btn-primary btn-icon scroll-top" type="button"><i data-feather="arrow-up"></i></button>
     {{-- END: Footer --}}
 
-    {{-- Vuexy Vendor JS --}}
-    <script src="{{ asset('vuexy/vendors/js/vendors.min.js') }}"></script>
-    <script src="{{ asset('vuexy/vendors/js/ui/jquery.sticky.js') }}"></script>
-    <script src="{{ asset('vuexy/vendors/js/forms/select/select2.full.min.js') }}"></script>
-    <script src="{{ asset('vuexy/vendors/js/forms/validation/jquery.validate.min.js') }}"></script>
-    <script src="{{ asset('vuexy/vendors/js/extensions/sweetalert2.all.min.js') }}"></script>
+    {{-- Vuexy Vendor JS — data-navigate-once so wire:navigate's body morph
+         doesn't re-execute these on every page change. Re-execution would
+         overwrite window.jQuery (orphaning our handler-dedupe monkey-patch),
+         re-bind Bootstrap dropdowns to the persisted navbar (causing the
+         "open then immediately close" navbar-button bug), and re-bind Vuexy's
+         .menu-toggle to the persisted header (causing the mobile drawer to
+         toggle N times per click). --}}
+    <script src="{{ asset('vuexy/vendors/js/vendors.min.js') }}" data-navigate-once></script>
+    <script src="{{ asset('vuexy/vendors/js/ui/jquery.sticky.js') }}" data-navigate-once></script>
+    <script src="{{ asset('vuexy/vendors/js/forms/select/select2.full.min.js') }}" data-navigate-once></script>
+    <script src="{{ asset('vuexy/vendors/js/forms/validation/jquery.validate.min.js') }}" data-navigate-once></script>
+    <script src="{{ asset('vuexy/vendors/js/extensions/sweetalert2.all.min.js') }}" data-navigate-once></script>
 
-    {{-- Vuexy Theme JS --}}
-    <script src="{{ asset('vuexy/js/core/app-menu.js') }}"></script>
-    <script src="{{ asset('vuexy/js/core/app.js') }}"></script>
-    <script src="{{ asset('vuexy/js/core/scripts.js') }}"></script>
-    <script src="{{ asset('js/theme-toggle.js') }}?v={{ @filemtime(public_path('js/theme-toggle.js')) ?: time() }}"></script>
+    {{-- Vuexy Theme JS — data-navigate-once for the same reason. --}}
+    <script src="{{ asset('vuexy/js/core/app-menu.js') }}" data-navigate-once></script>
+    <script src="{{ asset('vuexy/js/core/app.js') }}" data-navigate-once></script>
+    <script src="{{ asset('vuexy/js/core/scripts.js') }}" data-navigate-once></script>
+    <script src="{{ asset('js/theme-toggle.js') }}?v={{ @filemtime(public_path('js/theme-toggle.js')) ?: time() }}" data-navigate-once></script>
 
-    <script>
-        $(window).on('load', function () {
-            if (window.feather) {
-                feather.replace({ width: 14, height: 14 });
-            }
-        });
+    <script data-navigate-once>
+    // ════════════════════════════════════════════════════════════════════════
+    // ONE-TIME LAYOUT INIT — guarded so wire:navigate body-morph re-execution
+    // doesn't double-bind the layout-level $(document).on(...) handlers below.
+    // Per-page work (feather, select2, validate, flash, sidebar active) lives
+    // in obAdminPageInit() and runs on every livewire:navigated.
+    // ════════════════════════════════════════════════════════════════════════
+    if (!window.__obAdminLayoutInited) {
+        window.__obAdminLayoutInited = true;
 
         // ─── CSRF for AJAX ─────────────────────────────
         $.ajaxSetup({
@@ -282,7 +293,10 @@
                 });
             });
         };
-        $(function () { window.obSidebarToggle(); });
+        // The autocall lives in obAdminPageInit() (per-page hook) so it
+        // re-binds against the freshly rendered .ob-section-head elements
+        // each time the sidebar re-renders on wire:navigate. localStorage
+        // preserves user's collapsed-section state across renders.
 
         // ─── Blocked delete notice (has dependent records) ───
         $(document).on('click', '.js-delete-blocked', function (e) {
@@ -501,34 +515,189 @@
             });
         });
 
-        // ─── Auto-dismiss flash alerts ─────────────────
-        setTimeout(function () { $('.ob-flash').fadeOut(400); }, 5000);
+    } // ── /one-time layout init guard ────────────────────────────
 
-        // ─── jQuery Validate defaults (Vuexy / Bootstrap 5 feedback) ───
-        $(function () {
-            $('form.ob-form-validate').each(function () {
-                $(this).validate({
-                    ignore: ':hidden:not(.js-searchable)',
-                    errorClass: 'is-invalid',
-                    validClass: 'is-valid',
-                    errorElement: 'div',
-                    errorPlacement: function (error, element) {
-                        error.addClass('invalid-feedback d-block');
-                        const $wrap = element.closest('.input-group').length
-                            ? element.closest('.input-group')
-                            : element;
-                        error.insertAfter($wrap);
-                    },
-                    highlight: function (el) { $(el).addClass('is-invalid').removeClass('is-valid'); },
-                    unhighlight: function (el) { $(el).removeClass('is-invalid').addClass('is-valid'); },
-                });
+    // ════════════════════════════════════════════════════════════════════════
+    // PER-PAGE INIT — runs on first window.load AND on every livewire:navigated
+    // (body is morphed on navigate, so freshly-rendered forms / icons / select2
+    // controls need re-initialising).
+    // ════════════════════════════════════════════════════════════════════════
+    window.obAdminPageInit = function () {
+        // Vuexy's <html class="loading"> overlay would reappear after a navigate
+        // because the destination HTML carries it; strip it defensively.
+        document.documentElement.classList.remove('loading');
+
+        // Re-establish viewport-correct body classes. wire:navigate's body
+        // morph just reset them to the server-rendered desktop default.
+        window.obSyncViewportClasses();
+
+        // Feather icons
+        if (window.feather) feather.replace({ width: 14, height: 14 });
+
+        // Select2 auto-init (idempotent — obSearchable skips already-initialised)
+        if (window.obSearchable) window.obSearchable('select.js-searchable');
+
+        // jQuery Validate — re-bind on freshly morphed forms
+        $('form.ob-form-validate').each(function () {
+            const $f = $(this);
+            if ($f.data('validator')) return; // already wired
+            $f.validate({
+                ignore: ':hidden:not(.js-searchable)',
+                errorClass: 'is-invalid',
+                validClass: 'is-valid',
+                errorElement: 'div',
+                errorPlacement: function (error, element) {
+                    error.addClass('invalid-feedback d-block');
+                    const $wrap = element.closest('.input-group').length
+                        ? element.closest('.input-group')
+                        : element;
+                    error.insertAfter($wrap);
+                },
+                highlight:   function (el) { $(el).addClass('is-invalid').removeClass('is-valid'); },
+                unhighlight: function (el) { $(el).removeClass('is-invalid').addClass('is-valid'); },
             });
         });
 
-        // ─── Auto-init searchable dropdowns ────────────
-        $(function () { window.obSearchable('select.js-searchable'); });
+        // Re-bind collapsible sidebar sections — the sidebar re-renders on
+        // every navigate (no longer x-persist'd), so we re-attach click
+        // handlers to the freshly rendered .ob-section-head elements.
+        if (window.obSidebarToggle) window.obSidebarToggle();
+
+        // Flash auto-fade
+        setTimeout(function () { $('.ob-flash').fadeOut(400); }, 5000);
+    };
+
+    // ────────────────────────────────────────────────────────────────────
+    // Viewport ↔ body class sync.
+    //
+    // Vuexy's app-menu.js calls toOverlayMenu() exactly once at init and never
+    // again on resize (verified in public/vuexy/js/core/app-menu.js — the only
+    // resize listener at line 980 just updates a --vh CSS var). Mobile drawer
+    // styling depends on `body.vertical-overlay-menu`, NOT `body.vertical-menu-
+    // modern`. So a desktop→mobile resize leaves the body in the wrong mode,
+    // and the drawer is broken until refresh.
+    //
+    // Compounding: wire:navigate morphs <body>, which resets body.class back to
+    // the server-rendered default (vertical-menu-modern menu-expanded). Even if
+    // Vuexy's init had correctly set vertical-overlay-menu on a mobile page
+    // load, the FIRST sidebar click undoes it. Hence we re-sync on every
+    // livewire:navigated as well as every breakpoint crossing.
+    //
+    // Class semantics (verified in app-menu.js):
+    //   Desktop:  body.vertical-menu-modern + body.menu-expanded|menu-collapsed
+    //   Mobile :  body.vertical-overlay-menu + body.menu-hide  (drawer closed)
+    //                                       + body.menu-open  (drawer open)
+    // ────────────────────────────────────────────────────────────────────
+    window.obSyncViewportClasses = function () {
+        const body     = document.body;
+        const menuType = body.dataset.menu || 'vertical-menu-modern';
+        const isMobile = window.matchMedia('(max-width: 1199.98px)').matches;
+        const overlay  = document.querySelector('.sidenav-overlay');
+
+        if (isMobile) {
+            body.classList.remove(menuType);
+            body.classList.add('vertical-overlay-menu');
+            body.classList.remove('menu-expanded', 'menu-open');
+            if (!body.classList.contains('menu-hide')) body.classList.add('menu-hide');
+            document.querySelectorAll('nav.header-navbar').forEach(n => n.classList.add('fixed-top'));
+        } else {
+            body.classList.remove('vertical-overlay-menu');
+            body.classList.add(menuType);
+            body.classList.remove('menu-open', 'menu-hide');
+            if (!body.classList.contains('menu-expanded')
+                && !body.classList.contains('menu-collapsed')) {
+                body.classList.add('menu-expanded');
+            }
+            document.querySelectorAll('nav.header-navbar').forEach(n => n.classList.remove('fixed-top'));
+        }
+        if (overlay) overlay.classList.remove('show');
+        document.querySelectorAll('.menu-toggle').forEach(el => el.classList.remove('is-active'));
+    };
+
+    // Mirrors Vuexy's drawer-close sequence (app-menu.js:363) — the proper way
+    // to close the mobile drawer is to swap menu-open → menu-hide on body, drop
+    // overlay.show, and clear .menu-toggle.is-active. Just removing menu-open
+    // works visually because of CSS, but leaves the hamburger button in its
+    // pressed-looking state and Vuexy's internal state machine inconsistent.
+    window.obCloseMobileDrawer = function () {
+        if (!window.matchMedia('(max-width: 1199.98px)').matches) return;
+        const body = document.body;
+        if (!body.classList.contains('menu-open')) return;
+        body.classList.remove('menu-open', 'menu-expanded');
+        body.classList.add('menu-hide');
+        const overlay = document.querySelector('.sidenav-overlay');
+        if (overlay) overlay.classList.remove('show');
+        document.querySelectorAll('.menu-toggle').forEach(el => el.classList.remove('is-active'));
+    };
+
+    // ════════════════════════════════════════════════════════════════════════
+    // NAVIGATE HOOKS
+    //   livewire:navigating — clear mobile-drawer state and page-namespaced
+    //     delegated handlers BEFORE the next page's body is morphed in.
+    //   livewire:navigated  — re-run per-page init AFTER morph completes.
+    // Listeners themselves are registered once (guarded) so they don't
+    // accumulate on body re-execution.
+    // ════════════════════════════════════════════════════════════════════════
+    if (!window.__obAdminNavigateBound) {
+        window.__obAdminNavigateBound = true;
+
+        document.addEventListener('livewire:navigating', function () {
+            // Close mobile drawer using Vuexy's exact close sequence so the
+            // hamburger and internal state stay consistent. No-op on desktop.
+            window.obCloseMobileDrawer();
+
+            // Drop page-namespaced delegated handlers (see monkey-patch below).
+            if (window.jQuery) jQuery(document).off('.ob-page');
+
+            // Pre-emptively strip Vuexy's loading overlay.
+            document.documentElement.classList.remove('loading');
+        });
+
+        document.addEventListener('livewire:navigated', function () {
+            window.obAdminPageInit();
+        });
+
+        $(window).on('load', function () { window.obAdminPageInit(); });
+
+        // Viewport-crossing sync — Vuexy's app-menu.js doesn't react to resize
+        // (only sets a --vh CSS var). We swap body.vertical-menu-modern ↔
+        // body.vertical-overlay-menu ourselves on every breakpoint crossing.
+        // matchMedia.change fires exactly once per crossing, so rapid drag
+        // resizing across 1200px ends in a coherent state.
+        window.matchMedia('(max-width: 1199.98px)').addEventListener('change', function () {
+            window.obSyncViewportClasses();
+        });
+    }
+    </script>
+
+    {{-- ────────────────────────────────────────────────────────────────────
+         HANDLER-DEDUPE MONKEY-PATCH
+         Auto-namespace any $(document).on('click', '.foo', ...) calls that
+         appear AFTER this script (i.e. inside @stack('scripts') from pages)
+         with .ob-page, so livewire:navigating can clear them in one shot.
+         Layout-level $(document).on() above is registered before this patch,
+         so it stays un-namespaced and survives navigations.
+    ──────────────────────────────────────────────────────────────────── --}}
+    <script data-navigate-once>
+        (function () {
+            if (!window.jQuery || jQuery.fn.__obPagePatched) return;
+            jQuery.fn.__obPagePatched = true;
+            const origOn = jQuery.fn.on;
+            jQuery.fn.on = function (types) {
+                if (this.length
+                    && (this[0] === document || this[0] === document.body)
+                    && typeof types === 'string'
+                    && !/\.ob-(page|layout)\b/.test(types)
+                ) {
+                    arguments[0] = types.split(' ').map(t => t + '.ob-page').join(' ');
+                }
+                return origOn.apply(this, arguments);
+            };
+        })();
     </script>
 
     @stack('scripts')
+
+    @livewireScripts
 </body>
 </html>

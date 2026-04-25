@@ -73,13 +73,29 @@
       var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       apply(prefersDark ? 'dark' : 'light');
     }
+  });
 
-    document.querySelectorAll('[data-theme-toggle]').forEach(function (el) {
-      el.addEventListener('click', function (evt) {
-        evt.preventDefault();
-        toggle();
-      });
-    });
+  // Delegated click — survives header re-renders under wire:navigate. Per-
+  // element binding would break because the navbar is no longer x-persist'd
+  // and its [data-theme-toggle] element is wholesale-replaced on each navigate.
+  document.addEventListener('click', function (evt) {
+    var t = evt.target.closest('[data-theme-toggle]');
+    if (!t) return;
+    evt.preventDefault();
+    toggle();
+  });
+
+  // wire:navigate replaces <body> wholesale; the new body has no dark-layout
+  // class. Re-apply the user's stored theme after every navigate so the page
+  // doesn't briefly flash light.
+  document.addEventListener('livewire:navigated', function () {
+    var stored = readStored();
+    if (stored === 'dark' || stored === 'light') {
+      apply(stored);
+    } else {
+      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      apply(prefersDark ? 'dark' : 'light');
+    }
   });
 
   window.ThemeToggle = { set: set, toggle: toggle, current: current };

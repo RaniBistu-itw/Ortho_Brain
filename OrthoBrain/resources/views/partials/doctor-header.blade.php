@@ -448,7 +448,7 @@
 @endpush
 
 @push('scripts')
-<script src="{{ asset('vuexy/vendors/js/extensions/sweetalert2.all.min.js') }}"></script>
+<script src="{{ asset('vuexy/vendors/js/extensions/sweetalert2.all.min.js') }}" data-navigate-once></script>
 <style>
     /* ── Notification action buttons row ── */
     .doc-nav__notif-actions {
@@ -517,7 +517,12 @@
 <script>
 (function () {
     'use strict';
- 
+
+    // The nav and the notif modal re-render on every wire:navigate (no longer
+    // x-persist'd), so this IIFE re-runs each navigate and binds fresh
+    // listeners to the fresh dropdown/modal DOM. No guard needed — old DOM
+    // nodes get GC'd along with their listeners when wholesale-replaced.
+
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
     const routes = {
         index:         @json(route('doctor.notifications.index')),
