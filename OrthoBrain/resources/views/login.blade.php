@@ -154,6 +154,104 @@
                 padding: 3rem clamp(1.5rem, 6vw, 5.5rem) 1.5rem;
             }
 
+            /* ---------------- Tooth mascot (cursor-tracking eyes) ---------------- */
+            .form-inner { position: relative; }
+            .tooth-mascot-wrap {
+                position: absolute;
+                top: -1rem;
+                right: 2.5rem;
+                width: 90px;
+                height: 100px;
+                z-index: 5;
+                animation: ob-fade-up 0.8s cubic-bezier(.2,.8,.2,1) 0.6s both,
+                           tooth-bob 4s ease-in-out 1.4s infinite;
+            }
+            .tooth-mascot {
+                width: 100%;
+                height: 100%;
+                display: block;
+                user-select: none;
+                cursor: pointer;
+                filter: drop-shadow(0 6px 14px rgba(15, 23, 42, 0.12));
+            }
+            @keyframes tooth-bob {
+                0%, 100% { transform: translateY(0); }
+                50%      { transform: translateY(-6px); }
+            }
+            .tooth-mascot .eye-pupil {
+                transition: transform 0.08s linear;
+                transform-box: fill-box;
+                transform-origin: center;
+            }
+
+            /* Alternate eye / mouth shapes — hidden until a state class is applied */
+            .tooth-mascot .eye-closed,
+            .tooth-mascot .mouth-sad,
+            .tooth-mascot .mouth-shy { display: none; }
+
+            /* Closed eyes — happens while typing password */
+            .tooth-mascot.is-closed .eye-white,
+            .tooth-mascot.is-closed .eye-pupil { display: none; }
+            .tooth-mascot.is-closed .eye-closed { display: inline; }
+
+            /* Sad reaction — wrong password */
+            .tooth-mascot.is-sad .mouth-smile { display: none; }
+            .tooth-mascot.is-sad .mouth-sad { display: inline; }
+            .tooth-mascot.is-sad { animation: tooth-shake 0.5s cubic-bezier(.36,.07,.19,.97) 2; }
+            @keyframes tooth-shake {
+                10%, 90%  { transform: translateX(-2px); }
+                20%, 80%  { transform: translateX(4px);  }
+                30%, 50%, 70% { transform: translateX(-6px); }
+                40%, 60%  { transform: translateX(6px);  }
+            }
+
+            /* Shy reaction — on hover/touch */
+            .tooth-mascot .blush { transition: opacity .25s ease; }
+            .tooth-mascot.is-shy .mouth-smile { display: none; }
+            .tooth-mascot.is-shy .mouth-shy { display: inline; }
+            .tooth-mascot.is-shy .blush { opacity: 0.95; }
+
+            /* Speech bubble (cloud) */
+            .tooth-bubble {
+                position: absolute;
+                bottom: calc(100% - 8px);
+                right: 60px;
+                background: #ffffff;
+                border: 1.5px solid #e2e8f0;
+                color: #334155;
+                font-size: 0.75rem;
+                font-weight: 500;
+                line-height: 1.3;
+                padding: 0.45rem 0.7rem;
+                border-radius: 14px;
+                white-space: nowrap;
+                box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+                opacity: 0;
+                transform: translateY(6px) scale(0.85);
+                transform-origin: bottom right;
+                transition: opacity .2s ease, transform .2s cubic-bezier(.2,.8,.2,1);
+                pointer-events: none;
+            }
+            .tooth-bubble::after {
+                content: '';
+                position: absolute;
+                bottom: -7px;
+                right: 14px;
+                width: 12px;
+                height: 12px;
+                background: #ffffff;
+                border-right: 1.5px solid #e2e8f0;
+                border-bottom: 1.5px solid #e2e8f0;
+                transform: rotate(45deg);
+            }
+            .tooth-mascot-wrap.is-shy .tooth-bubble,
+            .tooth-mascot-wrap.show-bubble .tooth-bubble {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+
+            @media (max-width: 960px) { .tooth-mascot-wrap { display: none; } }
+
             .form-inner {
                 width: 100%;
                 max-width: 460px;
@@ -578,6 +676,40 @@
             <section class="auth-form-panel">
                 <div class="form-inner">
 
+                    {{-- Cute tooth mascot — eyes follow the cursor; closes eyes on password focus, sad on wrong password, shy on hover --}}
+                    <div class="tooth-mascot-wrap only-desktop">
+                        <div class="tooth-bubble" role="status" aria-live="polite"><span></span></div>
+                        <svg class="tooth-mascot @if($errors->has('email') || $errors->has('password')) is-sad @endif" viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <defs>
+                                <radialGradient id="toothShine" cx="35%" cy="30%" r="70%">
+                                    <stop offset="0%" stop-color="#ffffff"/>
+                                    <stop offset="60%" stop-color="#f1f9ff"/>
+                                    <stop offset="100%" stop-color="#dbeafe"/>
+                                </radialGradient>
+                            </defs>
+                            <path d="M50 6 C 28 6, 12 18, 12 40 C 12 56, 18 72, 24 86 C 28 96, 34 102, 40 102 C 46 102, 48 92, 50 80 C 52 92, 54 102, 60 102 C 66 102, 72 96, 76 86 C 82 72, 88 56, 88 40 C 88 18, 72 6, 50 6 Z"
+                                  fill="url(#toothShine)" stroke="#bfdbfe" stroke-width="2"/>
+                            <ellipse class="blush" cx="28" cy="58" rx="6" ry="4" fill="#fda4af" opacity="0.45"/>
+                            <ellipse class="blush" cx="72" cy="58" rx="6" ry="4" fill="#fda4af" opacity="0.45"/>
+                            <path d="M28 22 C 24 30, 22 40, 24 50" stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.85"/>
+
+                            {{-- Open eyes (whites + tracking pupils) --}}
+                            <circle class="eye-white" cx="38" cy="42" r="8" fill="#ffffff" stroke="#1e293b" stroke-width="1.5"/>
+                            <circle class="eye-white" cx="62" cy="42" r="8" fill="#ffffff" stroke="#1e293b" stroke-width="1.5"/>
+                            <circle class="eye-pupil" data-eye-cx="38" data-eye-cy="42" cx="38" cy="42" r="3.6" fill="#1e293b"/>
+                            <circle class="eye-pupil" data-eye-cx="62" data-eye-cy="42" cx="62" cy="42" r="3.6" fill="#1e293b"/>
+
+                            {{-- Closed eyes (happy ︶︶ arcs) — shown when typing password --}}
+                            <path class="eye-closed" d="M30 44 Q 38 36, 46 44" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                            <path class="eye-closed" d="M54 44 Q 62 36, 70 44" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+
+                            {{-- Mouths: default smile, sad frown (wrong password), small shy smile (on hover) --}}
+                            <path class="mouth-smile" d="M40 64 Q 50 74, 60 64" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                            <path class="mouth-sad"   d="M40 72 Q 50 62, 60 72" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                            <path class="mouth-shy"   d="M44 68 Q 50 72, 56 68" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                        </svg>
+                    </div>
+
                     {{-- orthobrain wordmark — original brain-tooth glyph + ortho/brain split --}}
                     <div class="form-mark">
                         <svg viewBox="0 0 64 64" fill="none" stroke="#b8b8b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
@@ -594,7 +726,6 @@
                     {{-- Desktop hero copy --}}
                     <p class="form-eyebrow only-desktop">For Orthodontists.</p>
                     <h1 class="form-heading only-desktop">Orthodontics, built into your dental practice.</h1>
-                    <p class="form-sub only-desktop">Cases, treatments, and provider workflows in one focused workspace — designed for clarity, speed, and clinical confidence.</p>
 
                     {{-- Mobile welcome block --}}
                     <div class="mobile-welcome only-mobile">
@@ -695,5 +826,100 @@
                 </footer>
             </section>
         </main>
+
+        <script>
+            (function () {
+                const mascot = document.querySelector('.tooth-mascot');
+                if (!mascot) return;
+                const wrap = mascot.closest('.tooth-mascot-wrap');
+                const pupils = mascot.querySelectorAll('.eye-pupil');
+                const passwordInput = document.getElementById('password');
+                const bubble = wrap && wrap.querySelector('.tooth-bubble span');
+                const MAX_OFFSET = 2.6;
+
+                function trackEyes(clientX, clientY) {
+                    if (mascot.classList.contains('is-closed')) return;
+                    const rect = mascot.getBoundingClientRect();
+                    const sx = 100 / rect.width;
+                    const sy = 110 / rect.height;
+                    const cursorSvgX = (clientX - rect.left) * sx;
+                    const cursorSvgY = (clientY - rect.top) * sy;
+                    pupils.forEach((p) => {
+                        const cx = parseFloat(p.dataset.eyeCx);
+                        const cy = parseFloat(p.dataset.eyeCy);
+                        const dx = cursorSvgX - cx;
+                        const dy = cursorSvgY - cy;
+                        const dist = Math.hypot(dx, dy) || 1;
+                        const offset = Math.min(MAX_OFFSET, dist / 12);
+                        const tx = (dx / dist) * offset;
+                        const ty = (dy / dist) * offset;
+                        p.setAttribute('transform', `translate(${tx.toFixed(2)} ${ty.toFixed(2)})`);
+                    });
+                }
+                window.addEventListener('mousemove', (e) => trackEyes(e.clientX, e.clientY), { passive: true });
+                window.addEventListener('touchmove', (e) => {
+                    if (e.touches && e.touches[0]) trackEyes(e.touches[0].clientX, e.touches[0].clientY);
+                }, { passive: true });
+
+                // 1) Close eyes while typing password.
+                if (passwordInput) {
+                    passwordInput.addEventListener('focus', () => mascot.classList.add('is-closed'));
+                    passwordInput.addEventListener('blur',  () => mascot.classList.remove('is-closed'));
+                }
+
+                // 2) Wrong-password sad shake + "try again" bubble — applied server-side via .is-sad.
+                if (mascot.classList.contains('is-sad')) {
+                    const sadMessages = [
+                        "Oops! Try again?",
+                        "Wrong one — give it another go!",
+                        "Hmm, that's not it. Try again!",
+                        "Not quite — one more try!"
+                    ];
+                    if (wrap && bubble) {
+                        bubble.textContent = sadMessages[Math.floor(Math.random() * sadMessages.length)];
+                        wrap.classList.add('show-bubble');
+                    }
+                    setTimeout(() => mascot.classList.remove('is-sad'), 1100);
+                    const bubbleTimer = setTimeout(() => wrap && wrap.classList.remove('show-bubble'), 4500);
+                    if (passwordInput) {
+                        const clearOnEdit = () => {
+                            mascot.classList.remove('is-sad');
+                            if (wrap) wrap.classList.remove('show-bubble');
+                            clearTimeout(bubbleTimer);
+                            passwordInput.removeEventListener('input', clearOnEdit);
+                        };
+                        passwordInput.addEventListener('input', clearOnEdit);
+                    }
+                }
+
+                // 3) Shy reaction + speech bubble on hover/touch.
+                if (wrap && bubble) {
+                    const messages = [
+                        "Did you wash your hands?",
+                        "Eek! Be gentle, I'm shy.",
+                        "Don't forget to floss tonight!",
+                        "Hi there! Brushing later, right?",
+                        "Psst — minty fresh, please!"
+                    ];
+                    let touchTimer;
+                    const showBubble = () => {
+                        bubble.textContent = messages[Math.floor(Math.random() * messages.length)];
+                        wrap.classList.add('is-shy');
+                        mascot.classList.add('is-shy');
+                    };
+                    const hideBubble = () => {
+                        wrap.classList.remove('is-shy');
+                        mascot.classList.remove('is-shy');
+                    };
+                    wrap.addEventListener('mouseenter', showBubble);
+                    wrap.addEventListener('mouseleave', hideBubble);
+                    wrap.addEventListener('touchstart', () => {
+                        showBubble();
+                        clearTimeout(touchTimer);
+                        touchTimer = setTimeout(hideBubble, 2200);
+                    }, { passive: true });
+                }
+            })();
+        </script>
     </body>
 </html>
