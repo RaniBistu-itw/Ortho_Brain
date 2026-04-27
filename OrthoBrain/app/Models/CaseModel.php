@@ -39,6 +39,11 @@ class CaseModel extends Model
         return $this->hasOne(Prescription::class, 'case_id');
     }
 
+    public function media()
+    {
+        return $this->hasMany(CaseMedia::class, 'case_id');
+    }
+
     public function scopeForPractice($query, int $practiceId)
     {
         return $query->where('practice_id', $practiceId);

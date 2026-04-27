@@ -18,6 +18,7 @@ use App\Http\Controllers\AI\ImageAnalysisController;
 use App\Http\Controllers\AI\SmilePreviewController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CaseMediaController;
 use App\Http\Controllers\CasePdfController;
 use App\Http\Controllers\CasesController;
 use App\Http\Controllers\DashboardController as DoctorDashboardController;
@@ -30,7 +31,7 @@ use Illuminate\Support\Facades\Route;
 // ─── Public / shared auth routes ──────────────────────────
 Route::view('/', 'landing')->name('landing');
 Route::view('/login', 'login')->name('login');
-Route::post('/login', [LoginController::class, 'login']);
+Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::get('/register',         [\App\Http\Controllers\Auth\RegisterController::class, 'show']);
@@ -81,6 +82,8 @@ Route::middleware(['web', 'auth'])
         Route::view('/help', 'doctor.help')->name('help.index');
 
         // Cases require an approved active practice — middleware redirects to pending page if none.
+        // AI vision endpoints live inside this group too: they operate on cases and need
+        // currentPractice() to be non-null for the per-practice authorization filter.
         Route::middleware(['active.practice'])->group(function () {
             Route::get('/cases',                    [CasesController::class, 'index'])->name('cases.index');
             Route::get('/cases/create',             [CasesController::class, 'create'])->name('cases.create');
@@ -89,16 +92,33 @@ Route::middleware(['web', 'auth'])
             Route::post('/cases/{case}/submit',     [CasesController::class, 'submit'])->name('cases.submit');
             Route::post('/cases/{case}/prescription',[PrescriptionController::class, 'update'])->name('cases.prescription.update');
             Route::match(['get', 'post'], '/cases/{case}/export.pdf', [CasePdfController::class, 'export'])->name('cases.export.pdf');
+
+            // Case media (photographs / x-rays) — server-side persistence so drafts
+            // survive across browsers and admins can see uploaded files.
+            // Uses POST (not DELETE) for the destroy endpoint to dodge the PHP 8.3
+            // request_parse_body() fatal on DELETE requests — see
+            // project_php_version_gotcha.md memory + Docs/api.md "Gotchas" §7.
+            Route::post('/cases/{case}/media/upload', [CaseMediaController::class, 'upload'])
+                ->middleware('throttle:60,1')
+                ->name('cases.media.upload');
+            Route::post('/cases/{case}/media/{section}/{tile_id}/destroy', [CaseMediaController::class, 'destroy'])
+                ->where('section', 'photograph|xray')
+                ->name('cases.media.destroy');
+
+            // AI vision — photo QC + Perfect Smile Plan generation. Throttled per user
+            // to keep accidental retry loops from blowing through the free-tier quota.
+            Route::post('/cases/{case}/photos/classify',      [ImageAnalysisController::class, 'classify'])
+                ->middleware('throttle:30,60')
+                ->name('cases.photos.classify');
+            Route::post('/cases/{case}/smile-plan/generate',  [ImageAnalysisController::class, 'smilePlan'])
+                ->middleware('throttle:10,60')
+                ->name('cases.smile-plan.generate');
+
+            // AI image-edit — before/after smile visualisation. Rate-limited to protect free-tier quota.
+            Route::post('/cases/{case}/smile-preview/generate',
+                [SmilePreviewController::class, 'generate']
+            )->middleware('throttle:5,1')->name('cases.smile-preview.generate');
         });
-
-        // AI vision — photo QC + Perfect Smile Plan generation
-        Route::post('/cases/{case}/photos/classify',      [ImageAnalysisController::class, 'classify'])->name('cases.photos.classify');
-        Route::post('/cases/{case}/smile-plan/generate',  [ImageAnalysisController::class, 'smilePlan'])->name('cases.smile-plan.generate');
-
-        // AI image-edit — before/after smile visualisation. Rate-limited to protect free-tier quota.
-        Route::post('/cases/{case}/smile-preview/generate',
-            [SmilePreviewController::class, 'generate']
-        )->middleware('throttle:5,1')->name('cases.smile-preview.generate');
 
         Route::get('/profile/index',     [ProfileController::class, 'index'])->name('profile.index');
         Route::post('/profile/index',    [ProfileController::class, 'update'])->name('profile.update');

@@ -13,6 +13,26 @@ class CasesController extends Controller
 {
     private const STATUS_OPTIONS = ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
 
+    private const STATUS_LABELS = [
+        'DRAFT'     => 'Draft',
+        'SUBMITTED' => 'Submitted',
+        'IN_REVIEW' => 'In Review',
+        'APPROVED'  => 'Approved',
+        'REJECTED'  => 'Rejected',
+    ];
+
+    // Allowed status transitions. Anything not in this map is rejected by
+    // updateStatus. Self-transitions (X → X) are treated as no-ops upstream.
+    // APPROVED / REJECTED can be reopened by moving back to IN_REVIEW; from
+    // there an admin can re-decide.
+    private const ALLOWED_TRANSITIONS = [
+        'DRAFT'     => ['SUBMITTED'],
+        'SUBMITTED' => ['IN_REVIEW'],
+        'IN_REVIEW' => ['APPROVED', 'REJECTED'],
+        'APPROVED'  => ['IN_REVIEW'],
+        'REJECTED'  => ['IN_REVIEW'],
+    ];
+
     public function index(Request $request)
     {
         $statusFilter = $request->query('status');
@@ -45,6 +65,7 @@ class CasesController extends Controller
             'cases' => $cases,
             'doctors' => $doctors,
             'statusOptions' => self::STATUS_OPTIONS,
+            'statusLabels' => self::STATUS_LABELS,
             'statusFilter' => $statusFilter,
             'doctorFilter' => $doctorFilter,
             'statusCounts' => $statusCounts,
@@ -54,7 +75,12 @@ class CasesController extends Controller
 
     public function edit(int $id)
     {
-        $case = CaseModel::with(['doctor:id,first_name,last_name,practice_id', 'doctor.practice:id,name', 'prescription.toothRestrictions'])
+        $case = CaseModel::with([
+                'doctor:id,first_name,last_name,practice_id',
+                'doctor.practice:id,name',
+                'prescription.toothRestrictions',
+                'media',
+            ])
             ->findOrFail($id);
 
         // Reuse the doctor CasesController's serializer so the Prescription
@@ -64,6 +90,12 @@ class CasesController extends Controller
         $reflection->setAccessible(true);
         $prescriptionPrefill = $reflection->invoke($doctorController, $case->prescription);
 
+        // Same trick for the media serializer — keep the JS hydration shape
+        // identical between doctor and admin views.
+        $serializeMedia = new \ReflectionMethod($doctorController, 'serializeMedia');
+        $serializeMedia->setAccessible(true);
+        $caseMedia = $serializeMedia->invoke($doctorController, $case->media);
+
         return view('content.cases.add-case', [
             'id' => $case->id,
             'prescriptionPrefill' => $prescriptionPrefill,
@@ -71,7 +103,9 @@ class CasesController extends Controller
             'caseRow' => $case,
             'caseDoctor' => $case->doctor,
             'statusOptions' => self::STATUS_OPTIONS,
+            'statusLabels' => self::STATUS_LABELS,
             'scanners' => Scanner::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
+            'caseMedia' => $caseMedia,
         ]);
     }
 
@@ -82,9 +116,34 @@ class CasesController extends Controller
         ]);
 
         $case = CaseModel::findOrFail($id);
+        $current = $case->status;
+        $next = $payload['status'];
 
-        $updates = ['status' => $payload['status']];
-        if ($payload['status'] === 'SUBMITTED' && ! $case->submitted_at) {
+        // No-op: setting the same status returns the current state without
+        // touching submitted_at. Idempotent for clients that re-send.
+        if ($next === $current) {
+            return response()->json([
+                'ok' => true,
+                'status' => $case->status,
+                'submitted_at' => $case->submitted_at?->toIso8601String(),
+                'message' => 'Status unchanged.',
+            ]);
+        }
+
+        $allowedNext = self::ALLOWED_TRANSITIONS[$current] ?? [];
+        if (! in_array($next, $allowedNext, true)) {
+            $currentLabel = self::STATUS_LABELS[$current] ?? $current;
+            $nextLabel    = self::STATUS_LABELS[$next] ?? $next;
+            return response()->json([
+                'ok' => false,
+                'error' => "Cannot transition case from {$currentLabel} to {$nextLabel}.",
+                'current' => $current,
+                'allowed_next' => $allowedNext,
+            ], 422);
+        }
+
+        $updates = ['status' => $next];
+        if ($next === 'SUBMITTED' && ! $case->submitted_at) {
             $updates['submitted_at'] = now();
         }
 
