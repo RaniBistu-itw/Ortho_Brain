@@ -20,9 +20,9 @@ class CaseDemoSeeder extends Seeder
     public function run(): void
     {
         $practices = [
-            ['name' => 'Demo Dental Practice',     'website' => 'https://demo-dental.example.com',    'phone_country_code' => '+1_US', 'phone_number' => '5550100001'],
-            ['name' => 'Promo Indp Practice',      'website' => 'https://promoindp.example.com',      'phone_country_code' => '+1_US', 'phone_number' => '5550100002'],
-            ['name' => 'Cedar Park Orthodontics',  'website' => 'https://cedarpark.example.com',      'phone_country_code' => '+1_US', 'phone_number' => '5550100003'],
+            ['name' => 'Demo Dental Practice',     'website' => 'https://demo-dental.example.com',    'phone_country_code' => '+1', 'phone_number' => '5550100001'],
+            ['name' => 'Promo Indp Practice',      'website' => 'https://promoindp.example.com',      'phone_country_code' => '+1', 'phone_number' => '5550100002'],
+            ['name' => 'Cedar Park Orthodontics',  'website' => 'https://cedarpark.example.com',      'phone_country_code' => '+1', 'phone_number' => '5550100003'],
         ];
 
         foreach ($practices as $p) {

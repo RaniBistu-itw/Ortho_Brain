@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Country;
 use App\Models\Practice;
 use App\Support\ActivePractice;
 use Illuminate\Http\Request;
@@ -72,13 +73,16 @@ class PracticeMembershipController extends Controller
 
         $request->merge(['practices' => $rows]);
 
+        $phoneCodes = Country::where('status', 'ACTIVE')
+            ->select('phone_code')->distinct()->orderBy('phone_code')->pluck('phone_code')->all();
+
         $request->validate([
             'practices'                          => 'required|array|max:3',
             'practices.*.mode'                   => 'required|in:existing,new',
             'practices.*.practice_id'            => 'required_if:practices.*.mode,existing|nullable|integer|exists:practices,id',
             'practices.*.name'                   => 'required_if:practices.*.mode,new|nullable|string|max:200',
             'practices.*.website'                => 'required_if:practices.*.mode,new|nullable|string|max:500',
-            'practices.*.phone_country_code'     => ['nullable', 'required_if:practices.*.mode,new', Rule::in(['+1_US', '+1_CA', '+61_AU'])],
+            'practices.*.phone_country_code'     => ['nullable', 'required_if:practices.*.mode,new', Rule::in($phoneCodes)],
             'practices.*.phone_number'           => 'required_if:practices.*.mode,new|nullable|string|regex:/^\d{10}$/',
             'practices.*.street_address_1'       => 'required_if:practices.*.mode,new|nullable|string|min:5|max:255',
             'practices.*.street_address_2'       => 'nullable|string|max:255',

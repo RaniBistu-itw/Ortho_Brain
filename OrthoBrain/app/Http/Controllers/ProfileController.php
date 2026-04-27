@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Models\BuccalCorridorOption;
+use App\Models\Country;
 use App\Models\Doctor;
 use App\Models\DoctorAddress;
 use App\Models\Modality;
@@ -47,11 +48,15 @@ class ProfileController extends Controller
                 ->get()
             : collect();
 
+        // Distinct phone codes from the active countries — drives every phone-code <select> in the page.
+        $phoneCodes = Country::where('status', 'ACTIVE')
+            ->select('phone_code')->distinct()->orderBy('phone_code')->pluck('phone_code')->all();
+
         return view('profile.index', compact(
             'tab', 'doctor', 'activePractice', 'addresses',
             'modalitiesList', 'specialtiesList', 'treatmentModalitiesList', 'buccalCorridorsList',
             'selectedModalityIds', 'selectedSpecialtyIds', 'selectedTreatmentModalityIds', 'selectedBuccalCorridorIds',
-            'zipcodes'
+            'zipcodes', 'phoneCodes'
         ));
     }
 

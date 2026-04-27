@@ -62,7 +62,7 @@ class PracticesSeeder extends Seeder
                 [
                     'owner_id'           => null,
                     'website'            => $s['website'],
-                    'phone_country_code' => '+1_US',
+                    'phone_country_code' => '+1',
                     'phone_number'       => $s['phone'],
                     'street_address_1'   => ($i + 1) . ' Main Street',
                     'street_address_2'   => null,
