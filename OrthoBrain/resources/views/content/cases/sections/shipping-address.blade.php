@@ -147,9 +147,9 @@
                 @blur="validateField('country')"
                 :class="{ 'is-invalid': errors.country }">
           <option value="">— Select country —</option>
-          <option value="US">United States</option>
-          <option value="CA">Canada</option>
-          <option value="AU">Australia</option>
+          <template x-for="c in (window.COUNTRY_ENTRIES || [])" :key="c.code">
+            <option :value="c.code" x-text="c.name"></option>
+          </template>
         </select>
         <div class="small text-danger mt-25"
              x-show="errors.country"

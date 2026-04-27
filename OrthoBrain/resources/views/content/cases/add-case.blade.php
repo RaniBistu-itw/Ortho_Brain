@@ -73,6 +73,13 @@
         <span class="add-case-topbar__divider"></span>
       @endif
 
+      <button type="button" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-25" id="btn-export-pdf"
+              title="@if($caseId) Export this case as PDF @else Save the case first to enable PDF export @endif"
+              @unless($caseId) disabled @endunless
+              onclick="window.AddCaseExport && window.AddCaseExport.exportPdf()">
+        <i data-feather="file-text"></i> Export PDF
+      </button>
+
       <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-25" id="btn-save-draft" title="Save draft now">
         <i data-feather="save"></i> Save Draft
       </button>
@@ -167,6 +174,40 @@
         'countryId'      => $activePractice->country_id,
         'country'        => $activePractice->country?->country_code,
     ] : null;
+
+    // Geo dropdowns — driven by the seeded location masters. Each zipcode
+    // entry carries the cascade fields so shipping-address.js doesn't need
+    // a per-keystroke API call.
+    $zipcodeEntries = \App\Models\Zipcode::with(['city.state.country'])
+        ->where('status', 'ACTIVE')
+        ->orderBy('code')
+        ->get()
+        ->map(fn ($z) => [
+            'id'           => $z->id,
+            'code'         => $z->code,
+            'cityId'       => $z->city_id,
+            'city'         => $z->city?->name,
+            'stateId'      => $z->city?->state_id,
+            'state'        => $z->city?->state?->name,
+            'countryId'    => $z->city?->state?->country_id,
+            'country'      => $z->city?->state?->country?->country_code,
+            'displayLabel' => trim(implode(' — ', array_filter([
+                $z->code,
+                $z->city?->name,
+                $z->city?->state?->state_code ?? $z->city?->state?->name,
+            ]))),
+        ])
+        ->values();
+
+    $countryEntries = \App\Models\Country::where('status', 'ACTIVE')
+        ->orderBy('name')
+        ->get(['id', 'name', 'country_code'])
+        ->map(fn ($c) => [
+            'id'   => $c->id,
+            'code' => $c->country_code,
+            'name' => $c->name,
+        ])
+        ->values();
   @endphp
   <script>
     window.CASE_ID = '{{ $caseId ?? 'new' }}';
@@ -174,6 +215,8 @@
     window.CASE_API_BASE = @json($apiBase);
     window.CASE_ADMIN_MODE = @json((bool) $adminMode);
     window.ACTIVE_PRACTICE_ADDRESS = @json($activePracticeAddress);
+    window.ZIPCODE_ENTRIES = @json($zipcodeEntries);
+    window.COUNTRY_ENTRIES = @json($countryEntries);
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
   {{-- Cropper.js v1 — required by the shared crop modal (Photographs + X-Rays). --}}
@@ -210,6 +253,8 @@
   <script src="{{ asset('js/scripts/cases/sections/perfect-smile-plan.js') }}?v={{ $smilePlanVer }}"></script>
   {{-- Phase 7: submit orchestrator --}}
   <script src="{{ asset('js/scripts/cases/add-case-submit.js') }}"></script>
+  {{-- PDF export — DOMPDF roundtrip --}}
+  <script src="{{ asset('js/scripts/cases/add-case-export.js') }}?v={{ @filemtime(public_path('js/scripts/cases/add-case-export.js')) ?: time() }}"></script>
   <script>
     // Alpine CDN build auto-starts on DOMContentLoaded; do not call Alpine.start() manually.
     document.addEventListener('DOMContentLoaded', function () {

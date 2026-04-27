@@ -2,12 +2,6 @@
 
 @section('title', 'Cases')
 @section('page_title', 'Cases')
-@php
-    $casesStatusFilter = request('status');
-    $casesTableTitle = $casesStatusFilter
-        ? \Illuminate\Support\Str::headline(strtolower($casesStatusFilter)) . ' Cases'
-        : 'All Cases';
-@endphp
 
 @push('styles')
 <style>
@@ -27,16 +21,27 @@
 @endpush
 
 @php
-  $statusBadge = function ($status) {
-    return match ($status) {
-      'DRAFT'     => 'badge rounded-pill badge-light-secondary',
-      'SUBMITTED' => 'badge rounded-pill badge-light-info',
-      'IN_REVIEW' => 'badge rounded-pill badge-light-warning',
-      'APPROVED'  => 'badge rounded-pill badge-light-success',
-      'REJECTED'  => 'badge rounded-pill badge-light-danger',
-      default     => 'badge rounded-pill badge-light-secondary',
-    };
-  };
+  $statusTone = [
+    'DRAFT'     => 'secondary',
+    'SUBMITTED' => 'info',
+    'IN_REVIEW' => 'warning',
+    'APPROVED'  => 'success',
+    'REJECTED'  => 'danger',
+  ];
+
+  $statusLabel = $statusFilter
+    ? \Illuminate\Support\Str::of($statusFilter)->lower()->replace('_', ' ')->title() . ' Cases'
+    : 'All Cases';
+
+  $doctorName = null;
+  if ($doctorFilter) {
+    $selectedDoctor = $doctors->firstWhere('id', (int) $doctorFilter);
+    if ($selectedDoctor) {
+      $doctorName = trim($selectedDoctor->first_name . ' ' . $selectedDoctor->last_name);
+    }
+  }
+
+  $heading = $doctorName ? "{$statusLabel} — Dr. {$doctorName}" : $statusLabel;
 @endphp
 
 @section('content')
@@ -73,13 +78,14 @@
 
   <div class="card">
     <div class="card-header border-bottom">
-      <h4 class="card-title mb-0">{{ $casesTableTitle }}</h4>
+      <h4 class="card-title mb-0">{{ $heading }}</h4>
+      <span class="text-muted small">{{ $cases->total() }} total</span>
     </div>
 
     <div class="card-body py-1">
       <form method="GET" action="{{ route('admin.cases.index') }}" id="adminCasesFilter" class="row g-1 py-1">
         <div class="col-md-3">
-          <select name="status" class="form-select" onchange="this.form.submit()">
+          <select name="status" class="form-select js-searchable" data-placeholder="All statuses" onchange="this.form.submit()">
             <option value="">All statuses</option>
             @foreach($statusOptions as $s)
               <option value="{{ $s }}" @selected($statusFilter === $s)>{{ $s }}</option>
@@ -87,7 +93,7 @@
           </select>
         </div>
         <div class="col-md-5">
-          <select name="doctor_id" class="form-select" onchange="this.form.submit()">
+          <select name="doctor_id" class="form-select js-searchable" data-placeholder="All doctors" onchange="this.form.submit()">
             <option value="">All doctors</option>
             @foreach($doctors as $doc)
               <option value="{{ $doc->id }}" @selected((string) $doctorFilter === (string) $doc->id)>
@@ -104,7 +110,7 @@
     </div>
 
     <div class="table-responsive">
-      <table class="table table-hover mb-0 align-middle">
+      <table class="table ob-admin-table mb-0 align-middle">
         <thead>
           <tr>
             <th>Case ID</th>
@@ -130,20 +136,26 @@
                 @endif
               </td>
               <td>{{ $case->doctor?->practice?->name ?? '—' }}</td>
-              <td><span class="{{ $statusBadge($case->status) }}">{{ $case->status }}</span></td>
+              <td>
+                <span class="ob-status ob-status--{{ $statusTone[$case->status] ?? 'secondary' }}">
+                  {{ $case->status }}
+                </span>
+              </td>
               <td>{{ $case->created_at?->format('Y-m-d H:i') }}</td>
               <td>{{ $case->submitted_at?->format('Y-m-d H:i') ?? '—' }}</td>
               <td class="text-end">
-                <a href="{{ route('admin.cases.edit', $case->id) }}"
-                   class="btn btn-icon btn-sm btn-outline-success"
-                   title="View case">
-                  <i data-feather="eye"></i>
-                </a>
-                <a href="{{ route('admin.cases.edit', $case->id) }}"
-                   class="btn btn-icon btn-sm btn-outline-primary"
-                   title="Edit case">
-                  <i data-feather="edit-2"></i>
-                </a>
+                <div class="ob-row-actions">
+                  <a href="{{ route('admin.cases.edit', $case->id) }}"
+                     class="ob-icon-btn"
+                     title="View case">
+                    <i data-feather="eye"></i>
+                  </a>
+                  <a href="{{ route('admin.cases.edit', $case->id) }}"
+                     class="ob-icon-btn"
+                     title="Edit case">
+                    <i data-feather="edit-2"></i>
+                  </a>
+                </div>
               </td>
             </tr>
           @empty

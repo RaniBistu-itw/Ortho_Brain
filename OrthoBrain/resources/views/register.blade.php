@@ -16,7 +16,21 @@
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
             html, body { font-family: 'Montserrat', ui-sans-serif, system-ui, sans-serif; }
-            body.reg-body { min-height: 100vh; background: var(--ob-surface-2); color: var(--ob-text-muted); padding-bottom: 2.5rem; margin: 0; }
+            /* Soft layered gradient backdrop — mirrors the new login's blue
+               wash without the brand-panel image (register is form-heavy, an
+               image behind would distract). Falls back gracefully on browsers
+               without backdrop-filter (no glass, but the gradient still reads). */
+            body.reg-body {
+                min-height: 100vh;
+                color: var(--ob-text-muted);
+                padding-bottom: 2.5rem;
+                margin: 0;
+                background:
+                    radial-gradient(ellipse 1200px 600px at 80% -10%, rgba(96, 165, 250, 0.18), transparent 60%),
+                    radial-gradient(ellipse 800px 600px at -5% 110%, rgba(147, 197, 253, 0.20), transparent 65%),
+                    linear-gradient(135deg, #F1F5F9 0%, #E0F2FE 50%, #DBEAFE 100%);
+                background-attachment: fixed;
+            }
 
             .reg-shell { padding: 2rem 1.5rem; width: 100%; }
             @media (min-width: 640px) { .reg-shell { padding: 2rem 2rem; } }
@@ -34,9 +48,12 @@
             .reg-sidebar {
                 width: 100%;
                 flex-shrink: 0;
-                background: #fff;
-                border-radius: 0.358rem;
-                box-shadow: 0 4px 24px 0 rgba(34,41,47,0.1);
+                background: rgba(255, 255, 255, 0.78);
+                -webkit-backdrop-filter: saturate(180%) blur(14px);
+                backdrop-filter: saturate(180%) blur(14px);
+                border: 1px solid rgba(255, 255, 255, 0.6);
+                border-radius: 0.5rem;
+                box-shadow: 0 8px 28px rgba(15, 23, 42, 0.07), 0 2px 6px rgba(15, 23, 42, 0.04);
                 padding: 1.25rem;
                 align-self: flex-start;
             }
@@ -54,14 +71,17 @@
             }
             .reg-nav-item .reg-nav-title { font-size: 0.95rem; color: var(--ob-text); font-weight: 500; transition: all 0.2s; }
             .reg-nav-item .reg-nav-sub { font-size: 0.8rem; color: var(--ob-text-muted); }
-            .reg-nav-item.active .reg-nav-icon { background: var(--ob-primary); color: #fff; box-shadow: 0 2px 4px rgba(59, 130, 246,0.4); }
+            .reg-nav-item.active .reg-nav-icon { background: var(--ob-gradient-hero, var(--ob-primary)); color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.32); }
             .reg-nav-item.active .reg-nav-title { color: var(--ob-primary); }
 
             .reg-main { flex: 1; width: 100%; display: flex; flex-direction: column; gap: 1.5rem; }
             .reg-card {
-                background: #fff;
-                border-radius: 0.358rem;
-                box-shadow: 0 4px 24px 0 rgba(34,41,47,0.1);
+                background: rgba(255, 255, 255, 0.82);
+                -webkit-backdrop-filter: saturate(180%) blur(14px);
+                backdrop-filter: saturate(180%) blur(14px);
+                border: 1px solid rgba(255, 255, 255, 0.6);
+                border-radius: 0.5rem;
+                box-shadow: 0 8px 28px rgba(15, 23, 42, 0.07), 0 2px 6px rgba(15, 23, 42, 0.04);
                 padding: 1.5rem;
                 scroll-margin-top: 1.5rem;
             }
