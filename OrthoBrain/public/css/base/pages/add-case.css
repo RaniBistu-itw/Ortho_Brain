@@ -921,16 +921,36 @@
      icon in the .input-group, avoiding the dual-icon problem.
    - The feather icon span (.case-date-trigger) and the input itself both
      trigger input.showPicker() via add-case.js so click anywhere opens it.
+   - Multiple hide strategies layered for cross-browser robustness; some
+     browsers (notably older Chromium) honour only one.
    ─────────────────────────────────────────────────────────────────────────── */
 .case-date-group {
   max-width: 260px;
 }
+.case-date-input.form-control {
+  /* Strip the native dropdown affordance entirely; .case-date-trigger handles
+     the affordance instead. */
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+}
 .case-date-input::-webkit-calendar-picker-indicator {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  padding: 0;
+  margin: 0;
+}
+/* WebKit also exposes inner-spin and clear buttons on date inputs in some
+   builds — hide them too so the field renders as a plain text-style box. */
+.case-date-input::-webkit-inner-spin-button,
+.case-date-input::-webkit-clear-button {
   display: none;
   -webkit-appearance: none;
-}
-.case-date-input::-moz-calendar-picker-indicator {
-  display: none;
 }
 .case-date-trigger {
   cursor: pointer;
