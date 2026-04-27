@@ -167,6 +167,40 @@
         'countryId'      => $activePractice->country_id,
         'country'        => $activePractice->country?->country_code,
     ] : null;
+
+    // Geo dropdowns — driven by the seeded location masters. Each zipcode
+    // entry carries the cascade fields so shipping-address.js doesn't need
+    // a per-keystroke API call.
+    $zipcodeEntries = \App\Models\Zipcode::with(['city.state.country'])
+        ->where('status', 'ACTIVE')
+        ->orderBy('code')
+        ->get()
+        ->map(fn ($z) => [
+            'id'           => $z->id,
+            'code'         => $z->code,
+            'cityId'       => $z->city_id,
+            'city'         => $z->city?->name,
+            'stateId'      => $z->city?->state_id,
+            'state'        => $z->city?->state?->name,
+            'countryId'    => $z->city?->state?->country_id,
+            'country'      => $z->city?->state?->country?->country_code,
+            'displayLabel' => trim(implode(' — ', array_filter([
+                $z->code,
+                $z->city?->name,
+                $z->city?->state?->state_code ?? $z->city?->state?->name,
+            ]))),
+        ])
+        ->values();
+
+    $countryEntries = \App\Models\Country::where('status', 'ACTIVE')
+        ->orderBy('name')
+        ->get(['id', 'name', 'country_code'])
+        ->map(fn ($c) => [
+            'id'   => $c->id,
+            'code' => $c->country_code,
+            'name' => $c->name,
+        ])
+        ->values();
   @endphp
   <script>
     window.CASE_ID = '{{ $caseId ?? 'new' }}';
@@ -174,6 +208,8 @@
     window.CASE_API_BASE = @json($apiBase);
     window.CASE_ADMIN_MODE = @json((bool) $adminMode);
     window.ACTIVE_PRACTICE_ADDRESS = @json($activePracticeAddress);
+    window.ZIPCODE_ENTRIES = @json($zipcodeEntries);
+    window.COUNTRY_ENTRIES = @json($countryEntries);
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
   {{-- Cropper.js v1 — required by the shared crop modal (Photographs + X-Rays). --}}
