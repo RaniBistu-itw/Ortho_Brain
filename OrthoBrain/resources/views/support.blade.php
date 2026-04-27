@@ -84,18 +84,6 @@
                 display: flex; align-items: center; justify-content: center;
                 min-height: 220px;
             }
-            .sup-brand-art .sup-illustration {
-                width: 100%; height: auto; max-height: 360px;
-                object-fit: contain; object-position: center;
-                display: block; padding: 0 0.5rem;
-            }
-            .sup-brand-art .sup-illustration-fallback {
-                display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
-                color: var(--ob-primary); padding: 1rem;
-            }
-            .sup-brand-art .sup-illustration-fallback i { font-size: 4rem; opacity: 0.85; }
-            .sup-brand-art .sup-illustration-fallback span { font-size: 0.85rem; color: var(--ob-text-muted); font-style: italic; }
-
             .sup-brand-card {
                 display: flex; gap: 0.75rem; align-items: flex-start;
                 background: rgba(255,255,255,0.85);
@@ -290,6 +278,66 @@
             .sup-faq-link:hover { background: #eff6ff; color: var(--ob-primary); }
             .sup-faq-link i { font-size: 0.9rem; opacity: 0.6; }
 
+            .sup-faq-item { list-style: none; }
+            button.sup-faq-link {
+                width: 100%;
+                border: none;
+                cursor: pointer;
+                font: inherit;
+                text-align: left;
+                line-height: 1.35;
+            }
+            button.sup-faq-link:focus-visible {
+                outline: 2px solid var(--ob-primary);
+                outline-offset: 2px;
+            }
+            .sup-faq-link[aria-expanded="true"] {
+                background: #eff6ff;
+                color: var(--ob-primary);
+            }
+
+            .sup-faq-icon {
+                position: relative;
+                width: 14px; height: 14px;
+                flex-shrink: 0;
+                color: currentColor;
+                opacity: 0.85;
+            }
+            .sup-faq-icon::before,
+            .sup-faq-icon::after {
+                content: '';
+                position: absolute;
+                top: 50%; left: 50%;
+                background: currentColor;
+                border-radius: 1px;
+                transform-origin: center;
+                transition: transform .25s cubic-bezier(.2,.8,.2,1);
+            }
+            .sup-faq-icon::before { width: 12px; height: 2px; transform: translate(-50%, -50%); }
+            .sup-faq-icon::after  { width: 2px; height: 12px; transform: translate(-50%, -50%); }
+            .sup-faq-link[aria-expanded="true"] .sup-faq-icon::after {
+                transform: translate(-50%, -50%) scaleY(0);
+            }
+
+            .sup-faq-a {
+                overflow: hidden;
+                max-height: 0;
+                transition: max-height .28s cubic-bezier(.2,.8,.2,1);
+            }
+            .sup-faq-a-inner {
+                padding: 0.55rem 0.75rem 0.7rem;
+                font-size: 0.82rem;
+                line-height: 1.55;
+                color: var(--ob-text-muted);
+            }
+            .sup-faq-a-inner p { margin: 0; }
+
+            @media (prefers-reduced-motion: reduce) {
+                .sup-faq-a,
+                .sup-faq-icon::before,
+                .sup-faq-icon::after { transition: none; }
+            }
+
             /* Banners */
             .sup-error-banner {
                 background: #fef2f2;
@@ -328,6 +376,48 @@
             }
             .sup-required-note i { color: var(--ob-primary); font-size: 1rem; }
             .sup-required-note .sup-required { font-size: 0.95rem; }
+
+            .sup-mascot-wrap{
+                position: relative;
+                width: 160px;
+                height: 160px;
+                margin: 0.25rem auto 1.25rem;
+                display: flex; align-items: center; justify-content: center;
+                cursor: pointer;
+                will-change: transform;
+                transition: transform .28s cubic-bezier(.2,.8,.2,1),
+                            filter   .28s cubic-bezier(.2,.8,.2,1);
+                animation: sup-mascot-bob 4.2s ease-in-out 1.2s infinite;
+                filter: drop-shadow(0 8px 18px rgba(15, 23, 42, 0.10));
+            }
+            .sup-mascot{
+                width: 100%; height: 100%;
+                user-select: none;
+                transition: transform .25s cubic-bezier(.2,.8,.2,1);
+            }
+            .sup-mascot .eye-pupil{ transition: transform 0.08s linear; }
+            .sup-mascot .blush    { transition: opacity .25s ease; }
+
+            .sup-mascot-wrap:hover{
+                filter: drop-shadow(0 14px 28px rgba(37, 99, 235, 0.22));
+            }
+            .sup-mascot-wrap:hover .sup-mascot{
+                transform: scale(1.045) rotate(-1.5deg);
+            }
+            .sup-mascot-wrap:hover .blush{ opacity: 0.9; }
+
+            @keyframes sup-mascot-bob{
+                0%, 100%{ transform: translateY(0) translateX(0); }
+                50%     { transform: translateY(-5px); }
+            }
+
+            @media (max-width: 768px){
+                .sup-mascot-wrap{ width: 120px; height: 120px; }
+            }
+            @media (prefers-reduced-motion: reduce){
+                .sup-mascot-wrap{ animation: none; }
+                .sup-mascot, .sup-mascot .eye-pupil{ transition: none; }
+            }
         </style>
     </head>
     <body class="sup-body">
@@ -345,19 +435,50 @@
                     <span class="p1">ortho</span><span class="p2">brain</span><span class="tm">&trade;</span>
                 </div>
 
-                {{-- Drop the asset at public/assets/support-illustration.png; until then a friendly fallback shows. --}}
                 <div class="sup-brand-art" aria-hidden="true">
-                    @if(file_exists(public_path('assets/support-illustration.png')))
-                        <img src="{{ asset('assets/support-illustration.png') }}"
-                             alt="Support illustration"
-                             class="sup-illustration"
-                             loading="lazy" />
-                    @else
-                        <div class="sup-illustration-fallback">
-                            <i class="bi bi-headset"></i>
-                            <span>support-illustration.png</span>
-                        </div>
-                    @endif
+                    <div class="sup-mascot-wrap">
+                    <svg class="sup-mascot" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <radialGradient id="cupShine" cx="35%" cy="30%" r="75%">
+                                <stop offset="0%"  stop-color="#ffffff"/>
+                                <stop offset="60%" stop-color="#f1f9ff"/>
+                                <stop offset="100%" stop-color="#dbeafe"/>
+                            </radialGradient>
+                            <linearGradient id="bandShine" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#f8fbff"/>
+                                <stop offset="100%" stop-color="#dbeafe"/>
+                            </linearGradient>
+                        </defs>
+
+                        <path d="M18 54 C 18 26, 82 26, 82 54"
+                              fill="none" stroke="#bfdbfe" stroke-width="6" stroke-linecap="round"/>
+                        <path d="M22 54 C 22 30, 78 30, 78 54"
+                              fill="none" stroke="url(#bandShine)" stroke-width="3" stroke-linecap="round"/>
+
+                        <rect x="10" y="50" width="20" height="30" rx="9" ry="10"
+                              fill="url(#cupShine)" stroke="#bfdbfe" stroke-width="2"/>
+                        <rect x="14" y="55" width="12" height="20" rx="5" ry="6"
+                              fill="#e0f0ff" opacity="0.75"/>
+                        <rect x="70" y="50" width="20" height="30" rx="9" ry="10"
+                              fill="url(#cupShine)" stroke="#bfdbfe" stroke-width="2"/>
+                        <rect x="74" y="55" width="12" height="20" rx="5" ry="6"
+                              fill="#e0f0ff" opacity="0.75"/>
+
+                        <path d="M14 56 C 12 62, 12 70, 14 76" stroke="#ffffff"
+                              stroke-width="2" stroke-linecap="round" fill="none" opacity="0.85"/>
+
+                        <ellipse class="blush" cx="38" cy="44" rx="4" ry="2.6" fill="#fda4af" opacity="0.5"/>
+                        <ellipse class="blush" cx="62" cy="44" rx="4" ry="2.6" fill="#fda4af" opacity="0.5"/>
+
+                        <circle class="eye-white" cx="42" cy="40" r="4.2" fill="#ffffff" stroke="#1e293b" stroke-width="1.3"/>
+                        <circle class="eye-white" cx="58" cy="40" r="4.2" fill="#ffffff" stroke="#1e293b" stroke-width="1.3"/>
+                        <circle class="eye-pupil" data-eye-cx="42" data-eye-cy="40" cx="42" cy="40" r="1.9" fill="#1e293b"/>
+                        <circle class="eye-pupil" data-eye-cx="58" data-eye-cy="40" cx="58" cy="40" r="1.9" fill="#1e293b"/>
+
+                        <path class="mouth-smile" d="M46 47 Q 50 50, 54 47"
+                              stroke="#1e293b" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+                    </svg>
+                    </div>
                 </div>
 
                 <div class="sup-brand-card">
@@ -494,10 +615,43 @@
 
                 <div class="sup-help-card">
                     <h3>FAQs</h3>
-                    <ul class="sup-help-list" style="gap:0.4rem;">
-                        <li><a href="#" class="sup-faq-link"><span>How do I reset my password?</span><i class="bi bi-arrow-up-right"></i></a></li>
-                        <li><a href="#" class="sup-faq-link"><span>How long does account approval take?</span><i class="bi bi-arrow-up-right"></i></a></li>
-                        <li><a href="#" class="sup-faq-link"><span>How do I switch practices?</span><i class="bi bi-arrow-up-right"></i></a></li>
+                    <ul class="sup-help-list sup-faq-list" style="gap:0.4rem;">
+                        <li class="sup-faq-item">
+                            <button type="button" class="sup-faq-link sup-faq-q"
+                                    aria-expanded="false" aria-controls="sup-faq-panel-1">
+                                <span>How do I reset my password?</span>
+                                <span class="sup-faq-icon" aria-hidden="true"></span>
+                            </button>
+                            <div id="sup-faq-panel-1" class="sup-faq-a" role="region" aria-label="Answer">
+                                <div class="sup-faq-a-inner">
+                                    <p>Go to the login page and click on 'Forgot Password?'. Enter your email address and follow the instructions sent to your email.</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="sup-faq-item">
+                            <button type="button" class="sup-faq-link sup-faq-q"
+                                    aria-expanded="false" aria-controls="sup-faq-panel-2">
+                                <span>How long does account approval take?</span>
+                                <span class="sup-faq-icon" aria-hidden="true"></span>
+                            </button>
+                            <div id="sup-faq-panel-2" class="sup-faq-a" role="region" aria-label="Answer">
+                                <div class="sup-faq-a-inner">
+                                    <p>Account approval usually takes 1&ndash;2 business days. You will receive an email once your account is approved.</p>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="sup-faq-item">
+                            <button type="button" class="sup-faq-link sup-faq-q"
+                                    aria-expanded="false" aria-controls="sup-faq-panel-3">
+                                <span>How do I switch practices?</span>
+                                <span class="sup-faq-icon" aria-hidden="true"></span>
+                            </button>
+                            <div id="sup-faq-panel-3" class="sup-faq-a" role="region" aria-label="Answer">
+                                <div class="sup-faq-a-inner">
+                                    <p>You can switch practices from the top-right dropdown menu after logging in, or contact support for assistance.</p>
+                                </div>
+                            </div>
+                        </li>
                     </ul>
                 </div>
             </aside>
@@ -612,6 +766,120 @@
                     }
                 });
             });
+
+            (function () {
+                const wrap   = document.querySelector('.sup-mascot-wrap');
+                const mascot = wrap && wrap.querySelector('.sup-mascot');
+                if (!wrap || !mascot) return;
+
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    return;
+                }
+
+                const pupils = mascot.querySelectorAll('.eye-pupil');
+                const MAX_PUPIL = 1.6;
+                const MAX_PARALLAX = 7;
+
+                let raf = 0, lastX = 0, lastY = 0, hovering = false;
+
+                function apply() {
+                    raf = 0;
+                    const vw = window.innerWidth || 1, vh = window.innerHeight || 1;
+                    const nx = (lastX / vw) * 2 - 1;
+                    const ny = (lastY / vh) * 2 - 1;
+                    const tx = Math.max(-1, Math.min(1, nx)) * MAX_PARALLAX;
+                    const ty = Math.max(-1, Math.min(1, ny)) * MAX_PARALLAX;
+                    mascot.style.transform = hovering
+                        ? `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(1.045) rotate(-1.5deg)`
+                        : `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px)`;
+
+                    const rect = mascot.getBoundingClientRect();
+                    if (rect.width === 0 || rect.height === 0) return;
+                    const sx = 100 / rect.width, sy = 100 / rect.height;
+                    const cx = (lastX - rect.left) * sx;
+                    const cy = (lastY - rect.top)  * sy;
+                    pupils.forEach(function (p) {
+                        const ex = parseFloat(p.dataset.eyeCx);
+                        const ey = parseFloat(p.dataset.eyeCy);
+                        const dx = cx - ex, dy = cy - ey;
+                        const d  = Math.hypot(dx, dy) || 1;
+                        const off = Math.min(MAX_PUPIL, d / 18);
+                        p.setAttribute('transform',
+                            'translate(' + (dx/d*off).toFixed(2) + ' ' + (dy/d*off).toFixed(2) + ')');
+                    });
+                }
+
+                function onMove(x, y) {
+                    lastX = x; lastY = y;
+                    if (!raf) raf = requestAnimationFrame(apply);
+                }
+
+                window.addEventListener('mousemove', function (e) { onMove(e.clientX, e.clientY); }, { passive: true });
+                window.addEventListener('touchmove', function (e) {
+                    if (e.touches && e.touches[0]) onMove(e.touches[0].clientX, e.touches[0].clientY);
+                }, { passive: true });
+
+                wrap.addEventListener('mouseenter', function () {
+                    hovering = true;
+                    if (!raf) raf = requestAnimationFrame(apply);
+                });
+                wrap.addEventListener('mouseleave', function () {
+                    hovering = false;
+                    mascot.style.transform = '';
+                    pupils.forEach(function (p) { p.setAttribute('transform', 'translate(0 0)'); });
+                });
+            })();
+
+            (function () {
+                const buttons = document.querySelectorAll('.sup-faq-q');
+                if (!buttons.length) return;
+
+                function panelOf(btn) {
+                    return document.getElementById(btn.getAttribute('aria-controls'));
+                }
+
+                function openItem(btn) {
+                    const panel = panelOf(btn);
+                    if (!panel) return;
+                    btn.setAttribute('aria-expanded', 'true');
+                    panel.style.maxHeight = panel.scrollHeight + 'px';
+                    const onEnd = function (e) {
+                        if (e.propertyName !== 'max-height') return;
+                        if (btn.getAttribute('aria-expanded') === 'true') {
+                            // Let content reflow naturally after open (e.g. on viewport resize)
+                            panel.style.maxHeight = 'none';
+                        }
+                        panel.removeEventListener('transitionend', onEnd);
+                    };
+                    panel.addEventListener('transitionend', onEnd);
+                }
+
+                function closeItem(btn) {
+                    const panel = panelOf(btn);
+                    if (!panel) return;
+                    // If maxHeight was unset to 'none', re-pin to current pixel height before animating to 0
+                    if (panel.style.maxHeight === 'none' || panel.style.maxHeight === '') {
+                        panel.style.maxHeight = panel.scrollHeight + 'px';
+                        // Force reflow so the next change actually transitions
+                        void panel.offsetHeight;
+                    }
+                    btn.setAttribute('aria-expanded', 'false');
+                    panel.style.maxHeight = '0px';
+                }
+
+                buttons.forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        const isOpen = btn.getAttribute('aria-expanded') === 'true';
+                        buttons.forEach(function (other) {
+                            if (other !== btn && other.getAttribute('aria-expanded') === 'true') {
+                                closeItem(other);
+                            }
+                        });
+                        if (isOpen) closeItem(btn);
+                        else openItem(btn);
+                    });
+                });
+            })();
         </script>
     </body>
 </html>
