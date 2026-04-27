@@ -21,6 +21,18 @@ class CasesController extends Controller
         'REJECTED'  => 'Rejected',
     ];
 
+    // Allowed status transitions. Anything not in this map is rejected by
+    // updateStatus. Self-transitions (X → X) are treated as no-ops upstream.
+    // APPROVED / REJECTED can be reopened by moving back to IN_REVIEW; from
+    // there an admin can re-decide.
+    private const ALLOWED_TRANSITIONS = [
+        'DRAFT'     => ['SUBMITTED'],
+        'SUBMITTED' => ['IN_REVIEW'],
+        'IN_REVIEW' => ['APPROVED', 'REJECTED'],
+        'APPROVED'  => ['IN_REVIEW'],
+        'REJECTED'  => ['IN_REVIEW'],
+    ];
+
     public function index(Request $request)
     {
         $statusFilter = $request->query('status');
@@ -92,9 +104,34 @@ class CasesController extends Controller
         ]);
 
         $case = CaseModel::findOrFail($id);
+        $current = $case->status;
+        $next = $payload['status'];
 
-        $updates = ['status' => $payload['status']];
-        if ($payload['status'] === 'SUBMITTED' && ! $case->submitted_at) {
+        // No-op: setting the same status returns the current state without
+        // touching submitted_at. Idempotent for clients that re-send.
+        if ($next === $current) {
+            return response()->json([
+                'ok' => true,
+                'status' => $case->status,
+                'submitted_at' => $case->submitted_at?->toIso8601String(),
+                'message' => 'Status unchanged.',
+            ]);
+        }
+
+        $allowedNext = self::ALLOWED_TRANSITIONS[$current] ?? [];
+        if (! in_array($next, $allowedNext, true)) {
+            $currentLabel = self::STATUS_LABELS[$current] ?? $current;
+            $nextLabel    = self::STATUS_LABELS[$next] ?? $next;
+            return response()->json([
+                'ok' => false,
+                'error' => "Cannot transition case from {$currentLabel} to {$nextLabel}.",
+                'current' => $current,
+                'allowed_next' => $allowedNext,
+            ], 422);
+        }
+
+        $updates = ['status' => $next];
+        if ($next === 'SUBMITTED' && ! $case->submitted_at) {
             $updates['submitted_at'] = now();
         }
 

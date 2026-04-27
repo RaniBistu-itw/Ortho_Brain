@@ -142,7 +142,9 @@ class ImageAnalysisController extends Controller
             abort(403, 'Doctor profile not found.');
         }
 
-        return CaseModel::where('doctor_id', $doctor->id)->findOrFail($id);
+        return CaseModel::where('doctor_id', $doctor->id)
+            ->where('practice_id', currentPractice()->id)
+            ->findOrFail($id);
     }
 
     private function assertMime(UploadedFile $file): void
