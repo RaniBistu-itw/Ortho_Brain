@@ -4,6 +4,13 @@
   $caseDoctor = $caseDoctor ?? null;
   $scanners = $scanners ?? collect();
   $statusOptions = $statusOptions ?? ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
+  $statusLabels = $statusLabels ?? [
+      'DRAFT'     => 'Draft',
+      'SUBMITTED' => 'Submitted',
+      'IN_REVIEW' => 'In Review',
+      'APPROVED'  => 'Approved',
+      'REJECTED'  => 'Rejected',
+  ];
   $apiBase = $adminMode ? '/admin/cases' : '/dev/cases';
   $backUrl = $adminMode ? route('admin.cases.index') : route('doctor.cases.index');
 @endphp
@@ -24,7 +31,7 @@
     ['id' => 'patient-information',    'label' => 'Patient Information',    'subtitle' => 'Personal Details',         'icon' => 'user',       'placeholder' => false],
     ['id' => 'prescription',           'label' => 'Prescription',           'subtitle' => 'Prescription Information', 'icon' => 'file-text',  'placeholder' => false],
     ['id' => 'additional-information', 'label' => 'Additional Information', 'subtitle' => 'Additional Information',   'icon' => 'plus-circle','placeholder' => false],
-    ['id' => 'perfect-smile-plan',     'label' => 'Perfect Smile Plan',     'subtitle' => 'AI-assisted narrative',     'icon' => 'smile',      'placeholder' => false],
+    ['id' => 'perfect-smile-plan',     'label' => 'Perfect Smile Plan',     'subtitle' => 'AI-assisted narrative',     'icon' => 'smile',      'placeholder' => false, 'adminOnly' => true],
     ['id' => 'impressions',            'label' => 'Impressions',            'subtitle' => 'Impression Method',        'icon' => 'check-square','placeholder' => false],
     ['id' => 'photographs',            'label' => 'Photographs',            'subtitle' => 'Upload Photographs',       'icon' => 'image',      'placeholder' => false],
     ['id' => 'xrays',                  'label' => 'X-Rays',                 'subtitle' => 'Upload X-Ray photos',      'icon' => 'radio',      'placeholder' => false],
@@ -32,6 +39,7 @@
     ['id' => 'shipping-address',       'label' => 'Shipping Address',       'subtitle' => 'Shipping address',         'icon' => 'map-pin',    'placeholder' => false],
     ['id' => 'submit-order',           'label' => 'Submit Order',           'subtitle' => 'Submit Order',             'icon' => 'send',       'placeholder' => false],
   ];
+  $sections = array_values(array_filter($sections, fn ($s) => $adminMode || empty($s['adminOnly'])));
 @endphp
 
 @section('content')
@@ -63,7 +71,7 @@
         <div class="d-flex align-items-center gap-50 add-case-topbar__group">
           <select class="form-select form-select-sm" id="admin-status-select" style="width:auto;" aria-label="Case status">
             @foreach($statusOptions as $s)
-              <option value="{{ $s }}" @selected($caseRow->status === $s)>{{ $s }}</option>
+              <option value="{{ $s }}" @selected($caseRow->status === $s)>{{ $statusLabels[$s] ?? $s }}</option>
             @endforeach
           </select>
           <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-25" id="btn-admin-save-status" title="Save status change">
@@ -130,7 +138,9 @@
       @include('content.cases.sections.patient-information')
       @include('content.cases.sections.prescription')
       @include('content.cases.sections.additional-information')
-      @include('content.cases.sections.perfect-smile-plan')
+      @if($adminMode)
+        @include('content.cases.sections.perfect-smile-plan')
+      @endif
       @include('content.cases.sections.impressions')
       @include('content.cases.sections.photographs')
       @include('content.cases.sections.xrays')
@@ -250,7 +260,9 @@
   <script src="{{ asset('js/scripts/cases/sections/crop-modal.js') }}?v={{ $cropModalVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/photographs.js') }}?v={{ $photographsVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/xrays.js') }}"></script>
-  <script src="{{ asset('js/scripts/cases/sections/perfect-smile-plan.js') }}?v={{ $smilePlanVer }}"></script>
+  @if($adminMode)
+    <script src="{{ asset('js/scripts/cases/sections/perfect-smile-plan.js') }}?v={{ $smilePlanVer }}"></script>
+  @endif
   {{-- Phase 7: submit orchestrator --}}
   <script src="{{ asset('js/scripts/cases/add-case-submit.js') }}"></script>
   {{-- PDF export — DOMPDF roundtrip --}}

@@ -77,11 +77,11 @@
         <label class="form-label" for="pi-dob">
           Date of Birth <span class="text-danger">*</span>
         </label>
-        <div class="input-group">
-          <span class="input-group-text"><i data-feather="calendar"></i></span>
+        <div class="input-group case-date-group">
+          <span class="input-group-text case-date-trigger"><i data-feather="calendar"></i></span>
           <input
             type="date"
-            class="form-control"
+            class="form-control case-date-input"
             id="pi-dob"
             name="dateOfBirth"
             autocomplete="bday"

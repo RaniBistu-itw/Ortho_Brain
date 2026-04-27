@@ -257,4 +257,24 @@
     feather.replace({ width: 14, height: 14 });
   }
 
+  // Unified date-picker triggers. Each .case-date-group contains a feather
+  // calendar in .case-date-trigger plus a native <input type="date">. We hide
+  // the browser-native indicator via CSS, then make BOTH the icon span and
+  // the input itself open the picker on click via showPicker(). This keeps
+  // the three case dates (DOB, photo date, x-ray date) visually identical.
+  document.querySelectorAll('.case-date-group').forEach(function (group) {
+    var input = group.querySelector('input.case-date-input');
+    var trigger = group.querySelector('.case-date-trigger');
+    if (!input) return;
+    var open = function () {
+      if (typeof input.showPicker === 'function') {
+        try { input.showPicker(); } catch (e) { input.focus(); }
+      } else {
+        input.focus();
+      }
+    };
+    if (trigger) trigger.addEventListener('click', open);
+    input.addEventListener('click', open);
+  });
+
 })();

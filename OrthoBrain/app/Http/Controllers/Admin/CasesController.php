@@ -13,6 +13,14 @@ class CasesController extends Controller
 {
     private const STATUS_OPTIONS = ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
 
+    private const STATUS_LABELS = [
+        'DRAFT'     => 'Draft',
+        'SUBMITTED' => 'Submitted',
+        'IN_REVIEW' => 'In Review',
+        'APPROVED'  => 'Approved',
+        'REJECTED'  => 'Rejected',
+    ];
+
     public function index(Request $request)
     {
         $statusFilter = $request->query('status');
@@ -45,6 +53,7 @@ class CasesController extends Controller
             'cases' => $cases,
             'doctors' => $doctors,
             'statusOptions' => self::STATUS_OPTIONS,
+            'statusLabels' => self::STATUS_LABELS,
             'statusFilter' => $statusFilter,
             'doctorFilter' => $doctorFilter,
             'statusCounts' => $statusCounts,
@@ -71,6 +80,7 @@ class CasesController extends Controller
             'caseRow' => $case,
             'caseDoctor' => $case->doctor,
             'statusOptions' => self::STATUS_OPTIONS,
+            'statusLabels' => self::STATUS_LABELS,
             'scanners' => Scanner::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
         ]);
     }

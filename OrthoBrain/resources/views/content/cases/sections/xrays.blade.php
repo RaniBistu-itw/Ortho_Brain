@@ -38,11 +38,14 @@
       <label class="form-label fw-semibold" for="xray-date">
         Date of X-Rays <span class="text-danger">*</span>
       </label>
-      <input type="date"
-             class="form-control xrays-date-input"
-             id="xray-date"
-             x-model="dateOfXrays"
-             @change="validateField('dateOfXrays'); syncToState()">
+      <div class="input-group case-date-group xrays-date-group">
+        <span class="input-group-text case-date-trigger"><i data-feather="calendar"></i></span>
+        <input type="date"
+               class="form-control case-date-input"
+               id="xray-date"
+               x-model="dateOfXrays"
+               @change="validateField('dateOfXrays'); syncToState()">
+      </div>
       <div class="small text-danger mt-25"
            x-show="errors.dateOfXrays"
            x-text="errors.dateOfXrays"
