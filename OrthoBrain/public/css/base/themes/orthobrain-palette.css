@@ -18,6 +18,15 @@
   --ob-primary:            #3B82F6;
   --ob-primary-hover:      #2563EB;
   --ob-primary-soft:       rgba(59, 130, 246, 0.10);
+  --ob-primary-dark:       #1D4ED8;
+
+  /* Gradient + glass tokens — used sparingly on hero / topbar / accent
+     surfaces. Forms, tables, modals must stay flat. */
+  --ob-gradient-hero:      linear-gradient(135deg, var(--ob-primary) 0%, var(--ob-primary-dark) 100%);
+  --ob-gradient-accent:    linear-gradient(90deg, var(--ob-primary) 0%, #60A5FA 100%);
+  --ob-glass-blur:         saturate(180%) blur(14px);
+  --ob-glass-bg-light:     rgba(255, 255, 255, 0.78);
+  --ob-glass-bg-dark:      rgba(15, 23, 42, 0.66);
 
   /* Page + surfaces */
   --ob-bg:                 #F8FAFC;
@@ -79,6 +88,7 @@
      too muted against navy surfaces. #3B82F6 pops without screaming. */
   --ob-primary:            #3B82F6;
   --ob-primary-hover:      #60A5FA;
+  --ob-primary-dark:       #1E3A8A;
   --ob-primary-soft:       rgba(59, 130, 246, 0.14);
 
   /* Saturate accents for dark — muted colours look dead on navy */
