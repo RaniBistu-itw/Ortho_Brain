@@ -27,7 +27,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Public / shared auth routes ──────────────────────────
-Route::view('/', 'landing')->name('landing');
+Route::redirect('/', '/login');
 Route::view('/login', 'login')->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
