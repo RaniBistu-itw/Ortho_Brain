@@ -83,22 +83,32 @@
         this.country = d.country || '';
       },
 
+      // Resolve the data source: prefer the seeded ZIPCODE_ENTRIES, fall back
+      // to the legacy mock for any tooling that still references it.
+      _zipEntries: function () {
+        return window.ZIPCODE_ENTRIES || window.MOCK_ZIP_ENTRIES || [];
+      },
+
       // Set zipQuery to the display label matching the given zipId.
       _resolveZipQuery: function (zipId) {
         if (!zipId) { this.zipQuery = ''; return; }
-        var entry = (window.MOCK_ZIP_ENTRIES || []).find(function (e) { return e.id === zipId; });
+        var entry = this._zipEntries().find(function (e) { return e.id === zipId; });
         this.zipQuery = entry ? entry.displayLabel : zipId;
       },
 
       // ── ZIP combobox helpers ────────────────────────────────────────────────
 
       filteredZips: function () {
+        var entries = this._zipEntries();
         var q = (this.zipQuery || '').toLowerCase().trim();
-        if (!q) return window.MOCK_ZIP_ENTRIES || [];
-        return (window.MOCK_ZIP_ENTRIES || []).filter(function (e) {
+        // Cap unfiltered list — a 600+ option dropdown chokes the browser.
+        if (!q) return entries.slice(0, 50);
+        var matches = entries.filter(function (e) {
+          var code = e.code || e.zip || '';
           return e.displayLabel.toLowerCase().indexOf(q) !== -1
-              || e.zip.toLowerCase().indexOf(q) !== -1;
+              || code.toLowerCase().indexOf(q) !== -1;
         });
+        return matches.slice(0, 50);
       },
 
       selectZip: function (entry) {
