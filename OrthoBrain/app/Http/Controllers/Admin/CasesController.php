@@ -75,7 +75,12 @@ class CasesController extends Controller
 
     public function edit(int $id)
     {
-        $case = CaseModel::with(['doctor:id,first_name,last_name,practice_id', 'doctor.practice:id,name', 'prescription.toothRestrictions'])
+        $case = CaseModel::with([
+                'doctor:id,first_name,last_name,practice_id',
+                'doctor.practice:id,name',
+                'prescription.toothRestrictions',
+                'media',
+            ])
             ->findOrFail($id);
 
         // Reuse the doctor CasesController's serializer so the Prescription
@@ -84,6 +89,12 @@ class CasesController extends Controller
         $reflection = new \ReflectionMethod($doctorController, 'serializePrescription');
         $reflection->setAccessible(true);
         $prescriptionPrefill = $reflection->invoke($doctorController, $case->prescription);
+
+        // Same trick for the media serializer — keep the JS hydration shape
+        // identical between doctor and admin views.
+        $serializeMedia = new \ReflectionMethod($doctorController, 'serializeMedia');
+        $serializeMedia->setAccessible(true);
+        $caseMedia = $serializeMedia->invoke($doctorController, $case->media);
 
         return view('content.cases.add-case', [
             'id' => $case->id,
@@ -94,6 +105,7 @@ class CasesController extends Controller
             'statusOptions' => self::STATUS_OPTIONS,
             'statusLabels' => self::STATUS_LABELS,
             'scanners' => Scanner::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
+            'caseMedia' => $caseMedia,
         ]);
     }
 

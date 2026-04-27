@@ -82,7 +82,7 @@ class CasesController extends Controller
         $doctor->loadMissing('practice:id,name');
         $practiceId = currentPractice()->id;
 
-        $case = CaseModel::with('prescription.toothRestrictions')
+        $case = CaseModel::with(['prescription.toothRestrictions', 'media'])
             ->where('doctor_id', $doctor->id)
             ->where('practice_id', $practiceId)
             ->findOrFail($id);
@@ -92,6 +92,7 @@ class CasesController extends Controller
             'prescriptionPrefill' => $this->serializePrescription($case->prescription),
             'caseDoctor' => $doctor,
             'scanners' => $this->activeScanners(),
+            'caseMedia' => $this->serializeMedia($case->media),
         ]);
     }
 
@@ -140,6 +141,27 @@ class CasesController extends Controller
         return Scanner::where('status', 'ACTIVE')
             ->orderBy('name')
             ->get(['id', 'name']);
+    }
+
+    /**
+     * Shape the CaseMedia rows the way photographs.js / xrays.js expect them
+     * for hydration (one entry per filled tile, keyed by section + tile_id).
+     */
+    private function serializeMedia($mediaCollection): array
+    {
+        if (! $mediaCollection) {
+            return [];
+        }
+        return $mediaCollection->map(function ($m) {
+            return [
+                'section'    => $m->section,
+                'tileId'     => $m->tile_id,
+                'url'        => \Illuminate\Support\Facades\Storage::disk($m->disk)->url($m->path),
+                'mime'       => $m->mime_type,
+                'size'       => $m->size_bytes,
+                'cropParams' => $m->crop_params,
+            ];
+        })->values()->all();
     }
 
     private function serializePrescription(?Prescription $prescription): ?array

@@ -81,23 +81,75 @@
 
       _hydrate: function (d) {
         this.dateOfXrays = d.dateOfXrays || '';
-        var hadFilled = false;
+        var hadFilledNoServer = false;
         var self = this;
+
+        // Server-side prefill (window.__caseMediaPrefill) is the source of
+        // truth — keyed by tile_id under the 'xray' section.
+        var serverByTile = {};
+        if (window.CaseMediaApi) {
+          window.CaseMediaApi.prefill().forEach(function (m) {
+            if (m && m.section === 'xray' && m.tileId) {
+              serverByTile[m.tileId] = m;
+            }
+          });
+        }
+
         XRAY_TILE_ORDER.forEach(function (id) {
-          if (d.tiles && d.tiles[id] && d.tiles[id].filled) {
-            hadFilled = true;
-          }
-          // TODO: replace with presigned S3 upload; persist S3 keys in draft state.
-          // When swapped to S3, hydration will restore actual image previews from S3 URLs.
           self.tiles[id].filled = false;
           self.tiles[id].originalFile = null;
           self.tiles[id].croppedBlob = null;
           self.tiles[id].previewUrl = null;
           self.tiles[id].cropParams = (d.tiles && d.tiles[id]) ? (d.tiles[id].cropParams || null) : null;
+
+          var server = serverByTile[id];
+          if (server && server.url) {
+            self.tiles[id].filled = true;
+            self.tiles[id].previewUrl = server.url;
+            self.tiles[id].cropParams = server.cropParams || self.tiles[id].cropParams;
+            return;
+          }
+
+          // Draft thinks this tile was filled but we don't have a server
+          // record (and we don't keep an IDB copy for x-rays). Flag the gap.
+          if (d.tiles && d.tiles[id] && d.tiles[id].filled) {
+            hadFilledNoServer = true;
+          }
         });
-        if (hadFilled) {
+
+        if (hadFilledNoServer) {
           this.showReuploadAlert = true;
         }
+      },
+
+      _persistTile: function (tileId, blob) {
+        var caseId = this._getCaseId();
+        if (window.CaseMediaApi && caseId && caseId !== 'new') {
+          var cropParams = this.tiles[tileId] && this.tiles[tileId].cropParams;
+          window.CaseMediaApi.upload(caseId, 'xray', tileId, blob, {
+            filename: 'xray-' + tileId,
+            cropParams: cropParams,
+          }).catch(function (err) {
+            console.warn('CaseMediaApi.upload (xray) failed', tileId, err);
+          });
+        }
+      },
+
+      _forgetTile: function (tileId) {
+        var caseId = this._getCaseId();
+        if (window.CaseMediaApi && caseId && caseId !== 'new') {
+          window.CaseMediaApi.destroy(caseId, 'xray', tileId)
+            .catch(function (err) { console.warn('CaseMediaApi.destroy (xray) failed', tileId, err); });
+        }
+      },
+
+      _getCaseId: function () {
+        if (window.AddCaseSave && typeof window.AddCaseSave.currentCaseId === 'function') {
+          var id = window.AddCaseSave.currentCaseId();
+          if (id) return String(id);
+        }
+        if (window.CASE_ID) return String(window.CASE_ID);
+        return 'new';
       },
 
       // ── State sync ──────────────────────────────────────────────────────────
@@ -143,6 +195,8 @@
           this.tiles[tileId].cropParams = null;
           this.tiles[tileId].isDragOver = false;
           this.syncToState();
+          // Fire-and-forget server upload — local preview is already showing.
+          this._persistTile(tileId, file);
           return true;
         } catch (err) {
           this.bulkError = 'Failed to process image. Please try another file.';
@@ -231,6 +285,7 @@
           },
           function onCommit() {
             if (snapshot.previewUrl) URL.revokeObjectURL(snapshot.previewUrl);
+            self._forgetTile(id);
           },
           5000
         );
@@ -270,6 +325,7 @@
                 self.tiles[tileId].previewUrl = URL.createObjectURL(croppedBlob);
                 self.tiles[tileId].cropParams = cropParams;
                 self.syncToState();
+                self._persistTile(tileId, croppedBlob);
               },
               onCancel: function () {
                 URL.revokeObjectURL(preview.url);
