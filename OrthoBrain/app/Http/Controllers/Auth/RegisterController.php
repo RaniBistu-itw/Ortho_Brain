@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Mail\RegistrationReceivedMail;
 use App\Models\BuccalCorridorOption;
+use App\Models\Country;
 use App\Models\Doctor;
 use App\Models\Modality;
 use App\Models\Practice;
@@ -28,6 +29,7 @@ class RegisterController extends Controller
             'specialtiesList'         => Specialty::orderBy('id')->get(),
             'treatmentModalitiesList' => TreatmentModality::orderBy('id')->get(),
             'buccalCorridorsList'     => BuccalCorridorOption::orderBy('id')->get(),
+            'phoneCodes'              => $this->activePhoneCodes(),
         ]);
     }
 
@@ -55,6 +57,9 @@ class RegisterController extends Controller
         // Branch: existing practice picked from autocomplete (practice_id present)
         //         vs new practice (all practice + address fields expected)
         $isExisting = $request->filled('practice_id');
+
+        // Allowed phone codes — driven by countries.phone_code (distinct).
+        $phoneCodes = $this->activePhoneCodes();
 
         // Resurrection: if this email belongs to a previously-rejected doctor,
         // allow re-registration — we'll overwrite the existing user/doctor rows
@@ -95,7 +100,7 @@ class RegisterController extends Controller
             'additional_practices.*.practice_id'            => 'required_if:additional_practices.*.mode,existing|nullable|integer|exists:practices,id',
             'additional_practices.*.name'                   => 'required_if:additional_practices.*.mode,new|nullable|string|max:200',
             'additional_practices.*.website'                => 'required_if:additional_practices.*.mode,new|nullable|string|max:500',
-            'additional_practices.*.phone_country_code'     => ['nullable', 'required_if:additional_practices.*.mode,new', Rule::in(['+1_US', '+1_CA', '+61_AU'])],
+            'additional_practices.*.phone_country_code'     => ['nullable', 'required_if:additional_practices.*.mode,new', Rule::in($phoneCodes)],
             'additional_practices.*.phone_number'           => 'required_if:additional_practices.*.mode,new|nullable|string|regex:/^\d{10}$/',
             'additional_practices.*.street_address_1'       => 'required_if:additional_practices.*.mode,new|nullable|string|min:5|max:255',
             'additional_practices.*.street_address_2'       => 'nullable|string|max:255',
@@ -110,7 +115,7 @@ class RegisterController extends Controller
         } else {
             $rules = array_merge($rules, [
                 'practice_name'               => 'required|string|max:200',
-                'practice_phone_country_code' => ['required', Rule::in(['+1_US', '+1_CA', '+61_AU'])],
+                'practice_phone_country_code' => ['required', Rule::in($phoneCodes)],
                 'practice_phone_number'       => 'required|string|regex:/^\d{10}$/',
                 'practice_website'            => 'required|string|max:500',
                 'street_address_1'            => 'required|string|min:5|max:255',
@@ -327,5 +332,15 @@ class RegisterController extends Controller
             ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
             ->orderBy('code')
             ->get();
+    }
+
+    private function activePhoneCodes(): array
+    {
+        return Country::where('status', 'ACTIVE')
+            ->select('phone_code')
+            ->distinct()
+            ->orderBy('phone_code')
+            ->pluck('phone_code')
+            ->all();
     }
 }

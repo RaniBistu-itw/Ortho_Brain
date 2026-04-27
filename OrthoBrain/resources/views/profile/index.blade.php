@@ -217,7 +217,9 @@
                             <div class="row g-1">
                                 <div class="col-5 col-sm-4">
                                     <select name="practice_phone_country_code" class="form-select">
-                                        <option value="+1_US" selected>+1 (US)</option>
+                                        @foreach($phoneCodes as $code)
+                                            <option value="{{ $code }}" @selected(old('practice_phone_country_code', $doctor?->practice?->phone_country_code ?? '+1') === $code)>{{ $code }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="col-7 col-sm-8">
@@ -323,7 +325,9 @@
                             <div class="row g-1">
                                 <div class="col-5 col-sm-4">
                                     <select name="practice_phone_country_code" class="form-select">
-                                        <option value="+1_US" selected>+1 (US)</option>
+                                        @foreach($phoneCodes as $code)
+                                            <option value="{{ $code }}" @selected(old('practice_phone_country_code', $activePractice?->phone_country_code ?? '+1') === $code)>{{ $code }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="col-7 col-sm-8">
@@ -347,13 +351,6 @@
                                        placeholder="https://yoursite.com" class="form-control">
                             </div>
                             <small id="err-prac-website" class="text-danger d-none"></small>
-                        </div>
-
-                        <div class="col-md-6 mb-1">
-                            <label for="in-prac-language" class="form-label">Preferred Language</label>
-                            <select id="in-prac-language" name="language" class="form-select">
-                                <option value="English" selected>English</option>
-                            </select>
                         </div>
 
                         <div class="col-12 mb-1">
@@ -1108,9 +1105,9 @@
                                         <div class="row g-1">
                                             <div class="col-5 col-sm-4">
                                                 <select name="practices[${idx}][phone_country_code]" class="form-select">
-                                                    <option value="+1_US">+1 (US)</option>
-                                                    <option value="+1_CA">+1 (CA)</option>
-                                                    <option value="+61_AU">+61 (AU)</option>
+                                                    @foreach($phoneCodes as $code)
+                                                        <option value="{{ $code }}">{{ $code }}</option>
+                                                    @endforeach
                                                 </select>
                                             </div>
                                             <div class="col-7 col-sm-8">

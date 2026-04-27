@@ -5,386 +5,662 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Orthobrain Registration</title>
 
-        {{-- Vuexy theme stylesheets --}}
+        {{-- OrthoBrain palette (defines --ob-* CSS variables used by .reg-* classes) --}}
+        <link rel="stylesheet" href="{{ asset('css/base/themes/orthobrain-palette.css') }}?v={{ @filemtime(public_path('css/base/themes/orthobrain-palette.css')) ?: time() }}" />
+
+        {{-- Vuexy theme stylesheets (kept for icon/utility resets used by ported markup) --}}
         <link rel="stylesheet" href="{{ asset('vuexy/vendors/css/vendors.min.css') }}" />
         <link rel="stylesheet" href="{{ asset('vuexy/css/core.css') }}" />
         <link rel="stylesheet" href="{{ asset('vuexy/css/overrides.css') }}" />
         <link rel="stylesheet" href="{{ asset('vuexy/css/orthobrain-overrides.css') }}" />
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-        {{-- Scoped registration-page classes (used by ported sections; unported sections still use Tailwind CDN below) --}}
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
-            html, body { font-family: 'Montserrat', ui-sans-serif, system-ui, sans-serif; }
-            /* Soft layered gradient backdrop — mirrors the new login's blue
-               wash without the brand-panel image (register is form-heavy, an
-               image behind would distract). Falls back gracefully on browsers
-               without backdrop-filter (no glass, but the gradient still reads). */
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
+
+            *, *::before, *::after { box-sizing: border-box; }
+            html { scroll-behavior: smooth; }
             body.reg-body {
-                min-height: 100vh;
-                color: var(--ob-text-muted);
-                padding-bottom: 2.5rem;
                 margin: 0;
+                min-height: 100vh;
+                font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+                color: var(--ob-text);
+                /* Multi-layer gradient backdrop ported from PR #56 (login parity).
+                   `background-attachment: fixed` keeps the wash stationary on scroll. */
                 background:
                     radial-gradient(ellipse 1200px 600px at 80% -10%, rgba(96, 165, 250, 0.18), transparent 60%),
                     radial-gradient(ellipse 800px 600px at -5% 110%, rgba(147, 197, 253, 0.20), transparent 65%),
                     linear-gradient(135deg, #F1F5F9 0%, #E0F2FE 50%, #DBEAFE 100%);
                 background-attachment: fixed;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
             }
 
-            .reg-shell { padding: 2rem 1.5rem; width: 100%; }
-            @media (min-width: 640px) { .reg-shell { padding: 2rem 2rem; } }
-
-            .reg-header { margin-bottom: 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-            .reg-logo-text { font-size: 2.6rem; font-weight: 500; letter-spacing: -0.01em; margin-top: 0.5rem; line-height: 1.1; display: inline-flex; align-items: flex-start; }
-            .reg-logo-text .p1 { color: #5bc0de; }
-            .reg-logo-text .p2 { color: #8cc63f; }
-            .reg-logo-text .tm { color: #8cc63f; font-size: 0.8rem; margin-left: 1px; margin-top: 0.625rem; }
-            .reg-tagline { font-size: 12px; font-style: italic; color: var(--ob-text-muted); margin-top: 0.25rem; letter-spacing: 0.025em; }
-
-            .reg-layout { display: flex; flex-direction: column; gap: 1.5rem; align-items: flex-start; position: relative; }
-            @media (min-width: 768px) { .reg-layout { flex-direction: row; gap: 2rem; } }
-
-            .reg-sidebar {
-                width: 100%;
-                flex-shrink: 0;
-                background: rgba(255, 255, 255, 0.78);
-                -webkit-backdrop-filter: saturate(180%) blur(14px);
-                backdrop-filter: saturate(180%) blur(14px);
-                border: 1px solid rgba(255, 255, 255, 0.6);
-                border-radius: 0.5rem;
-                box-shadow: 0 8px 28px rgba(15, 23, 42, 0.07), 0 2px 6px rgba(15, 23, 42, 0.04);
+            /* ─────────────── 3-column shell ─────────────── */
+            .reg-shell-3col {
+                display: grid;
+                grid-template-columns: 280px minmax(0, 1fr) 300px;
+                gap: 1.25rem;
+                max-width: 1480px;
+                margin: 0 auto;
                 padding: 1.25rem;
-                align-self: flex-start;
+                align-items: start;
             }
-            @media (min-width: 768px) { .reg-sidebar { width: 260px; position: sticky; top: 1.5rem; } }
-            .reg-sidebar nav { display: flex; flex-direction: column; gap: 1rem; }
-            .reg-nav-item { display: flex; align-items: center; gap: 1rem; cursor: pointer; }
-            .reg-nav-icon {
-                display: flex; align-items: center; justify-content: center;
-                width: 2.5rem; height: 2.5rem;
-                border-radius: 0.358rem;
-                background: var(--ob-surface-2);
-                color: var(--ob-text-muted);
-                transition: all 0.2s;
-                flex-shrink: 0;
+            @media (max-width: 1180px) {
+                .reg-shell-3col { grid-template-columns: 1fr; }
+                .reg-brand-panel, .reg-benefits-panel { position: static !important; }
             }
-            .reg-nav-item .reg-nav-title { font-size: 0.95rem; color: var(--ob-text); font-weight: 500; transition: all 0.2s; }
-            .reg-nav-item .reg-nav-sub { font-size: 0.8rem; color: var(--ob-text-muted); }
-            .reg-nav-item.active .reg-nav-icon { background: var(--ob-gradient-hero, var(--ob-primary)); color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.32); }
-            .reg-nav-item.active .reg-nav-title { color: var(--ob-primary); }
 
-            .reg-main { flex: 1; width: 100%; display: flex; flex-direction: column; gap: 1.5rem; }
-            .reg-card {
-                background: rgba(255, 255, 255, 0.82);
-                -webkit-backdrop-filter: saturate(180%) blur(14px);
-                backdrop-filter: saturate(180%) blur(14px);
-                border: 1px solid rgba(255, 255, 255, 0.6);
-                border-radius: 0.5rem;
-                box-shadow: 0 8px 28px rgba(15, 23, 42, 0.07), 0 2px 6px rgba(15, 23, 42, 0.04);
-                padding: 1.5rem;
-                scroll-margin-top: 1.5rem;
-            }
-            .reg-card-head { margin-bottom: 1.25rem; }
-            .reg-card-head h2 { font-size: 1.3rem; font-weight: 500; color: var(--ob-text); margin: 0 0 0.25rem; }
-            .reg-card-head p { font-size: 0.9rem; color: var(--ob-text-muted); margin: 0; }
-            .reg-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
-            @media (min-width: 768px) { .reg-grid { grid-template-columns: 1fr 1fr; } }
-            .reg-col-span-2 { grid-column: span 1; }
-            @media (min-width: 768px) { .reg-col-span-2 { grid-column: span 2; } }
-
-            .reg-label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--ob-text); margin-bottom: 0.25rem; }
-            .reg-required { color: #ea5455; }
-            .reg-input-group {
+            /* ─────────────── Left brand panel ─────────────── */
+            .reg-brand-panel {
+                position: sticky;
+                top: 1.25rem;
+                background: linear-gradient(160deg, #dbeafe 0%, #eff6ff 50%, #f8fafc 100%);
+                border: 1px solid #dbe5f5;
+                border-radius: 18px;
+                padding: 1.5rem 1.25rem 1.25rem;
+                min-height: 720px;
                 display: flex;
-                align-items: center;
-                border: 1px solid var(--ob-border-strong);
-                border-radius: 0.358rem;
-                background: #fff;
+                flex-direction: column;
+                gap: 1rem;
+                box-shadow: 0 6px 20px -10px rgba(59,130,246,0.25);
                 overflow: hidden;
-                transition: all .2s;
             }
-            .reg-input-group:focus-within { border-color: var(--ob-primary); box-shadow: 0 0 0 0.2rem rgba(59, 130, 246,0.25); }
-            .reg-input-group.is-invalid { border-color: #ea5455; }
-            .reg-input-icon {
-                display: flex; align-items: center; justify-content: center;
-                padding: 0.5rem 0.5rem 0.5rem 0.75rem;
-                color: var(--ob-text-muted);
-                background: #fff;
-                border-right: 1px solid var(--ob-border-strong);
-                align-self: stretch;
+            .reg-brand-logo {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.55rem;
+                font-family: 'Montserrat', sans-serif;
+                font-weight: 500;
+                font-size: 1.55rem;
+                line-height: 1;
+                margin: 0.25rem 0 0.5rem;
             }
-            .reg-input-group.is-invalid .reg-input-icon { border-right-color: #ea5455; }
-            .reg-input {
+            .reg-brand-logo .ob-mark {
+                width: 32px; height: 32px;
+                display: inline-flex; align-items: center; justify-content: center;
+                background: #fff; border-radius: 8px;
+                box-shadow: 0 2px 6px rgba(59,130,246,0.18);
+            }
+            .reg-brand-logo .p1 { color: #5bc0de; }
+            .reg-brand-logo .p2 { color: #8cc63f; }
+            .reg-brand-logo .tm { color: #8cc63f; font-size: 0.55rem; margin-top: -10px; margin-left: 1px; }
+
+            .reg-brand-art {
+                position: relative;
                 flex: 1;
-                border: 0;
-                outline: none;
-                padding: 0.5rem 0.75rem;
-                font-size: 0.95rem;
-                color: var(--ob-text-muted);
-                background: transparent;
+                margin: 0.5rem -0.5rem 0.5rem;
+                border-radius: 14px;
+                background:
+                    radial-gradient(140px 110px at 50% 38%, rgba(255,255,255,0.85) 0%, transparent 70%),
+                    linear-gradient(165deg, #cfe1ff 0%, #e8f1ff 100%);
+                overflow: hidden;
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+            }
+            .reg-brand-art::before {
+                content: ""; position: absolute; inset: 0;
+                background-image:
+                    radial-gradient(circle at 14% 18%, rgba(255,255,255,0.55) 1.5px, transparent 2px),
+                    radial-gradient(circle at 82% 22%, rgba(255,255,255,0.4) 1px, transparent 2px),
+                    radial-gradient(circle at 30% 70%, rgba(255,255,255,0.35) 1px, transparent 2px),
+                    radial-gradient(circle at 70% 80%, rgba(255,255,255,0.5) 1.2px, transparent 2px);
+                background-size: 100% 100%;
+                opacity: 0.7;
+                pointer-events: none;
+            }
+            .reg-brand-art .reg-doctor {
+                width: 100%;
+                height: auto;
+                max-height: 460px;
+                object-fit: contain;
+                object-position: bottom center;
+                display: block;
+                padding: 0 0.5rem;
+            }
+
+            .reg-brand-card {
+                display: flex;
+                gap: 0.75rem;
+                align-items: flex-start;
+                background: rgba(255,255,255,0.85);
+                backdrop-filter: blur(4px);
+                border: 1px solid #e0eaf6;
+                border-radius: 12px;
+                padding: 0.85rem 0.95rem;
+                box-shadow: 0 2px 6px rgba(34,41,47,0.04);
+            }
+            .reg-brand-card .ico {
+                width: 36px; height: 36px;
+                flex-shrink: 0;
+                display: inline-flex; align-items: center; justify-content: center;
+                background: rgba(59,130,246,0.12);
+                color: var(--ob-primary);
+                border-radius: 10px;
+                font-size: 1.05rem;
+            }
+            .reg-brand-card .ttl { font-weight: 600; color: var(--ob-text); font-size: 0.85rem; line-height: 1.2; margin: 0 0 0.15rem; }
+            .reg-brand-card .sub { font-size: 0.78rem; color: var(--ob-text-muted); margin: 0; line-height: 1.35; }
+            .reg-brand-card a { color: var(--ob-primary); text-decoration: none; font-weight: 600; font-size: 0.78rem; }
+            .reg-brand-card a:hover { text-decoration: underline; }
+
+            /* ─────────────── Center wizard panel ─────────────── */
+            .reg-wizard-panel {
+                background: #fff;
+                border: 1px solid #e6ebf3;
+                border-radius: 18px;
+                padding: 1.75rem 1.75rem 1.5rem;
+                box-shadow: 0 10px 30px -12px rgba(34,41,47,0.10);
                 min-width: 0;
             }
-            .reg-input::placeholder { color: var(--ob-text-muted); }
+            .reg-wizard-head { margin-bottom: 1.25rem; }
+            .reg-wizard-head h1 { font-size: 1.5rem; font-weight: 600; color: var(--ob-text); margin: 0 0 0.25rem; letter-spacing: -0.01em; }
+            .reg-wizard-head p { font-size: 0.92rem; color: var(--ob-text-muted); margin: 0; }
+
+            /* Stepper (4 steps) */
+            .reg-stepper {
+                list-style: none;
+                margin: 0 0 1.5rem;
+                padding: 0.25rem 0 0.5rem;
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 0;
+                position: relative;
+            }
+            .reg-stepper li {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.5rem;
+                cursor: pointer;
+                user-select: none;
+                padding: 0 0.25rem;
+            }
+            .reg-stepper li .num {
+                position: relative; z-index: 2;
+                width: 38px; height: 38px;
+                border-radius: 50%;
+                display: inline-flex; align-items: center; justify-content: center;
+                background: #fff;
+                border: 1.5px solid #d8dde6;
+                color: #94a0b3;
+                font-weight: 600;
+                font-size: 0.95rem;
+                transition: all 0.2s ease;
+            }
+            .reg-stepper li .lbl {
+                font-size: 0.78rem;
+                color: #94a0b3;
+                font-weight: 500;
+                text-align: center;
+                line-height: 1.25;
+                max-width: 12rem;
+                transition: color 0.2s ease;
+            }
+            .reg-stepper li:not(:last-child)::after {
+                content: "";
+                position: absolute;
+                top: 19px;
+                left: calc(50% + 19px);
+                right: calc(-50% + 19px);
+                height: 2px;
+                background: #e3e7ee;
+                z-index: 1;
+            }
+            .reg-stepper li.completed .num {
+                background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                border-color: transparent;
+                color: #fff;
+                box-shadow: 0 4px 10px -3px rgba(59,130,246,0.45);
+            }
+            .reg-stepper li.completed::after { background: linear-gradient(90deg, #3b82f6, #93c5fd); }
+            .reg-stepper li.completed .lbl { color: var(--ob-text); }
+            .reg-stepper li.active .num {
+                background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                border-color: transparent;
+                color: #fff;
+                box-shadow: 0 6px 14px -4px rgba(59,130,246,0.55), 0 0 0 4px rgba(59,130,246,0.12);
+                transform: scale(1.04);
+            }
+            .reg-stepper li.active .lbl { color: var(--ob-primary); font-weight: 600; }
+            .reg-stepper li:hover:not(.active) .num { border-color: #3b82f6; color: #3b82f6; }
+            @media (max-width: 720px) {
+                .reg-stepper li .lbl { font-size: 0.7rem; }
+                .reg-stepper li .num { width: 32px; height: 32px; font-size: 0.85rem; }
+                .reg-stepper li:not(:last-child)::after { top: 16px; left: calc(50% + 16px); right: calc(-50% + 16px); }
+            }
+
+            /* Steps */
+            .reg-step { display: none; animation: regFadeIn 0.25s ease-out; }
+            .reg-step.active { display: block; }
+            @keyframes regFadeIn {
+                from { opacity: 0; transform: translateY(6px); }
+                to   { opacity: 1; transform: translateY(0); }
+            }
+            .reg-step-card {
+                border: 1px solid #e6ebf3;
+                border-radius: 14px;
+                padding: 1.5rem;
+                background: #fff;
+            }
+            .reg-step-head { margin-bottom: 1.25rem; }
+            .reg-step-head h2 { font-size: 1.18rem; font-weight: 600; color: var(--ob-text); margin: 0 0 0.25rem; }
+            .reg-step-head p  { font-size: 0.88rem; color: var(--ob-text-muted); margin: 0; }
+
+            /* Form internals (preserved scoped classes) */
+            .reg-grid { display: grid; grid-template-columns: 1fr; gap: 1.1rem 1.25rem; }
+            @media (min-width: 720px) { .reg-grid { grid-template-columns: 1fr 1fr; } }
+            .reg-col-span-2 { grid-column: span 1; }
+            @media (min-width: 720px) { .reg-col-span-2 { grid-column: span 2; } }
+
+            .reg-label { display: block; font-size: 0.85rem; font-weight: 500; color: var(--ob-text); margin-bottom: 0.4rem; }
+            .reg-required { color: #ef4444; margin-left: 2px; }
+            .reg-input-group {
+                display: flex; align-items: center;
+                border: 1px solid var(--ob-border-strong);
+                border-radius: 10px;
+                background: #fff;
+                overflow: hidden;
+                transition: border-color .18s, box-shadow .18s;
+                height: 44px;
+            }
+            .reg-input-group:focus-within { border-color: var(--ob-primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+            .reg-input-group.is-invalid { border-color: #ef4444; }
+            .reg-input-icon {
+                display: flex; align-items: center; justify-content: center;
+                padding: 0 0.65rem 0 0.85rem;
+                color: var(--ob-text-muted);
+                background: transparent;
+                font-size: 1rem;
+                align-self: stretch;
+            }
+            .reg-input {
+                flex: 1; border: 0; outline: none;
+                padding: 0.55rem 0.85rem 0.55rem 0.25rem;
+                font-size: 0.92rem;
+                color: var(--ob-text);
+                background: transparent;
+                min-width: 0;
+                font-family: inherit;
+            }
+            .reg-input::placeholder { color: #9aa4b5; }
+
             .reg-select {
-                width: 100%;
-                height: 2.5rem;
-                padding: 0 0.75rem;
+                width: 100%; height: 44px;
+                padding: 0 2rem 0 0.85rem;
                 background: #fff;
                 border: 1px solid var(--ob-border-strong);
-                border-radius: 0.358rem;
+                border-radius: 10px;
                 outline: none;
-                font-size: 0.95rem;
-                color: var(--ob-text-muted);
-                appearance: none;
-                -webkit-appearance: none;
+                font-size: 0.92rem;
+                color: var(--ob-text);
+                appearance: none; -webkit-appearance: none;
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%2364748B'><path d='M3.204 5h9.592L8 10.481zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659z'/></svg>");
+                background-repeat: no-repeat;
+                background-position: right 0.85rem center;
+                font-family: inherit;
             }
-            .reg-select:focus { border-color: var(--ob-primary); box-shadow: 0 0 0 0.2rem rgba(59, 130, 246,0.25); }
-            .reg-select.is-invalid { border-color: #ea5455; }
+            .reg-select:focus { border-color: var(--ob-primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+            .reg-select.is-invalid { border-color: #ef4444; }
+
             .reg-phone {
                 display: flex;
                 border: 1px solid var(--ob-border-strong);
-                border-radius: 0.358rem;
+                border-radius: 10px;
                 background: #fff;
-                transition: all .2s;
+                transition: border-color .18s, box-shadow .18s;
                 overflow: hidden;
+                height: 44px;
             }
-            .reg-phone:focus-within { border-color: var(--ob-primary); box-shadow: 0 0 0 0.2rem rgba(59, 130, 246,0.25); }
-            .reg-phone.is-invalid { border-color: #ea5455; }
+            .reg-phone:focus-within { border-color: var(--ob-primary); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+            .reg-phone.is-invalid { border-color: #ef4444; }
             .reg-phone select {
-                padding: 0 0.75rem;
-                background: var(--ob-surface-2);
+                padding: 0 0.65rem;
+                background: #f8fafc;
                 border: 0;
                 border-right: 1px solid var(--ob-border-strong);
                 color: var(--ob-text-muted);
-                font-size: 0.9rem;
+                font-size: 0.88rem;
                 outline: none;
             }
             .reg-phone input {
-                flex: 1;
-                border: 0;
-                outline: none;
-                padding: 0.5rem 0.75rem;
-                font-size: 0.9rem;
-                color: var(--ob-text-muted);
+                flex: 1; border: 0; outline: none;
+                padding: 0 0.85rem;
+                font-size: 0.92rem;
+                color: var(--ob-text);
                 background: transparent;
                 min-width: 0;
+                font-family: inherit;
             }
-            .reg-err { color: #ea5455; font-size: 0.8rem; margin: 0.25rem 0 0; }
+            .reg-phone input::placeholder { color: #9aa4b5; }
+
+            .reg-err { color: #ef4444; font-size: 0.78rem; margin: 0.3rem 0 0; }
             .reg-err.hidden { display: none; }
-            /* neutralize Vuexy/Bootstrap default margins that inflate gaps inside our cards */
-            .reg-card input, .reg-card select, .reg-card textarea, .reg-card button, .reg-card label { margin: 0; }
-            .reg-card .reg-label { margin-bottom: 0.25rem; }
+            .reg-step input, .reg-step select, .reg-step textarea, .reg-step button, .reg-step label { margin: 0; }
 
             /* Locked (read-only) state when an existing practice is picked */
-            .reg-input-group.is-locked { background: var(--ob-surface-2); }
-            .reg-input-group.is-locked input { background: transparent; }
-            .reg-phone.is-locked { background: var(--ob-surface-2); }
+            .reg-input-group.is-locked { background: #f1f5f9; }
+            .reg-input-group.is-locked input { background: transparent; color: var(--ob-text-muted); }
+            .reg-phone.is-locked { background: #f1f5f9; }
             .reg-phone.is-locked select, .reg-phone.is-locked input { background: transparent; pointer-events: none; }
-            .reg-select.is-locked { background: var(--ob-surface-2); pointer-events: none; }
+            .reg-select.is-locked { background: #f1f5f9; pointer-events: none; }
 
-            /* Autocomplete wrapper + menu */
+            /* Autocomplete */
             .reg-autocomplete { position: relative; }
             .reg-autocomplete-menu {
-                position: absolute;
-                top: calc(100% + 4px);
-                left: 0;
-                right: 0;
+                position: absolute; top: calc(100% + 4px); left: 0; right: 0;
                 background: #fff;
                 border: 1px solid var(--ob-border-strong);
-                border-radius: 0.358rem;
-                box-shadow: 0 4px 12px rgba(34,41,47,0.08);
-                max-height: 260px;
-                overflow-y: auto;
+                border-radius: 10px;
+                box-shadow: 0 12px 28px -10px rgba(34,41,47,0.18);
+                max-height: 260px; overflow-y: auto;
                 z-index: 100;
                 display: none;
             }
             .reg-autocomplete-menu.open { display: block; }
             .reg-autocomplete-item {
-                padding: 0.5rem 0.75rem;
+                padding: 0.55rem 0.85rem;
                 cursor: pointer;
-                font-size: 0.9rem;
-                color: var(--ob-text-muted);
-                border-bottom: 1px solid #f6f6f6;
+                font-size: 0.88rem;
+                color: var(--ob-text);
+                border-bottom: 1px solid #f3f5f9;
             }
             .reg-autocomplete-item:last-child { border-bottom: 0; }
-            .reg-autocomplete-item:hover,
-            .reg-autocomplete-item.active { background: var(--ob-surface-2); color: var(--ob-text); }
-            .reg-autocomplete-empty { padding: 0.5rem 0.75rem; font-size: 0.85rem; color: var(--ob-text-muted); font-style: italic; }
+            .reg-autocomplete-item:hover, .reg-autocomplete-item.active {
+                background: #eff6ff; color: var(--ob-primary);
+            }
+            .reg-autocomplete-empty { padding: 0.55rem 0.85rem; font-size: 0.82rem; color: var(--ob-text-muted); font-style: italic; }
             .reg-change-link {
-                display: inline-block;
-                margin-top: 0.25rem;
-                font-size: 0.8rem;
-                color: var(--ob-primary);
-                cursor: pointer;
-                text-decoration: none;
+                display: inline-block; margin-top: 0.35rem;
+                font-size: 0.78rem; color: var(--ob-primary);
+                cursor: pointer; text-decoration: none;
             }
             .reg-change-link:hover { text-decoration: underline; }
 
-            /* Additional card */
-            .reg-card-head-with-toggle { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; }
-            .reg-expand-btn { background: var(--ob-primary); color: #fff; border: 0; border-radius: 0.358rem; width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: background .2s; }
-            .reg-expand-btn:hover { background: #46b8da; }
-            .reg-additional-body { display: flex; flex-direction: column; gap: 1.5rem; transition: all .3s; }
-            .reg-additional-body.hidden { display: none; }
-
-            .reg-section-label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--ob-text); margin-bottom: 0.5rem; }
-            .reg-option-list { display: flex; flex-direction: column; gap: 0.25rem; }
-            .reg-option-grid { display: grid; grid-template-columns: 1fr; row-gap: 0.25rem; column-gap: 1rem; }
+            /* Section labels + option lists (additional doctor info) */
+            .reg-section-label { display: block; font-size: 0.88rem; font-weight: 600; color: var(--ob-text); margin-bottom: 0.6rem; }
+            .reg-option-list { display: flex; flex-direction: column; gap: 0.4rem; }
+            .reg-option-grid { display: grid; grid-template-columns: 1fr; row-gap: 0.4rem; column-gap: 1rem; }
             @media (min-width: 640px) { .reg-option-grid { grid-template-columns: 1fr 1fr; } }
-            .reg-option { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.875rem; color: var(--ob-text-muted); }
+            .reg-option { display: flex; align-items: center; gap: 0.55rem; cursor: pointer; font-size: 0.88rem; color: var(--ob-text); }
             .reg-option.align-start { align-items: flex-start; }
-            .reg-option input[type="radio"], .reg-option input[type="checkbox"] { accent-color: var(--ob-primary); width: 1rem; height: 1rem; min-width: 1rem; cursor: pointer; flex-shrink: 0; }
+            .reg-option input[type="radio"], .reg-option input[type="checkbox"] {
+                accent-color: var(--ob-primary); width: 1rem; height: 1rem; min-width: 1rem; cursor: pointer; flex-shrink: 0;
+            }
 
-            .reg-form-box { background: #fbfbfb; border: 1px solid var(--ob-border-strong); border-radius: 0.358rem; padding: 1.25rem; }
+            .reg-form-box { background: #f8fafc; border: 1px solid #e6ebf3; border-radius: 12px; padding: 1.1rem; }
             .reg-form-box.hidden { display: none; }
             .reg-email-row { display: flex; gap: 0.5rem; }
             .reg-email-row .reg-input-group { flex: 1; }
-            .reg-btn-delete { width: 2.5rem; height: 2.5rem; background: rgba(234,84,85,0.125); color: #ea5455; border: 0; border-radius: 0.358rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .2s; }
-            .reg-btn-delete:hover { background: rgba(234,84,85,0.2); }
-            .reg-btn-primary { background: var(--ob-primary); color: #fff; border: 0; padding: 0.5rem 1rem; border-radius: 0.358rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; box-shadow: 0 2px 4px rgba(59, 130, 246,0.3); transition: background .2s; }
-            .reg-btn-primary:hover { background: #46b8da; }
+            .reg-btn-delete {
+                width: 44px; height: 44px;
+                background: rgba(239,68,68,0.10); color: #ef4444;
+                border: 0; border-radius: 10px;
+                cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                flex-shrink: 0;
+                transition: background .15s;
+            }
+            .reg-btn-delete:hover { background: rgba(239,68,68,0.18); }
+            .reg-btn-add-email {
+                background: var(--ob-primary); color: #fff;
+                border: 0; padding: 0.55rem 1rem; border-radius: 8px;
+                font-size: 0.85rem; font-weight: 500;
+                cursor: pointer;
+                box-shadow: 0 4px 10px -3px rgba(59,130,246,0.4);
+                transition: background .15s, transform .1s;
+            }
+            .reg-btn-add-email:hover { background: #2563eb; transform: translateY(-1px); }
 
-            /* Doctor Preferences panel */
-            .reg-pref-panel { background: #fcfcfc; border: 1px solid var(--ob-border); border-radius: 0.358rem; overflow: hidden; display: flex; flex-direction: column; }
-            .reg-pref-header-bar { background: #fff; border-bottom: 1px solid var(--ob-border); padding: 0.75rem 1rem; font-weight: 700; color: var(--ob-text); font-size: 0.95rem; }
-            .reg-pref-scroll { overflow-y: auto; max-height: 500px; background: #fff; position: relative; }
-            .reg-pref-scroll::-webkit-scrollbar { width: 6px; }
-            .reg-pref-scroll::-webkit-scrollbar-track { background: #fcfcfc; }
-            .reg-pref-scroll::-webkit-scrollbar-thumb { background: var(--ob-border-strong); border-radius: 4px; }
-            .reg-pref-scroll::-webkit-scrollbar-thumb:hover { background: var(--ob-text-muted); }
-            .reg-pref-section { padding: 1.25rem 1rem 1rem; border-bottom: 1px solid var(--ob-border); }
-            .reg-pref-title { font-weight: 500; color: var(--ob-text); margin: 0 0 0.75rem; font-size: 0.95rem; }
-            .reg-pref-list { display: flex; flex-direction: column; gap: 0.5rem; }
+            /* Doctor Preferences panel (now nested inside step 4) */
+            .reg-pref-panel {
+                background: #fcfdff;
+                border: 1px solid #e6ebf3;
+                border-radius: 12px;
+                overflow: hidden;
+                display: flex; flex-direction: column;
+            }
+            .reg-pref-header-bar {
+                background: #fff;
+                border-bottom: 1px solid #e6ebf3;
+                padding: 0.85rem 1rem;
+                font-weight: 700;
+                color: var(--ob-text);
+                font-size: 0.95rem;
+            }
+            .reg-pref-scroll { background: #fff; max-height: none; }
+            .reg-pref-section { padding: 1.1rem 1rem 1rem; border-bottom: 1px solid #f0f3f8; }
+            .reg-pref-section:last-child { border-bottom: 0; }
+            .reg-pref-title { font-weight: 600; color: var(--ob-text); margin: 0 0 0.6rem; font-size: 0.92rem; }
+            .reg-pref-list { display: flex; flex-direction: column; gap: 0.4rem; }
             .reg-pref-item { display: flex; align-items: center; cursor: pointer; }
             .reg-pref-item.align-start { align-items: flex-start; }
-            .reg-pref-item input[type="radio"], .reg-pref-item input[type="checkbox"] { accent-color: var(--ob-primary); margin-right: 0.5rem; width: 1rem; height: 1rem; cursor: pointer; flex-shrink: 0; }
+            .reg-pref-item input[type="radio"], .reg-pref-item input[type="checkbox"] {
+                accent-color: var(--ob-primary); margin-right: 0.55rem;
+                width: 1rem; height: 1rem; cursor: pointer; flex-shrink: 0;
+            }
             .reg-pref-item.align-start input { margin-top: 0.25rem; }
-            .reg-pref-item span { color: var(--ob-text-muted); font-size: 0.95rem; }
+            .reg-pref-item span { color: var(--ob-text); font-size: 0.88rem; line-height: 1.45; }
 
             /* Toggle switches */
-            .reg-toggle-group { display: flex; flex-direction: column; gap: 1.25rem; }
+            .reg-toggle-group { display: flex; flex-direction: column; gap: 1.1rem; }
             .reg-toggle-label { display: flex; align-items: center; cursor: pointer; }
             .reg-toggle-switch { position: relative; width: 2.5rem; height: 22px; }
             .reg-toggle-switch input.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-            .reg-toggle-bg { display: block; width: 2.5rem; height: 22px; background: var(--ob-border); border-radius: 9999px; transition: background .2s; }
+            .reg-toggle-bg { display: block; width: 2.5rem; height: 22px; background: #d8dde6; border-radius: 9999px; transition: background .2s; }
             .reg-toggle-dot { position: absolute; width: 1rem; height: 1rem; background: #fff; border-radius: 50%; top: 3px; right: 3px; transform: translateX(-125%); transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
             .reg-toggle-switch input.sr-only:checked ~ .reg-toggle-bg { background: var(--ob-primary); }
             .reg-toggle-switch input.sr-only:checked ~ .reg-toggle-dot { transform: translateX(0); }
-            .reg-toggle-text { margin-left: 0.75rem; font-size: 0.95rem; color: var(--ob-text-muted); }
-            .reg-toggle-panel { margin-top: 0.75rem; padding: 1rem; background: var(--ob-surface-2); border: 1px solid var(--ob-border); border-radius: 0.358rem; display: flex; flex-direction: column; gap: 0.5rem; }
+            .reg-toggle-text { margin-left: 0.75rem; font-size: 0.9rem; color: var(--ob-text); font-weight: 500; }
+            .reg-toggle-panel { margin-top: 0.6rem; padding: 0.85rem; background: #f8fafc; border: 1px solid #e6ebf3; border-radius: 10px; display: flex; flex-direction: column; gap: 0.4rem; }
             .reg-toggle-panel.hidden { display: none; }
 
-            .reg-back-to-top { position: sticky; bottom: 0; background: var(--ob-primary); color: #fff; width: 2rem; height: 2rem; border-radius: 0.358rem; display: flex; justify-content: center; align-items: center; cursor: pointer; opacity: 0.9; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: -2rem; float: right; z-index: 10; margin-right: 0.5rem; }
-            .reg-back-to-top:hover { background: #46b8da; }
-
-            /* Terms + actions */
-            .reg-terms-wrap { margin-top: 1.5rem; padding: 0 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
-            .reg-terms-label { display: flex; align-items: flex-start; color: var(--ob-text-muted); font-size: 0.9rem; cursor: pointer; }
-            .reg-terms-label input { margin: 0.2rem 0.75rem 0 0 !important; width: 1.1rem; height: 1.1rem; accent-color: var(--ob-primary); cursor: pointer; flex-shrink: 0; }
-            .reg-terms-link { color: var(--ob-primary); text-decoration: none; }
+            /* Terms */
+            .reg-terms-wrap { margin-top: 1.25rem; padding: 1rem 1.1rem; background: #f8fafc; border: 1px solid #e6ebf3; border-radius: 12px; display: flex; flex-direction: column; gap: 0.65rem; }
+            .reg-terms-label { display: flex; align-items: flex-start; color: var(--ob-text); font-size: 0.88rem; cursor: pointer; }
+            .reg-terms-label input { margin: 0.2rem 0.7rem 0 0 !important; width: 1.05rem; height: 1.05rem; accent-color: var(--ob-primary); cursor: pointer; flex-shrink: 0; }
+            .reg-terms-link { color: var(--ob-primary); text-decoration: none; font-weight: 600; }
             .reg-terms-link:hover { text-decoration: underline; }
-            .reg-actions { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--ob-border); padding-top: 1.5rem; }
-            .reg-btn-back { padding: 0.6rem 1.25rem; background: var(--ob-primary); color: #fff; border-radius: 0.358rem; font-weight: 500; text-decoration: none; font-size: 0.95rem; box-shadow: 0 2px 4px rgba(59, 130, 246,0.3); transition: background .2s; }
-            .reg-btn-back:hover { background: #46b8da; color: #fff; }
-            .reg-btn-submit { padding: 0.6rem 1.25rem; background: #8cc63f; color: #fff; border: 0; border-radius: 0.358rem; font-weight: 500; font-size: 0.95rem; letter-spacing: 0.025em; cursor: pointer; box-shadow: 0 2px 4px rgba(140,198,63,0.3); transition: background .2s; }
-            .reg-btn-submit:hover { background: #7cb038; }
-        </style>
 
-        <style>
-            input:-webkit-autofill,
-            input:-webkit-autofill:hover,
-            input:-webkit-autofill:focus,
-            input:-webkit-autofill:active {
+            /* Required-fields callout */
+            .reg-required-note {
+                margin-top: 1.1rem;
+                background: #f8fafc;
+                border: 1px solid #e6ebf3;
+                border-radius: 10px;
+                padding: 0.7rem 0.9rem;
+                font-size: 0.82rem;
+                color: var(--ob-text-muted);
+                display: flex; align-items: center; gap: 0.55rem;
+            }
+            .reg-required-note i { color: var(--ob-primary); font-size: 1rem; }
+            .reg-required-note .reg-required { font-size: 0.95rem; }
+
+            /* Bottom action bar */
+            .reg-actions {
+                display: flex; justify-content: space-between; align-items: center;
+                gap: 1rem;
+                margin-top: 1.5rem;
+                padding-top: 1.25rem;
+                border-top: 1px solid #eef1f6;
+            }
+            .reg-btn-secondary {
+                display: inline-flex; align-items: center; gap: 0.4rem;
+                padding: 0.65rem 1.25rem;
+                background: #fff;
+                color: var(--ob-text);
+                border: 1px solid #d8dde6;
+                border-radius: 10px;
+                font-weight: 500; font-size: 0.9rem;
+                cursor: pointer;
+                transition: background .15s, border-color .15s, color .15s;
+                text-decoration: none;
+                font-family: inherit;
+            }
+            .reg-btn-secondary:hover { background: #f8fafc; border-color: #b9c1cf; color: var(--ob-text); }
+            .reg-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+            .reg-btn-primary-grad {
+                display: inline-flex; align-items: center; gap: 0.45rem;
+                padding: 0.65rem 1.5rem;
+                background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                color: #fff;
+                border: 0;
+                border-radius: 10px;
+                font-weight: 600; font-size: 0.92rem;
+                cursor: pointer;
+                box-shadow: 0 6px 16px -4px rgba(59,130,246,0.45);
+                transition: transform .1s, box-shadow .15s, filter .15s;
+                font-family: inherit;
+            }
+            .reg-btn-primary-grad:hover { transform: translateY(-1px); box-shadow: 0 10px 22px -6px rgba(59,130,246,0.55); filter: brightness(1.04); }
+            .reg-btn-primary-grad:active { transform: translateY(0); }
+            .reg-btn-primary-grad.is-submit { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); }
+            .hidden-btn { display: none !important; }
+
+            /* ─────────────── Right benefits panel ─────────────── */
+            .reg-benefits-panel {
+                position: sticky;
+                top: 1.25rem;
+                background: #fff;
+                border: 1px solid #e6ebf3;
+                border-radius: 16px;
+                padding: 1.35rem 1.25rem;
+                box-shadow: 0 6px 20px -10px rgba(34,41,47,0.10);
+            }
+            .reg-benefits-panel h3 {
+                font-size: 1.05rem; font-weight: 700; color: var(--ob-text);
+                margin: 0 0 1rem;
+            }
+            .reg-feat-list { display: flex; flex-direction: column; gap: 1rem; list-style: none; margin: 0; padding: 0; }
+            .reg-feat { display: flex; align-items: flex-start; gap: 0.85rem; }
+            .reg-feat-icon {
+                width: 38px; height: 38px;
+                flex-shrink: 0;
+                display: inline-flex; align-items: center; justify-content: center;
+                background: rgba(59,130,246,0.10);
+                color: var(--ob-primary);
+                border-radius: 10px;
+                font-size: 1.05rem;
+            }
+            .reg-feat-body .ttl { font-size: 0.9rem; font-weight: 600; color: var(--ob-text); margin: 0 0 0.2rem; }
+            .reg-feat-body .sub { font-size: 0.78rem; color: var(--ob-text-muted); margin: 0; line-height: 1.45; }
+
+            /* Server-error banner */
+            .reg-error-banner {
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+                color: #991b1b;
+                padding: 0.85rem 1rem;
+                border-radius: 10px;
+                margin-bottom: 1rem;
+                font-size: 0.88rem;
+            }
+            .reg-error-banner ul { margin: 0.4rem 0 0 1.2rem; padding: 0; }
+            .reg-error-banner strong { font-weight: 700; }
+
+            /* Autofill — keep familiar yellow inset to flag autofilled fields */
+            input:-webkit-autofill, input:-webkit-autofill:hover,
+            input:-webkit-autofill:focus, input:-webkit-autofill:active {
                 -webkit-box-shadow: 0 0 0 30px #fff9e6 inset !important;
                 background-color: #fff9e6 !important;
             }
-            html { scroll-behavior: smooth; }
+
+            /* Sub-section divider used inside steps for nested blocks */
+            .reg-substep-head {
+                margin: 1.5rem 0 1rem;
+                padding-top: 1.25rem;
+                border-top: 1px dashed #e6ebf3;
+            }
+            .reg-substep-head h3 { font-size: 1rem; font-weight: 600; color: var(--ob-text); margin: 0 0 0.2rem; }
+            .reg-substep-head p { font-size: 0.85rem; color: var(--ob-text-muted); margin: 0; }
         </style>
     </head>
     <body class="reg-body">
-        <div class="reg-shell">
+        <div class="reg-shell-3col">
 
-            <header class="reg-header">
-                <div style="display:flex; flex-direction:column; align-items:center;">
-                    <svg width="70" height="60" viewBox="0 0 64 64" fill="none" stroke="#b8b8b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:-8px">
-                        <path d="M32 12c-3.5 0-5.5 2-5.5 4 0 2-2 4-4.5 4-4.5 0-7 3-7 7.5 0 2.5-2 4-3 6-1.5 3.5 1 7 4 7 1 0 2 1 2 2.5 0 3.5 3.5 5.5 6.5 5.5 2 0 3-1.5 4.5-3 2-2 5.5-2 7.5 0 1.5 1.5 2.5 3 4.5 3 3 0 6.5-2 6.5-5.5 0-1.5 1-2.5 2-2.5 3 0 5.5-3.5 4-7-1-2-3-3.5-3-6 0-4.5-2.5-7.5-7-7.5-2.5 0-4.5-2-4.5-4 0-2-2-4-5.5-4z" fill="#ffffff" />
-                        <path d="M32 16v18M23 26c2 1 2 5 0 7M41 26c-2 1-2 5 0 7M28 20c1.5 1.5 1.5 4 0 5M36 20c-1.5 1.5-1.5 4 0 5M19 33c2.5 1 3.5 4 1 6M45 33c-2.5 1-3.5 4-1 6" stroke="#b8b8b8" />
-                        <path d="M30 46 l-4 8 h6 l-2 6 8-10 h-6 z" fill="#b8b8b8" stroke="none" />
-                    </svg>
-                    <div class="reg-logo-text">
-                        <span class="p1">ortho</span><span class="p2">brain</span><span class="tm">&trade;</span>
-                    </div>
-                    <div class="reg-tagline">Orthodontics for Your Dental Practice</div>
+            {{-- ─────────────── LEFT: Branding ─────────────── --}}
+            <aside class="reg-brand-panel">
+                <div class="reg-brand-logo">
+                    <span class="ob-mark">
+                        <svg width="22" height="22" viewBox="0 0 64 64" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M32 12c-3.5 0-5.5 2-5.5 4 0 2-2 4-4.5 4-4.5 0-7 3-7 7.5 0 2.5-2 4-3 6-1.5 3.5 1 7 4 7 1 0 2 1 2 2.5 0 3.5 3.5 5.5 6.5 5.5 2 0 3-1.5 4.5-3 2-2 5.5-2 7.5 0 1.5 1.5 2.5 3 4.5 3 3 0 6.5-2 6.5-5.5 0-1.5 1-2.5 2-2.5 3 0 5.5-3.5 4-7-1-2-3-3.5-3-6 0-4.5-2.5-7.5-7-7.5-2.5 0-4.5-2-4.5-4 0-2-2-4-5.5-4z" fill="#fff"/>
+                            <path d="M32 18v14M24 28c1.5 1 1.5 4 0 5.5M40 28c-1.5 1-1.5 4 0 5.5" stroke="#94a3b8"/>
+                        </svg>
+                    </span>
+                    <span class="p1">ortho</span><span class="p2">brain</span><span class="tm">&trade;</span>
                 </div>
-            </header>
 
-            <div class="reg-layout">
+                {{-- Doctor illustration — same asset the login page uses, for brand consistency --}}
+                <div class="reg-brand-art" aria-hidden="true">
+                    <img src="{{ asset('images/auth/doctor.png') }}"
+                         alt="Doctor illustration"
+                         class="reg-doctor"
+                         loading="lazy" />
+                </div>
 
-                <aside class="reg-sidebar">
-                    <nav id="scrollspy-nav">
-                        {{-- Account --}}
-                        <div class="reg-nav-item active" data-target="step-account">
-                            <div class="reg-nav-icon"><i class="bi bi-house-door" style="font-size:1.15rem"></i></div>
-                            <div>
-                                <div class="reg-nav-title">Account</div>
-                                <div class="reg-nav-sub">Account Details</div>
-                            </div>
-                        </div>
+                <div class="reg-brand-card">
+                    <span class="ico"><i class="bi bi-shield-lock"></i></span>
+                    <div>
+                        <p class="ttl">Your information is safe with us.</p>
+                        <p class="sub">We use enterprise-grade security to keep your data protected.</p>
+                    </div>
+                </div>
 
-                        {{-- Practice --}}
-                        <div class="reg-nav-item" data-target="step-practice">
-                            <div class="reg-nav-icon"><i class="bi bi-building" style="font-size:1.15rem"></i></div>
-                            <div>
-                                <div class="reg-nav-title">Practice</div>
-                                <div class="reg-nav-sub">Practice Information</div>
-                            </div>
-                        </div>
+                <div class="reg-brand-card">
+                    <span class="ico"><i class="bi bi-question-circle"></i></span>
+                    <div>
+                        <p class="ttl">Need help?</p>
+                        <a href="mailto:support@orthobrain.com">Contact Support</a>
+                    </div>
+                </div>
+            </aside>
 
-                        {{-- Address --}}
-                        <div class="reg-nav-item" data-target="step-address">
-                            <div class="reg-nav-icon"><i class="bi bi-geo-alt" style="font-size:1.15rem"></i></div>
-                            <div>
-                                <div class="reg-nav-title">Address</div>
-                                <div class="reg-nav-sub">Address Information</div>
-                            </div>
-                        </div>
+            {{-- ─────────────── CENTER: Wizard ─────────────── --}}
+            <main class="reg-wizard-panel">
+                <header class="reg-wizard-head">
+                    <h1>Orthobrain Registration</h1>
+                    <p>Complete your profile to get started with Orthobrain.</p>
+                </header>
 
-                        {{-- Additional --}}
-                        <div class="reg-nav-item" data-target="step-additional">
-                            <div class="reg-nav-icon"><i class="bi bi-file-earmark-text" style="font-size:1.15rem"></i></div>
-                            <div>
-                                <div class="reg-nav-title">Additional</div>
-                                <div class="reg-nav-sub">Doctor Information</div>
-                            </div>
-                        </div>
-                    </nav>
-                </aside>
+                <ol class="reg-stepper" id="reg-stepper">
+                    <li data-step="1" class="active" onclick="regGoToStep(1)"><span class="num">1</span><span class="lbl">Account Details</span></li>
+                    <li data-step="2" onclick="regGoToStep(2)"><span class="num">2</span><span class="lbl">Practice Information</span></li>
+                    <li data-step="3" onclick="regGoToStep(3)"><span class="num">3</span><span class="lbl">Address Information</span></li>
+                    <li data-step="4" onclick="regGoToStep(4)"><span class="num">4</span><span class="lbl">Additional Doctor Information</span></li>
+                </ol>
 
-                <main class="reg-main">
-                    {{-- Surface server-side validation errors so silent bounce-backs are impossible --}}
-                    @if($errors->any())
-                        <div style="background:#fdecea;border:1px solid #f5c6cb;color:#721c24;padding:0.85rem 1rem;border-radius:6px;margin-bottom:1rem;">
-                            <strong>Please fix the following before continuing:</strong>
-                            <ul style="margin:0.4rem 0 0 1.2rem;padding:0;">
-                                @foreach($errors->all() as $err)
-                                    <li>{{ $err }}</li>
+                {{-- Surface server-side validation errors so silent bounce-backs are impossible.
+                     Each <li> carries data-server-field-key so JS can remove it as the user
+                     edits the corresponding field (see dismissServerBannerFor below). --}}
+                @if($errors->any())
+                    <div class="reg-error-banner" id="reg-server-banner">
+                        <strong>Please fix the following before continuing:</strong>
+                        <ul>
+                            @foreach($errors->keys() as $key)
+                                @foreach($errors->get($key) as $msg)
+                                    <li data-server-field-key="{{ $key }}">{{ $msg }}</li>
                                 @endforeach
-                            </ul>
-                        </div>
-                    @endif
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
-                    <form id="registrationForm" action="{{ url('/register') }}" method="POST" novalidate onsubmit="return validateForm(event)">
-                        @csrf
+                <form id="registrationForm" action="{{ url('/register') }}" method="POST" novalidate onsubmit="return validateForm(event)">
+                    @csrf
 
-                        {{-- Doctor Information Card --}}
-                        <div id="step-account" class="reg-card">
-                            <div class="reg-card-head">
-                                <h2>Doctor Information</h2>
-                                <p>Enter your account details</p>
+                    {{-- preferred_language is fixed (no UI dropdown) — server still requires the field. --}}
+                    <input type="hidden" name="preferred_language" value="English">
+
+                    {{-- ─────── Step 1: Account Details ─────── --}}
+                    <section id="step-account" class="reg-step active" data-step="1">
+                        <div class="reg-step-card">
+                            <div class="reg-step-head">
+                                <h2>Account Details</h2>
+                                <p>Create your account to get started.</p>
                             </div>
                             <div class="reg-grid">
-                                {{-- Email --}}
                                 <div class="reg-col-span-2">
                                     <label class="reg-label">Email (Username)<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-email">
@@ -393,7 +669,6 @@
                                     </div>
                                     <p id="err-email" class="reg-err hidden"></p>
                                 </div>
-                                {{-- First Name --}}
                                 <div>
                                     <label class="reg-label">First Name<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-firstName">
@@ -402,7 +677,6 @@
                                     </div>
                                     <p id="err-firstName" class="reg-err hidden"></p>
                                 </div>
-                                {{-- Last Name --}}
                                 <div>
                                     <label class="reg-label">Last Name<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-lastName">
@@ -411,25 +685,23 @@
                                     </div>
                                     <p id="err-lastName" class="reg-err hidden"></p>
                                 </div>
-                                {{-- Password --}}
                                 <div>
                                     <label class="reg-label">Password<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-password">
                                         <span class="reg-input-icon"><i class="bi bi-lock"></i></span>
-                                        <input id="in-password" name="password" type="password" class="reg-input" placeholder="&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;" oninput="clearError('password')" />
-                                        <span class="reg-input-icon" style="border-right:0; border-left:1px solid var(--ob-border-strong); cursor:pointer;" onclick="const p=document.getElementById('in-password');p.type=p.type==='password'?'text':'password';this.querySelector('i').classList.toggle('bi-eye');this.querySelector('i').classList.toggle('bi-eye-slash');">
+                                        <input id="in-password" name="password" type="password" class="reg-input" placeholder="Enter password" oninput="clearError('password')" />
+                                        <span class="reg-input-icon" style="cursor:pointer;" onclick="const p=document.getElementById('in-password');p.type=p.type==='password'?'text':'password';this.querySelector('i').classList.toggle('bi-eye');this.querySelector('i').classList.toggle('bi-eye-slash');">
                                             <i class="bi bi-eye-slash"></i>
                                         </span>
                                     </div>
                                     <p id="err-password" class="reg-err hidden"></p>
                                 </div>
-                                {{-- Confirm Password --}}
                                 <div>
                                     <label class="reg-label">Confirm Password<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-confirmPassword">
                                         <span class="reg-input-icon"><i class="bi bi-lock"></i></span>
-                                        <input id="in-confirmPassword" name="confirm_password" type="password" class="reg-input" placeholder="&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;" oninput="clearError('confirmPassword')" />
-                                        <span class="reg-input-icon" style="border-right:0; border-left:1px solid var(--ob-border-strong); cursor:pointer;" onclick="const p=document.getElementById('in-confirmPassword');p.type=p.type==='password'?'text':'password';this.querySelector('i').classList.toggle('bi-eye');this.querySelector('i').classList.toggle('bi-eye-slash');">
+                                        <input id="in-confirmPassword" name="confirm_password" type="password" class="reg-input" placeholder="Confirm password" oninput="clearError('confirmPassword')" />
+                                        <span class="reg-input-icon" style="cursor:pointer;" onclick="const p=document.getElementById('in-confirmPassword');p.type=p.type==='password'?'text':'password';this.querySelector('i').classList.toggle('bi-eye');this.querySelector('i').classList.toggle('bi-eye-slash');">
                                             <i class="bi bi-eye-slash"></i>
                                         </span>
                                     </div>
@@ -437,19 +709,19 @@
                                 </div>
                             </div>
                         </div>
+                    </section>
 
-                        {{-- Practice Information Card --}}
-                        <div id="step-practice" class="reg-card">
-                            <div class="reg-card-head">
+                    {{-- ─────── Step 2: Practice Information (with Other Practices nested) ─────── --}}
+                    <section id="step-practice" class="reg-step" data-step="2">
+                        <div class="reg-step-card">
+                            <div class="reg-step-head">
                                 <h2>Practice Information</h2>
-                                <p>Enter your practice details</p>
+                                <p>Tell us about your practice.</p>
                             </div>
                             <div class="reg-grid">
-                                {{-- Practice Name (autocomplete) --}}
                                 <div>
                                     <label class="reg-label">Practice Name<span class="reg-required">*</span></label>
                                     <div class="reg-autocomplete">
-                                        {{-- Hidden: set when an existing practice is picked; empty = new practice --}}
                                         <input type="hidden" id="hid-practiceId" name="practice_id" value="{{ old('practice_id') }}">
                                         <div class="reg-input-group" id="box-practiceName">
                                             <span class="reg-input-icon"><i class="bi bi-building"></i></span>
@@ -467,21 +739,19 @@
                                     <a id="practice-change-link" class="reg-change-link" style="display:none" onclick="clearPracticeSelection()">Change practice</a>
                                     <p id="err-practiceName" class="reg-err hidden"></p>
                                 </div>
-                                {{-- Practice Phone Number --}}
                                 <div>
                                     <label class="reg-label">Practice Phone Number<span class="reg-required">*</span></label>
                                     <div class="reg-phone" id="box-phone">
                                         <span class="reg-input-icon" style="border-right:0"><i class="bi bi-telephone"></i></span>
                                         <select name="practice_phone_country_code">
-                                            <option value="+1_US">+1 (US)</option>
-                                            <option value="+1_CA">+1 (CA)</option>
-                                            <option value="+61_AU">+61 (AU)</option>
+                                            @foreach($phoneCodes as $code)
+                                                <option value="{{ $code }}" @selected(old('practice_phone_country_code', '+1') === $code)>{{ $code }}</option>
+                                            @endforeach
                                         </select>
                                         <input id="in-phone" name="practice_phone_number" type="text" maxlength="10" placeholder="XXX-XXX-XXXX" value="{{ old('practice_phone_number') }}" oninput="clearError('phone')" />
                                     </div>
                                     <p id="err-phone" class="reg-err hidden"></p>
                                 </div>
-                                {{-- Practice Website --}}
                                 <div>
                                     <label class="reg-label">Practice Website<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-website">
@@ -490,32 +760,67 @@
                                     </div>
                                     <p id="err-website" class="reg-err hidden"></p>
                                 </div>
-                                {{-- Preferred Language --}}
-                                <div>
-                                    <label class="reg-label">Preferred Language<span class="reg-required">*</span></label>
-                                    <select id="in-language" name="preferred_language" required class="reg-select" onchange="clearError('language')">
-                                        <option value="English" selected>English</option>
-                                        <option value="Spanish">Spanish</option>
-                                        <option value="French">French</option>
-                                    </select>
-                                    <p id="err-language" class="reg-err hidden"></p>
-                                </div>
                             </div>
-                        </div>
 
-                        {{-- Address Information Card --}}
-                        <div id="step-address" class="reg-card">
-                            <div class="reg-card-head">
-                                <h2>Address Information</h2>
-                                <p>Enter your address details</p>
+                            {{-- Other Practices You Work At — nested --}}
+                            <div id="step-extra-practices" class="reg-substep-head">
+                                <h3>Other Practices You Work At <span style="font-weight:400;font-size:0.82rem;color:var(--ob-text-muted);">(optional)</span></h3>
+                                <p>Add up to 5 other practices. Pick existing ones from the search, or create new ones inline. Each is reviewed by the admin separately.</p>
                             </div>
-                            {{-- Hidden inputs populated by the zip auto-fill JS --}}
-                            <input type="hidden" name="city_id"    id="hid-city">
-                            <input type="hidden" name="state_id"   id="hid-state">
-                            <input type="hidden" name="country_id" id="hid-country">
+
+                            <div id="extra-practice-rows"></div>
+
+                            <div style="margin-top:0.85rem;">
+                                <button type="button" id="btn-add-extra-practice" onclick="addExtraPracticeRow()"
+                                        style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.55rem 1.1rem;background:#fff;border:1px dashed var(--ob-primary);color:var(--ob-primary);font-weight:600;border-radius:8px;cursor:pointer;transition:all 0.15s ease;font-family:inherit;"
+                                        onmouseover="this.style.background='var(--ob-primary)';this.style.color='#fff';"
+                                        onmouseout="this.style.background='#fff';this.style.color='var(--ob-primary)';">
+                                    <i class="bi bi-plus-circle" style="font-size:1.05rem;"></i>
+                                    <span>Add another practice</span>
+                                </button>
+                                <small style="margin-left:0.75rem;color:var(--ob-text-muted);font-size:0.78rem;">Up to 5 additional practices.</small>
+                            </div>
+
+                            @if(old('additional_practices'))
+                                <script type="application/json" id="extra-old-data">@json(old('additional_practices'))</script>
+                            @endif
+
+                            <template id="extra-prac-zip-options">
+                                <option value="" disabled selected>Select zip code</option>
+                                @foreach(($zipcodes ?? []) as $z)
+                                    <option value="{{ $z->id }}"
+                                            data-city-id="{{ $z->city?->id }}"
+                                            data-city="{{ $z->city?->name }}"
+                                            data-state-id="{{ $z->city?->state?->id }}"
+                                            data-state="{{ $z->city?->state?->name }}"
+                                            data-country-id="{{ $z->city?->state?->country?->id }}"
+                                            data-country="{{ $z->city?->state?->country?->name }}">
+                                        {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
+                                    </option>
+                                @endforeach
+                            </template>
+
+                            <template id="extra-prac-phone-options">
+                                @foreach($phoneCodes as $code)
+                                    <option value="{{ $code }}">{{ $code }}</option>
+                                @endforeach
+                            </template>
+                        </div>
+                    </section>
+
+                    {{-- ─────── Step 3: Address Information ─────── --}}
+                    <section id="step-address" class="reg-step" data-step="3">
+                        <div class="reg-step-card">
+                            <div class="reg-step-head">
+                                <h2>Address Information</h2>
+                                <p>Where is your primary practice located?</p>
+                            </div>
+
+                            <input type="hidden" name="city_id"    id="hid-city"    value="{{ old('city_id') }}">
+                            <input type="hidden" name="state_id"   id="hid-state"   value="{{ old('state_id') }}">
+                            <input type="hidden" name="country_id" id="hid-country" value="{{ old('country_id') }}">
 
                             <div class="reg-grid">
-                                {{-- Street Address --}}
                                 <div>
                                     <label class="reg-label">Street Address<span class="reg-required">*</span></label>
                                     <div class="reg-input-group" id="box-address1">
@@ -524,7 +829,6 @@
                                     </div>
                                     <p id="err-address1" class="reg-err hidden"></p>
                                 </div>
-                                {{-- Street Address 2 --}}
                                 <div>
                                     <label class="reg-label">Street Address 2</label>
                                     <div class="reg-input-group" id="box-address2">
@@ -532,7 +836,6 @@
                                         <input id="in-address2" type="text" name="street_address_2" class="reg-input" placeholder="Street address 2" value="{{ old('street_address_2') }}" />
                                     </div>
                                 </div>
-                                {{-- Zip (master-driven) --}}
                                 <div>
                                     <label class="reg-label">Zip<span class="reg-required">*</span></label>
                                     <select id="in-zip" name="zip_id" required class="reg-select" onchange="onRegZipChange()">
@@ -552,89 +855,37 @@
                                     </select>
                                     <p id="err-zip" class="reg-err hidden"></p>
                                 </div>
-                                {{-- City (auto-filled, readonly) --}}
                                 <div>
                                     <label class="reg-label">City<span class="reg-required">*</span></label>
-                                    <div class="reg-input-group" style="background:var(--ob-surface-2)">
+                                    <div class="reg-input-group" style="background:#f1f5f9">
                                         <input id="in-city" type="text" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
                                 </div>
-                                {{-- State/Province (auto-filled, readonly) --}}
                                 <div>
                                     <label class="reg-label">State/Province<span class="reg-required">*</span></label>
-                                    <div class="reg-input-group" style="background:var(--ob-surface-2)">
+                                    <div class="reg-input-group" style="background:#f1f5f9">
                                         <input id="in-state" type="text" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
                                 </div>
-                                {{-- Country (auto-filled, readonly) --}}
                                 <div>
                                     <label class="reg-label">Country<span class="reg-required">*</span></label>
-                                    <div class="reg-input-group" style="background:var(--ob-surface-2)">
+                                    <div class="reg-input-group" style="background:#f1f5f9">
                                         <input id="in-country" type="text" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" value="" readonly />
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </section>
 
-                        {{-- Additional Practices (optional) --}}
-                        <div id="step-extra-practices" class="reg-card">
-                            <div class="reg-card-head">
-                                <h2>Other Practices You Work At <span style="font-weight:400;font-size:0.9rem;color:var(--ob-text-muted);">(optional)</span></h2>
-                                <p>Add up to 5 other practices. Pick existing ones from the search, or create new ones inline. Each is reviewed by the admin separately.</p>
+                    {{-- ─────── Step 4: Additional Doctor Information (with Doctor Preferences nested) ─────── --}}
+                    <section id="step-additional" class="reg-step" data-step="4">
+                        <div class="reg-step-card">
+                            <div class="reg-step-head">
+                                <h2>Additional Doctor Information</h2>
+                                <p>This information will automatically be saved to your account for all future submissions. You may edit this information at any time by visiting the My Profile tab.</p>
                             </div>
 
-                            <div id="extra-practice-rows"></div>
-
-                            <div style="margin-top:1rem;">
-                                <button type="button" id="btn-add-extra-practice" onclick="addExtraPracticeRow()"
-                                        style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.55rem 1.1rem;background:#fff;border:1px dashed var(--ob-primary);color:var(--ob-primary);font-weight:600;border-radius:6px;cursor:pointer;transition:all 0.15s ease;"
-                                        onmouseover="this.style.background='var(--ob-primary)';this.style.color='#fff';"
-                                        onmouseout="this.style.background='#fff';this.style.color='var(--ob-primary)';">
-                                    <i class="bi bi-plus-circle" style="font-size:1.05rem;"></i>
-                                    <span>Add another practice</span>
-                                </button>
-                                <small class="text-muted" style="margin-left:0.75rem;">Up to 5 additional practices.</small>
-                            </div>
-
-                            {{-- Server-side old() dump: if validation bounces the form,
-                                 this JSON contains the rows the doctor had entered so JS
-                                 can rebuild them on load (see DOMContentLoaded handler). --}}
-                            @if(old('additional_practices'))
-                                <script type="application/json" id="extra-old-data">@json(old('additional_practices'))</script>
-                            @endif
-
-                            {{-- Zip options reused per-row in JS template (avoids repeating the @foreach above) --}}
-                            <template id="extra-prac-zip-options">
-                                <option value="" disabled selected>Select zip code</option>
-                                @foreach(($zipcodes ?? []) as $z)
-                                    <option value="{{ $z->id }}"
-                                            data-city-id="{{ $z->city?->id }}"
-                                            data-city="{{ $z->city?->name }}"
-                                            data-state-id="{{ $z->city?->state?->id }}"
-                                            data-state="{{ $z->city?->state?->name }}"
-                                            data-country-id="{{ $z->city?->state?->country?->id }}"
-                                            data-country="{{ $z->city?->state?->country?->name }}">
-                                        {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
-                                    </option>
-                                @endforeach
-                            </template>
-                        </div>
-
-                        {{-- Additional --}}
-                        <div id="step-additional" class="reg-card">
-                            <div class="reg-card-head-with-toggle">
-                                <div>
-                                    <h2 style="font-size:1.3rem; font-weight:500; color:var(--ob-text); margin:0 0 0.25rem;">Additional Doctor Information</h2>
-                                    <p style="font-size:0.9rem; color:var(--ob-text-muted); margin:0;">This information will automatically be saved to your account for all future submissions. You may edit this information at any time by visiting the My Profile tab.</p>
-                                </div>
-                                <button type="button" onclick="toggleAdditionalInfo()" id="btn-toggle-add" class="reg-expand-btn">
-                                    <i id="icon-collapse" class="bi bi-dash-lg" style="font-size:1.1rem"></i>
-                                    <i id="icon-expand" class="bi bi-plus-lg hidden" style="font-size:1.1rem"></i>
-                                </button>
-                            </div>
-
-                            <div id="additional-info-body" class="reg-additional-body">
-                                {{-- Orthodontic Services --}}
+                            <div id="additional-info-body" style="display:flex;flex-direction:column;gap:1.4rem;">
                                 <div>
                                     <label class="reg-section-label">Are you currently providing orthodontic services in your practice?</label>
                                     <div class="reg-option-list">
@@ -643,7 +894,6 @@
                                     </div>
                                 </div>
 
-                                {{-- Modalities (master-driven) --}}
                                 <div>
                                     <label class="reg-section-label">What modalities are you currently/or planning to provide?</label>
                                     <div class="reg-option-list">
@@ -656,7 +906,6 @@
                                     </div>
                                 </div>
 
-                                {{-- Specialties (master-driven) --}}
                                 <div>
                                     <label class="reg-section-label">Specialties:</label>
                                     <div class="reg-option-grid">
@@ -669,7 +918,6 @@
                                     </div>
                                 </div>
 
-                                {{-- Preferred doctor contact information --}}
                                 <div>
                                     <label class="reg-section-label">Preferred doctor contact information</label>
                                     <div class="reg-option-list" style="margin-bottom:1rem;">
@@ -679,7 +927,6 @@
                                     </div>
 
                                     <div id="contact-forms-container" style="display:flex; flex-direction:column; gap:1rem;">
-                                        {{-- Doctor Form Box --}}
                                         <div id="form-box-doctor" class="reg-form-box hidden">
                                             <div class="reg-grid" style="margin-bottom:1.25rem;">
                                                 <div>
@@ -709,10 +956,9 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button type="button" onclick="addEmailRow('doctor-other-emails-list')" class="reg-btn-primary">+ Add Other Email</button>
+                                            <button type="button" onclick="addEmailRow('doctor-other-emails-list')" class="reg-btn-add-email">+ Add Other Email</button>
                                         </div>
 
-                                        {{-- Employee Form Box --}}
                                         <div id="form-box-employee" class="reg-form-box hidden">
                                             <div class="reg-grid" style="margin-bottom:1.25rem;">
                                                 <div>
@@ -756,224 +1002,311 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button type="button" onclick="addEmailRow('employee-other-emails-list')" class="reg-btn-primary">+ Add Other Email</button>
+                                            <button type="button" onclick="addEmailRow('employee-other-emails-list')" class="reg-btn-add-email">+ Add Other Email</button>
                                         </div>
-                                    </div>
-                                </div>
-                                
-                                {{-- Doctor Preferences Box --}}
-                                <div class="reg-pref-panel">
-                                    <div class="reg-pref-header-bar">Doctor Preferences</div>
-                                    <div class="reg-pref-scroll">
-
-                                        {{-- Preferred Treatment Modality --}}
-                                        <div class="reg-pref-section">
-                                            <p class="reg-pref-title">Preferred Treatment Modality</p>
-                                            <div class="reg-pref-list">
-                                                @foreach(($treatmentModalitiesList ?? collect()) as $opt)
-                                                    <label class="reg-pref-item">
-                                                        <input type="checkbox" name="treatment_modalities[]" value="{{ $opt->id }}" @checked(in_array((string) $opt->id, (array) old('treatment_modalities', []), true))>
-                                                        <span>{{ $opt->name }}</span>
-                                                    </label>
-                                                @endforeach
-                                            </div>
-                                        </div>
-
-                                        {{-- Preferred Tooth Numbering System --}}
-                                        <div class="reg-pref-section">
-                                            <p class="reg-pref-title">Preferred Tooth Numbering System</p>
-                                            <div class="reg-pref-list">
-                                                <label class="reg-pref-item"><input type="radio" name="tooth_numbering" checked><span>Universal (1-32)</span></label>
-                                                <label class="reg-pref-item"><input type="radio" name="tooth_numbering"><span>FDI (11-48)</span></label>
-                                                <label class="reg-pref-item"><input type="radio" name="tooth_numbering"><span>Palmer (UR1-UR8)</span></label>
-                                                <label class="reg-pref-item"><input type="radio" name="tooth_numbering"><span>International (11-48)</span></label>
-                                            </div>
-                                        </div>
-
-                                        {{-- Smile Arc --}}
-                                        <div class="reg-pref-section">
-                                            <p class="reg-pref-title">Smile Arc</p>
-                                            <div class="reg-pref-list">
-                                                <label class="reg-pref-item"><input type="radio" name="smile_arc" checked><span>Defer to orthobrain&reg;</span></label>
-                                                <label class="reg-pref-item"><input type="radio" name="smile_arc"><span>Lateral incisors .5mm shorter than central incisors</span></label>
-                                                <label class="reg-pref-item"><input type="radio" name="smile_arc"><span>Lateral incisors same length as central incisors</span></label>
-                                            </div>
-                                        </div>
-
-                                        {{-- Treatment of Small Lateral Incisors --}}
-                                        <div class="reg-pref-section">
-                                            <p class="reg-pref-title">Treatment of Small Lateral Incisors</p>
-                                            <div class="reg-pref-list">
-                                                <label class="reg-pref-item"><input type="radio" name="lateral_incisors" checked><span>Defer to orthobrain&reg;</span></label>
-                                                <label class="reg-pref-item"><input type="radio" name="lateral_incisors"><span>Interproximal Reduction (IPR) on lower arch to camouflage</span></label>
-                                                <label class="reg-pref-item"><input type="radio" name="lateral_incisors"><span>Leave spacing mesial and distal to maxillary laterals for future cosmetic correction</span></label>
-                                            </div>
-                                        </div>
-
-                                        {{-- Buccal Corridors --}}
-                                        <div class="reg-pref-section">
-                                            <p class="reg-pref-title">Buccal Corridors</p>
-                                            <div class="reg-pref-list">
-                                                @foreach(($buccalCorridorsList ?? collect()) as $opt)
-                                                    <label class="reg-pref-item">
-                                                        <input type="checkbox" name="buccal_corridors[]" value="{{ $opt->id }}" @checked(in_array((string) $opt->id, (array) old('buccal_corridors', []), true))>
-                                                        <span>{!! $opt->name !!}</span>
-                                                    </label>
-                                                @endforeach
-                                            </div>
-                                        </div>
-
-                                        {{-- Mixed Dentition --}}
-                                        <div class="reg-pref-section">
-                                            <p class="reg-pref-title">Mixed Dentition and Bite Correcting Appliances</p>
-                                            <div class="reg-pref-list">
-                                                <label class="reg-pref-item align-start"><input type="radio" name="mixed_dentition" checked><span>Defer to orthobrain&reg;</span></label>
-                                                <label class="reg-pref-item align-start"><input type="radio" name="mixed_dentition"><span>I prefer not to use any growth and adjunctive appliances (e.g., expanders, bite planes, bit correctors, herbst, etc.) and request a proposal for a best outcome without an appliance knowing and fully understanding that this may not be an ideal Perfect Smile Plan for optimal results.</span></label>
-                                            </div>
-                                        </div>
-
-                                        {{-- Orthodontic Extractions --}}
-                                        <div class="reg-pref-section">
-                                            <p class="reg-pref-title">Orthodontic Extractions</p>
-                                            <div class="reg-pref-list">
-                                                <label class="reg-pref-item align-start"><input type="radio" name="ortho_extractions" checked><span>Defer to orthobrain&reg;</span></label>
-                                                <label class="reg-pref-item align-start"><input type="radio" name="ortho_extractions"><span>I prefer not to extract teeth and request a proposal for a best outcome without extractions fully knowing and fully understanding that this may not be an ideal treatment plan for optimal results.</span></label>
-                                            </div>
-                                        </div>
-
-                                        {{-- Preferences (Toggles) --}}
-                                        <div class="reg-pref-section" style="border-bottom:0; padding-bottom:1.5rem;">
-                                            <p class="reg-pref-title" style="margin-bottom:1rem;">Preferences</p>
-                                            <div class="reg-toggle-group">
-
-                                                {{-- IPR Protocol --}}
-                                                <div>
-                                                    <label class="reg-toggle-label">
-                                                        <span class="reg-toggle-switch">
-                                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('ipr-options').classList.toggle('hidden')">
-                                                            <span class="reg-toggle-bg"></span>
-                                                            <span class="reg-toggle-dot"></span>
-                                                        </span>
-                                                        <span class="reg-toggle-text">IPR Protocol</span>
-                                                    </label>
-                                                    <div id="ipr-options" class="reg-toggle-panel hidden">
-                                                        <label class="reg-pref-item"><input type="radio" name="ipr_opt" checked><span style="font-size:0.9rem;">Defer to orthobrain&reg;</span></label>
-                                                        <label class="reg-pref-item"><input type="radio" name="ipr_opt"><span style="font-size:0.9rem;">No IPR</span></label>
-                                                        <label class="reg-pref-item"><input type="radio" name="ipr_opt"><span style="font-size:0.9rem;">Other</span></label>
-                                                    </div>
-                                                </div>
-
-                                                {{-- Attachments --}}
-                                                <div>
-                                                    <label class="reg-toggle-label">
-                                                        <span class="reg-toggle-switch">
-                                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('attachment-options').classList.toggle('hidden')">
-                                                            <span class="reg-toggle-bg"></span>
-                                                            <span class="reg-toggle-dot"></span>
-                                                        </span>
-                                                        <span class="reg-toggle-text">Attachments</span>
-                                                    </label>
-                                                    <div id="attachment-options" class="reg-toggle-panel hidden">
-                                                        <label class="reg-pref-item"><input type="radio" name="attachment_opt" checked><span style="font-size:0.9rem;">At Aligner Step 1</span></label>
-                                                        <label class="reg-pref-item"><input type="radio" name="attachment_opt"><span style="font-size:0.9rem;">At Aligner Step</span></label>
-                                                    </div>
-                                                </div>
-
-                                                {{-- Elastics/Bonded Buttons --}}
-                                                <div>
-                                                    <label class="reg-toggle-label">
-                                                        <span class="reg-toggle-switch">
-                                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('elastics-options').classList.toggle('hidden')">
-                                                            <span class="reg-toggle-bg"></span>
-                                                            <span class="reg-toggle-dot"></span>
-                                                        </span>
-                                                        <span class="reg-toggle-text">Elastics/Bonded Buttons</span>
-                                                    </label>
-                                                    <div id="elastics-options" class="reg-toggle-panel hidden">
-                                                        <label class="reg-pref-item"><input type="radio" name="elastics_opt" checked><span style="font-size:0.9rem;">Yes</span></label>
-                                                        <label class="reg-pref-item"><input type="radio" name="elastics_opt"><span style="font-size:0.9rem;">No</span></label>
-                                                    </div>
-                                                </div>
-
-                                                {{-- Extractions if suggested --}}
-                                                <div>
-                                                    <label class="reg-toggle-label">
-                                                        <span class="reg-toggle-switch">
-                                                            <input type="checkbox" class="sr-only" onchange="document.getElementById('extractions-options').classList.toggle('hidden')">
-                                                            <span class="reg-toggle-bg"></span>
-                                                            <span class="reg-toggle-dot"></span>
-                                                        </span>
-                                                        <span class="reg-toggle-text">Extractions if suggested</span>
-                                                    </label>
-                                                    <div id="extractions-options" class="reg-toggle-panel hidden">
-                                                        <label class="reg-pref-item"><input type="radio" name="extractions_opt" checked><span style="font-size:0.9rem;">Yes</span></label>
-                                                        <label class="reg-pref-item"><input type="radio" name="extractions_opt"><span style="font-size:0.9rem;">No</span></label>
-                                                    </div>
-                                                </div>
-
-                                            </div>
-
-                                            {{-- Back to Top --}}
-                                            <div class="reg-back-to-top" onclick="this.closest('.reg-pref-scroll').scrollTo({top: 0, behavior: 'smooth'});">
-                                                <i class="bi bi-arrow-up" style="font-size:1rem"></i>
-                                            </div>
-                                        </div>
-
                                     </div>
                                 </div>
                             </div>
 
-                        {{-- Global: Terms and SMS Checkboxes --}}
-                        <div class="reg-terms-wrap">
-                            <label class="reg-terms-label">
-                                <input type="checkbox" name="terms_agreed" onchange="clearError('terms')" />
-                                <span>By creating an account at orthobrain you accept the <a href="#" class="reg-terms-link">Terms and Conditions</a>.<span class="reg-required">*</span></span>
-                            </label>
-                            <p id="err-terms" class="reg-err hidden"></p>
-                            <label class="reg-terms-label">
-                                <input type="checkbox" name="sms_agreed" />
-                                <span style="display:inline-flex; align-items:center;">I agree to receive SMS messages for authentication purposes.
-                                    <i class="bi bi-info-circle" style="margin-left:0.375rem; color:var(--ob-text); opacity:0.7; cursor:pointer;"></i>
-                                </span>
-                            </label>
-                        </div>
+                            {{-- Doctor Preferences — nested under Additional Doctor Information --}}
+                            <div class="reg-substep-head">
+                                <h3>Doctor Preferences</h3>
+                                <p>Set treatment defaults that will apply to your future cases. You can update these later in your profile.</p>
+                            </div>
 
-                        {{-- Action Buttons --}}
-                        <div class="reg-actions">
-                            <a href="{{ url('/login') }}" class="reg-btn-back">Back to Login</a>
-                            <button type="button" onclick="validateForm()" class="reg-btn-submit">Submit for Approval</button>
+                            <div class="reg-pref-panel">
+                                <div class="reg-pref-header-bar">Treatment defaults</div>
+                                <div class="reg-pref-scroll">
+
+                                    <div class="reg-pref-section">
+                                        <p class="reg-pref-title">Preferred Treatment Modality</p>
+                                        <div class="reg-pref-list">
+                                            @foreach(($treatmentModalitiesList ?? collect()) as $opt)
+                                                <label class="reg-pref-item">
+                                                    <input type="checkbox" name="treatment_modalities[]" value="{{ $opt->id }}" @checked(in_array((string) $opt->id, (array) old('treatment_modalities', []), true))>
+                                                    <span>{{ $opt->name }}</span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                    </div>
+
+                                    <div class="reg-pref-section">
+                                        <p class="reg-pref-title">Preferred Tooth Numbering System</p>
+                                        <div class="reg-pref-list">
+                                            <label class="reg-pref-item"><input type="radio" name="tooth_numbering" checked><span>Universal (1-32)</span></label>
+                                            <label class="reg-pref-item"><input type="radio" name="tooth_numbering"><span>FDI (11-48)</span></label>
+                                            <label class="reg-pref-item"><input type="radio" name="tooth_numbering"><span>Palmer (UR1-UR8)</span></label>
+                                            <label class="reg-pref-item"><input type="radio" name="tooth_numbering"><span>International (11-48)</span></label>
+                                        </div>
+                                    </div>
+
+                                    <div class="reg-pref-section">
+                                        <p class="reg-pref-title">Smile Arc</p>
+                                        <div class="reg-pref-list">
+                                            <label class="reg-pref-item"><input type="radio" name="smile_arc" checked><span>Defer to orthobrain&reg;</span></label>
+                                            <label class="reg-pref-item"><input type="radio" name="smile_arc"><span>Lateral incisors .5mm shorter than central incisors</span></label>
+                                            <label class="reg-pref-item"><input type="radio" name="smile_arc"><span>Lateral incisors same length as central incisors</span></label>
+                                        </div>
+                                    </div>
+
+                                    <div class="reg-pref-section">
+                                        <p class="reg-pref-title">Treatment of Small Lateral Incisors</p>
+                                        <div class="reg-pref-list">
+                                            <label class="reg-pref-item"><input type="radio" name="lateral_incisors" checked><span>Defer to orthobrain&reg;</span></label>
+                                            <label class="reg-pref-item"><input type="radio" name="lateral_incisors"><span>Interproximal Reduction (IPR) on lower arch to camouflage</span></label>
+                                            <label class="reg-pref-item"><input type="radio" name="lateral_incisors"><span>Leave spacing mesial and distal to maxillary laterals for future cosmetic correction</span></label>
+                                        </div>
+                                    </div>
+
+                                    <div class="reg-pref-section">
+                                        <p class="reg-pref-title">Buccal Corridors</p>
+                                        <div class="reg-pref-list">
+                                            @foreach(($buccalCorridorsList ?? collect()) as $opt)
+                                                <label class="reg-pref-item">
+                                                    <input type="checkbox" name="buccal_corridors[]" value="{{ $opt->id }}" @checked(in_array((string) $opt->id, (array) old('buccal_corridors', []), true))>
+                                                    <span>{!! $opt->name !!}</span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                    </div>
+
+                                    <div class="reg-pref-section">
+                                        <p class="reg-pref-title">Mixed Dentition and Bite Correcting Appliances</p>
+                                        <div class="reg-pref-list">
+                                            <label class="reg-pref-item align-start"><input type="radio" name="mixed_dentition" checked><span>Defer to orthobrain&reg;</span></label>
+                                            <label class="reg-pref-item align-start"><input type="radio" name="mixed_dentition"><span>I prefer not to use any growth and adjunctive appliances (e.g., expanders, bite planes, bit correctors, herbst, etc.) and request a proposal for a best outcome without an appliance knowing and fully understanding that this may not be an ideal Perfect Smile Plan for optimal results.</span></label>
+                                        </div>
+                                    </div>
+
+                                    <div class="reg-pref-section">
+                                        <p class="reg-pref-title">Orthodontic Extractions</p>
+                                        <div class="reg-pref-list">
+                                            <label class="reg-pref-item align-start"><input type="radio" name="ortho_extractions" checked><span>Defer to orthobrain&reg;</span></label>
+                                            <label class="reg-pref-item align-start"><input type="radio" name="ortho_extractions"><span>I prefer not to extract teeth and request a proposal for a best outcome without extractions fully knowing and fully understanding that this may not be an ideal treatment plan for optimal results.</span></label>
+                                        </div>
+                                    </div>
+
+                                    <div class="reg-pref-section">
+                                        <p class="reg-pref-title" style="margin-bottom:1rem;">Preferences</p>
+                                        <div class="reg-toggle-group">
+                                            <div>
+                                                <label class="reg-toggle-label">
+                                                    <span class="reg-toggle-switch">
+                                                        <input type="checkbox" class="sr-only" onchange="document.getElementById('ipr-options').classList.toggle('hidden')">
+                                                        <span class="reg-toggle-bg"></span>
+                                                        <span class="reg-toggle-dot"></span>
+                                                    </span>
+                                                    <span class="reg-toggle-text">IPR Protocol</span>
+                                                </label>
+                                                <div id="ipr-options" class="reg-toggle-panel hidden">
+                                                    <label class="reg-pref-item"><input type="radio" name="ipr_opt" checked><span>Defer to orthobrain&reg;</span></label>
+                                                    <label class="reg-pref-item"><input type="radio" name="ipr_opt"><span>No IPR</span></label>
+                                                    <label class="reg-pref-item"><input type="radio" name="ipr_opt"><span>Other</span></label>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label class="reg-toggle-label">
+                                                    <span class="reg-toggle-switch">
+                                                        <input type="checkbox" class="sr-only" onchange="document.getElementById('attachment-options').classList.toggle('hidden')">
+                                                        <span class="reg-toggle-bg"></span>
+                                                        <span class="reg-toggle-dot"></span>
+                                                    </span>
+                                                    <span class="reg-toggle-text">Attachments</span>
+                                                </label>
+                                                <div id="attachment-options" class="reg-toggle-panel hidden">
+                                                    <label class="reg-pref-item"><input type="radio" name="attachment_opt" checked><span>At Aligner Step 1</span></label>
+                                                    <label class="reg-pref-item"><input type="radio" name="attachment_opt"><span>At Aligner Step</span></label>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label class="reg-toggle-label">
+                                                    <span class="reg-toggle-switch">
+                                                        <input type="checkbox" class="sr-only" onchange="document.getElementById('elastics-options').classList.toggle('hidden')">
+                                                        <span class="reg-toggle-bg"></span>
+                                                        <span class="reg-toggle-dot"></span>
+                                                    </span>
+                                                    <span class="reg-toggle-text">Elastics/Bonded Buttons</span>
+                                                </label>
+                                                <div id="elastics-options" class="reg-toggle-panel hidden">
+                                                    <label class="reg-pref-item"><input type="radio" name="elastics_opt" checked><span>Yes</span></label>
+                                                    <label class="reg-pref-item"><input type="radio" name="elastics_opt"><span>No</span></label>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label class="reg-toggle-label">
+                                                    <span class="reg-toggle-switch">
+                                                        <input type="checkbox" class="sr-only" onchange="document.getElementById('extractions-options').classList.toggle('hidden')">
+                                                        <span class="reg-toggle-bg"></span>
+                                                        <span class="reg-toggle-dot"></span>
+                                                    </span>
+                                                    <span class="reg-toggle-text">Extractions if suggested</span>
+                                                </label>
+                                                <div id="extractions-options" class="reg-toggle-panel hidden">
+                                                    <label class="reg-pref-item"><input type="radio" name="extractions_opt" checked><span>Yes</span></label>
+                                                    <label class="reg-pref-item"><input type="radio" name="extractions_opt"><span>No</span></label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <div class="reg-terms-wrap">
+                                <label class="reg-terms-label">
+                                    <input type="checkbox" name="terms_agreed" @checked(old('terms_agreed')) onchange="clearError('terms')" />
+                                    <span>By creating an account at orthobrain you accept the <a href="#" class="reg-terms-link">Terms and Conditions</a>.<span class="reg-required">*</span></span>
+                                </label>
+                                <p id="err-terms" class="reg-err hidden"></p>
+                                <label class="reg-terms-label">
+                                    <input type="checkbox" name="sms_agreed" @checked(old('sms_agreed')) />
+                                    <span style="display:inline-flex; align-items:center;">I agree to receive SMS messages for authentication purposes.
+                                        <i class="bi bi-info-circle" style="margin-left:0.375rem; opacity:0.7; cursor:pointer;"></i>
+                                    </span>
+                                </label>
+                            </div>
                         </div>
-                    </form>
-                </main>
-            </div>
+                    </section>
+
+                    <div class="reg-required-note">
+                        <i class="bi bi-info-circle"></i>
+                        <span>All fields marked with <span class="reg-required">*</span> are required.</span>
+                    </div>
+
+                    <div class="reg-actions">
+                        <a href="{{ url('/login') }}" id="reg-back-login" class="reg-btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Login
+                        </a>
+                        <button type="button" id="reg-back-btn" class="reg-btn-secondary hidden-btn" onclick="regGoPrev()">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </button>
+                        <div style="display:flex;gap:0.6rem;align-items:center;">
+                            <button type="button" id="reg-next-btn" class="reg-btn-primary-grad" onclick="regGoNext()">
+                                Next <i class="bi bi-arrow-right"></i>
+                            </button>
+                            <button type="button" id="reg-submit-btn" class="reg-btn-primary-grad is-submit hidden-btn" onclick="validateForm()">
+                                Submit for Approval <i class="bi bi-check2-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </main>
+
+            {{-- ─────────────── RIGHT: Benefits ─────────────── --}}
+            <aside class="reg-benefits-panel">
+                <h3>Why join Orthobrain?</h3>
+                <ul class="reg-feat-list">
+                    <li class="reg-feat">
+                        <span class="reg-feat-icon"><i class="bi bi-grid-3x3-gap-fill"></i></span>
+                        <div class="reg-feat-body">
+                            <p class="ttl">All-in-one Platform</p>
+                            <p class="sub">Everything you need to run your orthodontic practice.</p>
+                        </div>
+                    </li>
+                    <li class="reg-feat">
+                        <span class="reg-feat-icon"><i class="bi bi-cloud-check"></i></span>
+                        <div class="reg-feat-body">
+                            <p class="ttl">Cloud Secure</p>
+                            <p class="sub">Enterprise-grade security with 99.9% uptime.</p>
+                        </div>
+                    </li>
+                    <li class="reg-feat">
+                        <span class="reg-feat-icon"><i class="bi bi-lightning-charge-fill"></i></span>
+                        <div class="reg-feat-body">
+                            <p class="ttl">Smart Automation</p>
+                            <p class="sub">Save time with AI-powered workflows.</p>
+                        </div>
+                    </li>
+                    <li class="reg-feat">
+                        <span class="reg-feat-icon"><i class="bi bi-headset"></i></span>
+                        <div class="reg-feat-body">
+                            <p class="ttl">Dedicated Support</p>
+                            <p class="sub">Our team is here to help you succeed.</p>
+                        </div>
+                    </li>
+                </ul>
+            </aside>
+
         </div>
 
         <script>
-            // Additional Doctor Info UI Logic
-            function toggleAdditionalInfo() {
-                const body = document.getElementById('additional-info-body');
-                const iconExpand = document.getElementById('icon-expand');
-                const iconCollapse = document.getElementById('icon-collapse');
-                
-                if (body.classList.contains('hidden')) {
-                    body.classList.remove('hidden');
-                    iconExpand.classList.add('hidden');
-                    iconCollapse.classList.remove('hidden');
+            // ────────────────────────────────────────────────────────────────
+            //  Wizard navigation (4 steps)
+            // ────────────────────────────────────────────────────────────────
+            const REG_TOTAL_STEPS = 4;
+            const REG_STEP_TO_ID = {
+                1: 'step-account', 2: 'step-practice', 3: 'step-address', 4: 'step-additional',
+            };
+            const REG_ID_TO_STEP = Object.fromEntries(Object.entries(REG_STEP_TO_ID).map(([k,v]) => [v, Number(k)]));
+            let regCurrentStep = 1;
+
+            function regShowStep(n) {
+                if (n < 1) n = 1;
+                if (n > REG_TOTAL_STEPS) n = REG_TOTAL_STEPS;
+                regCurrentStep = n;
+
+                document.querySelectorAll('.reg-step').forEach(sec => {
+                    sec.classList.toggle('active', Number(sec.dataset.step) === n);
+                });
+                document.querySelectorAll('.reg-stepper li').forEach(li => {
+                    const s = Number(li.dataset.step);
+                    li.classList.toggle('active', s === n);
+                    li.classList.toggle('completed', s < n);
+                });
+
+                const backLogin = document.getElementById('reg-back-login');
+                const backBtn   = document.getElementById('reg-back-btn');
+                const nextBtn   = document.getElementById('reg-next-btn');
+                const submitBtn = document.getElementById('reg-submit-btn');
+
+                if (n === 1) {
+                    backLogin.classList.remove('hidden-btn');
+                    backBtn.classList.add('hidden-btn');
                 } else {
-                    body.classList.add('hidden');
-                    iconExpand.classList.remove('hidden');
-                    iconCollapse.classList.add('hidden');
+                    backLogin.classList.add('hidden-btn');
+                    backBtn.classList.remove('hidden-btn');
                 }
+
+                if (n === REG_TOTAL_STEPS) {
+                    nextBtn.classList.add('hidden-btn');
+                    submitBtn.classList.remove('hidden-btn');
+                } else {
+                    nextBtn.classList.remove('hidden-btn');
+                    submitBtn.classList.add('hidden-btn');
+                }
+
+                const panel = document.querySelector('.reg-wizard-panel');
+                if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
+
+            function regGoToStep(n) { regShowStep(n); }
+            function regGoNext() {
+                // Validate this step's fields before advancing. Failures stay visible
+                // inline so the user sees exactly what's missing on the current step.
+                const fields = (typeof STEP_FIELDS !== 'undefined' && STEP_FIELDS[regCurrentStep]) || [];
+                let stepOk = true;
+                fields.forEach(id => {
+                    touched.add(id);
+                    if (!validateField(id)) stepOk = false;
+                });
+                if (!stepOk) return;
+                regShowStep(regCurrentStep + 1);
+            }
+            function regGoPrev()    { regShowStep(regCurrentStep - 1); }
+
+            // ─── Existing form helpers (preserved) ─────────────────────────
 
             function toggleContactViews() {
                 const selected = document.querySelector('input[name="contact_preference"]:checked');
                 const docForm = document.getElementById('form-box-doctor');
                 const empForm = document.getElementById('form-box-employee');
-                
+
                 docForm.classList.add('hidden');
                 empForm.classList.add('hidden');
-                
+
                 if (selected) {
                     if (selected.value === 'doctor') {
                         docForm.classList.remove('hidden');
@@ -986,21 +1319,11 @@
                 }
             }
 
-            function toggleIprNote() {
-                const iprSelect = document.getElementById('in-ipr-protocol');
-                const noteContainer = document.getElementById('ipr-note-container');
-                if (iprSelect && iprSelect.value === 'OTHER') {
-                    noteContainer.classList.remove('hidden');
-                } else {
-                    noteContainer.classList.add('hidden');
-                }
-            }
-
             function addEmailRow(containerId) {
                 const container = document.getElementById(containerId);
                 const isDoctor = containerId.includes('doctor');
                 const inputName = isDoctor ? 'contact_doctor_other_emails[]' : 'contact_emp_other_emails[]';
-                
+
                 const row = document.createElement('div');
                 row.innerHTML = `
                     <label class="reg-label">Other Email</label>
@@ -1017,10 +1340,6 @@
 
             // ────────────────────────────────────────────────────────────────
             //  Practice autocomplete
-            //    – Debounced AJAX to /practice-search (min 2 chars)
-            //    – Keyboard navigation (↑ ↓ Enter Esc)
-            //    – Pick a suggestion → fills practice + address fields, locks them
-            //    – "Change practice" link clears selection and unlocks
             // ────────────────────────────────────────────────────────────────
             const PRACTICE_SEARCH_URL = @json(route('practice.search'));
             let practiceSearchTimer    = null;
@@ -1030,7 +1349,6 @@
 
             function onPracticeInput(e) {
                 clearError('practiceName');
-                // Any typing clears a previously-picked practice (they're choosing again)
                 if (document.getElementById('hid-practiceId').value) {
                     document.getElementById('hid-practiceId').value = '';
                     unlockPracticeFields();
@@ -1100,7 +1418,6 @@
             }
 
             function onPracticeBlur() {
-                // Delay so click on a menu item registers before the menu hides.
                 setTimeout(hidePracticeMenu, 150);
             }
 
@@ -1111,17 +1428,14 @@
                 document.getElementById('hid-practiceId').value = p.id;
                 document.getElementById('in-practiceName').value = p.name;
 
-                // Practice info
                 setVal('in-phone', p.phone_number);
                 setVal('in-website', p.website);
                 const cc = document.querySelector('select[name="practice_phone_country_code"]');
                 if (cc && p.phone_country_code) cc.value = p.phone_country_code;
 
-                // Address info
                 setVal('in-address1', p.street_address_1);
                 setVal('in-address2', p.street_address_2);
 
-                // Zip select — if it contains a matching option, select it; otherwise inject one so the form still submits.
                 const zipSel = document.getElementById('in-zip');
                 if (zipSel) {
                     let found = Array.from(zipSel.options).find(o => o.value == p.zip_id);
@@ -1159,7 +1473,7 @@
             }
 
             function lockPracticeFields() {
-                setReadonly('in-practiceName', false);                       // keep editable so user can clear + search again
+                setReadonly('in-practiceName', false);
                 setLockedGroup('box-phone',     true);
                 setLockedGroup('box-website',   true);
                 setLockedGroup('box-address1',  true);
@@ -1198,8 +1512,7 @@
                 return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
             }
 
-            // ── Zip auto-fill: reads data-* on the selected option and populates
-            //    city / state / country readonly fields + hidden FK inputs.
+            // Zip auto-fill
             function onRegZipChange() {
                 clearError('zip');
                 const sel = document.getElementById('in-zip');
@@ -1222,69 +1535,12 @@
                 if (hCty)    hCty.value    = opt.dataset.countryId || '';
             }
 
-            // ScrollSpy Navigation Logic
-            const navItems = document.querySelectorAll('.reg-nav-item');
-            const sections = document.querySelectorAll('div[id^="step-"]');
-
-            let isNavigating = false;
-            let navTimer = null;
-
-            function setActive(id) {
-                navItems.forEach(item => {
-                    if (item.getAttribute('data-target') === id) {
-                        item.classList.add('active');
-                    } else {
-                        item.classList.remove('active');
-                    }
-                });
-            }
-
-            function updateActiveNav() {
-                if (isNavigating) return;
-                const triggerPoint = window.innerHeight * 0.2;
-                let activeId = sections[0] ? sections[0].id : null;
-                sections.forEach(sec => {
-                    if (sec.getBoundingClientRect().top <= triggerPoint) {
-                        activeId = sec.id;
-                    }
-                });
-                setActive(activeId);
-            }
-
-            window.addEventListener('scroll', updateActiveNav, { passive: true });
-            updateActiveNav();
-
-            // Smooth Scroll on nav item click
-            navItems.forEach(item => {
-                item.addEventListener('click', () => {
-                    const targetId = item.getAttribute('data-target');
-                    const target = document.getElementById(targetId);
-                    if (!target) return;
-
-                    isNavigating = true;
-                    clearTimeout(navTimer);
-                    setActive(targetId);
-
-                    navTimer = setTimeout(() => {
-                        isNavigating = false;
-                        updateActiveNav();
-                    }, 900);
-
-                    window.scrollTo({
-                        top: window.scrollY + target.getBoundingClientRect().top - 24,
-                        behavior: 'smooth'
-                    });
-                });
-            });
-
-            // ── Form Validation Logic ──────────────────────────────
+            // ── Validation ──────────────────────────────
             const emailRe    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             const nameRe     = /^[A-Za-z\s\-]+$/;
             const websiteRe  = /^(https?:\/\/)?([\da-z\.\-]+)\.([a-z\.]{2,6})([\/\w \.\-]*)*\/?$/i;
             const pwSpecial  = /[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\/]/;
 
-            // Per-field validators: id → (value) → '' when OK, else error message.
-            // The `all` arg is used for cross-field rules (e.g. confirmPassword).
             const VALIDATORS = {
                 email: v => !v ? 'Email is required'
                     : !emailRe.test(v) ? 'Please enter a valid email address' : '',
@@ -1307,19 +1563,48 @@
                     : !/^\d{10}$/.test(v) ? 'Please enter a valid 10-digit phone number' : '',
                 website: v => !v ? 'Website is required'
                     : !websiteRe.test(v) ? 'Please enter a valid website (e.g. www.example.com)' : '',
-                language: v => !v ? 'Please select a preferred language' : '',
                 address1: v => !v ? 'Street address is required'
                     : v.length < 5 ? 'Please enter a complete street address (min 5 characters)' : '',
                 zip: v => !v ? 'Please select a zip code' : '',
             };
 
-            // Which section each field belongs to (for scroll-on-submit-error).
             const FIELD_SECTION = {
                 email: 'step-account', firstName: 'step-account', lastName: 'step-account',
                 password: 'step-account', confirmPassword: 'step-account',
                 practiceName: 'step-practice', phone: 'step-practice',
-                website: 'step-practice', language: 'step-practice',
+                website: 'step-practice',
                 address1: 'step-address', zip: 'step-address',
+            };
+
+            // Client field id → server error keys whose banner items should be removed
+            // when this field's value becomes acceptable. Mostly 1:1; `zip` also clears
+            // the city/state/country auto-filled keys (one picker drives all four).
+            const CLIENT_TO_SERVER_KEYS = {
+                email: ['email'], firstName: ['first_name'], lastName: ['last_name'],
+                password: ['password'], confirmPassword: ['confirm_password'],
+                practiceName: ['practice_name'], phone: ['practice_phone_number'],
+                website: ['practice_website'],
+                address1: ['street_address_1'],
+                zip: ['zip_id', 'city_id', 'state_id', 'country_id'],
+                terms: ['terms_agreed'],
+            };
+
+            function dismissServerBannerFor(fieldId) {
+                const banner = document.getElementById('reg-server-banner');
+                if (!banner) return;
+                (CLIENT_TO_SERVER_KEYS[fieldId] || []).forEach(k => {
+                    banner.querySelectorAll('li[data-server-field-key="' + k + '"]')
+                          .forEach(li => li.remove());
+                });
+                if (banner.querySelectorAll('li').length === 0) banner.remove();
+            }
+
+            // Fields belonging to each wizard step — used by regGoNext() to gate advancing.
+            const STEP_FIELDS = {
+                1: ['email', 'firstName', 'lastName', 'password', 'confirmPassword'],
+                2: ['practiceName', 'phone', 'website'],
+                3: ['address1', 'zip'],
+                4: [],
             };
 
             const touched = new Set();
@@ -1332,7 +1617,6 @@
             function _allValues() {
                 const out = {};
                 Object.keys(VALIDATORS).forEach(id => { out[id] = _fieldValue(id); });
-                // password is compared raw (no trim) for confirmPassword rule; keep raw separately
                 out.password = document.getElementById('in-password')?.value ?? '';
                 out.confirmPassword = document.getElementById('in-confirmPassword')?.value ?? '';
                 return out;
@@ -1343,8 +1627,8 @@
                 const boxElement = document.getElementById('box-' + fieldId);
                 const inElement = document.getElementById('in-' + fieldId);
                 if (errElement) { errElement.textContent = errorMsg; errElement.classList.remove('hidden'); }
-                if (boxElement) boxElement.classList.add('border-red-500');
-                else if (inElement) inElement.classList.add('border-red-500');
+                if (boxElement) boxElement.classList.add('is-invalid');
+                else if (inElement) inElement.classList.add('is-invalid');
             }
 
             function _clearUI(fieldId) {
@@ -1352,11 +1636,10 @@
                 const boxElement = document.getElementById('box-' + fieldId);
                 const inElement = document.getElementById('in-' + fieldId);
                 if (errElement) errElement.classList.add('hidden');
-                if (boxElement) boxElement.classList.remove('border-red-500');
-                else if (inElement) inElement.classList.remove('border-red-500');
+                if (boxElement) boxElement.classList.remove('is-invalid');
+                else if (inElement) inElement.classList.remove('is-invalid');
             }
 
-            // Validate one field. Used by blur/input listeners and by submit.
             function validateField(fieldId) {
                 const v = VALIDATORS[fieldId];
                 if (!v) return true;
@@ -1367,22 +1650,23 @@
                 return true;
             }
 
-            // Called by `oninput="clearError(...)"` in the markup.
-            // If the field has been touched (blurred once), re-run validation live
-            // so the error updates as the user fixes / re-breaks the field.
             function clearError(fieldId) {
                 if (touched.has(fieldId)) {
                     validateField(fieldId);
-                    // cross-field: retyping password should re-check confirmPassword
                     if (fieldId === 'password' && touched.has('confirmPassword')) {
                         validateField('confirmPassword');
                     }
                 } else {
                     _clearUI(fieldId);
                 }
+                // If the field's current value is acceptable, drop the matching banner item(s).
+                const v = VALIDATORS[fieldId];
+                if (v) {
+                    const all = _allValues();
+                    if (!v(all[fieldId], all)) dismissServerBannerFor(fieldId);
+                }
             }
 
-            // Wire blur + change listeners for live validation.
             document.addEventListener('DOMContentLoaded', () => {
                 Object.keys(VALIDATORS).forEach(fieldId => {
                     const el = document.getElementById('in-' + fieldId);
@@ -1402,7 +1686,6 @@
                     }
                 });
 
-                // Terms checkbox live feedback
                 const terms = document.querySelector('input[name="terms_agreed"]');
                 if (terms) {
                     terms.addEventListener('change', () => {
@@ -1410,12 +1693,54 @@
                         if (terms.checked && err) err.classList.add('hidden');
                     });
                 }
+
+                regShowStep(1);
+
+                // On bounce: zip_id is preserved on the <select>, but visible city/state/country
+                // readonly fields are JS-populated. Re-run the auto-fill once so they show.
+                if (document.getElementById('in-zip')?.value) {
+                    onRegZipChange();
+                }
+
+                // Surface server-side validation errors inline (per field), not just in the top banner.
+                const SERVER_ERRORS = @json($errors->messages());
+                const SERVER_FIELD_MAP = {
+                    email: 'email', first_name: 'firstName', last_name: 'lastName',
+                    password: 'password', confirm_password: 'confirmPassword',
+                    practice_name: 'practiceName', practice_phone_number: 'phone',
+                    practice_website: 'website',
+                    street_address_1: 'address1', zip_id: 'zip', terms_agreed: 'terms',
+                };
+                Object.entries(SERVER_ERRORS).forEach(([key, msgs]) => {
+                    const fid = SERVER_FIELD_MAP[key];
+                    if (fid && msgs && msgs.length) {
+                        touched.add(fid);
+                        showError(fid, msgs[0]);
+                    }
+                });
+
+                @if($errors->any())
+                @php
+                    $errStepMap = [
+                        'email' => 1, 'first_name' => 1, 'last_name' => 1, 'password' => 1, 'confirm_password' => 1,
+                        'practice_name' => 2, 'practice_phone_number' => 2, 'practice_website' => 2,
+                        'additional_practices' => 2,
+                        'street_address_1' => 3, 'zip_id' => 3, 'city_id' => 3, 'state_id' => 3, 'country_id' => 3,
+                        'contact_preference' => 4, 'modalities' => 4, 'specialties' => 4, 'providing_ortho' => 4,
+                        'terms_agreed' => 4,
+                    ];
+                    $firstErrStep = 1;
+                    foreach ($errors->keys() as $key) {
+                        $bare = explode('.', $key)[0];
+                        if (isset($errStepMap[$bare])) { $firstErrStep = $errStepMap[$bare]; break; }
+                    }
+                @endphp
+                regShowStep({{ $firstErrStep }});
+                @endif
             });
 
-            // Submit handler — validate every field, scroll to first error section.
+            // Submit handler — validate every field, jump to the first step with errors.
             function validateForm() {
-                // Mark everything touched so all errors surface for someone who
-                // clicked Submit without interacting with the form.
                 Object.keys(VALIDATORS).forEach(id => touched.add(id));
 
                 let isValid = true;
@@ -1429,7 +1754,6 @@
                     }
                 });
 
-                // Zip picked but city_id wasn't populated (auto-fill failed) — block submit.
                 const zipVal = document.getElementById('in-zip')?.value;
                 const hiddenCity = document.getElementById('hid-city')?.value;
                 if (zipVal && !hiddenCity) {
@@ -1446,42 +1770,26 @@
                 }
 
                 if (!isValid && firstErrorSection) {
-                    const target = document.getElementById(firstErrorSection);
-                    if (target) {
-                        isNavigating = true;
-                        clearTimeout(navTimer);
-                        setActive(firstErrorSection);
-                        navTimer = setTimeout(() => { isNavigating = false; updateActiveNav(); }, 900);
-                        window.scrollTo({
-                            top: window.scrollY + target.getBoundingClientRect().top - 24,
-                            behavior: 'smooth'
-                        });
-                    }
+                    const stepNum = REG_ID_TO_STEP[firstErrorSection];
+                    if (stepNum) regShowStep(stepNum);
                     return false;
                 }
 
-                // Per-row validation for additional practices — shows inline errors
-                // on each row's fields. Failing rows keep the doctor on the page
-                // instead of making the round-trip to the server.
                 let extraRowsOk = true;
                 document.querySelectorAll('.extra-prac-row').forEach(row => {
                     if (!epValidateRow(row.dataset.idx)) extraRowsOk = false;
                 });
 
                 if (isValid && !extraRowsOk) {
-                    // Scroll to the first invalid extra-row so the doctor sees the error
+                    regShowStep(2);  // Other practices live inside Step 2
                     const firstBad = document.querySelector('.extra-prac-row .reg-err:not(.hidden)');
                     if (firstBad) {
-                        window.scrollTo({
-                            top: window.scrollY + firstBad.getBoundingClientRect().top - 100,
-                            behavior: 'smooth'
-                        });
+                        setTimeout(() => firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
                     }
                     return false;
                 }
 
                 if (isValid) {
-                    // Drop incomplete extra-practice rows — see cleanExtraRows() below.
                     cleanExtraRows();
                     document.getElementById('registrationForm').submit();
                 }
@@ -1489,19 +1797,11 @@
             }
 
             // ────────────────────────────────────────────────────────────────
-            //  Other Practices (optional) — repeating rows, two modes per row:
-            //    EXISTING : autocomplete-pick from /practice-search, then
-            //               row locks into a readonly summary card ("Change" to re-open)
-            //    NEW      : full inline form with live per-field validation on blur
-            //
-            //  Each row submits as additional_practices[<idx>][...] so the controller
-            //  can validate per-row with required_if rules.
-            //  On validation failure, the server dumps old('additional_practices') into
-            //  the #extra-old-data element and this JS rebuilds rows with prior data.
+            //  Other Practices (optional) — dynamic rows
             // ────────────────────────────────────────────────────────────────
             let extraPracticeSeq = 0;
             const MAX_EXTRA_PRACTICES = 5;
-            const extraRowState = {};   // idx -> {mode, picked: {id,name,phone,website,city,...}}
+            const extraRowState = {};
 
             const epWebsiteRe = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z]{2,})+$/i;
 
@@ -1515,7 +1815,7 @@
 
                 const wrap = document.createElement('div');
                 wrap.className = 'extra-prac-row';
-                wrap.style.cssText = 'border:1px solid #e0dee8;border-radius:8px;padding:1rem;margin-top:0.75rem;background:#fafafd;position:relative;';
+                wrap.style.cssText = 'border:1px solid #e6ebf3;border-radius:12px;padding:1rem;margin-top:0.75rem;background:#f8fafc;position:relative;';
                 wrap.dataset.idx = idx;
 
                 wrap.innerHTML = `
@@ -1532,7 +1832,6 @@
                         <button type="button" class="reg-btn-delete" onclick="removeExtraRow(${idx})" title="Remove"><i class="bi bi-trash"></i></button>
                     </div>
 
-                    {{-- EXISTING mode --}}
                     <div id="ep-existing-${idx}" class="ep-pane">
                         <div style="position:relative;">
                             <input type="hidden" name="additional_practices[${idx}][practice_id]" id="ep-id-${idx}" value="">
@@ -1549,7 +1848,6 @@
                         <p class="reg-err hidden" id="ep-err-existing-${idx}"></p>
                     </div>
 
-                    {{-- NEW mode --}}
                     <div id="ep-new-${idx}" class="ep-pane" style="display:none;">
                         <div class="reg-grid">
                             <div>
@@ -1565,11 +1863,7 @@
                                 <label class="reg-label">Phone Number<span class="reg-required">*</span></label>
                                 <div class="reg-phone">
                                     <span class="reg-input-icon" style="border-right:0"><i class="bi bi-telephone"></i></span>
-                                    <select name="additional_practices[${idx}][phone_country_code]">
-                                        <option value="+1_US">+1 (US)</option>
-                                        <option value="+1_CA">+1 (CA)</option>
-                                        <option value="+61_AU">+61 (AU)</option>
-                                    </select>
+                                    <select name="additional_practices[${idx}][phone_country_code]" id="ep-phone-cc-${idx}"></select>
                                     <input type="text" name="additional_practices[${idx}][phone_number]" maxlength="10"
                                            placeholder="10 digits, no dashes"
                                            onblur="epValidateField(${idx}, 'phone_number')"
@@ -1611,13 +1905,13 @@
                             </div>
                             <div>
                                 <label class="reg-label">City</label>
-                                <div class="reg-input-group" style="background:var(--ob-surface-2)">
+                                <div class="reg-input-group" style="background:#f1f5f9">
                                     <input type="text" id="ep-city-${idx}" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" readonly />
                                 </div>
                             </div>
                             <div>
                                 <label class="reg-label">State / Country</label>
-                                <div class="reg-input-group" style="background:var(--ob-surface-2)">
+                                <div class="reg-input-group" style="background:#f1f5f9">
                                     <input type="text" id="ep-state-${idx}" class="reg-input" style="background:transparent" placeholder="Auto-filled from zip" readonly />
                                 </div>
                             </div>
@@ -1627,10 +1921,13 @@
 
                 document.getElementById('extra-practice-rows').appendChild(wrap);
 
-                // Clone zip options from the template
                 const zipSel = document.getElementById('ep-zip-' + idx);
                 const tpl = document.getElementById('extra-prac-zip-options');
                 if (zipSel && tpl) zipSel.innerHTML = tpl.innerHTML;
+
+                const phoneSel = document.getElementById('ep-phone-cc-' + idx);
+                const phoneTpl = document.getElementById('extra-prac-phone-options');
+                if (phoneSel && phoneTpl) phoneSel.innerHTML = phoneTpl.innerHTML;
 
                 renumberExtraRows();
             }
@@ -1675,7 +1972,6 @@
                         const alreadyPicked = Array.from(document.querySelectorAll('input[name^="additional_practices"][name$="[practice_id]"]'))
                             .map(i => i.value).filter(Boolean);
                         const filtered = items.filter(p => String(p.id) !== String(primaryId) && !alreadyPicked.includes(String(p.id)));
-                        // Save results per-row so pick handler can look them up by index (avoids HTML-escape issues with names containing quotes)
                         extraSearchState[idx].items = filtered;
                         renderExtraMenu(idx, filtered);
                     } catch (err) { /* ignore */ }
@@ -1702,16 +1998,12 @@
                 menu.innerHTML = '';
             }
 
-            // Called by the dropdown; looks up the picked item from the per-row state
-            // so names / special characters are never HTML-interpolated.
             function pickExtraExistingByIndex(idx, itemIdx) {
                 const items = extraSearchState[idx]?.items;
                 if (!items || !items[itemIdx]) return;
                 lockExtraRowAsPicked(idx, items[itemIdx]);
             }
 
-            // Replace the row's existing-mode pane with a readonly summary card.
-            // Hidden inputs for additional_practices[idx][practice_id] + mode stay in place.
             function lockExtraRowAsPicked(idx, p) {
                 extraRowState[idx] = { mode: 'existing', picked: p };
 
@@ -1722,14 +2014,14 @@
                 const addressLine = [p.street_address_1, p.city, p.state_code].filter(Boolean).join(', ');
                 pane.innerHTML = `
                     <input type="hidden" name="additional_practices[${idx}][practice_id]" id="ep-id-${idx}" value="${p.id}">
-                    <div style="background:#f0f9ff;border:1px solid #b6e3fa;border-radius:6px;padding:0.85rem 1rem;display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:0.85rem 1rem;display:flex;justify-content:space-between;align-items:flex-start;">
                         <div>
                             <div style="display:flex;align-items:center;gap:0.5rem;">
-                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <i class="bi bi-check-circle-fill" style="color:#10b981;"></i>
                                 <strong style="color:var(--ob-text);">${escapeHtml(p.name)}</strong>
-                                <span style="font-size:0.75rem;color:var(--ob-primary);background:#ece9fb;padding:0.15rem 0.55rem;border-radius:10rem;font-weight:600;">Existing</span>
+                                <span style="font-size:0.72rem;color:var(--ob-primary);background:#dbeafe;padding:0.15rem 0.55rem;border-radius:10rem;font-weight:600;">Existing</span>
                             </div>
-                            <div style="font-size:0.82rem;color:var(--ob-text-muted);margin-top:0.4rem;display:flex;flex-wrap:wrap;gap:0.65rem 1.25rem;">
+                            <div style="font-size:0.78rem;color:var(--ob-text-muted);margin-top:0.4rem;display:flex;flex-wrap:wrap;gap:0.5rem 1.25rem;">
                                 ${p.website ? `<span><i class="bi bi-globe"></i> ${escapeHtml(p.website)}</span>` : ''}
                                 ${p.phone_number ? `<span><i class="bi bi-telephone"></i> ${escapeHtml(p.phone_number)}</span>` : ''}
                                 ${addressLine ? `<span><i class="bi bi-geo-alt"></i> ${escapeHtml(addressLine)}</span>` : ''}
@@ -1773,9 +2065,6 @@
                 epValidateField(idx, 'zip');
             }
 
-            // ── Per-row inline validation for NEW-mode fields ───────────────
-            //    Fires on blur (via onblur attribute set below) and on submit.
-            //    Shows/clears the reg-err paragraph under each field, not a top banner.
             function epValidateField(idx, field) {
                 const row = document.querySelector(`.extra-prac-row[data-idx="${idx}"]`);
                 if (!row) return true;
@@ -1819,7 +2108,7 @@
                 const mode = row.querySelector(`input[name="additional_practices[${idx}][mode]"]:checked`)?.value || 'existing';
                 if (mode === 'existing') {
                     const pid = row.querySelector(`input[name="additional_practices[${idx}][practice_id]"]`)?.value;
-                    return !!pid;   // if they picked, row is valid; otherwise cleaned on submit
+                    return !!pid;
                 }
                 let ok = true;
                 ['name','phone_number','website','street_address_1','zip'].forEach(f => {
@@ -1828,9 +2117,6 @@
                 return ok;
             }
 
-            // Drop rows that are clearly empty so the server doesn't see junk:
-            //  - existing mode with no practice_id picked
-            //  - new mode with no practice name typed
             function cleanExtraRows() {
                 document.querySelectorAll('.extra-prac-row').forEach(row => {
                     const idx = row.dataset.idx;
@@ -1845,8 +2131,7 @@
                 });
             }
 
-            // On load: if the server bounced the form back with old('additional_practices'),
-            // rebuild the rows from that data so the doctor doesn't lose what they typed.
+            // Rebuild rows on bounce-back from server
             document.addEventListener('DOMContentLoaded', () => {
                 const dataEl = document.getElementById('extra-old-data');
                 if (!dataEl) return;
@@ -1869,11 +2154,8 @@
                             const el = wrap.querySelector(`[name="additional_practices[${idx}][${k}]"]`);
                             if (el && row[k] != null) el.value = row[k];
                         });
-                        // Re-run zip change to refresh visible city/state fields
                         if (row.zip_id) onExtraZipChange(idx);
                     } else if (row.practice_id) {
-                        // Just stash the ID; we don't have the full practice details to render a locked card,
-                        // so show the search field with "(prev. selected: #id)" placeholder — admin form will re-resolve on submit.
                         const hid = wrap.querySelector(`input[name="additional_practices[${idx}][practice_id]"]`);
                         if (hid) hid.value = row.practice_id;
                         const search = wrap.querySelector(`#ep-search-${idx}`);
