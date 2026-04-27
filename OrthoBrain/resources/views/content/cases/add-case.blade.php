@@ -21,7 +21,7 @@
 @section('page_title', isset($id) ? ($adminMode ? 'Case #' . $id : 'Edit Case') : 'Add Case')
 
 @push('styles')
-  <link rel="stylesheet" href="{{ asset('css/base/pages/add-case.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/base/pages/add-case.css') }}?v={{ @filemtime(public_path('css/base/pages/add-case.css')) ?: time() }}">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
 @endpush
 
@@ -254,7 +254,7 @@
   <script src="{{ asset('js/scripts/cases/sections/impressions.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/shipping-address.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/submit-order.js') }}"></script>
-  <script src="{{ asset('js/scripts/cases/add-case.js') }}"></script>
+  <script src="{{ asset('js/scripts/cases/add-case.js') }}?v={{ @filemtime(public_path('js/scripts/cases/add-case.js')) ?: time() }}"></script>
   {{-- Phase 6: shared media helpers must load before section scripts --}}
   <script src="{{ asset('js/scripts/cases/sections/media-tile-helpers.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/crop-modal.js') }}?v={{ $cropModalVer }}"></script>
