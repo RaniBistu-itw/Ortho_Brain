@@ -85,50 +85,68 @@
 
     <div class="card zi-card">
 
-        {{-- ── Toolbar ──────────────────────────────────────────── --}}
-        <div class="zi-toolbar">
-            <form id="zipcodesFilter" method="GET" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
-                <div class="zi-toolbar__geo">
+        @php
+            $selectedCountry = $countries->firstWhere('id', request('country_id'));
+            $selectedState   = $states->firstWhere('id', request('state_id'));
+            $selectedCity    = $cities->firstWhere('id', request('city_id'));
+            $selectedStatus  = request('status');
+            $statusLabel     = $selectedStatus ? ucfirst(strtolower($selectedStatus)) : null;
+            $statusPrefix    = $statusLabel ? $statusLabel . ' ' : '';
+
+            if ($selectedCity) {
+                $headerTitle = 'All ' . $statusPrefix . $selectedCity->name . ' Zip Codes';
+            } elseif ($selectedState) {
+                $headerTitle = 'All ' . $statusPrefix . $selectedState->name . ' Zip Codes';
+            } elseif ($selectedCountry) {
+                $headerTitle = 'All ' . $statusPrefix . $selectedCountry->name . ' Zip Codes';
+            } elseif ($statusLabel) {
+                $headerTitle = 'All ' . $statusLabel . ' Zip Codes';
+            } else {
+                $headerTitle = 'All Zip Codes';
+            }
+        @endphp
+
+        <div class="card-header border-bottom">
+            <h4 class="card-title mb-0">{{ $headerTitle }}</h4>
+            <button type="button" class="btn btn-primary" id="ziDrawerOpen">
+                <i data-feather="plus" class="me-25"></i> Add Zip Code
+            </button>
+        </div>
+
+        <div class="card-body py-1">
+            <form id="zipcodesFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-2">
                     <select id="zip_country_id" name="country_id" data-ob-cascade-parent class="js-searchable form-select">
                         <option value="">All countries</option>
                         @foreach ($countries as $c)<option value="{{ $c->id }}" @selected(request('country_id') == $c->id)>{{ $c->name }}</option>@endforeach
                     </select>
                 </div>
-                <div class="zi-toolbar__geo">
+                <div class="col-md-2">
                     <select id="zip_state_id" name="state_id" data-ob-cascade-parent class="js-searchable form-select">
                         <option value="">All states</option>
                         @foreach ($states as $s)<option value="{{ $s->id }}" data-country-id="{{ $s->country_id }}" @selected(request('state_id') == $s->id)>{{ $s->name }}</option>@endforeach
                     </select>
                 </div>
-                <div class="zi-toolbar__geo">
+                <div class="col-md-2">
                     <select id="zip_city_id" name="city_id" class="js-searchable form-select">
                         <option value="">All cities</option>
                         @foreach ($cities as $cityOpt)<option value="{{ $cityOpt->id }}" data-state-id="{{ $cityOpt->state_id }}" @selected(request('city_id') == $cityOpt->id)>{{ $cityOpt->name }}</option>@endforeach
                     </select>
                 </div>
-                <div class="zi-toolbar__search">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i data-feather="search" style="width:16px;height:16px;"></i></span>
-                        <input type="text" name="search" placeholder="Search zip…" value="{{ request('search') }}" class="form-control border-start-0 ps-0">
-                    </div>
+                <div class="col-md-2">
+                    <input type="text" name="search" placeholder="Search zip…" value="{{ request('search') }}" class="form-control">
                 </div>
-                <div class="zi-toolbar__status">
+                <div class="col-md-2">
                     <select name="status" class="form-select">
                         <option value="">All statuses</option>
                         <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
                         <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
                     </select>
                 </div>
-                @if (request('search') || request('status') || request('country_id') || request('state_id') || request('city_id'))
-                    <a href="{{ route('admin.zipcodes.index') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
-                @endif
+                <div class="col-md-2">
+                    <a href="{{ route('admin.zipcodes.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                </div>
             </form>
-            <div class="zi-toolbar__spacer"></div>
-            <div class="zi-toolbar__actions">
-                <button type="button" class="btn btn-primary" id="ziDrawerOpen">
-                    <i data-feather="plus" class="me-25"></i> Add Zip Code
-                </button>
-            </div>
         </div>
 
         {{-- ── Table ─────────────────────────────────────────────── --}}

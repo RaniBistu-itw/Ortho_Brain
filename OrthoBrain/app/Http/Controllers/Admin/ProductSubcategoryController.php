@@ -18,6 +18,7 @@ class ProductSubcategoryController extends Controller
         $subcategories = ProductSubcategory::with('category')->withCount('products')
             ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->integer('category_id')))
             ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%' . $request->string('search') . '%'))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status') === 'ACTIVE'))
             ->orderBy('name')
             ->paginate(10)
             ->withQueryString();
