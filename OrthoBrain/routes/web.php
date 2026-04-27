@@ -37,6 +37,9 @@ Route::get('/register',         [\App\Http\Controllers\Auth\RegisterController::
 Route::get('/register/doctor',  [\App\Http\Controllers\Auth\RegisterController::class, 'show']);
 Route::post('/register',        [\App\Http\Controllers\Auth\RegisterController::class, 'store']);
 
+Route::get('/contact-support',  [\App\Http\Controllers\SupportController::class, 'show'])->name('support.show');
+Route::post('/contact-support', [\App\Http\Controllers\SupportController::class, 'store'])->name('support.send');
+
 Route::redirect('/admin/login', '/login');
 
 Route::get('/forgot-password',  [ForgotPasswordController::class, 'showForm'])->name('password.request');

@@ -612,7 +612,7 @@
                     <span class="ico"><i class="bi bi-question-circle"></i></span>
                     <div>
                         <p class="ttl">Need help?</p>
-                        <a href="mailto:support@orthobrain.com">Contact Support</a>
+                        <a href="{{ url('/contact-support') }}">Contact Support</a>
                     </div>
                 </div>
             </aside>
