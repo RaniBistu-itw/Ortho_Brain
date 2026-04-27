@@ -87,28 +87,15 @@
 
     <div class="card co-card">
 
-        {{-- ── Toolbar ──────────────────────────────────────────── --}}
-        <div class="co-toolbar">
-            <form id="countriesFilter" method="GET" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
-                <div class="co-toolbar__search">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i data-feather="search" style="width:16px;height:16px;"></i></span>
-                        <input type="text" name="search" placeholder="Search name or code…" value="{{ request('search') }}" class="form-control border-start-0 ps-0">
-                    </div>
-                </div>
-                <div class="co-toolbar__status">
-                    <select name="status" class="form-select">
-                        <option value="">All statuses</option>
-                        <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
-                        <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
-                    </select>
-                </div>
-                @if (request('search') || request('status'))
-                    <a href="{{ route('admin.countries.index') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
-                @endif
-            </form>
-            <div class="co-toolbar__spacer"></div>
-            <div class="co-toolbar__actions">
+        @php
+            $selectedStatus = request('status');
+            $statusLabel    = $selectedStatus ? ucfirst(strtolower($selectedStatus)) : null;
+            $headerTitle    = $statusLabel ? 'All ' . $statusLabel . ' Countries' : 'All Countries';
+        @endphp
+
+        <div class="card-header border-bottom">
+            <h4 class="card-title mb-0">{{ $headerTitle }}</h4>
+            <div class="d-flex gap-1">
                 <button type="button" class="btn btn-outline-primary" id="coBulkOpen">
                     <i data-feather="layers" class="me-25"></i> Bulk add
                 </button>
@@ -116,6 +103,24 @@
                     <i data-feather="plus" class="me-25"></i> Add Country
                 </button>
             </div>
+        </div>
+
+        <div class="card-body py-1">
+            <form id="countriesFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-5">
+                    <input type="text" name="search" placeholder="Search name or code…" value="{{ request('search') }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('admin.countries.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                </div>
+            </form>
         </div>
 
         {{-- ── Table ─────────────────────────────────────────────── --}}

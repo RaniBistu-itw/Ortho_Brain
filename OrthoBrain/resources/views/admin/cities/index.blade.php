@@ -91,44 +91,26 @@
 
     <div class="card ci-card">
 
-        {{-- ── Toolbar ──────────────────────────────────────────── --}}
-        <div class="ci-toolbar">
-            <form id="citiesFilter" method="GET" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
-                <div class="ci-toolbar__country">
-                    <select id="filter_country_id" name="country_id" data-ob-cascade-parent class="js-searchable form-select">
-                        <option value="">All countries</option>
-                        @foreach ($countries as $c)
-                            <option value="{{ $c->id }}" @selected(request('country_id') == $c->id)>{{ $c->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="ci-toolbar__state">
-                    <select id="filter_state_id" name="state_id" class="js-searchable form-select">
-                        <option value="">All states</option>
-                        @foreach ($states as $s)
-                            <option value="{{ $s->id }}" data-country-id="{{ $s->country_id }}" @selected(request('state_id') == $s->id)>{{ $s->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="ci-toolbar__search">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i data-feather="search" style="width:16px;height:16px;"></i></span>
-                        <input type="text" name="search" placeholder="Search city…" value="{{ request('search') }}" class="form-control border-start-0 ps-0">
-                    </div>
-                </div>
-                <div class="ci-toolbar__status">
-                    <select name="status" class="form-select">
-                        <option value="">All statuses</option>
-                        <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
-                        <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
-                    </select>
-                </div>
-                @if (request('search') || request('status') || request('country_id') || request('state_id'))
-                    <a href="{{ route('admin.cities.index') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
-                @endif
-            </form>
-            <div class="ci-toolbar__spacer"></div>
-            <div class="ci-toolbar__actions">
+        @php
+            $selectedCountry = $countries->firstWhere('id', request('country_id'));
+            $selectedState   = $states->firstWhere('id', request('state_id'));
+            $selectedStatus  = request('status');
+            $statusLabel     = $selectedStatus ? ucfirst(strtolower($selectedStatus)) : null;
+
+            if ($selectedState) {
+                $headerTitle = 'All ' . ($statusLabel ? $statusLabel . ' ' : '') . $selectedState->name . ' Cities';
+            } elseif ($selectedCountry) {
+                $headerTitle = 'All ' . ($statusLabel ? $statusLabel . ' ' : '') . $selectedCountry->name . ' Cities';
+            } elseif ($statusLabel) {
+                $headerTitle = 'All ' . $statusLabel . ' Cities';
+            } else {
+                $headerTitle = 'All Cities';
+            }
+        @endphp
+
+        <div class="card-header border-bottom">
+            <h4 class="card-title mb-0">{{ $headerTitle }}</h4>
+            <div class="d-flex gap-1">
                 <button type="button" class="btn btn-outline-primary" id="ciBulkOpen">
                     <i data-feather="layers" class="me-25"></i> Bulk add
                 </button>
@@ -136,6 +118,40 @@
                     <i data-feather="plus" class="me-25"></i> Add City
                 </button>
             </div>
+        </div>
+
+        <div class="card-body py-1">
+            <form id="citiesFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-3">
+                    <select id="filter_country_id" name="country_id" data-ob-cascade-parent class="js-searchable form-select">
+                        <option value="">All countries</option>
+                        @foreach ($countries as $c)
+                            <option value="{{ $c->id }}" @selected(request('country_id') == $c->id)>{{ $c->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="filter_state_id" name="state_id" class="js-searchable form-select">
+                        <option value="">All states</option>
+                        @foreach ($states as $s)
+                            <option value="{{ $s->id }}" data-country-id="{{ $s->country_id }}" @selected(request('state_id') == $s->id)>{{ $s->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" name="search" placeholder="Search city…" value="{{ request('search') }}" class="form-control">
+                </div>
+                <div class="col-md-2">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('admin.cities.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                </div>
+            </form>
         </div>
 
         {{-- ── Table ─────────────────────────────────────────────── --}}

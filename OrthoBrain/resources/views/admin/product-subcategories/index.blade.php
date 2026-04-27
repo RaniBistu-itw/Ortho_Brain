@@ -90,29 +90,23 @@
 
     <div class="card psc-card">
 
-        {{-- ── Toolbar: filter / search / add ───────────────────── --}}
-        <div class="psc-toolbar">
-            <form id="subcategoriesFilter" method="GET" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
-                <div class="psc-toolbar__filter">
-                    <select name="category_id" class="js-searchable form-select">
-                        <option value="">All categories</option>
-                        @foreach ($categories as $c)
-                            <option value="{{ $c->id }}" @selected(request('category_id') == $c->id)>{{ $c->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="psc-toolbar__search">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i data-feather="search" style="width:16px;height:16px;"></i></span>
-                        <input type="text" name="search" placeholder="Search sub-categories…" value="{{ request('search') }}" class="form-control border-start-0 ps-0">
-                    </div>
-                </div>
-                @if (request('search') || request('category_id'))
-                    <a href="{{ route('admin.product-subcategories.index') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
-                @endif
-            </form>
-            <div class="psc-toolbar__spacer"></div>
-            <div class="psc-toolbar__actions">
+        @php
+            $selectedCategory = $categories->firstWhere('id', request('category_id'));
+            $selectedStatus   = request('status');
+            $statusLabel      = $selectedStatus ? ucfirst(strtolower($selectedStatus)) : null;
+
+            if ($selectedCategory) {
+                $headerTitle = 'All ' . ($statusLabel ? $statusLabel . ' ' : '') . $selectedCategory->name . ' Sub Categories';
+            } elseif ($statusLabel) {
+                $headerTitle = 'All ' . $statusLabel . ' Sub Categories';
+            } else {
+                $headerTitle = 'All Sub Categories';
+            }
+        @endphp
+
+        <div class="card-header border-bottom">
+            <h4 class="card-title mb-0">{{ $headerTitle }}</h4>
+            <div class="d-flex gap-1">
                 <button type="button" class="btn btn-outline-primary" id="pscBulkOpen">
                     <i data-feather="layers" class="me-25"></i> Bulk add
                 </button>
@@ -120,6 +114,32 @@
                     <i data-feather="plus" class="me-25"></i> Add Sub Category
                 </button>
             </div>
+        </div>
+
+        <div class="card-body py-1">
+            <form id="subcategoriesFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-3">
+                    <select name="category_id" class="js-searchable form-select">
+                        <option value="">All categories</option>
+                        @foreach ($categories as $c)
+                            <option value="{{ $c->id }}" @selected(request('category_id') == $c->id)>{{ $c->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="search" placeholder="Search sub-categories…" value="{{ request('search') }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('admin.product-subcategories.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                </div>
+            </form>
         </div>
 
         {{-- ── Table ───────────────────────────────────────────── --}}

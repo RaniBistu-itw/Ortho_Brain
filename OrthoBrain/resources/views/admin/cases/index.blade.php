@@ -3,6 +3,23 @@
 @section('title', 'Cases')
 @section('page_title', 'Cases')
 
+@push('styles')
+<style>
+    /* KPI strip — mirrors the masters / product-categories layout */
+    .pc-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+    @media (max-width: 767.98px) { .pc-kpis { grid-template-columns: 1fr; } }
+    .pc-kpi { display: flex; align-items: center; gap: .9rem; padding: 1rem 1.1rem; border-radius: .6rem;
+              background: #fff; box-shadow: 0 2px 8px rgba(34, 41, 47, .05); border: 1px solid rgba(34, 41, 47, .05); }
+    .pc-kpi__icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; }
+    .pc-kpi__icon svg { width: 20px; height: 20px; }
+    .pc-kpi__icon--total    { background: rgba(var(--bs-primary-rgb), .12); color: var(--bs-primary); }
+    .pc-kpi__icon--active   { background: rgba(var(--bs-success-rgb), .12); color: var(--bs-success); }
+    .pc-kpi__icon--warning  { background: rgba(var(--bs-warning-rgb), .12); color: var(--bs-warning); }
+    .pc-kpi__label { font-size: .78rem; color: #6e6b7b; text-transform: uppercase; letter-spacing: .04em; }
+    .pc-kpi__value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; color: #5e5873; }
+</style>
+@endpush
+
 @php
   $statusTone = [
     'DRAFT'     => 'secondary',
@@ -29,6 +46,36 @@
 
 @section('content')
 <section id="admin-cases-list">
+
+  {{-- ── KPI strip ───────────────────────────────────────────── --}}
+  @php
+      $inReviewKpi = (int) ($statusCounts['IN_REVIEW'] ?? 0);
+      $approvedKpi = (int) ($statusCounts['APPROVED']  ?? 0);
+  @endphp
+  <div class="pc-kpis">
+      <div class="pc-kpi">
+          <div class="pc-kpi__icon pc-kpi__icon--total"><i data-feather="folder"></i></div>
+          <div>
+              <div class="pc-kpi__label">Total</div>
+              <div class="pc-kpi__value">{{ $totalCount ?? 0 }}</div>
+          </div>
+      </div>
+      <div class="pc-kpi">
+          <div class="pc-kpi__icon pc-kpi__icon--warning"><i data-feather="clock"></i></div>
+          <div>
+              <div class="pc-kpi__label">In Review</div>
+              <div class="pc-kpi__value">{{ $inReviewKpi }}</div>
+          </div>
+      </div>
+      <div class="pc-kpi">
+          <div class="pc-kpi__icon pc-kpi__icon--active"><i data-feather="check-circle"></i></div>
+          <div>
+              <div class="pc-kpi__label">Approved</div>
+              <div class="pc-kpi__value">{{ $approvedKpi }}</div>
+          </div>
+      </div>
+  </div>
+
   <div class="card">
     <div class="card-header border-bottom">
       <h4 class="card-title mb-0">{{ $heading }}</h4>

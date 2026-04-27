@@ -1,6 +1,11 @@
 @extends('layouts.admin')
 @section('title', 'Practices')
 @section('page_title', 'Practices')
+@php
+    $practicesTableTitle = request('status')
+        ? ucfirst(strtolower(request('status'))) . ' Practices'
+        : 'All Practices';
+@endphp
 
 @push('styles')
 <style>
@@ -27,6 +32,19 @@
         --ob-shadow-sm: 0 1px 2px rgba(24, 28, 40, 0.04);
         --ob-shadow-md: 0 4px 20px rgba(24, 28, 40, 0.06);
     }
+
+    /* KPI strip — mirrors the masters / product-categories layout */
+    .pc-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+    @media (max-width: 767.98px) { .pc-kpis { grid-template-columns: 1fr; } }
+    .pc-kpi { display: flex; align-items: center; gap: .9rem; padding: 1rem 1.1rem; border-radius: .6rem;
+              background: #fff; box-shadow: 0 2px 8px rgba(34, 41, 47, .05); border: 1px solid rgba(34, 41, 47, .05); }
+    .pc-kpi__icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; }
+    .pc-kpi__icon svg { width: 20px; height: 20px; }
+    .pc-kpi__icon--total    { background: rgba(var(--bs-primary-rgb), .12); color: var(--bs-primary); }
+    .pc-kpi__icon--active   { background: rgba(var(--bs-success-rgb), .12); color: var(--bs-success); }
+    .pc-kpi__icon--inactive { background: rgba(var(--bs-danger-rgb), .12);  color: var(--bs-danger); }
+    .pc-kpi__label { font-size: .78rem; color: #6e6b7b; text-transform: uppercase; letter-spacing: .04em; }
+    .pc-kpi__value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; color: #5e5873; }
 
     .ob-list-card {
         background: var(--ob-surface);
@@ -327,20 +345,53 @@
 @endphp
 
 <section id="practices-page">
-    <div class="ob-list-card">
-        {{-- Card head: title + total meta --}}
-        <div class="ob-card-head">
-            <h4 class="ob-card-head-title">Practices</h4>
-            <div class="ob-card-head-meta">
-                {{ number_format($totalCount ?? 0) }}
-                {{ \Illuminate\Support\Str::plural('practice', $totalCount ?? 0) }} on file
+
+    {{-- ── KPI strip ───────────────────────────────────────────── --}}
+    @php
+        $activeCount   = (int) ($statusCounts['ACTIVE']   ?? 0);
+        $inactiveCount = (int) ($statusCounts['INACTIVE'] ?? 0);
+    @endphp
+    <div class="pc-kpis">
+        <div class="pc-kpi">
+            <div class="pc-kpi__icon pc-kpi__icon--total"><i data-feather="briefcase"></i></div>
+            <div>
+                <div class="pc-kpi__label">Total</div>
+                <div class="pc-kpi__value">{{ $totalCount ?? 0 }}</div>
             </div>
+        </div>
+        <div class="pc-kpi">
+            <div class="pc-kpi__icon pc-kpi__icon--active"><i data-feather="check-circle"></i></div>
+            <div>
+                <div class="pc-kpi__label">Active</div>
+                <div class="pc-kpi__value">{{ $activeCount }}</div>
+            </div>
+        </div>
+        <div class="pc-kpi">
+            <div class="pc-kpi__icon pc-kpi__icon--inactive"><i data-feather="slash"></i></div>
+            <div>
+                <div class="pc-kpi__label">Inactive</div>
+                <div class="pc-kpi__value">{{ $inactiveCount }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ob-list-card">
+        {{-- Card head: dynamic title --}}
+        <div class="ob-card-head">
+            <h4 class="card-title mb-0">{{ $practicesTableTitle }}</h4>
         </div>
 
         {{-- Toolbar --}}
         <div class="ob-toolbar">
             <form id="practicesFilter" method="GET" class="row g-2 align-items-center">
-                <div class="col-md-5">
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
                     <select name="country_id" class="js-searchable form-select">
                         <option value="">All countries</option>
                         @foreach ($countries as $c)
@@ -348,7 +399,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <div class="ob-input-icon">
                         <i data-feather="search"></i>
                         <input type="text" name="search" placeholder="Search by name, website, or phone"

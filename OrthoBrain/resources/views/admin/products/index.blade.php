@@ -48,8 +48,24 @@
     </div>
 
     <div class="card">
+        @php
+            $selectedCategory    = $categories->firstWhere('id', request('category_id'));
+            $selectedSubcategory = $subcategories->firstWhere('id', request('subcategory_id'));
+            $selectedStatus      = request('status');
+            $statusLabel         = $selectedStatus ? ucfirst(strtolower($selectedStatus)) : null;
+
+            if ($selectedSubcategory) {
+                $headerTitle = 'All ' . ($statusLabel ? $statusLabel . ' ' : '') . $selectedSubcategory->name;
+            } elseif ($selectedCategory) {
+                $headerTitle = 'All ' . ($statusLabel ? $statusLabel . ' ' : '') . $selectedCategory->name;
+            } elseif ($statusLabel) {
+                $headerTitle = 'All ' . $statusLabel . ' Products';
+            } else {
+                $headerTitle = 'All Products';
+            }
+        @endphp
         <div class="card-header border-bottom">
-            <h4 class="card-title">Products</h4>
+            <h4 class="card-title mb-0">{{ $headerTitle }}</h4>
             <a href="{{ route('admin.products.create') }}" class="btn btn-primary">
                 <i data-feather="plus" class="me-25"></i> Add Product
             </a>
