@@ -128,6 +128,10 @@ Route::middleware(['web', 'admin'])
     ->group(function () {
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 
+        // Admin notifications — bell dropdown "View All" feed (today's activity)
+        Route::get('/notifications', [\App\Http\Controllers\Admin\NotificationController::class, 'index'])
+            ->name('notifications.index');
+
         // Admin profile (account details + avatar)
         Route::get('/profile',            [AdminProfileController::class, 'index'])->name('profile.index');
         Route::post('/profile',           [AdminProfileController::class, 'update'])->name('profile.update');
