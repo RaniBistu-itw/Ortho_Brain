@@ -18,6 +18,13 @@
       state:          '',
       country:        '',
 
+      // ZIP combobox cache. zipResults backs the visible dropdown (refreshed
+      // by debounced server search); zipCache memoises individual entries
+      // by id so hydration / re-renders don't re-fetch known IDs.
+      zipResults: [],
+      zipCache: {},
+      _zipSearchTimer: null,
+
       // Pre-declare every error key so Alpine tracks them from the start.
       errors: {
         streetAddress: null,
@@ -83,38 +90,75 @@
         this.country = d.country || '';
       },
 
-      // Resolve the data source: prefer the seeded ZIPCODE_ENTRIES, fall back
-      // to the legacy mock for any tooling that still references it.
-      _zipEntries: function () {
-        return window.ZIPCODE_ENTRIES || window.MOCK_ZIP_ENTRIES || [];
-      },
-
-      // Set zipQuery to the display label matching the given zipId.
+      // Set zipQuery to the display label matching the given zipId. If the
+      // entry isn't already cached, fetch it by id from the search endpoint
+      // so hydration of an existing draft doesn't fall back to "raw zip id"
+      // text.
       _resolveZipQuery: function (zipId) {
         if (!zipId) { this.zipQuery = ''; return; }
-        var entry = this._zipEntries().find(function (e) { return e.id === zipId; });
-        this.zipQuery = entry ? entry.displayLabel : zipId;
+        var cached = this.zipCache[zipId];
+        if (cached) {
+          this.zipQuery = cached.displayLabel;
+          return;
+        }
+        var self = this;
+        fetch('/dev/zipcodes/search?ids%5B%5D=' + encodeURIComponent(zipId), {
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json' },
+        }).then(function (res) {
+          return res.ok ? res.json() : [];
+        }).then(function (rows) {
+          var entry = (rows && rows[0]) || null;
+          if (entry) {
+            self.zipCache[entry.id] = entry;
+            self.zipQuery = entry.displayLabel;
+          } else {
+            self.zipQuery = String(zipId);
+          }
+        }).catch(function () { self.zipQuery = String(zipId); });
       },
 
       // ── ZIP combobox helpers ────────────────────────────────────────────────
 
+      // Alpine binds `<template x-for="entry in filteredZips()">`. Keep this
+      // synchronous and just return the most recent server-search results
+      // — the actual fetch is fired by onZipQueryInput below.
       filteredZips: function () {
-        var entries = this._zipEntries();
-        var q = (this.zipQuery || '').toLowerCase().trim();
-        // Cap unfiltered list — a 600+ option dropdown chokes the browser.
-        if (!q) return entries.slice(0, 50);
-        var matches = entries.filter(function (e) {
-          var code = e.code || e.zip || '';
-          return e.displayLabel.toLowerCase().indexOf(q) !== -1
-              || code.toLowerCase().indexOf(q) !== -1;
-        });
-        return matches.slice(0, 50);
+        return this.zipResults;
+      },
+
+      // Triggered by @input on the zip search field. Debounced ~250ms so
+      // we don't hit the server on every keystroke.
+      onZipQueryInput: function () {
+        var q = (this.zipQuery || '').trim();
+        if (q === '') {
+          this.zipResults = [];
+          return;
+        }
+        var self = this;
+        clearTimeout(this._zipSearchTimer);
+        this._zipSearchTimer = setTimeout(function () { self._fetchZips(q); }, 250);
+      },
+
+      _fetchZips: function (q) {
+        var self = this;
+        fetch('/dev/zipcodes/search?q=' + encodeURIComponent(q), {
+          credentials: 'same-origin',
+          headers: { 'Accept': 'application/json' },
+        }).then(function (res) {
+          return res.ok ? res.json() : [];
+        }).then(function (rows) {
+          self.zipResults = rows || [];
+          (rows || []).forEach(function (e) { self.zipCache[e.id] = e; });
+        }).catch(function () { self.zipResults = []; });
       },
 
       selectZip: function (entry) {
         this.zipId           = entry.id;
         this.zipQuery        = entry.displayLabel;
         this.zipDropdownOpen = false;
+        // Memoise so a later _resolveZipQuery() doesn't re-fetch this id.
+        this.zipCache[entry.id] = entry;
         // CASCADE: auto-fill city, state, country
         this.city    = entry.city;
         this.state   = entry.state;

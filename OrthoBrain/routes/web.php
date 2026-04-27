@@ -26,6 +26,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PracticeController;
 use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ZipcodeSearchController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Public / shared auth routes ──────────────────────────
@@ -66,6 +67,12 @@ Route::middleware(['web', 'auth'])
 
         // Doctor dashboard (landing page after login)
         Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
+
+        // Lightweight ZIP/postal lookup used by the case-wizard shipping
+        // address combobox. Replaces the previous practice of inlining
+        // ~600 zipcodes (102 KB) into every case-edit page render.
+        Route::get('/zipcodes/search', [ZipcodeSearchController::class, 'search'])
+            ->name('zipcodes.search');
 
         // Notifications — bell dropdown + "View All" modal actions
         Route::get('/notifications',                  [NotificationController::class, 'index'])->name('notifications.index');

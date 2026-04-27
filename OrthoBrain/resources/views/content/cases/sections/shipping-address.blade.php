@@ -75,12 +75,13 @@
         <label for="sa-zip" class="form-label fw-semibold">
           ZIP / Postal Code <span class="text-danger">*</span>
         </label>
-        {{-- Custom combobox: type to filter MOCK_ZIP_ENTRIES; selecting cascades city/state/country --}}
+        {{-- Custom combobox: typing fires a debounced server search via
+             onZipQueryInput; selecting cascades city/state/country. --}}
         <div class="sa-zip-combobox" @click.outside="zipDropdownOpen = false">
           <input type="text" id="sa-zip" class="form-control"
                  x-model="zipQuery"
-                 @focus="zipDropdownOpen = true"
-                 @input="zipDropdownOpen = true"
+                 @focus="zipDropdownOpen = true; onZipQueryInput()"
+                 @input="zipDropdownOpen = true; onZipQueryInput()"
                  @keydown.escape="zipDropdownOpen = false"
                  @blur="onZipBlur()"
                  :class="{ 'is-invalid': errors.zipId }"
