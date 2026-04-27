@@ -222,6 +222,7 @@
   <script>
     window.CASE_ID = '{{ $caseId ?? 'new' }}';
     window.__addCasePrefill = @json($prescriptionPrefill ?? null);
+    window.__caseMediaPrefill = @json($caseMedia ?? []);
     window.CASE_API_BASE = @json($apiBase);
     window.CASE_ADMIN_MODE = @json((bool) $adminMode);
     window.ACTIVE_PRACTICE_ADDRESS = @json($activePracticeAddress);
@@ -235,11 +236,14 @@
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
   <script src="{{ asset('js/scripts/cases/case-api.js') }}?v={{ @filemtime(public_path('js/scripts/cases/case-api.js')) ?: time() }}"></script>
   {{-- IndexedDB-backed image store; must load before photographs.js so its init() can hydrate. --}}
-  <script src="{{ asset('js/scripts/cases/case-image-store.js') }}"></script>
+  <script src="{{ asset('js/scripts/cases/case-image-store.js') }}?v={{ @filemtime(public_path('js/scripts/cases/case-image-store.js')) ?: time() }}"></script>
+  {{-- Server-side media persistence (companion to case-image-store.js). --}}
+  <script src="{{ asset('js/scripts/cases/case-media-api.js') }}?v={{ @filemtime(public_path('js/scripts/cases/case-media-api.js')) ?: time() }}"></script>
   @php
     $voiceInputVer = @filemtime(public_path('js/scripts/cases/voice-input.js')) ?: time();
     $cropModalVer  = @filemtime(public_path('js/scripts/cases/sections/crop-modal.js')) ?: time();
     $photographsVer = @filemtime(public_path('js/scripts/cases/sections/photographs.js')) ?: time();
+    $xraysVer      = @filemtime(public_path('js/scripts/cases/sections/xrays.js')) ?: time();
     $smilePlanVer  = @filemtime(public_path('js/scripts/cases/sections/perfect-smile-plan.js')) ?: time();
   @endphp
   <script src="{{ asset('js/scripts/cases/voice-input.js') }}?v={{ $voiceInputVer }}"></script>
@@ -259,7 +263,7 @@
   <script src="{{ asset('js/scripts/cases/sections/media-tile-helpers.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/crop-modal.js') }}?v={{ $cropModalVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/photographs.js') }}?v={{ $photographsVer }}"></script>
-  <script src="{{ asset('js/scripts/cases/sections/xrays.js') }}"></script>
+  <script src="{{ asset('js/scripts/cases/sections/xrays.js') }}?v={{ $xraysVer }}"></script>
   @if($adminMode)
     <script src="{{ asset('js/scripts/cases/sections/perfect-smile-plan.js') }}?v={{ $smilePlanVer }}"></script>
   @endif

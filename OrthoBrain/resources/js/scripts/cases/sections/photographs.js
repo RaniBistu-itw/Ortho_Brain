@@ -137,6 +137,18 @@
         var caseId = this._getCaseId();
         var pendingRestores = [];
 
+        // Server-side prefill (window.__caseMediaPrefill) is the source of
+        // truth — it survives across browsers and is what admins see. Build
+        // a quick lookup keyed by tile_id so we can hydrate from the URL.
+        var serverByTile = {};
+        if (window.CaseMediaApi) {
+          window.CaseMediaApi.prefill().forEach(function (m) {
+            if (m && m.section === 'photograph' && m.tileId) {
+              serverByTile[m.tileId] = m;
+            }
+          });
+        }
+
         PHOTO_TILE_ORDER.forEach(function (id) {
           self.tiles[id].filled = false;
           self.tiles[id].originalFile = null;
@@ -144,6 +156,20 @@
           self.tiles[id].previewUrl = null;
           self.tiles[id].cropParams = (d.tiles && d.tiles[id]) ? (d.tiles[id].cropParams || null) : null;
 
+          // 1) Server URL wins — show it immediately, no blob fetch needed.
+          var server = serverByTile[id];
+          if (server && server.url) {
+            self.tiles[id].filled = true;
+            self.tiles[id].previewUrl = server.url;
+            self.tiles[id].cropParams = server.cropParams || self.tiles[id].cropParams;
+            // Originalfile stays null — re-cropping will refetch the source
+            // via fetch() if the user opens the crop modal again.
+            pendingRestores.push(Promise.resolve({ id: id, ok: true }));
+            return;
+          }
+
+          // 2) Fallback: IndexedDB hydration for the same browser that
+          //    uploaded (e.g. brand-new shell that hasn't synced to server).
           if (d.tiles && d.tiles[id] && d.tiles[id].filled && window.CaseImageStore) {
             pendingRestores.push(
               window.CaseImageStore.get(caseId, 'photographs', id).then(function (blob) {
@@ -156,12 +182,10 @@
               }).catch(function () { return { id: id, ok: false }; })
             );
           } else if (d.tiles && d.tiles[id] && d.tiles[id].filled) {
-            // No CaseImageStore loaded — flag the gap so the banner shows.
             pendingRestores.push(Promise.resolve({ id: id, ok: false }));
           }
         });
 
-        // TODO: when S3 lands, replace IDB lookup with presigned-URL fetch (see CaseImageStore notes).
         Promise.all(pendingRestores).then(function (results) {
           var anyMissing = results.some(function (r) { return !r.ok; });
           if (anyMissing) self.showReuploadAlert = true;
@@ -227,9 +251,23 @@
       },
 
       _persistTile: function (tileId, blob) {
-        if (!window.CaseImageStore) return;
-        window.CaseImageStore.put(this._getCaseId(), 'photographs', tileId, blob)
-          .catch(function (e) { console.warn('CaseImageStore.put failed', tileId, e); });
+        var caseId = this._getCaseId();
+        // Local IDB cache — fast same-browser hydration + offline robustness.
+        if (window.CaseImageStore) {
+          window.CaseImageStore.put(caseId, 'photographs', tileId, blob)
+            .catch(function (e) { console.warn('CaseImageStore.put failed', tileId, e); });
+        }
+        // Server upload — source of truth. Fire-and-forget; the local preview
+        // is already showing, so user doesn't wait on the network.
+        if (window.CaseMediaApi && caseId && caseId !== 'new') {
+          var cropParams = this.tiles[tileId] && this.tiles[tileId].cropParams;
+          window.CaseMediaApi.upload(caseId, 'photograph', tileId, blob, {
+            filename: 'photograph-' + tileId,
+            cropParams: cropParams,
+          }).catch(function (err) {
+            console.warn('CaseMediaApi.upload failed', tileId, err);
+          });
+        }
       },
 
       // Ask the AI whether `blob` matches the pose for `tileId`. Non-blocking.
@@ -276,9 +314,15 @@
       },
 
       _forgetTile: function (tileId) {
-        if (!window.CaseImageStore) return;
-        window.CaseImageStore.remove(this._getCaseId(), 'photographs', tileId)
-          .catch(function (e) { console.warn('CaseImageStore.remove failed', tileId, e); });
+        var caseId = this._getCaseId();
+        if (window.CaseImageStore) {
+          window.CaseImageStore.remove(caseId, 'photographs', tileId)
+            .catch(function (e) { console.warn('CaseImageStore.remove failed', tileId, e); });
+        }
+        if (window.CaseMediaApi && caseId && caseId !== 'new') {
+          window.CaseMediaApi.destroy(caseId, 'photograph', tileId)
+            .catch(function (err) { console.warn('CaseMediaApi.destroy failed', tileId, err); });
+        }
       },
 
       _getCaseId: function () {
