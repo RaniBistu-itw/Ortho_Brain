@@ -216,8 +216,8 @@ body #ob-dash .ob-inbox-row-sub         { color: rgba(255,255,255,.55); }
 }
 /* Last card in a flex-column stack grows to fill its column — keeps
    the stacked side visually aligned with the dental card next to it. */
-.col-xl-5.d-flex.flex-column > .ob-card:last-child,
-.col-xl-5.d-flex.flex-column > .ob-inbox:last-child {
+.col-xl-6.d-flex.flex-column > .ob-card:last-child,
+.col-xl-6.d-flex.flex-column > .ob-inbox:last-child {
   flex: 1 1 auto;
 }
 .ob-card-title {
@@ -363,9 +363,9 @@ body #ob-dash .ob-inbox-row-sub         { color: rgba(255,255,255,.55); }
     radial-gradient(ellipse 55% 50% at 50% 55%, #F6FAFD 0%, #E6F0F8 55%, #D3E1EE 100%);
   border-radius: 14px;
   overflow: hidden;
-  min-height: 360px;
+  height: 280px;
   display: flex; align-items: center; justify-content: center;
-  flex: 1 1 auto;   /* fills remaining card height between title & legend */
+  flex: 0 0 280px;   /* fixed — don't stretch to match the sibling column */
 }
 .ob-mouth-stage::before {
   /* subtle top-left key-light glow */
@@ -449,6 +449,87 @@ body #ob-dash .ob-inbox-row-sub         { color: rgba(255,255,255,.55); }
   display:inline-flex; align-items:center; gap:.4rem;
   font-size:.72rem; font-weight:700; color:#1E293B;
 }
+
+/* ─── Recent Pipeline (compact strip below 3D viewer) ─────── */
+.ob-arch-pipeline {
+  margin-top: .85rem;
+  display: flex; flex-direction: column;
+  flex: 1 1 auto;   /* absorbs whatever vertical space is left in the card */
+  min-height: 0;
+}
+.ob-arch-pipeline-title {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: .7rem; font-weight: 800; letter-spacing: 1.3px;
+  text-transform: uppercase; color: var(--d-slate);
+  margin-bottom: .6rem;
+}
+.ob-arch-pipeline-more {
+  margin-left: auto; font-size: .7rem; font-weight: 700;
+  text-decoration: none; color: var(--d-teal); letter-spacing: .3px;
+}
+.ob-arch-pipeline-more:hover { text-decoration: underline; }
+.ob-arch-pipeline-list {
+  display: flex; flex-direction: column; gap: .4rem;
+  flex: 1 1 auto;
+}
+.ob-arch-pipeline-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: .75rem;
+  align-items: center;
+  padding: .55rem .75rem;
+  background: #F8FAFC;
+  border: 1px solid var(--d-border);
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.ob-arch-pipeline-row:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  transform: translateX(2px);
+}
+.ob-arch-pipeline-code {
+  font-size: .78rem; font-weight: 800; color: #1E293B;
+  letter-spacing: .3px;
+}
+.ob-arch-pipeline-status {
+  font-size: .62rem; font-weight: 800;
+  padding: .18rem .55rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  white-space: nowrap;
+}
+.ob-arch-pipeline-status--submitted { background: #DBEAFE; color: #1D4ED8; }
+.ob-arch-pipeline-status--in_review { background: #E0E7FF; color: #4338CA; }
+.ob-arch-pipeline-status--approved  { background: #D1FAE5; color: #047857; }
+.ob-arch-pipeline-when {
+  justify-self: end;
+  font-size: .68rem; font-weight: 600;
+  color: var(--d-slate);
+}
+.ob-arch-pipeline-empty {
+  display: flex; align-items: center; gap: .6rem;
+  padding: 1rem;
+  background: #F8FAFC;
+  border: 1px dashed var(--d-border);
+  border-radius: 10px;
+  color: var(--d-slate);
+  font-size: .75rem; font-weight: 600;
+  flex: 1 1 auto;
+}
+.ob-arch-pipeline-empty svg { width: 18px !important; height: 18px !important; flex-shrink: 0; }
+
+.dark-layout #ob-dash .ob-arch-pipeline-row {
+  background: #283046; border-color: rgba(255,255,255,.08);
+}
+.dark-layout #ob-dash .ob-arch-pipeline-row:hover { background: #2f3651; }
+.dark-layout #ob-dash .ob-arch-pipeline-code { color: #d0d2d6; }
+.dark-layout #ob-dash .ob-arch-pipeline-empty {
+  background: #283046; border-color: rgba(255,255,255,.1);
+}
+
 /* ─── Patient Pulse ───────────────────────────────────────── */
 .ob-pulse-head {
   display:flex; align-items:baseline; justify-content:space-between;
@@ -469,7 +550,7 @@ body #ob-dash .ob-inbox-row-sub         { color: rgba(255,255,255,.55); }
 .ob-pulse-caption {
   font-size:.75rem; color: var(--d-slate); margin-bottom:.8rem;
 }
-.ob-pulse-chart { width:100%; height:120px; display:block; }
+.ob-pulse-chart { width:100%; height:90px; display:block; }
 .ob-pulse-scale {
   display:flex; justify-content:space-between;
   font-size:.62rem; font-weight:700; color: var(--d-slate);
@@ -485,11 +566,11 @@ body #ob-dash .ob-inbox-row-sub         { color: rgba(255,255,255,.55); }
   gap:.8rem;
 }
 /* When the QA card is the grow-card in a stack, let the grid fill vertically */
-.col-xl-5.d-flex.flex-column > .ob-card:last-child {
+.col-xl-6.d-flex.flex-column > .ob-card:last-child {
   display: flex;
   flex-direction: column;
 }
-.col-xl-5.d-flex.flex-column > .ob-card:last-child > .ob-qa-grid { flex: 1 1 auto; }
+.col-xl-6.d-flex.flex-column > .ob-card:last-child > .ob-qa-grid { flex: 1 1 auto; }
 .ob-qa-btn {
   display:flex; flex-direction:column; align-items:center;
   gap:.5rem; padding:1rem .5rem;
@@ -844,11 +925,11 @@ body #ob-dash .ob-inbox-row-sub         { color: rgba(255,255,255,.55); }
     </div>
 
     {{-- ══════════════════════════════════════════════════════
-         DENTAL ARCH MAP (7)  +  TREATMENT PIPELINE (5)
+         DENTAL ARCH MAP (6)  +  TREATMENT PIPELINE (6)
     ══════════════════════════════════════════════════════ --}}
     <div class="row g-3 mb-2">
         {{-- Dental Arch Map --}}
-        <div class="col-xl-7 ob-anim-5">
+        <div class="col-xl-6 ob-anim-5">
             <div class="ob-card h-100 d-flex flex-column">
                 <div class="ob-card-title">
                     <span class="ob-card-title-bar" style="background:#7C3AED"></span>
@@ -885,11 +966,39 @@ body #ob-dash .ob-inbox-row-sub         { color: rgba(255,255,255,.55); }
                         PBR materials · Upper &amp; lower arch
                     </span>
                 </div>
+
+                {{-- Treatment Pipeline (compact) — fills remaining card height with useful data --}}
+                <div class="ob-arch-pipeline">
+                    <div class="ob-arch-pipeline-title">
+                        <span class="ob-card-title-bar" style="background:#0EA5C5"></span>
+                        Recent Pipeline
+                        <a href="{{ route('doctor.cases.index') }}" class="ob-arch-pipeline-more">View all</a>
+                    </div>
+
+                    @if($pipeline->count())
+                        <div class="ob-arch-pipeline-list">
+                            @foreach($pipeline as $item)
+                                <a href="{{ $item['route'] }}" class="ob-arch-pipeline-row">
+                                    <span class="ob-arch-pipeline-code">{{ $item['code'] }}</span>
+                                    <span class="ob-arch-pipeline-status ob-arch-pipeline-status--{{ strtolower($item['status']) }}">
+                                        {{ ucwords(strtolower(str_replace('_', ' ', $item['status']))) }}
+                                    </span>
+                                    <span class="ob-arch-pipeline-when">{{ $item['when'] }}</span>
+                                </a>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="ob-arch-pipeline-empty">
+                            <i data-feather="inbox"></i>
+                            <div>No active cases yet — start one from Quick Actions.</div>
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
 
         {{-- RIGHT COLUMN: Patient Pulse stacked over Quick Actions --}}
-        <div class="col-xl-5 ob-anim-6 d-flex flex-column gap-3">
+        <div class="col-xl-6 ob-anim-6 d-flex flex-column gap-3">
 
             {{-- Patient Pulse --}}
             <div class="ob-card">

@@ -24,6 +24,8 @@
     <link rel="stylesheet" href="{{ asset('css/base/themes/orthobrain-palette.css') }}?v={{ @filemtime(public_path('css/base/themes/orthobrain-palette.css')) ?: time() }}" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
+    @livewireStyles
+
     {{-- Tailwind CDN kept for legacy doctor-side pages (register, profile/index) whose forms
          still use utility classes. Remove once those pages are fully ported to Vuexy markup. --}}
     <script src="https://cdn.tailwindcss.com"></script>
@@ -93,23 +95,144 @@
     </footer>
     <button class="btn btn-primary btn-icon scroll-top" type="button"><i data-feather="arrow-up"></i></button>
 
-    <script src="{{ asset('vuexy/vendors/js/vendors.min.js') }}"></script>
-    <script src="{{ asset('vuexy/vendors/js/ui/jquery.sticky.js') }}"></script>
-    <script src="{{ asset('vuexy/vendors/js/forms/select/select2.full.min.js') }}"></script>
-    <script src="{{ asset('vuexy/js/core/app-menu.js') }}"></script>
-    <script src="{{ asset('vuexy/js/core/app.js') }}"></script>
-    <script src="{{ asset('vuexy/js/core/scripts.js') }}"></script>
-    <script src="{{ asset('js/theme-toggle.js') }}?v={{ @filemtime(public_path('js/theme-toggle.js')) ?: time() }}"></script>
+    {{-- Vuexy Vendor + Theme JS — data-navigate-once. See admin.blade.php
+         for the full rationale; short version: re-running these on body morph
+         orphans monkey-patches, double-binds Bootstrap dropdowns and Vuexy's
+         .menu-toggle, and breaks navbar/sidebar interactivity. --}}
+    <script src="{{ asset('vuexy/vendors/js/vendors.min.js') }}" data-navigate-once></script>
+    <script src="{{ asset('vuexy/vendors/js/ui/jquery.sticky.js') }}" data-navigate-once></script>
+    <script src="{{ asset('vuexy/vendors/js/forms/select/select2.full.min.js') }}" data-navigate-once></script>
+    <script src="{{ asset('vuexy/js/core/app-menu.js') }}" data-navigate-once></script>
+    <script src="{{ asset('vuexy/js/core/app.js') }}" data-navigate-once></script>
+    <script src="{{ asset('vuexy/js/core/scripts.js') }}" data-navigate-once></script>
+    <script src="{{ asset('js/theme-toggle.js') }}?v={{ @filemtime(public_path('js/theme-toggle.js')) ?: time() }}" data-navigate-once></script>
 
-    <script>
-        $(window).on('load', function () {
-            if (window.feather) { feather.replace({ width: 14, height: 14 }); }
-        });
+    <script data-navigate-once>
+    // ════════════════════════════════════════════════════════════════════════
+    // ONE-TIME LAYOUT INIT — see admin.blade.php for rationale. Doctor side is
+    // lighter (no helper library), so this block is small.
+    // ════════════════════════════════════════════════════════════════════════
+    if (!window.__obDoctorLayoutInited) {
+        window.__obDoctorLayoutInited = true;
+
         $.ajaxSetup({
             headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
         });
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PER-PAGE INIT — runs on first window.load AND on every livewire:navigated.
+    // ════════════════════════════════════════════════════════════════════════
+    // ────────────────────────────────────────────────────────────────────
+    // Viewport ↔ body class sync. See admin.blade.php for full rationale.
+    // Short version: Vuexy's app-menu.js doesn't react to resize, AND
+    // wire:navigate's body morph resets body.class to the server-rendered
+    // desktop default — so we have to re-apply mobile classes ourselves on
+    // every breakpoint crossing AND every navigation.
+    // ────────────────────────────────────────────────────────────────────
+    window.obSyncViewportClasses = function () {
+        const body     = document.body;
+        const menuType = body.dataset.menu || 'vertical-menu-modern';
+        const isMobile = window.matchMedia('(max-width: 1199.98px)').matches;
+        const overlay  = document.querySelector('.sidenav-overlay');
+
+        if (isMobile) {
+            body.classList.remove(menuType);
+            body.classList.add('vertical-overlay-menu');
+            body.classList.remove('menu-expanded', 'menu-open');
+            if (!body.classList.contains('menu-hide')) body.classList.add('menu-hide');
+            document.querySelectorAll('nav.header-navbar').forEach(n => n.classList.add('fixed-top'));
+        } else {
+            body.classList.remove('vertical-overlay-menu');
+            body.classList.add(menuType);
+            body.classList.remove('menu-open', 'menu-hide');
+            if (!body.classList.contains('menu-expanded')
+                && !body.classList.contains('menu-collapsed')) {
+                body.classList.add('menu-expanded');
+            }
+            document.querySelectorAll('nav.header-navbar').forEach(n => n.classList.remove('fixed-top'));
+        }
+        if (overlay) overlay.classList.remove('show');
+        document.querySelectorAll('.menu-toggle').forEach(el => el.classList.remove('is-active'));
+    };
+
+    window.obCloseMobileDrawer = function () {
+        if (!window.matchMedia('(max-width: 1199.98px)').matches) return;
+        const body = document.body;
+        if (!body.classList.contains('menu-open')) return;
+        body.classList.remove('menu-open', 'menu-expanded');
+        body.classList.add('menu-hide');
+        const overlay = document.querySelector('.sidenav-overlay');
+        if (overlay) overlay.classList.remove('show');
+        document.querySelectorAll('.menu-toggle').forEach(el => el.classList.remove('is-active'));
+    };
+
+    window.obDoctorPageInit = function () {
+        document.documentElement.classList.remove('loading');
+
+        // Re-establish viewport-correct body classes after wire:navigate's
+        // body morph resets them to the server-rendered desktop default.
+        window.obSyncViewportClasses();
+
+        if (window.feather) feather.replace({ width: 14, height: 14 });
+
+        // Active state is now server-rendered via request()->routeIs(...) on
+        // every navigate (sidebar is no longer x-persist'd).
+
+        // Flash auto-fade (matches admin behaviour).
+        setTimeout(function () { $('.ob-flash').fadeOut(400); }, 5000);
+    };
+
+
+    // ════════════════════════════════════════════════════════════════════════
+    // NAVIGATE HOOKS — guarded so re-execution doesn't stack listeners.
+    // ════════════════════════════════════════════════════════════════════════
+    if (!window.__obDoctorNavigateBound) {
+        window.__obDoctorNavigateBound = true;
+
+        document.addEventListener('livewire:navigating', function () {
+            // Close mobile drawer using Vuexy's exact close sequence.
+            window.obCloseMobileDrawer();
+
+            if (window.jQuery) jQuery(document).off('.ob-page');
+
+            document.documentElement.classList.remove('loading');
+        });
+
+        document.addEventListener('livewire:navigated', function () {
+            window.obDoctorPageInit();
+        });
+
+        $(window).on('load', function () { window.obDoctorPageInit(); });
+
+        // Viewport-crossing sync — see admin.blade.php for full rationale.
+        window.matchMedia('(max-width: 1199.98px)').addEventListener('change', function () {
+            window.obSyncViewportClasses();
+        });
+    }
+    </script>
+
+    {{-- Handler-dedupe monkey-patch — see admin.blade.php for explanation. --}}
+    <script data-navigate-once>
+        (function () {
+            if (!window.jQuery || jQuery.fn.__obPagePatched) return;
+            jQuery.fn.__obPagePatched = true;
+            const origOn = jQuery.fn.on;
+            jQuery.fn.on = function (types) {
+                if (this.length
+                    && (this[0] === document || this[0] === document.body)
+                    && typeof types === 'string'
+                    && !/\.ob-(page|layout)\b/.test(types)
+                ) {
+                    arguments[0] = types.split(' ').map(t => t + '.ob-page').join(' ');
+                }
+                return origOn.apply(this, arguments);
+            };
+        })();
     </script>
 
     @stack('scripts')
+
+    @livewireScripts
 </body>
 </html>
