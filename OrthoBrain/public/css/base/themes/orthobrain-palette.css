@@ -249,6 +249,98 @@ h1, h2, h3, h4, h5, h6,
   --bs-table-hover-color:   var(--ob-text);
 }
 
+/* ---------- Shared admin index table chrome -------------------------------
+   Apply alongside Bootstrap's `.table` on /admin/* index pages so Doctors,
+   Cases, Countries (etc.) share one visual identity in light AND dark mode.
+   All chrome flows through --ob-* tokens, which already swap on theme. */
+.ob-admin-table {
+  width: 100%;
+  margin: 0;
+}
+.ob-admin-table thead th {
+  background-color: var(--ob-surface-2);
+  color: var(--ob-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.85rem 1.25rem;
+  border-top: 0;
+  border-bottom: 1px solid var(--ob-border);
+  white-space: nowrap;
+}
+.ob-admin-table tbody td {
+  padding: 0.9rem 1.25rem;
+  border-top: 1px solid var(--ob-border);
+  vertical-align: middle;
+  font-size: 0.88rem;
+  color: var(--ob-text);
+}
+.ob-admin-table tbody tr {
+  transition: background-color 0.12s var(--ob-ease);
+}
+.ob-admin-table tbody tr:hover {
+  background-color: var(--ob-surface-2);
+}
+.ob-admin-table .ob-icon-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid var(--ob-border);
+  background: var(--ob-surface-1);
+  color: var(--ob-text-muted);
+  transition: color 0.12s var(--ob-ease),
+              border-color 0.12s var(--ob-ease),
+              background-color 0.12s var(--ob-ease),
+              transform 0.12s var(--ob-ease);
+}
+.ob-admin-table .ob-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  justify-content: flex-end;
+}
+.ob-admin-table .ob-icon-btn + .ob-icon-btn { margin-left: 0; }
+.ob-admin-table .ob-icon-btn:hover {
+  color: var(--ob-primary);
+  border-color: var(--ob-primary);
+  background: var(--ob-primary-soft);
+  transform: translateY(-1px);
+}
+.ob-admin-table .ob-icon-btn svg { width: 15px; height: 15px; }
+
+/* Status pill — palette-driven, dot prefix. Variants reuse semantic tokens
+   so they auto-shift between light & dark modes. */
+.ob-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  background-color: var(--ob-surface-2);
+  color: var(--ob-text-muted);
+}
+.ob-status::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+}
+.ob-status--success   { background: rgba(52, 211, 153, 0.14);  color: var(--ob-success); border-color: rgba(52, 211, 153, 0.28); }
+.ob-status--warning   { background: rgba(245, 158, 11, 0.14);  color: var(--ob-warning); border-color: rgba(245, 158, 11, 0.28); }
+.ob-status--danger    { background: rgba(239, 68, 68, 0.14);   color: var(--ob-danger);  border-color: rgba(239, 68, 68, 0.28); }
+.ob-status--info      { background: rgba(96, 165, 250, 0.14);  color: var(--ob-info);    border-color: rgba(96, 165, 250, 0.28); }
+.ob-status--secondary { background: var(--ob-surface-2);       color: var(--ob-text-muted); border-color: var(--ob-border); }
+
 /* ---------- Links ---------------------------------------------------------- */
 a { color: var(--ob-primary); }
 a:hover { color: var(--ob-primary-hover); }
