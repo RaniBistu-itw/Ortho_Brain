@@ -73,6 +73,13 @@
         <span class="add-case-topbar__divider"></span>
       @endif
 
+      <button type="button" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-25" id="btn-export-pdf"
+              title="@if($caseId) Export this case as PDF @else Save the case first to enable PDF export @endif"
+              @unless($caseId) disabled @endunless
+              onclick="window.AddCaseExport && window.AddCaseExport.exportPdf()">
+        <i data-feather="file-text"></i> Export PDF
+      </button>
+
       <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-25" id="btn-save-draft" title="Save draft now">
         <i data-feather="save"></i> Save Draft
       </button>
@@ -246,6 +253,8 @@
   <script src="{{ asset('js/scripts/cases/sections/perfect-smile-plan.js') }}?v={{ $smilePlanVer }}"></script>
   {{-- Phase 7: submit orchestrator --}}
   <script src="{{ asset('js/scripts/cases/add-case-submit.js') }}"></script>
+  {{-- PDF export — DOMPDF roundtrip --}}
+  <script src="{{ asset('js/scripts/cases/add-case-export.js') }}?v={{ @filemtime(public_path('js/scripts/cases/add-case-export.js')) ?: time() }}"></script>
   <script>
     // Alpine CDN build auto-starts on DOMContentLoaded; do not call Alpine.start() manually.
     document.addEventListener('DOMContentLoaded', function () {
