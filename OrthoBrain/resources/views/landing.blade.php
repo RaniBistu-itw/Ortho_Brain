@@ -3,40 +3,39 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>orthobrain — Orthodontics for Your Dental Practice</title>
+    <title>orthobrain — Orthodontics, built into your dental practice.</title>
 
     <link rel="apple-touch-icon" href="{{ asset('vuexy/images/ico/favicon-32x32.png') }}"/>
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('vuexy/images/ico/favicon.ico') }}"/>
 
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Public+Sans:wght@600;700;800&display=swap" rel="stylesheet"/>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
 
     <style>
     :root {
-        --ob-primary:      #005d90;
-        --ob-primary-hv:   #004b74;
-        --ob-primary-soft: #cde5ff;
-        --ob-teal:         #0EA5C5;
-        --ob-mint:         #006c48;
-        --ob-mint-soft:    #92f7c3;
-        --ob-ink:          #191c1d;
-        --ob-ink-soft:     #404850;
-        --ob-muted:        #707881;
-        --ob-border:       #e1e3e4;
-        --ob-border-soft:  #eef0f2;
-        --ob-bg:           #f8f9fa;
-        --ob-surface-low:  #f3f4f5;
-        --ob-white:        #ffffff;
-        --ob-shadow:       0 4px 20px rgba(0,93,144,.06), 0 1px 3px rgba(0,93,144,.04);
-        --ob-shadow-lg:    0 24px 60px rgba(0,93,144,.14), 0 4px 12px rgba(0,93,144,.05);
-        --ob-shadow-xl:    0 32px 80px rgba(0,93,144,.22);
-        --ob-r:            .5rem;
-        --ob-r-lg:         .75rem;
-        --ob-r-xl:         1.25rem;
-        --ob-r-2xl:        1.75rem;
-        --ob-container:    1200px;
+        --c-primary:   #2563EB;
+        --c-primary-h: #1D4ED8;
+        --c-tint:      #EFF6FF;
+        --c-ortho:     #5bc0de;
+        --c-brain:     #8cc63f;
+        --c-ink:       #0F172A;
+        --c-ink-2:     #334155;
+        --c-muted:     #64748B;
+        --c-line:      #E5E7EB;
+        --c-line-soft: #F1F5F9;
+
+        --shadow-sm:   0 1px 2px rgba(15,23,42,.04);
+        --shadow:      0 8px 24px rgba(15,23,42,.06), 0 2px 6px rgba(15,23,42,.04);
+        --shadow-lg:   0 16px 36px rgba(15,23,42,.08), 0 4px 10px rgba(15,23,42,.04);
+
+        --r:           10px;
+        --r-lg:        14px;
+        --r-xl:        20px;
+
+        --w:           1240px;
+        --ease:        cubic-bezier(.22, 1, .36, 1);
     }
 
     * { box-sizing: border-box; }
@@ -44,854 +43,814 @@
     html, body { margin: 0; padding: 0; }
     body {
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
-        background: var(--ob-bg);
-        color: var(--ob-ink);
+        background: #fff;
+        color: var(--c-ink);
         line-height: 1.6;
         -webkit-font-smoothing: antialiased;
         font-size: 16px;
     }
-    h1,h2,h3,h4 {
-        font-family: Manrope, Inter, sans-serif;
-        color: var(--ob-ink);
-        letter-spacing: -.02em;
-        line-height: 1.15;
+    h1, h2, h3, h4 {
+        font-family: 'Public Sans', Inter, sans-serif;
+        color: var(--c-ink);
+        letter-spacing: -.025em;
+        line-height: 1.08;
         margin: 0;
+        font-weight: 800;
     }
     p { margin: 0; }
     a { color: inherit; text-decoration: none; }
     img { max-width: 100%; display: block; }
     button { font-family: inherit; }
 
-    /* Initial state for animated elements; Motion One sets final state on entry */
-    .anim { opacity: 0; transform: translateY(24px); }
-    .anim-left  { opacity: 0; transform: translateX(-28px); }
-    .anim-right { opacity: 0; transform: translateX(28px); }
-    .anim-zoom  { opacity: 0; transform: scale(.96); }
+    .anim       { opacity: 0; transform: translateY(14px); }
+    .anim-zoom  { opacity: 0; transform: scale(.97); }
+    .anim-right { opacity: 0; transform: translateX(18px); }
+    .anim-left  { opacity: 0; transform: translateX(-18px); }
 
-    /* Container */
-    .ob-container { max-width: var(--ob-container); margin: 0 auto; padding: 0 1.5rem; }
+    .wrap { max-width: var(--w); margin: 0 auto; padding: 0 1.5rem; }
 
-    /* ═══════ NAV ═════════════════════════════════════════════ */
-    .ob-nav {
-        position: sticky; top: 0; z-index: 50;
-        background: rgba(255,255,255,.82);
-        backdrop-filter: saturate(180%) blur(16px);
-        border-bottom: 1px solid var(--ob-border-soft);
-    }
-    .ob-nav-row {
+    /* ───── NAV ───── */
+    .nav { border-bottom: 1px solid var(--c-line-soft); background: #fff; position: sticky; top: 0; z-index: 50; }
+    .nav-row {
         display: flex; align-items: center; justify-content: space-between;
-        height: 72px;
+        height: 72px; gap: 1.5rem;
     }
-    .ob-brand { display: inline-flex; align-items: center; gap: .55rem; }
-    .ob-brand-mark {
-        width: 34px; height: 34px; border-radius: 10px;
-        background: linear-gradient(135deg, var(--ob-primary) 0%, var(--ob-teal) 100%);
+    .brand { display: inline-flex; align-items: center; gap: .5rem; }
+    .brand-mark {
+        width: 34px; height: 34px; border-radius: 9px;
+        background: #fff; border: 1px solid var(--c-line);
         display: inline-flex; align-items: center; justify-content: center;
-        color: #fff;
-        box-shadow: 0 6px 14px rgba(0,93,144,.28);
     }
-    .ob-brand-text { font-family: Manrope; font-weight: 800; font-size: 1.18rem; letter-spacing: -.5px; }
-    .ob-brand-text .ob-brain { color: var(--ob-primary); }
+    .brand-text {
+        font-family: 'Public Sans', Inter, sans-serif;
+        font-weight: 700; font-size: 1.3rem; letter-spacing: -.02em; line-height: 1;
+        display: inline-flex; align-items: flex-start;
+    }
+    .brand-text .p1 { color: var(--c-ortho); }
+    .brand-text .p2 { color: var(--c-brain); }
+    .brand-text .tm { color: var(--c-brain); font-size: .55em; margin-left: 1px; margin-top: .12rem; font-weight: 600; }
 
-    .ob-nav-menu { display: flex; align-items: center; gap: .3rem; }
-    .ob-nav-link {
-        font-size: .9rem; font-weight: 600; color: var(--ob-ink-soft);
-        padding: .6rem .9rem; border-radius: var(--ob-r);
+    .menu { display: flex; align-items: center; gap: .15rem; }
+    .menu a {
+        font-size: .95rem; font-weight: 500; color: var(--c-ink-2);
+        padding: .55rem 1rem; border-radius: var(--r);
+        display: inline-flex; align-items: center; gap: .3rem;
         transition: color .15s, background .15s;
     }
-    .ob-nav-link:hover { color: var(--ob-primary); background: var(--ob-primary-soft); }
+    .menu a:hover { color: var(--c-primary); background: var(--c-tint); }
+    .menu a i { font-size: .75rem; }
 
-    .ob-nav-actions { display: flex; align-items: center; gap: .55rem; }
+    .nav-actions { display: flex; align-items: center; gap: .55rem; }
 
-    .ob-btn {
+    .btn {
         display: inline-flex; align-items: center; justify-content: center;
         gap: .5rem;
-        padding: .7rem 1.25rem; border-radius: var(--ob-r);
-        font-family: Manrope, Inter, sans-serif;
-        font-weight: 700; font-size: .9rem; letter-spacing: .02em;
+        padding: .6rem 1.05rem; border-radius: var(--r);
+        font-weight: 600; font-size: .92rem;
         border: 1px solid transparent; cursor: pointer;
-        transition: transform .15s ease, background .15s, box-shadow .2s, color .15s, border-color .15s;
-        white-space: nowrap;
+        transition: transform .18s var(--ease), background .15s, box-shadow .2s, color .15s, border-color .15s;
+        white-space: nowrap; line-height: 1.2;
     }
-    .ob-btn i { font-size: 1rem; line-height: 1; }
-    .ob-btn-primary {
-        background: var(--ob-primary); color: #fff;
-        box-shadow: 0 6px 16px rgba(0,93,144,.25);
-    }
-    .ob-btn-primary:hover { background: var(--ob-primary-hv); transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,93,144,.35); color: #fff; }
-    .ob-btn-ghost { background: transparent; color: var(--ob-ink); }
-    .ob-btn-ghost:hover { color: var(--ob-primary); background: var(--ob-primary-soft); }
-    .ob-btn-outline {
-        background: var(--ob-white); color: var(--ob-ink);
-        border-color: var(--ob-border);
-    }
-    .ob-btn-outline:hover { border-color: var(--ob-primary); color: var(--ob-primary); transform: translateY(-2px); }
-    .ob-btn-lg { padding: .9rem 1.6rem; font-size: .95rem; border-radius: var(--ob-r-lg); }
-    .ob-btn-mint { background: var(--ob-mint); color: #fff; box-shadow: 0 6px 16px rgba(0,108,72,.28); }
-    .ob-btn-mint:hover { background: #005235; transform: translateY(-2px); color: #fff; }
+    .btn-primary { background: var(--c-primary); color: #fff; }
+    .btn-primary:hover { background: var(--c-primary-h); transform: translateY(-1px); color: #fff; }
+    .btn-outline { background: #fff; color: var(--c-ink); border-color: var(--c-line); }
+    .btn-outline:hover { border-color: var(--c-ink-2); transform: translateY(-1px); }
+    .btn-lg { padding: .85rem 1.4rem; font-size: .95rem; }
 
-    /* ═══════ HERO ════════════════════════════════════════════ */
-    .ob-hero { position: relative; padding: 4.5rem 0 5rem; overflow: hidden; }
-    .ob-hero::before {
-        content:''; position: absolute; inset: 0;
-        background:
-            radial-gradient(ellipse 900px 540px at 10% -5%, rgba(148,204,255,.35), transparent 60%),
-            radial-gradient(ellipse 680px 460px at 95% 8%, rgba(146,247,195,.18), transparent 65%);
-        pointer-events: none;
+    /* ───── HERO ───── */
+    .hero { padding: 3rem 0 2.5rem; }
+    .hero-grid {
+        display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+        gap: 2.5rem; align-items: center;
     }
-    .ob-hero-grid {
-        position: relative;
-        display: grid; grid-template-columns: 1.05fr .95fr; gap: 4rem; align-items: center;
-    }
-    .ob-eyebrow {
+    .pill {
         display: inline-flex; align-items: center; gap: .45rem;
-        font-family: Inter; font-size: .72rem; font-weight: 700;
-        color: var(--ob-mint); letter-spacing: .12em; text-transform: uppercase;
-        background: var(--ob-mint-soft);
-        padding: .42rem .85rem; border-radius: 100px;
-        margin-bottom: 1.4rem;
+        font-size: .82rem; font-weight: 500; color: var(--c-primary-h);
+        background: var(--c-tint);
+        padding: .42rem .9rem; border-radius: 100px;
+        margin-bottom: 1.5rem;
     }
-    .ob-eyebrow i { font-size: .9rem; }
-    .ob-hero-title {
-        font-size: clamp(2.5rem, 5.2vw, 4.2rem);
-        font-weight: 800; line-height: 1.06;
-        letter-spacing: -.03em;
-        color: var(--ob-ink);
-        margin-bottom: 1.35rem;
+    .pill i { color: var(--c-primary); }
+
+    .hero h1 {
+        font-size: clamp(2.4rem, 5.2vw, 4.2rem);
+        font-weight: 800; line-height: 1.04;
+        letter-spacing: -.04em;
+        color: var(--c-ink);
+        margin-bottom: 1.2rem;
     }
-    .ob-hero-title em {
-        font-style: normal;
-        background: linear-gradient(135deg, var(--ob-primary) 0%, var(--ob-teal) 100%);
-        -webkit-background-clip: text; background-clip: text; color: transparent;
+    .hero-sub {
+        font-size: 1.05rem; color: var(--c-muted);
+        max-width: 480px; margin-bottom: 1.5rem;
+        line-height: 1.6;
     }
-    .ob-hero-sub {
-        font-size: 1.12rem; color: var(--ob-ink-soft);
-        max-width: 530px; margin-bottom: 2rem;
+    .feats {
+        display: grid; grid-template-columns: repeat(2, max-content); column-gap: 2.5rem; row-gap: .65rem;
+        margin-bottom: 1.85rem;
     }
-    .ob-hero-ctas { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 2.2rem; }
-    .ob-hero-trust {
-        display: flex; align-items: center; gap: 1.5rem;
-        font-size: .87rem; color: var(--ob-muted);
-        flex-wrap: wrap;
+    .feats span {
+        display: inline-flex; align-items: center; gap: .55rem;
+        font-size: .94rem; color: var(--c-ink-2);
     }
-    .ob-hero-trust-item { display: inline-flex; align-items: center; gap: .4rem; font-weight: 500; }
-    .ob-hero-trust-item i { color: var(--ob-mint); font-size: 1.05rem; }
+    .feats i { color: var(--c-primary); font-size: 1.1rem; flex-shrink: 0; }
+
+    .ctas { display: flex; flex-wrap: wrap; gap: .65rem; margin-bottom: .75rem; }
+    .cc {
+        display: inline-flex; align-items: center; gap: .4rem;
+        font-size: .82rem; color: var(--c-muted); margin-bottom: 1.6rem;
+    }
+    .cc i { color: var(--c-muted); }
+
+    .trust { display: flex; align-items: center; gap: .9rem; }
+    .stack { display: inline-flex; align-items: center; }
+    .stack img,
+    .stack .more {
+        width: 38px; height: 38px; border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 1px 3px rgba(15,23,42,.10);
+        object-fit: cover;
+    }
+    .stack > * + * { margin-left: -10px; }
+    .stack .more {
+        background: #DBEAFE; color: var(--c-primary-h);
+        font-size: .72rem; font-weight: 700;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .trust-text { font-size: .9rem; color: var(--c-ink-2); line-height: 1.4; }
 
     /* Hero visual */
-    .ob-hero-visual { position: relative; }
-    .ob-hero-photo {
+    .stage {
         position: relative;
-        width: 100%;
-        aspect-ratio: 4 / 5;
-        border-radius: var(--ob-r-2xl);
+        min-height: 620px;
+        border-radius: var(--r-xl);
         overflow: hidden;
-        box-shadow: var(--ob-shadow-xl);
+        background: #fff;
+        isolation: isolate;
     }
-    .ob-hero-photo img {
-        width: 100%; height: 100%; object-fit: cover;
-        transform: scale(1.08);
-        transition: transform .5s ease;
-    }
-    .ob-hero-visual:hover .ob-hero-photo img { transform: scale(1.12); }
-    .ob-hero-photo::after {
-        content:''; position: absolute; inset: 0;
-        background: linear-gradient(160deg, transparent 55%, rgba(0,93,144,.18) 100%);
+    /* Soft halo behind the doctor */
+    .stage::before {
+        content:''; position: absolute;
+        left: 50%; bottom: 4%;
+        width: 92%; aspect-ratio: 1 / 1;
+        max-width: 580px;
+        transform: translateX(-50%);
+        background: radial-gradient(circle at 50% 55%, #DBEAFE 0%, #EFF6FF 45%, rgba(255,255,255,0) 70%);
         pointer-events: none;
+        z-index: 0;
     }
-
-    .ob-hero-floater {
-        position: absolute; z-index: 2;
-        background: #fff; border-radius: var(--ob-r-lg);
-        padding: .9rem 1.1rem;
-        box-shadow: var(--ob-shadow-lg);
-        border: 1px solid var(--ob-border-soft);
+    /* Subtle ground shadow under figure */
+    .stage::after {
+        content:''; position: absolute;
+        left: 50%; bottom: 6%;
+        width: 60%; height: 22px;
+        transform: translateX(-50%);
+        background: radial-gradient(ellipse at center, rgba(15,23,42,.12) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+        filter: blur(2px);
     }
-    .ob-hero-floater-a {
-        top: 6%; left: -8%;
-        display: flex; align-items: center; gap: .8rem;
-    }
-    .ob-hero-floater-b {
-        bottom: 10%; right: -6%;
-        min-width: 220px;
-    }
-    .ob-floater-icon {
-        width: 42px; height: 42px; border-radius: 10px;
-        display: inline-flex; align-items: center; justify-content: center;
-        font-size: 1.2rem;
-    }
-    .ob-floater-icon--mint { background: var(--ob-mint-soft); color: var(--ob-mint); }
-    .ob-floater-icon--blue { background: var(--ob-primary-soft); color: var(--ob-primary); }
-    .ob-floater-label { font-family: Inter; font-size: .7rem; font-weight: 700; color: var(--ob-muted); letter-spacing: .08em; text-transform: uppercase; }
-    .ob-floater-val   { font-family: Manrope; font-size: 1.45rem; font-weight: 800; color: var(--ob-ink); line-height: 1; margin-top: .15rem; letter-spacing: -.02em; }
-    .ob-floater-caption { font-size: .8rem; color: var(--ob-muted); margin-top: .25rem; }
-    .ob-floater-row { display: flex; align-items: center; gap: .55rem; font-size: .88rem; font-weight: 600; color: var(--ob-ink); }
-    .ob-floater-row + .ob-floater-row { margin-top: .5rem; }
-    .ob-floater-row i { color: var(--ob-mint); font-size: 1rem; }
-
-    /* ═══════ SECTION HEADER ══════════════════════════════════ */
-    .ob-section { padding: 5.5rem 0; position: relative; }
-    .ob-section-hd { text-align: center; max-width: 700px; margin: 0 auto 3rem; }
-    .ob-kicker {
-        display: inline-block; font-family: Inter;
-        font-size: .72rem; font-weight: 700; color: var(--ob-primary);
-        letter-spacing: .14em; text-transform: uppercase;
-        margin-bottom: .85rem;
-    }
-    .ob-section-title {
-        font-size: clamp(1.8rem, 3.6vw, 2.75rem);
-        font-weight: 700; letter-spacing: -.02em;
-        margin-bottom: .75rem;
-    }
-    .ob-section-sub {
-        font-size: 1.02rem; color: var(--ob-ink-soft);
-        max-width: 620px; margin: 0 auto;
-    }
-
-    /* ═══════ EXPERTISE (Services) ════════════════════════════ */
-    .ob-exp-grid {
-        display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.25rem;
-    }
-    .ob-exp-hero {
-        position: relative; border-radius: var(--ob-r-xl);
-        overflow: hidden; min-height: 480px;
-        box-shadow: var(--ob-shadow-lg);
-    }
-    .ob-exp-hero img {
+    .doc {
         position: absolute; inset: 0;
-        width: 100%; height: 100%; object-fit: cover;
-        transition: transform .7s ease;
-    }
-    .ob-exp-hero:hover img { transform: scale(1.05); }
-    .ob-exp-hero::before {
-        content:''; position: absolute; inset: 0;
-        background: linear-gradient(180deg, transparent 40%, rgba(0,32,54,.85) 100%);
+        display: flex; align-items: flex-end; justify-content: center;
         z-index: 1;
     }
-    .ob-exp-hero-body {
-        position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-        padding: 2rem;
-        color: #fff;
+    .doc img {
+        height: 98%;
+        width: auto;
+        max-width: 100%;
+        object-fit: contain;
+        object-position: center bottom;
+        filter: drop-shadow(0 22px 36px rgba(15,23,42,.18));
+        user-select: none;
+        -webkit-user-drag: none;
     }
-    .ob-exp-hero-tag {
-        display: inline-block;
-        background: rgba(255,255,255,.15); backdrop-filter: blur(8px);
-        color: #fff; padding: .3rem .75rem; border-radius: 100px;
-        font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-        margin-bottom: .85rem;
-    }
-    .ob-exp-hero h3 {
-        color: #fff;
-        font-size: 1.9rem; font-weight: 800;
-        margin-bottom: .55rem;
-    }
-    .ob-exp-hero p {
-        color: rgba(255,255,255,.82);
-        font-size: .95rem; max-width: 460px;
-        margin-bottom: 1.1rem;
-    }
-    .ob-exp-hero a {
-        display: inline-flex; align-items: center; gap: .4rem;
-        color: #fff; font-weight: 700;
-        border-bottom: 1px solid rgba(255,255,255,.4);
-        padding-bottom: .15rem;
-        transition: border-color .2s, gap .2s;
-    }
-    .ob-exp-hero a:hover { border-color: #fff; gap: .6rem; }
 
-    .ob-exp-col { display: flex; flex-direction: column; gap: 1.25rem; }
-    .ob-exp-card {
-        background: #fff; border-radius: var(--ob-r-xl);
-        border: 1px solid var(--ob-border-soft);
-        padding: 2rem;
-        box-shadow: var(--ob-shadow);
-        transition: transform .25s ease, box-shadow .25s ease, border-color .25s;
-        flex: 1;
+    /* ── Floating cards ── only in corners, never on the doctor */
+    .fc {
+        position: absolute; z-index: 3;
+        background: #fff; border: 1px solid var(--c-line);
+        border-radius: var(--r-lg);
+        box-shadow: var(--shadow-lg);
+        padding: 1rem 1.1rem;
     }
-    .ob-exp-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--ob-shadow-lg);
-        border-color: var(--ob-primary-soft);
+
+    /* Top right — Today's Appointments (above doctor's head, off body) */
+    .fc-appt { top: 4%; right: 3%; width: 270px; }
+    .fc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .85rem; }
+    .fc-title {
+        display: inline-flex; align-items: center; gap: .5rem;
+        font-size: .82rem; font-weight: 700; color: var(--c-ink);
     }
-    .ob-exp-icon {
-        width: 52px; height: 52px; border-radius: 14px;
-        background: var(--ob-primary); color: #fff;
+    .fc-ico {
+        width: 26px; height: 26px; border-radius: 7px;
         display: inline-flex; align-items: center; justify-content: center;
-        font-size: 1.45rem;
-        margin-bottom: 1.1rem;
-        box-shadow: 0 8px 18px rgba(0,93,144,.28);
+        font-size: .82rem;
     }
-    .ob-exp-card h4 { font-size: 1.25rem; font-weight: 700; margin-bottom: .55rem; }
-    .ob-exp-card p { color: var(--ob-ink-soft); font-size: .95rem; margin-bottom: 1.1rem; }
-    .ob-exp-link {
-        display: inline-flex; align-items: center; gap: .35rem;
-        color: var(--ob-primary); font-weight: 700; font-size: .9rem;
-        transition: gap .2s;
-    }
-    .ob-exp-link:hover { gap: .55rem; }
+    .fc-ico.blue   { background: var(--c-tint);     color: var(--c-primary); }
+    .fc-ico.mint   { background: #ECFDF5;          color: #059669; }
+    .fc-ico.violet { background: #EDE9FE;          color: #7C3AED; }
+    .fc-link { font-size: .76rem; color: var(--c-primary); font-weight: 600; }
 
-    /* ═══════ STATS BAND ══════════════════════════════════════ */
-    .ob-stats {
-        background: linear-gradient(135deg, #003b5d 0%, #005d90 55%, #0077b6 100%);
-        color: #fff;
-        position: relative; overflow: hidden;
+    .fc-row { display: flex; align-items: center; gap: .7rem; padding: .35rem 0; }
+    .fc-row + .fc-row { border-top: 1px solid var(--c-line-soft); }
+    .fc-av {
+        width: 30px; height: 30px; border-radius: 50%;
+        flex-shrink: 0; object-fit: cover;
+        background: var(--c-line-soft); color: var(--c-ink-2);
+        font-size: .68rem; font-weight: 700;
+        display: inline-flex; align-items: center; justify-content: center;
+        position: relative;
     }
-    .ob-stats::before {
+    .fc-av::after {
+        content:''; position: absolute; right: -1px; bottom: -1px;
+        width: 9px; height: 9px; border-radius: 50%;
+        background: #10B981; border: 1.5px solid #fff;
+    }
+    .fc-av.dot-blue::after   { background: #3B82F6; }
+    .fc-av.dot-violet::after { background: #8B5CF6; }
+    .fc-name { font-size: .85rem; font-weight: 600; color: var(--c-ink); flex: 1; line-height: 1.2; }
+    .fc-time { font-size: .78rem; color: var(--c-muted); font-weight: 500; }
+
+    /* Bottom left — Treatment Plans (in negative space, off doctor's body) */
+    .fc-plans { bottom: 6%; left: 3%; width: 215px; }
+    .fc-plans .fc-title { color: var(--c-muted); font-size: .76rem; font-weight: 600; margin-bottom: .25rem; }
+    .fc-big {
+        font-family: 'Public Sans', sans-serif;
+        font-size: 2.1rem; font-weight: 800; color: var(--c-ink);
+        line-height: 1; letter-spacing: -.04em;
+        margin-bottom: .15rem;
+    }
+    .fc-cap { font-size: .82rem; color: var(--c-muted); }
+    .fc-bar {
+        height: 4px; border-radius: 4px;
+        background: var(--c-line-soft);
+        overflow: hidden; margin: .65rem 0 .55rem;
+    }
+    .fc-bar > i {
+        display: block; height: 100%;
+        background: linear-gradient(90deg, #10B981, #34D399);
+        width: 0;
+        transition: width 1.4s var(--ease);
+    }
+    .fc-trend {
+        font-size: .76rem; font-weight: 600;
+        display: inline-flex; align-items: center; gap: .15rem;
+        color: #059669;
+    }
+    .fc-trend i { font-size: .9rem; }
+
+    /* Bottom right — AI Insights */
+    .fc-ai { bottom: 8%; right: 0; width: 230px; }
+    .fc-ai .fc-cap.first  { margin-top: .35rem; }
+    .fc-spark { height: 32px; margin: .25rem 0 .4rem; }
+    .fc-spark svg { width: 100%; height: 100%; display: block; }
+    .fc-cta {
+        display: inline-flex; align-items: center; gap: .3rem;
+        font-size: .8rem; font-weight: 600; color: var(--c-primary);
+    }
+    .fc-cta:hover { gap: .5rem; }
+
+    /* ───── SCROLL PROGRESS BAR ───── */
+    .scroll-bar {
+        position: fixed; top: 0; left: 0; right: 0;
+        height: 3px; transform-origin: 0 50%;
+        background: linear-gradient(90deg, var(--c-primary) 0%, #60A5FA 50%, var(--c-primary) 100%);
+        z-index: 100; transform: scaleX(0);
+    }
+
+    /* ───── SECTION HEADER ───── */
+    .sec { padding: 5.5rem 0; }
+    .sec-hd { max-width: 640px; margin: 0 auto 3rem; text-align: center; }
+    .sec-kicker {
+        display: inline-block;
+        font-size: .76rem; font-weight: 700; color: var(--c-primary);
+        letter-spacing: .14em; text-transform: uppercase;
+        margin-bottom: .75rem;
+    }
+    .sec-title {
+        font-size: clamp(1.85rem, 3.4vw, 2.6rem);
+        font-weight: 800; letter-spacing: -.025em;
+        margin-bottom: .65rem;
+    }
+    .sec-sub { font-size: 1rem; color: var(--c-muted); line-height: 1.65; }
+
+    /* ───── FEATURES ───── */
+    .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+    .feat {
+        background: #fff; border: 1px solid var(--c-line);
+        border-radius: var(--r-lg);
+        padding: 1.6rem;
+        transition: border-color .25s var(--ease), transform .25s var(--ease), box-shadow .25s;
+    }
+    .feat:hover { border-color: var(--c-primary); transform: translateY(-3px); box-shadow: var(--shadow); }
+    .feat-ico {
+        width: 44px; height: 44px; border-radius: 11px;
+        background: var(--c-tint); color: var(--c-primary);
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+    }
+    .feat h4 { font-size: 1.05rem; font-weight: 700; margin-bottom: .35rem; }
+    .feat p { font-size: .92rem; color: var(--c-muted); line-height: 1.6; }
+
+    /* ───── HOW IT WORKS ───── */
+    .how { background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%); }
+    .step {
+        display: grid; grid-template-columns: 1fr 1fr;
+        gap: 4rem; align-items: center;
+        padding: 2rem 0;
+    }
+    .step + .step { margin-top: 1rem; }
+    .step.reverse .step-txt { grid-column: 2; grid-row: 1; }
+    .step.reverse .step-vis { grid-column: 1; grid-row: 1; }
+
+    .step-num {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 36px; height: 36px; border-radius: 10px;
+        background: var(--c-tint); color: var(--c-primary);
+        font-family: 'Public Sans', sans-serif;
+        font-weight: 800; font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+    .step-title { font-size: clamp(1.5rem, 2.4vw, 2rem); font-weight: 800; letter-spacing: -.025em; margin-bottom: .85rem; }
+    .step-sub { font-size: 1.02rem; color: var(--c-ink-2); line-height: 1.7; max-width: 460px; margin-bottom: 1.25rem; }
+    .step-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .55rem; }
+    .step-list li {
+        display: inline-flex; align-items: center; gap: .55rem;
+        font-size: .94rem; color: var(--c-ink-2);
+    }
+    .step-list i { color: var(--c-primary); font-size: 1rem; }
+
+    .step-vis {
+        position: relative;
+        aspect-ratio: 1 / 1;
+        max-width: 460px;
+        margin: 0 auto;
+        border-radius: 50%;
+        overflow: visible;
+        display: flex; align-items: flex-end; justify-content: center;
+        background: radial-gradient(circle at 50% 55%, #DBEAFE 0%, #EFF6FF 55%, rgba(255,255,255,0) 78%);
+    }
+    .step-vis.tone-mint   { background: radial-gradient(circle at 50% 55%, #D1FAE5 0%, #ECFDF5 55%, rgba(255,255,255,0) 78%); }
+    .step-vis.tone-violet { background: radial-gradient(circle at 50% 55%, #EDE9FE 0%, #F5F3FF 55%, rgba(255,255,255,0) 78%); }
+    .step-vis::after {
         content:''; position: absolute;
-        top: -120px; right: -80px;
-        width: 420px; height: 420px;
+        left: 50%; bottom: 6%;
+        width: 50%; height: 16px;
+        transform: translateX(-50%);
+        background: radial-gradient(ellipse at center, rgba(15,23,42,.12) 0%, transparent 70%);
+        filter: blur(2px);
+    }
+    .step-vis img {
+        width: 92%; height: 92%;
+        object-fit: contain;
+        object-position: center bottom;
+        filter: drop-shadow(0 18px 28px rgba(15,23,42,.18));
+        position: relative; z-index: 1;
+    }
+
+    /* ───── STATS ───── */
+    .stats {
+        background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 60%, #3B82F6 100%);
+        color: #fff; position: relative; overflow: hidden;
+    }
+    .stats::before {
+        content:''; position: absolute; top: -120px; right: -80px;
+        width: 380px; height: 380px;
         background: radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 65%);
         pointer-events: none;
     }
-    .ob-stats::after {
-        content:''; position: absolute;
-        bottom: -140px; left: -80px;
-        width: 380px; height: 380px;
-        background: radial-gradient(circle, rgba(146,247,195,.14) 0%, transparent 65%);
+    .stats::after {
+        content:''; position: absolute; bottom: -120px; left: -60px;
+        width: 320px; height: 320px;
+        background: radial-gradient(circle, rgba(140,198,63,.18) 0%, transparent 65%);
         pointer-events: none;
     }
-    .ob-stats .ob-container {
-        position: relative; z-index: 1;
-        padding-top: 4rem; padding-bottom: 4rem;
-    }
-    .ob-stats-grid {
-        display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem;
-    }
-    .ob-stat { text-align: center; }
-    .ob-stat-v {
-        font-family: Manrope; font-size: clamp(2rem, 3.8vw, 3rem);
+    .stats .wrap { padding-top: 4rem; padding-bottom: 4rem; position: relative; z-index: 1; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+    .stat { text-align: center; }
+    .stat-v {
+        font-family: 'Public Sans', sans-serif;
+        font-size: clamp(2rem, 3.6vw, 2.8rem);
         font-weight: 800; letter-spacing: -.03em; line-height: 1;
     }
-    .ob-stat-l {
+    .stat-l {
         font-size: .82rem; font-weight: 600;
-        color: rgba(255,255,255,.75);
-        margin-top: .6rem;
+        color: rgba(255,255,255,.78);
+        margin-top: .55rem;
         letter-spacing: .06em; text-transform: uppercase;
     }
 
-    /* ═══════ TESTIMONIALS ════════════════════════════════════ */
-    .ob-testi { background: var(--ob-bg); }
-    .ob-testi-grid {
-        display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;
-    }
-    .ob-testi-card {
-        background: #fff; border: 1px solid var(--ob-border-soft);
-        border-radius: var(--ob-r-xl);
-        padding: 1.75rem;
-        box-shadow: var(--ob-shadow);
-        display: flex; flex-direction: column;
-        transition: transform .25s, box-shadow .25s;
-        position: relative;
-        overflow: hidden;
-    }
-    .ob-testi-card:hover { transform: translateY(-4px); box-shadow: var(--ob-shadow-lg); }
-    .ob-testi-card::before {
-        content: '\201C';
-        position: absolute;
-        top: -2rem; right: 1rem;
-        font-family: Manrope; font-size: 7rem; line-height: 1;
-        color: var(--ob-primary-soft);
-        opacity: .5;
-        pointer-events: none;
-    }
-    .ob-testi-stars {
-        color: #F6B81A; font-size: 1rem; margin-bottom: .85rem;
-        display: inline-flex; gap: .1rem;
-        position: relative; z-index: 1;
-    }
-    .ob-testi-quote {
-        font-size: .95rem; color: var(--ob-ink-soft); line-height: 1.65;
-        margin-bottom: 1.35rem; flex: 1;
-        position: relative; z-index: 1;
-    }
-    .ob-testi-author {
-        display: flex; align-items: center; gap: .85rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--ob-border-soft);
-        position: relative; z-index: 1;
-    }
-    .ob-testi-avatar {
-        width: 46px; height: 46px; border-radius: 50%;
-        object-fit: cover;
-        flex-shrink: 0;
-        box-shadow: 0 4px 10px rgba(0,93,144,.15);
-    }
-    .ob-testi-name { font-family: Manrope; font-weight: 700; color: var(--ob-ink); font-size: .95rem; }
-    .ob-testi-role { font-size: .78rem; color: var(--ob-muted); letter-spacing: .04em; text-transform: uppercase; font-weight: 600; margin-top: .1rem; }
-
-    /* ═══════ TEAM ════════════════════════════════════════════ */
-    .ob-team { background: var(--ob-surface-low); }
-    .ob-team-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 2rem; margin-bottom: 2.75rem; }
-    .ob-team-head-left { max-width: 620px; }
-    .ob-team-head-right a {
-        display: inline-flex; align-items: center; gap: .4rem;
-        color: var(--ob-primary); font-weight: 700; font-size: .9rem;
-        transition: gap .2s;
-    }
-    .ob-team-head-right a:hover { gap: .6rem; }
-
-    .ob-team-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-    .ob-team-card {
-        background: #fff; border-radius: var(--ob-r-xl);
-        border: 1px solid var(--ob-border-soft);
-        overflow: hidden;
-        display: grid; grid-template-columns: 160px 1fr;
-        box-shadow: var(--ob-shadow);
-        transition: transform .25s, box-shadow .25s, border-color .25s;
-    }
-    .ob-team-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--ob-shadow-lg);
-        border-color: var(--ob-primary-soft);
-    }
-    .ob-team-photo { width: 100%; height: 100%; object-fit: cover; }
-    .ob-team-body { padding: 1.4rem 1.6rem; display: flex; flex-direction: column; }
-    .ob-team-role {
-        font-size: .7rem; font-weight: 700;
-        color: var(--ob-primary);
-        letter-spacing: .12em; text-transform: uppercase;
-        margin-bottom: .35rem;
-    }
-    .ob-team-name { font-family: Manrope; font-weight: 800; font-size: 1.2rem; color: var(--ob-ink); margin-bottom: .45rem; }
-    .ob-team-bio { font-size: .9rem; color: var(--ob-ink-soft); flex: 1; margin-bottom: 1rem; line-height: 1.55; }
-    .ob-team-link {
-        display: inline-flex; align-items: center; gap: .35rem;
-        font-size: .85rem; font-weight: 700; color: var(--ob-primary);
-        padding: .45rem .9rem; border-radius: var(--ob-r);
-        border: 1px solid var(--ob-border);
-        transition: background .2s, border-color .2s, gap .2s;
-        width: fit-content;
-    }
-    .ob-team-link:hover { border-color: var(--ob-primary); background: var(--ob-primary-soft); gap: .55rem; }
-
-    /* ═══════ FINAL CTA ═══════════════════════════════════════ */
-    .ob-finalcta {
+    /* ───── FINAL CTA ───── */
+    .finalcta {
         position: relative; overflow: hidden;
-        background: linear-gradient(135deg, #003b5d 0%, #005d90 55%, #0077b6 100%);
-        border-radius: var(--ob-r-2xl);
-        margin: 5.5rem auto;
-        max-width: 1100px;
-        padding: 4rem 3rem;
+        background: var(--c-ink);
+        border-radius: var(--r-xl);
+        margin: 4.5rem auto;
+        padding: 3rem 3rem;
         color: #fff;
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 2.5rem; flex-wrap: wrap;
-        box-shadow: 0 40px 80px rgba(0,93,144,.32);
+        display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem; align-items: center;
     }
-    .ob-finalcta::before {
-        content:''; position: absolute; top: -100px; right: -60px;
-        width: 380px; height: 380px;
-        background: radial-gradient(circle, rgba(146,247,195,.2) 0%, transparent 65%);
+    .finalcta::before {
+        content:''; position: absolute; top: -80px; right: -60px;
+        width: 320px; height: 320px;
+        background: radial-gradient(circle, rgba(59,130,246,.30) 0%, transparent 65%);
         pointer-events: none;
     }
-    .ob-finalcta::after {
-        content:''; position: absolute; bottom: -140px; left: -100px;
-        width: 420px; height: 420px;
-        background: radial-gradient(circle, rgba(148,204,255,.18) 0%, transparent 65%);
+    .finalcta::after {
+        content:''; position: absolute; bottom: -100px; left: -60px;
+        width: 280px; height: 280px;
+        background: radial-gradient(circle, rgba(140,198,63,.16) 0%, transparent 65%);
         pointer-events: none;
     }
-    .ob-finalcta-content { position: relative; z-index: 1; max-width: 620px; }
-    .ob-finalcta-content h2 { color: #fff; font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 800; margin-bottom: .7rem; }
-    .ob-finalcta-content p { color: rgba(255,255,255,.85); font-size: 1.05rem; }
-    .ob-finalcta-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: .75rem; }
-
-    /* ═══════ FOOTER ══════════════════════════════════════════ */
-    .ob-foot {
-        background: #fff; border-top: 1px solid var(--ob-border-soft);
-        padding: 2.5rem 0;
+    .finalcta-body { position: relative; z-index: 1; }
+    .finalcta-body h2 { color: #fff; font-size: clamp(1.5rem, 2.6vw, 2rem); font-weight: 800; margin-bottom: .55rem; letter-spacing: -.025em; }
+    .finalcta-body p { color: rgba(255,255,255,.72); font-size: .98rem; max-width: 480px; margin-bottom: 1.4rem; }
+    .finalcta-actions { display: flex; gap: .65rem; flex-wrap: wrap; }
+    .btn-on-dark { background: rgba(255,255,255,.10); color: #fff; border-color: rgba(255,255,255,.20); }
+    .btn-on-dark:hover { background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.40); color: #fff; }
+    .finalcta-vis {
+        position: relative; z-index: 1;
+        aspect-ratio: 1 / 1;
+        max-width: 260px; margin-left: auto;
+        border-radius: 50%;
+        overflow: hidden;
+        box-shadow: 0 24px 48px rgba(59,130,246,.35), 0 0 0 4px rgba(255,255,255,.06);
     }
-    .ob-foot-row {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 1.5rem; flex-wrap: wrap;
+    .finalcta-vis img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        object-position: center;
     }
-    .ob-foot-links { display: flex; gap: 1.75rem; flex-wrap: wrap; }
-    .ob-foot-links a { font-size: .88rem; color: var(--ob-muted); font-weight: 500; }
-    .ob-foot-links a:hover { color: var(--ob-primary); }
-    .ob-foot-copy { font-size: .85rem; color: var(--ob-muted); }
 
-    /* ═══════ RESPONSIVE ══════════════════════════════════════ */
+    /* ───── FOOTER ───── */
+    .foot { padding: 1.5rem 0; border-top: 1px solid var(--c-line-soft); }
+    .foot-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; font-size: .85rem; color: var(--c-muted); }
+    .foot a:hover { color: var(--c-primary); }
+
+    /* ───── RESPONSIVE ───── */
+    @media (max-width: 1100px) {
+        .fc-appt  { right: 0; }
+        .fc-plans { left: 0; }
+    }
     @media (max-width: 960px) {
-        .ob-hero { padding: 3rem 0 4rem; }
-        .ob-hero-grid { grid-template-columns: 1fr; gap: 3rem; }
-        .ob-exp-grid { grid-template-columns: 1fr; }
-        .ob-exp-hero { min-height: 360px; }
-        .ob-stats-grid { grid-template-columns: repeat(2,1fr); gap: 2rem; }
-        .ob-testi-grid { grid-template-columns: 1fr; }
-        .ob-team-head { flex-direction: column; align-items: flex-start; gap: 1rem; }
-        .ob-team-grid { grid-template-columns: 1fr; }
-        .ob-team-card { grid-template-columns: 130px 1fr; }
-        .ob-finalcta { padding: 2.5rem 1.75rem; }
+        .hero { padding: 2rem 0 1.5rem; }
+        .hero-grid { grid-template-columns: 1fr; gap: 2rem; }
+        .stage { min-height: 520px; }
+        .sec { padding: 4rem 0; }
+        .feat-grid { grid-template-columns: 1fr; }
+        .step { grid-template-columns: 1fr; gap: 2rem; padding: 1rem 0; }
+        .step.reverse .step-txt,
+        .step.reverse .step-vis { grid-column: 1; grid-row: auto; }
+        .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+        .finalcta { grid-template-columns: 1fr; padding: 2.5rem 1.75rem; }
+        .finalcta-vis { display: none; }
     }
     @media (max-width: 640px) {
-        .ob-nav-menu { display: none; }
-        .ob-section { padding: 4rem 0; }
-        .ob-hero-title { font-size: 2.3rem; }
-        .ob-hero-floater-a { left: -4%; }
-        .ob-hero-floater-b { right: -2%; }
-        .ob-team-card { grid-template-columns: 110px 1fr; }
+        .menu { display: none; }
+        .nav-row { height: 60px; }
+        .feats { grid-template-columns: 1fr; }
     }
 
-    /* Reduced motion — respect user preference */
     @media (prefers-reduced-motion: reduce) {
-        * { animation: none !important; transition: none !important; }
-        .anim, .anim-left, .anim-right, .anim-zoom { opacity: 1 !important; transform: none !important; }
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+        .anim, .anim-zoom, .anim-left, .anim-right { opacity: 1 !important; transform: none !important; }
     }
     </style>
 </head>
 <body>
 
-    {{-- ══════════════════ NAV ══════════════════ --}}
-    <header class="ob-nav">
-        <div class="ob-container ob-nav-row">
-            <a class="ob-brand" href="/">
-                <span class="ob-brand-mark">
-                    <svg width="20" height="20" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M32 12c-3.5 0-5.5 2-5.5 4 0 2-2 4-4.5 4-4.5 0-7 3-7 7.5 0 2.5-2 4-3 6-1.5 3.5 1 7 4 7 1 0 2 1 2 2.5 0 3.5 3.5 5.5 6.5 5.5 2 0 3-1.5 4.5-3 2-2 5.5-2 7.5 0 1.5 1.5 2.5 3 4.5 3 3 0 6.5-2 6.5-5.5 0-1.5 1-2.5 2-2.5 3 0 5.5-3.5 4-7-1-2-3-3.5-3-6 0-4.5-2.5-7.5-7-7.5-2.5 0-4.5-2-4.5-4 0-2-2-4-5.5-4z"/>
+    {{-- SCROLL PROGRESS BAR --}}
+    <div class="scroll-bar" id="scrollBar"></div>
+
+    {{-- NAV --}}
+    <header class="nav">
+        <div class="wrap nav-row">
+            <a class="brand" href="/">
+                <span class="brand-mark">
+                    <svg width="20" height="20" viewBox="0 0 64 64" fill="none" stroke="#94A3B8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M32 12c-3.5 0-5.5 2-5.5 4 0 2-2 4-4.5 4-4.5 0-7 3-7 7.5 0 2.5-2 4-3 6-1.5 3.5 1 7 4 7 1 0 2 1 2 2.5 0 3.5 3.5 5.5 6.5 5.5 2 0 3-1.5 4.5-3 2-2 5.5-2 7.5 0 1.5 1.5 2.5 3 4.5 3 3 0 6.5-2 6.5-5.5 0-1.5 1-2.5 2-2.5 3 0 5.5-3.5 4-7-1-2-3-3.5-3-6 0-4.5-2.5-7.5-7-7.5-2.5 0-4.5-2-4.5-4 0-2-2-4-5.5-4z" fill="#fff"/>
+                        <path d="M32 16v18M23 26c2 1 2 5 0 7M41 26c-2 1-2 5 0 7"/>
                     </svg>
                 </span>
-                <span class="ob-brand-text">
-                    ortho<span class="ob-brain">brain</span>
+                <span class="brand-text">
+                    <span class="p1">ortho</span><span class="p2">brain</span><span class="tm">&trade;</span>
                 </span>
             </a>
 
-            <nav class="ob-nav-menu">
-                <a href="#platform"    class="ob-nav-link">Platform</a>
-                <a href="#testimonials" class="ob-nav-link">Testimonials</a>
-                <a href="#team"        class="ob-nav-link">Team</a>
-                <a href="#contact"     class="ob-nav-link">Contact</a>
+            <nav class="menu">
+                <a href="#features">Features</a>
+                <a href="#how">How it works</a>
             </nav>
 
-            <div class="ob-nav-actions">
-                <a href="{{ route('login') }}" class="ob-btn ob-btn-ghost">Sign in</a>
-                <a href="/register/doctor" class="ob-btn ob-btn-primary">Get started</a>
+            <div class="nav-actions">
+                <a href="{{ route('login') }}" class="btn btn-outline">Log in</a>
+                <a href="/register/doctor" class="btn btn-primary">Get started</a>
             </div>
         </div>
     </header>
 
-    {{-- ══════════════════ HERO ══════════════════ --}}
-    <section class="ob-hero">
-        <div class="ob-container ob-hero-grid">
+    {{-- HERO --}}
+    <section class="hero">
+        <div class="wrap hero-grid">
             <div>
-                <span class="ob-eyebrow anim" data-ob-anim="fade-up">
-                    <i class="bi bi-award-fill"></i> Trusted by 1,200+ clinicians
+                <span class="pill anim" data-anim="up">
+                    <i class="bi bi-stars"></i> The all-in-one platform for orthodontists
                 </span>
-                <h1 class="ob-hero-title anim" data-ob-anim="fade-up">
-                    Orthodontic excellence,<br>
-                    <em>built for your practice.</em>
+                <h1 class="anim" data-anim="up">
+                    Orthodontics,<br>
+                    built into your<br>
+                    dental practice.
                 </h1>
-                <p class="ob-hero-sub anim" data-ob-anim="fade-up">
-                    orthobrain unifies case submission, treatment planning, and patient tracking
-                    into a single, clinically-polished workspace — so your team can focus on smiles,
-                    not software.
+                <p class="hero-sub anim" data-anim="up">
+                    Orthobrain helps orthodontists manage patients, streamline workflows,
+                    and grow their practice with confidence.
                 </p>
-                <div class="ob-hero-ctas anim" data-ob-anim="fade-up">
-                    <a href="/register/doctor" class="ob-btn ob-btn-primary ob-btn-lg">
-                        Create doctor account <i class="bi bi-arrow-right"></i>
+                <div class="feats anim" data-anim="up">
+                    <span><i class="bi bi-check-circle-fill"></i> Smart patient management</span>
+                    <span><i class="bi bi-check-circle-fill"></i> Seamless scheduling</span>
+                    <span><i class="bi bi-check-circle-fill"></i> AI-powered insights</span>
+                    <span><i class="bi bi-check-circle-fill"></i> Secure &amp; compliant</span>
+                </div>
+                <div class="ctas anim" data-anim="up">
+                    <a href="/register/doctor" class="btn btn-primary btn-lg">
+                        <i class="bi bi-arrow-right"></i> Get started free
                     </a>
-                    <a href="#platform" class="ob-btn ob-btn-outline ob-btn-lg">
-                        <i class="bi bi-play-circle"></i> See the platform
-                    </a>
                 </div>
-                <div class="ob-hero-trust anim" data-ob-anim="fade-up">
-                    <span class="ob-hero-trust-item"><i class="bi bi-check-circle-fill"></i> HIPAA-ready</span>
-                    <span class="ob-hero-trust-item"><i class="bi bi-check-circle-fill"></i> No setup fees</span>
-                    <span class="ob-hero-trust-item"><i class="bi bi-check-circle-fill"></i> Cancel anytime</span>
+                <div class="cc anim" data-anim="up">
+                    <i class="bi bi-shield-check"></i> No credit card required
+                </div>
+                <div class="trust anim" data-anim="up">
+                    <div class="stack">
+                        <img src="{{ asset('images/landing/l5.png') }}" alt=""/>
+                        <img src="{{ asset('images/landing/l6.png') }}" alt=""/>
+                        <img src="{{ asset('images/landing/l7.png') }}" alt=""/>
+                        <span class="more">2K+</span>
+                    </div>
+                    <div class="trust-text">
+                        Trusted by 2,000+<br>orthodontists worldwide
+                    </div>
                 </div>
             </div>
 
-            <div class="ob-hero-visual">
-                <div class="ob-hero-photo anim-zoom" data-ob-anim="zoom" id="heroPhoto">
-                    <img src="{{ asset('images/landing/l1.png') }}" alt="Smiling patient"/>
-                </div>
-
-                <div class="ob-hero-floater ob-hero-floater-a anim-left" data-ob-anim="fade-left" data-ob-delay="0.35">
-                    <span class="ob-floater-icon ob-floater-icon--mint">
-                        <i class="bi bi-check2-circle"></i>
-                    </span>
-                    <div>
-                        <div class="ob-floater-label">Case approved</div>
-                        <div class="ob-floater-val" style="font-size: 1rem; font-family: Inter; font-weight: 700;">in 22 hours</div>
-                    </div>
-                </div>
-
-                <div class="ob-hero-floater ob-hero-floater-b anim-right" data-ob-anim="fade-right" data-ob-delay="0.55">
-                    <div class="ob-floater-label">Treatment plans this week</div>
-                    <div class="ob-floater-val" data-count-to="142">0</div>
-                    <div class="ob-floater-caption">
-                        <span style="color: var(--ob-mint); font-weight: 700;">▲ 18%</span> vs. last week
-                    </div>
+            <div class="stage anim-zoom" data-anim="zoom">
+                <div class="doc">
+                    <img src="{{ asset('images/auth/doctor.png') }}" alt="Orthobrain clinician"/>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- ══════════════════ EXPERTISE ══════════════════ --}}
-    <section class="ob-section" id="platform">
-        <div class="ob-container">
-            <div class="ob-section-hd">
-                <span class="ob-kicker anim" data-ob-anim="fade-up">Comprehensive Platform</span>
-                <h2 class="ob-section-title anim" data-ob-anim="fade-up">Everything your practice needs, in one place</h2>
-                <p class="ob-section-sub anim" data-ob-anim="fade-up">
-                    From case intake to delivery, orthobrain organises the entire treatment workflow around
-                    how clinicians actually work — so your team spends less time in software and more time in chair.
-                </p>
+    {{-- FEATURES --}}
+    <section class="sec" id="features">
+        <div class="wrap">
+            <div class="sec-hd">
+                <span class="sec-kicker anim" data-anim="up">Comprehensive platform</span>
+                <h2 class="sec-title anim" data-anim="up">Everything in one workspace</h2>
+                <p class="sec-sub anim" data-anim="up">Designed around how clinicians actually work — fewer clicks, fewer tabs, more time in chair.</p>
             </div>
-
-            <div class="ob-exp-grid">
-                <div class="ob-exp-hero anim" data-ob-anim="fade-up">
-                    <img src="{{ asset('images/landing/l2.png') }}" alt="Clinical precision"/>
-                    <div class="ob-exp-hero-body">
-                        <span class="ob-exp-hero-tag">Flagship workflow</span>
-                        <h3>Case Submission &amp; Planning</h3>
-                        <p>A guided intake for photos, x-rays and prescriptions — then a dedicated reviewer returns a treatment plan in under 24 hours.</p>
-                        <a href="#">Explore the workflow <i class="bi bi-arrow-right"></i></a>
-                    </div>
+            <div class="feat-grid">
+                <div class="feat anim" data-anim="up">
+                    <span class="feat-ico"><i class="bi bi-clipboard2-pulse"></i></span>
+                    <h4>Case submission &amp; planning</h4>
+                    <p>Guided intake for photos, x-rays, and prescriptions — clinical reviewer returns a treatment plan in under 24 hours.</p>
                 </div>
-
-                <div class="ob-exp-col">
-                    <div class="ob-exp-card anim" data-ob-anim="fade-up" data-ob-delay="0.1">
-                        <span class="ob-exp-icon"><i class="bi bi-activity"></i></span>
-                        <h4>Live treatment tracking</h4>
-                        <p>Every case moves through submission, review, approval, and delivery — with real-time pipeline status at a glance.</p>
-                        <a href="#" class="ob-exp-link">See how it works <i class="bi bi-arrow-right"></i></a>
-                    </div>
-                    <div class="ob-exp-card anim" data-ob-anim="fade-up" data-ob-delay="0.2">
-                        <span class="ob-exp-icon" style="background: var(--ob-mint);"><i class="bi bi-shield-check"></i></span>
-                        <h4>Secure by default</h4>
-                        <p>Role-based access, audited uploads, and practice-level data isolation. Your patients' records stay private.</p>
-                        <a href="#" class="ob-exp-link">Our security story <i class="bi bi-arrow-right"></i></a>
-                    </div>
+                <div class="feat anim" data-anim="up" data-delay="0.08">
+                    <span class="feat-ico"><i class="bi bi-stars"></i></span>
+                    <h4>AI smile preview</h4>
+                    <p>Automated photo quality checks plus AI-generated before/after smile visualizations to share with patients.</p>
+                </div>
+                <div class="feat anim" data-anim="up" data-delay="0.16">
+                    <span class="feat-ico"><i class="bi bi-buildings"></i></span>
+                    <h4>Multi-practice workflow</h4>
+                    <p>Belong to multiple practices, switch context with one click, and keep cases organised per location.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- ══════════════════ STATS BAND ══════════════════ --}}
-    <section class="ob-stats">
-        <div class="ob-container">
-            <div class="ob-stats-grid">
-                <div class="ob-stat anim" data-ob-anim="fade-up">
-                    <div class="ob-stat-v" data-count-to="1200" data-count-suffix="+">0</div>
-                    <div class="ob-stat-l">Doctors onboarded</div>
-                </div>
-                <div class="ob-stat anim" data-ob-anim="fade-up" data-ob-delay="0.08">
-                    <div class="ob-stat-v" data-count-to="24" data-count-suffix="h">0</div>
-                    <div class="ob-stat-l">Avg. plan turnaround</div>
-                </div>
-                <div class="ob-stat anim" data-ob-anim="fade-up" data-ob-delay="0.16">
-                    <div class="ob-stat-v" data-count-to="98" data-count-suffix="%">0</div>
-                    <div class="ob-stat-l">Doctor satisfaction</div>
-                </div>
-                <div class="ob-stat anim" data-ob-anim="fade-up" data-ob-delay="0.24">
-                    <div class="ob-stat-v" data-count-to="50" data-count-suffix=" states">0</div>
-                    <div class="ob-stat-l">Nationwide coverage</div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    {{-- ══════════════════ TESTIMONIALS ══════════════════ --}}
-    <section class="ob-section ob-testi" id="testimonials">
-        <div class="ob-container">
-            <div class="ob-section-hd">
-                <span class="ob-kicker anim" data-ob-anim="fade-up">Doctor Stories</span>
-                <h2 class="ob-section-title anim" data-ob-anim="fade-up">Don't just take our word for it</h2>
-                <p class="ob-section-sub anim" data-ob-anim="fade-up">
-                    Hear from practices that made orthobrain a part of their daily workflow — and never looked back.
-                </p>
+    {{-- HOW IT WORKS --}}
+    <section class="sec how" id="how">
+        <div class="wrap">
+            <div class="sec-hd">
+                <span class="sec-kicker anim" data-anim="up">How it works</span>
+                <h2 class="sec-title anim" data-anim="up">From submission to smile, in three steps</h2>
+                <p class="sec-sub anim" data-anim="up">A workflow built around your day — not the other way around.</p>
             </div>
 
-            <div class="ob-testi-grid">
-                @php
-                    $testimonials = [
-                        [
-                            'avatar' => 'l5.png', 'name' => 'Dr. Alex Carter', 'role' => 'General dentistry',
-                            'quote'  => 'Case turnaround dropped from 3 days to under 24 hours. The pipeline view alone changed how our front office communicates with patients.',
-                        ],
-                        [
-                            'avatar' => 'l6.png', 'name' => 'Dr. Margaret Hale', 'role' => 'Family practice',
-                            'quote'  => "After 22 years in practice, I've finally found software that doesn't fight me. The submission flow feels like it was designed by a dentist.",
-                        ],
-                        [
-                            'avatar' => 'l7.png', 'name' => 'Dr. Priya Sharma', 'role' => 'Cosmetic & ortho',
-                            'quote'  => 'We added orthodontic services without hiring an in-house specialist. Plans come back clean, fast, and ready to discuss with the patient.',
-                        ],
-                    ];
-                @endphp
-                @foreach($testimonials as $i => $t)
-                    <div class="ob-testi-card anim" data-ob-anim="fade-up" data-ob-delay="{{ $i * 0.12 }}">
-                        <div class="ob-testi-stars">
-                            @for($s = 0; $s < 5; $s++)<i class="bi bi-star-fill"></i>@endfor
-                        </div>
-                        <p class="ob-testi-quote">"{{ $t['quote'] }}"</p>
-                        <div class="ob-testi-author">
-                            <img class="ob-testi-avatar" src="{{ asset('images/landing/'.$t['avatar']) }}" alt="{{ $t['name'] }}"/>
-                            <div>
-                                <div class="ob-testi-name">{{ $t['name'] }}</div>
-                                <div class="ob-testi-role">{{ $t['role'] }}</div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-    </section>
-
-    {{-- ══════════════════ TEAM ══════════════════ --}}
-    <section class="ob-section ob-team" id="team">
-        <div class="ob-container">
-            <div class="ob-team-head">
-                <div class="ob-team-head-left">
-                    <span class="ob-kicker anim" data-ob-anim="fade-up">Clinical Advisors</span>
-                    <h2 class="ob-section-title anim" data-ob-anim="fade-up">Behind every plan, a specialist</h2>
-                    <p class="ob-section-sub anim" data-ob-anim="fade-up" style="text-align: left; margin: 0;">
-                        Our clinical advisory team reviews every treatment plan — so your patients always get the benefit of experienced orthodontic judgement.
+            <div class="step">
+                <div class="step-txt">
+                    <span class="step-num anim" data-anim="up">1</span>
+                    <h3 class="step-title anim" data-anim="up">Submit your case</h3>
+                    <p class="step-sub anim" data-anim="up">
+                        Upload photos, x-rays, and prescriptions through our guided intake. Everything you need to capture, in the right order.
                     </p>
+                    <ul class="step-list anim" data-anim="up">
+                        <li><i class="bi bi-check-circle-fill"></i> Photo quality checks</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Auto-saved drafts</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Pre-filled prescription</li>
+                    </ul>
                 </div>
-                <div class="ob-team-head-right anim" data-ob-anim="fade-up">
-                    <a href="#">Meet the full team <i class="bi bi-arrow-right"></i></a>
+                <div class="step-vis anim-zoom" data-anim="zoom">
+                    <img src="{{ asset('images/landing/a1.png') }}" alt=""/>
                 </div>
             </div>
 
-            <div class="ob-team-grid">
-                <div class="ob-team-card anim" data-ob-anim="fade-up">
-                    <img class="ob-team-photo" src="{{ asset('images/landing/l3.png') }}" alt="Dr. Michael Chen"/>
-                    <div class="ob-team-body">
-                        <div class="ob-team-role">Lead Clinical Reviewer</div>
-                        <div class="ob-team-name">Dr. Michael Chen</div>
-                        <p class="ob-team-bio">
-                            Over 15 years of orthodontic experience. Leads the clinical review team and sets the quality bar
-                            for every plan that leaves our platform.
-                        </p>
-                        <a href="#" class="ob-team-link">View profile <i class="bi bi-arrow-right"></i></a>
-                    </div>
+            <div class="step reverse">
+                <div class="step-txt">
+                    <span class="step-num anim" data-anim="up">2</span>
+                    <h3 class="step-title anim" data-anim="up">Get your treatment plan</h3>
+                    <p class="step-sub anim" data-anim="up">
+                        Our clinical team returns a personalized plan in under 24 hours — clear, structured, ready to discuss with the patient.
+                    </p>
+                    <ul class="step-list anim" data-anim="up">
+                        <li><i class="bi bi-check-circle-fill"></i> 24-hour turnaround</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Specialist review</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Patient-friendly summary</li>
+                    </ul>
                 </div>
-                <div class="ob-team-card anim" data-ob-anim="fade-up" data-ob-delay="0.12">
-                    <img class="ob-team-photo" src="{{ asset('images/landing/l4.png') }}" alt="Dr. Olivia Reynolds"/>
-                    <div class="ob-team-body">
-                        <div class="ob-team-role">Director of Clinical Strategy</div>
-                        <div class="ob-team-name">Dr. Olivia Reynolds</div>
-                        <p class="ob-team-bio">
-                            Specializes in aesthetic transformations and complex adult cases. Architects the treatment-planning
-                            protocols our reviewers use every day.
-                        </p>
-                        <a href="#" class="ob-team-link">View profile <i class="bi bi-arrow-right"></i></a>
-                    </div>
+                <div class="step-vis tone-mint anim-zoom" data-anim="zoom">
+                    <img src="{{ asset('images/landing/a2.png') }}" alt=""/>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-txt">
+                    <span class="step-num anim" data-anim="up">3</span>
+                    <h3 class="step-title anim" data-anim="up">Treat with confidence</h3>
+                    <p class="step-sub anim" data-anim="up">
+                        Track every case from start to finish. Live status, automated updates, and one place for the whole team.
+                    </p>
+                    <ul class="step-list anim" data-anim="up">
+                        <li><i class="bi bi-check-circle-fill"></i> Live pipeline view</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Automated reminders</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Team-wide visibility</li>
+                    </ul>
+                </div>
+                <div class="step-vis tone-violet anim-zoom" data-anim="zoom">
+                    <img src="{{ asset('images/landing/a3.png') }}" alt=""/>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- ══════════════════ FINAL CTA ══════════════════ --}}
+    {{-- STATS --}}
+    <section class="stats">
+        <div class="wrap">
+            <div class="stats-grid">
+                <div class="stat anim" data-anim="up">
+                    <div class="stat-v" data-count-to="2000" data-count-suffix="+">0</div>
+                    <div class="stat-l">Doctors onboarded</div>
+                </div>
+                <div class="stat anim" data-anim="up" data-delay="0.08">
+                    <div class="stat-v" data-count-to="24" data-count-suffix="h">0</div>
+                    <div class="stat-l">Avg. turnaround</div>
+                </div>
+                <div class="stat anim" data-anim="up" data-delay="0.16">
+                    <div class="stat-v" data-count-to="98" data-count-suffix="%">0</div>
+                    <div class="stat-l">Doctor satisfaction</div>
+                </div>
+                <div class="stat anim" data-anim="up" data-delay="0.24">
+                    <div class="stat-v" data-count-to="50" data-count-suffix=" states">0</div>
+                    <div class="stat-l">Nationwide</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- FINAL CTA --}}
     <section id="contact">
-        <div class="ob-container">
-            <div class="ob-finalcta anim" data-ob-anim="fade-up">
-                <div class="ob-finalcta-content">
+        <div class="wrap">
+            <div class="finalcta anim" data-anim="up">
+                <div class="finalcta-body">
                     <h2>Ready to see it in your practice?</h2>
-                    <p>Create a free doctor account in under two minutes — no credit card, no setup call required.</p>
+                    <p>Create a free doctor account in under two minutes — no credit card, no setup call.</p>
+                    <div class="finalcta-actions">
+                        <a href="/register/doctor" class="btn btn-primary btn-lg">
+                            <i class="bi bi-arrow-right"></i> Get started free
+                        </a>
+                        <a href="{{ route('login') }}" class="btn btn-on-dark btn-lg">Sign in</a>
+                    </div>
                 </div>
-                <div class="ob-finalcta-actions">
-                    <a href="/register/doctor" class="ob-btn ob-btn-mint ob-btn-lg" style="background:#92f7c3; color:#00734d;">
-                        Create free account <i class="bi bi-arrow-right"></i>
-                    </a>
-                    <a href="{{ route('login') }}" class="ob-btn ob-btn-outline ob-btn-lg" style="background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.35);">
-                        Sign in
-                    </a>
+                <div class="finalcta-vis anim-zoom" data-anim="zoom">
+                    <img src="{{ asset('images/landing/l2.png') }}" alt=""/>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- ══════════════════ FOOTER ══════════════════ --}}
-    <footer class="ob-foot">
-        <div class="ob-container ob-foot-row">
-            <a class="ob-brand" href="/">
-                <span class="ob-brand-mark">
-                    <svg width="18" height="18" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M32 12c-3.5 0-5.5 2-5.5 4 0 2-2 4-4.5 4-4.5 0-7 3-7 7.5 0 2.5-2 4-3 6-1.5 3.5 1 7 4 7 1 0 2 1 2 2.5 0 3.5 3.5 5.5 6.5 5.5 2 0 3-1.5 4.5-3 2-2 5.5-2 7.5 0 1.5 1.5 2.5 3 4.5 3 3 0 6.5-2 6.5-5.5 0-1.5 1-2.5 2-2.5 3 0 5.5-3.5 4-7-1-2-3-3.5-3-6 0-4.5-2.5-7.5-7-7.5-2.5 0-4.5-2-4.5-4 0-2-2-4-5.5-4z"/>
-                    </svg>
-                </span>
-                <span class="ob-brand-text">ortho<span class="ob-brain">brain</span></span>
-            </a>
-            <div class="ob-foot-links">
-                <a href="#platform">Platform</a>
-                <a href="#testimonials">Testimonials</a>
-                <a href="#team">Team</a>
+    {{-- FOOTER --}}
+    <footer class="foot">
+        <div class="wrap foot-row">
+            <div>&copy; {{ date('Y') }} orthobrain</div>
+            <div>
                 <a href="{{ route('login') }}">Sign in</a>
+                &nbsp;·&nbsp;
                 <a href="/register/doctor">Get started</a>
-            </div>
-            <div class="ob-foot-copy">
-                &copy; {{ date('Y') }} orthobrain. Orthodontics for Your Dental Practice.
             </div>
         </div>
     </footer>
 
-    {{-- ══════════════════ MOTION ONE ══════════════════ --}}
     <script type="module">
-        import { animate, inView, stagger, scroll } from "https://cdn.jsdelivr.net/npm/motion@11.11.17/+esm";
+        import { animate, inView, scroll } from "https://cdn.jsdelivr.net/npm/motion@11.11.17/+esm";
 
         const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
         if (reduce) {
-            document.querySelectorAll('.anim, .anim-left, .anim-right, .anim-zoom').forEach(el => {
+            document.querySelectorAll('.anim, .anim-zoom, .anim-left, .anim-right').forEach(el => {
                 el.style.opacity = 1; el.style.transform = 'none';
             });
+            document.querySelectorAll('[data-count-to]').forEach(el => {
+                const t = parseFloat(el.dataset.countTo);
+                el.textContent = t.toLocaleString() + (el.dataset.countSuffix || '');
+            });
         } else {
-
-            // ── Hero staggered entrance ──
-            const heroItems = document.querySelectorAll('.ob-hero [data-ob-anim]');
-            heroItems.forEach((el, i) => {
-                const type  = el.dataset.obAnim || 'fade-up';
-                const delay = parseFloat(el.dataset.obDelay) || (i * 0.08);
-                let from = { opacity: 0, y: 24 };
-                if (type === 'fade-left')  from = { opacity: 0, x: -28 };
-                if (type === 'fade-right') from = { opacity: 0, x: 28 };
-                if (type === 'zoom')       from = { opacity: 0, scale: 0.96 };
-
-                animate(
-                    el,
-                    { opacity: [0, 1], x: [from.x ?? 0, 0], y: [from.y ?? 0, 0], scale: [from.scale ?? 1, 1] },
-                    { duration: 0.85, delay: 0.1 + delay, easing: [0.22, 1, 0.36, 1] }
+            // ── Reveal helper ──
+            const reveal = (el) => {
+                const type  = el.dataset.anim || 'up';
+                const delay = parseFloat(el.dataset.delay) || 0;
+                let from = { y: 18, x: 0, scale: 1 };
+                if (type === 'left')  from = { y: 0, x: -22, scale: 1 };
+                if (type === 'right') from = { y: 0, x:  22, scale: 1 };
+                if (type === 'zoom')  from = { y: 0, x:   0, scale: 0.94 };
+                animate(el,
+                    { opacity: [0, 1], x: [from.x, 0], y: [from.y, 0], scale: [from.scale, 1] },
+                    { duration: 0.8, delay, easing: [0.22, 1, 0.36, 1] }
                 );
+            };
+
+            // ── Hero entrance: lightly staggered ──
+            document.querySelectorAll('.hero [data-anim]').forEach((el, i) => {
+                setTimeout(() => reveal(el), 80 + i * 70);
             });
 
-            // ── Scroll-triggered reveals for sections ──
-            document.querySelectorAll('.ob-section [data-ob-anim], .ob-stats [data-ob-anim], #contact [data-ob-anim]').forEach(el => {
-                inView(el, () => {
-                    const type  = el.dataset.obAnim || 'fade-up';
-                    const delay = parseFloat(el.dataset.obDelay) || 0;
-                    let from = { opacity: 0, y: 28 };
-                    if (type === 'fade-left')  from = { opacity: 0, x: -32 };
-                    if (type === 'fade-right') from = { opacity: 0, x: 32 };
-                    if (type === 'zoom')       from = { opacity: 0, scale: 0.95 };
+            // ── Below-fold reveals on scroll ──
+            document.querySelectorAll('.sec [data-anim], .stats [data-anim], #contact [data-anim]')
+                .forEach(el => inView(el, () => reveal(el), { amount: 0.2 }));
 
-                    animate(
-                        el,
-                        { opacity: [0, 1], x: [from.x ?? 0, 0], y: [from.y ?? 0, 0], scale: [from.scale ?? 1, 1] },
-                        { duration: 0.75, delay, easing: [0.22, 1, 0.36, 1] }
+            // ── Top scroll progress bar ──
+            const bar = document.getElementById('scrollBar');
+            if (bar) {
+                scroll(animate(bar, { transform: ['scaleX(0)', 'scaleX(1)'] }, { easing: 'linear' }));
+            }
+
+            // ── Hero doctor: continuous gentle floating bob ──
+            const heroDoc = document.querySelector('.stage .doc img');
+            if (heroDoc) {
+                // Wait for entrance, then float forever
+                setTimeout(() => {
+                    animate(heroDoc,
+                        { transform: ['translateY(0px)', 'translateY(-12px)', 'translateY(0px)'] },
+                        { duration: 5.5, repeat: Infinity, easing: 'ease-in-out' }
                     );
-                }, { amount: 0.2 });
-            });
+                }, 1200);
+            }
 
-            // ── Hero image gentle parallax on scroll ──
-            const heroPhoto = document.getElementById('heroPhoto');
-            if (heroPhoto) {
+            // ── Hero stage: subtle parallax on scroll ──
+            const stage = document.querySelector('.hero .stage');
+            if (stage) {
                 scroll(
-                    animate(heroPhoto, { transform: ['translateY(0px)', 'translateY(-48px)'] }, { easing: 'linear' }),
-                    { target: heroPhoto, offset: ['start end', 'end start'] }
+                    animate(stage, { transform: ['translateY(0px)', 'translateY(-40px)'] }, { easing: 'linear' }),
+                    { target: stage, offset: ['start end', 'end start'] }
                 );
             }
 
-            // ── Count-up numbers when in view ──
-            const counters = document.querySelectorAll('[data-count-to]');
-            counters.forEach(el => {
+            // ── How-it-works step images: gentle bob, alternating phase ──
+            document.querySelectorAll('.step-vis img').forEach((img, i) => {
+                inView(img, () => {
+                    setTimeout(() => {
+                        animate(img,
+                            { transform: ['translateY(0px)', 'translateY(-10px)', 'translateY(0px)'] },
+                            { duration: 4 + i * 0.3, repeat: Infinity, easing: 'ease-in-out' }
+                        );
+                    }, 600);
+                }, { amount: 0.4 });
+            });
+
+            // ── Final CTA doctor: subtle bob ──
+            const ctaImg = document.querySelector('.finalcta-vis img');
+            if (ctaImg) {
+                inView(ctaImg, () => {
+                    setTimeout(() => {
+                        animate(ctaImg,
+                            { transform: ['translateY(0px)', 'translateY(-8px)', 'translateY(0px)'] },
+                            { duration: 4.5, repeat: Infinity, easing: 'ease-in-out' }
+                        );
+                    }, 600);
+                }, { amount: 0.4 });
+            }
+
+            // ── Count-up numbers ──
+            document.querySelectorAll('[data-count-to]').forEach(el => {
                 inView(el, () => {
-                    const target   = parseFloat(el.dataset.countTo);
-                    const suffix   = el.dataset.countSuffix || '';
-                    const duration = 1600;
-                    const start    = performance.now();
+                    const target = parseFloat(el.dataset.countTo);
+                    const suffix = el.dataset.countSuffix || '';
+                    const start  = performance.now();
+                    const dur    = 1500;
                     function tick(now) {
-                        const p    = Math.min((now - start) / duration, 1);
-                        const ease = 1 - Math.pow(1 - p, 3);
-                        const v    = Math.floor(ease * target);
-                        el.textContent = v.toLocaleString() + suffix;
+                        const p = Math.min((now - start) / dur, 1);
+                        const e = 1 - Math.pow(1 - p, 3);
+                        el.textContent = Math.floor(e * target).toLocaleString() + suffix;
                         if (p < 1) requestAnimationFrame(tick);
                         else el.textContent = target.toLocaleString() + suffix;
                     }

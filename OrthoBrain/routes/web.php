@@ -29,7 +29,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Public / shared auth routes ──────────────────────────
-Route::redirect('/', '/login');
+Route::view('/', 'landing')->name('landing');
 Route::view('/login', 'login')->name('login');
 Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
@@ -147,6 +147,10 @@ Route::middleware(['web', 'admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+        // Admin notifications — bell dropdown "View All" feed (today's activity)
+        Route::get('/notifications', [\App\Http\Controllers\Admin\NotificationController::class, 'index'])
+            ->name('notifications.index');
 
         // Admin profile (account details + avatar)
         Route::get('/profile',            [AdminProfileController::class, 'index'])->name('profile.index');
