@@ -26,7 +26,9 @@ class PrescriptionController extends Controller
             if (! $doctor) {
                 abort(403, 'Doctor profile not found.');
             }
-            $case = CaseModel::where('doctor_id', $doctor->id)->findOrFail($id);
+            $case = CaseModel::where('doctor_id', $doctor->id)
+                ->where('practice_id', currentPractice()->id)
+                ->findOrFail($id);
         }
 
         $payload = $request->validate([
