@@ -25,10 +25,13 @@
                 min-height: 100vh;
                 font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
                 color: var(--ob-text);
+                /* Multi-layer gradient backdrop ported from PR #56 (login parity).
+                   `background-attachment: fixed` keeps the wash stationary on scroll. */
                 background:
-                    radial-gradient(1200px 600px at -10% -20%, #e6f0ff 0%, transparent 60%),
-                    radial-gradient(1000px 500px at 110% 110%, #eaf5ff 0%, transparent 60%),
-                    linear-gradient(180deg, #f6f9ff 0%, #eef3fb 100%);
+                    radial-gradient(ellipse 1200px 600px at 80% -10%, rgba(96, 165, 250, 0.18), transparent 60%),
+                    radial-gradient(ellipse 800px 600px at -5% 110%, rgba(147, 197, 253, 0.20), transparent 65%),
+                    linear-gradient(135deg, #F1F5F9 0%, #E0F2FE 50%, #DBEAFE 100%);
+                background-attachment: fixed;
                 -webkit-font-smoothing: antialiased;
                 -moz-osx-font-smoothing: grayscale;
             }
