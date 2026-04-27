@@ -915,12 +915,33 @@
   font-size: 0.8rem;
 }
 
-.photographs-date-input {
-  max-width: 220px;
+/* ───────────────────────────────────────────────────────────────────────────
+   Unified date pickers (Patient Info DOB, Photographs date, X-Rays date)
+   - Hide the browser-native calendar indicator so we only show the feather
+     icon in the .input-group, avoiding the dual-icon problem.
+   - The feather icon span (.case-date-trigger) and the input itself both
+     trigger input.showPicker() via add-case.js so click anywhere opens it.
+   ─────────────────────────────────────────────────────────────────────────── */
+.case-date-group {
+  max-width: 260px;
 }
-
-.xrays-date-input {
-  max-width: 220px;
+.case-date-input::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+.case-date-input::-moz-calendar-picker-indicator {
+  display: none;
+}
+.case-date-trigger {
+  cursor: pointer;
+  user-select: none;
+}
+.case-date-trigger:hover {
+  background-color: rgba(89, 192, 212, 0.08);
+}
+.photographs-date-group,
+.xrays-date-group {
+  max-width: 240px;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────

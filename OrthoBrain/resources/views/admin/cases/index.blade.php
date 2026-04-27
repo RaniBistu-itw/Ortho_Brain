@@ -88,7 +88,7 @@
           <select name="status" class="form-select js-searchable" data-placeholder="All statuses" onchange="this.form.submit()">
             <option value="">All statuses</option>
             @foreach($statusOptions as $s)
-              <option value="{{ $s }}" @selected($statusFilter === $s)>{{ $s }}</option>
+              <option value="{{ $s }}" @selected($statusFilter === $s)>{{ $statusLabels[$s] ?? $s }}</option>
             @endforeach
           </select>
         </div>
@@ -138,7 +138,7 @@
               <td>{{ $case->doctor?->practice?->name ?? '—' }}</td>
               <td>
                 <span class="ob-status ob-status--{{ $statusTone[$case->status] ?? 'secondary' }}">
-                  {{ $case->status }}
+                  {{ $statusLabels[$case->status] ?? $case->status }}
                 </span>
               </td>
               <td>{{ $case->created_at?->format('Y-m-d H:i') }}</td>

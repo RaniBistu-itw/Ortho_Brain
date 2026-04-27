@@ -29,5 +29,6 @@ CLAUDE_WORK_LOG.md
 docs/practice-name-autofill.md
 docs/perfect-smile-plan.md
 docs/multi-practice-feature.md
+Docs/api.md
 # Backups produced by the /switch-branch skill
 .env.*.backup

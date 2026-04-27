@@ -38,11 +38,14 @@
       <label class="form-label fw-semibold" for="photo-date">
         Date of Photos <span class="text-danger">*</span>
       </label>
-      <input type="date"
-             class="form-control photographs-date-input"
-             id="photo-date"
-             x-model="dateOfPhotos"
-             @change="validateField('dateOfPhotos'); syncToState()">
+      <div class="input-group case-date-group photographs-date-group">
+        <span class="input-group-text case-date-trigger"><i data-feather="calendar"></i></span>
+        <input type="date"
+               class="form-control case-date-input"
+               id="photo-date"
+               x-model="dateOfPhotos"
+               @change="validateField('dateOfPhotos'); syncToState()">
+      </div>
       <div class="small text-danger mt-25"
            x-show="errors.dateOfPhotos"
            x-text="errors.dateOfPhotos"
