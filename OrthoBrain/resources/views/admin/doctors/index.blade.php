@@ -1,6 +1,11 @@
 @extends('layouts.admin')
 @section('title', 'Doctors')
-@section('page_title', 'Doctors')
+@php
+    $doctorsPageTitle = request('status')
+        ? ucfirst(strtolower(request('status'))) . ' Doctors'
+        : 'All Doctors';
+@endphp
+@section('page_title', $doctorsPageTitle)
 
 @push('styles')
 <style>
@@ -374,21 +379,6 @@
 
 <section id="doctors-page">
     <div class="ob-list-card">
-        {{-- Card head: title + pending pill + Add Doctor --}}
-        <div class="ob-card-head">
-            <h4 class="ob-card-head-title">Doctors</h4>
-            <div class="ob-card-head-cta">
-                @if (!empty($pendingCount))
-                    <a href="{{ route('admin.doctors.index', ['status' => 'PENDING']) }}" class="ob-alert-pending">
-                        <i data-feather="clock"></i>
-                        {{ $pendingCount }} pending review
-                    </a>
-                @endif
-                <a href="{{ route('admin.doctors.create') }}" class="btn ob-btn-primary">
-                    <i data-feather="plus"></i> Add Doctor
-                </a>
-            </div>
-        </div>
 
         {{-- Tabs --}}
         <ul class="ob-tabs">
@@ -414,7 +404,7 @@
                 @if ($currentStatus)
                     <input type="hidden" name="status" value="{{ $currentStatus }}">
                 @endif
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <select name="practice_id" class="js-searchable form-select">
                         <option value="">All practices</option>
                         @foreach ($practices as $p)
@@ -422,7 +412,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <div class="ob-input-icon">
                         <i data-feather="search"></i>
                         <input type="text" name="search" placeholder="Search by name, email, or phone"
@@ -432,6 +422,11 @@
                 <div class="col-md-2">
                     <a href="{{ route('admin.doctors.index') }}" class="ob-btn-clear w-100">
                         <i data-feather="x"></i> Clear
+                    </a>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('admin.doctors.create') }}" class="btn btn-primary w-100">
+                        <i data-feather="plus" class="me-25"></i> Add Doctor
                     </a>
                 </div>
             </form>
