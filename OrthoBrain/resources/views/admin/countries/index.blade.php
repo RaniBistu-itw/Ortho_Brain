@@ -25,11 +25,10 @@
     .co-toolbar__spacer { flex: 1; }
     .co-toolbar__actions { display: flex; gap: .5rem; }
 
-    .co-table { margin-bottom: 0; }
-    .co-table thead th { background: #f8f8f8; text-transform: uppercase; font-size: .74rem; letter-spacing: .06em; color: #6e6b7b; font-weight: 600; border-bottom: 1px solid rgba(34, 41, 47, .08); }
-    .co-table tbody tr { transition: background-color .15s ease; }
-    .co-table tbody tr:hover { background: rgba(var(--bs-primary-rgb), .04); }
-    .co-table .co-row-new { animation: co-row-flash 1.4s ease-out; }
+    /* Table chrome (header background, row hover, borders) comes from the
+       shared .ob-admin-table rules in orthobrain-palette.css. Only the
+       new-row flash highlight stays page-local. */
+    .ob-admin-table .co-row-new { animation: co-row-flash 1.4s ease-out; }
     @keyframes co-row-flash { 0% { background: rgba(var(--bs-success-rgb), .2); } 100% { background: transparent; } }
 
     .co-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
@@ -121,7 +120,7 @@
 
         {{-- ── Table ─────────────────────────────────────────────── --}}
         <div class="table-responsive">
-            <table class="table table-hover co-table" id="coTable">
+            <table class="table ob-admin-table" id="coTable">
                 <thead>
                     <tr>
                         <th>Name</th>
