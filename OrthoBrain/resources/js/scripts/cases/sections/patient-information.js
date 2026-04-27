@@ -144,16 +144,26 @@
     return isoToDisplay(isoDate);
   }
 
+  // Strip non-digits — lets users search by phone with or without formatting
+  function digitsOnly(s) { return (s || '').replace(/[^0-9]/g, ''); }
+
+  // Match across name, email, phone, chartId, and DOB. Phone matching strips
+  // formatting so "(415) 555-0142" and "4155550142" both find the same row.
   function filterPatients(query) {
-    if (!window.MOCK_PATIENTS || query.length < 2) return [];
-    var q = query.toLowerCase();
+    if (!window.MOCK_PATIENTS) return [];
+    var raw = (query || '').trim();
+    if (raw.length < 2) return [];
+    var q = raw.toLowerCase();
+    var qDigits = digitsOnly(raw);
     return window.MOCK_PATIENTS.filter(function (p) {
-      return (
-        p.firstName.toLowerCase().includes(q) ||
-        p.lastName.toLowerCase().includes(q) ||
-        formatDobDisplay(p.dob).includes(q)
-      );
-    });
+      var fullName = (p.firstName + ' ' + p.lastName).toLowerCase();
+      if (fullName.includes(q)) return true;
+      if ((p.email   || '').toLowerCase().includes(q)) return true;
+      if ((p.chartId || '').toLowerCase().includes(q)) return true;
+      if (formatDobDisplay(p.dob).includes(q)) return true;
+      if (qDigits.length >= 3 && digitsOnly(p.phone).includes(qDigits)) return true;
+      return false;
+    }).slice(0, 8);
   }
 
   function renderDropdown(patients) {
@@ -167,7 +177,31 @@
       li.className = 'list-group-item list-group-item-action pi-search-option';
       li.setAttribute('role', 'option');
       li.dataset.id = p.id;
-      li.textContent = p.firstName + ' ' + p.lastName + ' — ' + formatDobDisplay(p.dob);
+
+      // Construct via textContent — when this gets wired to a real endpoint,
+      // patient data will be user-controlled and innerHTML would be unsafe.
+      var headerRow = document.createElement('div');
+      headerRow.className = 'd-flex justify-content-between align-items-baseline gap-2';
+      var nameEl = document.createElement('span');
+      nameEl.className = 'fw-semibold';
+      nameEl.textContent = p.firstName + ' ' + p.lastName;
+      headerRow.appendChild(nameEl);
+      if (p.chartId) {
+        var chartEl = document.createElement('span');
+        chartEl.className = 'small text-muted';
+        chartEl.textContent = p.chartId;
+        headerRow.appendChild(chartEl);
+      }
+      li.appendChild(headerRow);
+
+      var meta = [p.email, p.phone, formatDobDisplay(p.dob)].filter(Boolean).join(' · ');
+      if (meta) {
+        var metaEl = document.createElement('div');
+        metaEl.className = 'small text-muted';
+        metaEl.textContent = meta;
+        li.appendChild(metaEl);
+      }
+
       li.addEventListener('mousedown', function (e) {
         e.preventDefault(); // prevent input blur before click registers
         loadPatient(p);

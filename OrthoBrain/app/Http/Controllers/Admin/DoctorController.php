@@ -36,13 +36,13 @@ class DoctorController extends Controller
                 fn ($q) => $q->where('practice_id', $request->integer('practice_id'))
             )
             ->when($search !== '', function ($q) use ($search) {
-                $like = '%' . $search . '%';
+                $like = '%'.$search.'%';
                 $q->where(function ($w) use ($like) {
                     $w->where('first_name', 'like', $like)
-                      ->orWhere('last_name', 'like', $like)
-                      ->orWhere('doctor_contact_email', 'like', $like)
-                      ->orWhere('other_email', 'like', $like)
-                      ->orWhere('doctor_cell_phone', 'like', $like);
+                        ->orWhere('last_name', 'like', $like)
+                        ->orWhere('doctor_contact_email', 'like', $like)
+                        ->orWhere('other_email', 'like', $like)
+                        ->orWhere('doctor_cell_phone', 'like', $like);
                 });
             })
             ->orderByDesc('created_at')
@@ -54,13 +54,24 @@ class DoctorController extends Controller
             ->groupBy('approval_status')
             ->pluck('total', 'approval_status');
 
+        $practices = Practice::orderBy('name')->get(['id', 'name']);
+
+        // AJAX live-filter: ship just the swappable results pane so the search
+        // input on /admin/doctors keeps focus and the page doesn't flicker.
+        if ($request->ajax()) {
+            return view('admin.doctors._results', [
+                'doctors' => $doctors,
+                'practices' => $practices,
+            ])->render();
+        }
+
         return view('admin.doctors.index', [
-            'doctors'        => $doctors,
-            'practices'      => Practice::orderBy('name')->get(['id', 'name']),
-            'currentStatus'  => $status,
-            'statusCounts'   => $statusCounts,
-            'totalCount'     => $statusCounts->sum(),
-            'pendingCount'   => (int) ($statusCounts['PENDING'] ?? 0),
+            'doctors' => $doctors,
+            'practices' => $practices,
+            'currentStatus' => $status,
+            'statusCounts' => $statusCounts,
+            'totalCount' => $statusCounts->sum(),
+            'pendingCount' => (int) ($statusCounts['PENDING'] ?? 0),
         ]);
     }
 
@@ -73,11 +84,11 @@ class DoctorController extends Controller
             ->get();
 
         return view('admin.doctors.create', [
-            'zipcodes'                => $zipcodes,
-            'modalitiesList'          => Modality::orderBy('id')->get(),
-            'specialtiesList'         => Specialty::orderBy('id')->get(),
+            'zipcodes' => $zipcodes,
+            'modalitiesList' => Modality::orderBy('id')->get(),
+            'specialtiesList' => Specialty::orderBy('id')->get(),
             'treatmentModalitiesList' => TreatmentModality::orderBy('id')->get(),
-            'buccalCorridorsList'     => BuccalCorridorOption::orderBy('id')->get(),
+            'buccalCorridorsList' => BuccalCorridorOption::orderBy('id')->get(),
         ]);
     }
 
@@ -98,10 +109,10 @@ class DoctorController extends Controller
 
         if ($doctor && $doctor->approval_status !== 'APPROVED') {
             $doctor->update([
-                'approval_status'      => 'APPROVED',
-                'approved_at'          => now(),
+                'approval_status' => 'APPROVED',
+                'approved_at' => now(),
                 'approved_by_admin_id' => $this->currentAdminId(),
-                'rejection_reason'     => null,
+                'rejection_reason' => null,
             ]);
         }
 
@@ -133,11 +144,11 @@ class DoctorController extends Controller
         ]);
 
         return view('admin.doctors.show', [
-            'doctor'                => $doctor,
-            'allSpecialties'        => Specialty::orderBy('name')->get(['id', 'name']),
-            'allModalities'         => Modality::orderBy('name')->get(['id', 'name']),
-            'allTreatmentModalities'=> TreatmentModality::orderBy('name')->get(['id', 'name']),
-            'allBuccalCorridors'    => BuccalCorridorOption::orderBy('name')->get(['id', 'name']),
+            'doctor' => $doctor,
+            'allSpecialties' => Specialty::orderBy('name')->get(['id', 'name']),
+            'allModalities' => Modality::orderBy('name')->get(['id', 'name']),
+            'allTreatmentModalities' => TreatmentModality::orderBy('name')->get(['id', 'name']),
+            'allBuccalCorridors' => BuccalCorridorOption::orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -147,14 +158,14 @@ class DoctorController extends Controller
         $section = $data['section'];
         unset($data['section']);
 
-        $specialties         = $data['specialties']          ?? null;
-        $modalities          = $data['modalities']           ?? null;
+        $specialties = $data['specialties'] ?? null;
+        $modalities = $data['modalities'] ?? null;
         $treatmentModalities = $data['treatment_modalities'] ?? null;
-        $buccalCorridors     = $data['buccal_corridors']     ?? null;
+        $buccalCorridors = $data['buccal_corridors'] ?? null;
         unset($data['specialties'], $data['modalities'], $data['treatment_modalities'], $data['buccal_corridors']);
 
         DB::transaction(function () use ($doctor, $section, $data, $specialties, $modalities, $treatmentModalities, $buccalCorridors) {
-            if (!empty($data)) {
+            if (! empty($data)) {
                 $doctor->fill($data)->save();
             }
 
@@ -178,10 +189,10 @@ class DoctorController extends Controller
         }
 
         $doctor->update([
-            'approval_status'       => 'APPROVED',
-            'approved_at'           => now(),
-            'approved_by_admin_id'  => $this->currentAdminId(),
-            'rejection_reason'      => null,
+            'approval_status' => 'APPROVED',
+            'approved_at' => now(),
+            'approved_by_admin_id' => $this->currentAdminId(),
+            'rejection_reason' => null,
         ]);
 
         return redirect()
@@ -196,9 +207,9 @@ class DoctorController extends Controller
         }
 
         $doctor->update([
-            'approval_status'      => 'REJECTED',
-            'rejection_reason'     => $request->validated()['rejection_reason'],
-            'approved_at'          => null,
+            'approval_status' => 'REJECTED',
+            'rejection_reason' => $request->validated()['rejection_reason'],
+            'approved_at' => null,
             'approved_by_admin_id' => $this->currentAdminId(),
         ]);
 
@@ -227,8 +238,8 @@ class DoctorController extends Controller
         }
 
         $doctor->update([
-            'approval_status'      => 'APPROVED',
-            'approved_at'          => now(),
+            'approval_status' => 'APPROVED',
+            'approved_at' => now(),
             'approved_by_admin_id' => $this->currentAdminId(),
         ]);
 
@@ -249,6 +260,7 @@ class DoctorController extends Controller
     private function currentAdminId(): ?int
     {
         $user = Auth::user();
+
         return $user?->admin?->id;
     }
 }

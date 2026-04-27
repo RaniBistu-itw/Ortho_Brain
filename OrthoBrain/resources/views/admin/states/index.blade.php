@@ -90,36 +90,23 @@
 
     <div class="card st-card">
 
-        {{-- ── Toolbar ──────────────────────────────────────────── --}}
-        <div class="st-toolbar">
-            <form id="statesFilter" method="GET" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
-                <div class="st-toolbar__country">
-                    <select name="country_id" class="js-searchable form-select">
-                        <option value="">All countries</option>
-                        @foreach ($countries as $c)
-                            <option value="{{ $c->id }}" @selected(request('country_id') == $c->id)>{{ $c->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="st-toolbar__search">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i data-feather="search" style="width:16px;height:16px;"></i></span>
-                        <input type="text" name="search" placeholder="Search name or code…" value="{{ request('search') }}" class="form-control border-start-0 ps-0">
-                    </div>
-                </div>
-                <div class="st-toolbar__status">
-                    <select name="status" class="form-select">
-                        <option value="">All statuses</option>
-                        <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
-                        <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
-                    </select>
-                </div>
-                @if (request('search') || request('status') || request('country_id'))
-                    <a href="{{ route('admin.states.index') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
-                @endif
-            </form>
-            <div class="st-toolbar__spacer"></div>
-            <div class="st-toolbar__actions">
+        @php
+            $selectedCountry = $countries->firstWhere('id', request('country_id'));
+            $selectedStatus  = request('status');
+            $statusLabel     = $selectedStatus ? ucfirst(strtolower($selectedStatus)) : null;
+
+            if ($selectedCountry) {
+                $headerTitle = 'All ' . ($statusLabel ? $statusLabel . ' ' : '') . $selectedCountry->name . ' States';
+            } elseif ($statusLabel) {
+                $headerTitle = 'All ' . $statusLabel . ' States';
+            } else {
+                $headerTitle = 'All States';
+            }
+        @endphp
+
+        <div class="card-header border-bottom">
+            <h4 class="card-title mb-0">{{ $headerTitle }}</h4>
+            <div class="d-flex gap-1">
                 <button type="button" class="btn btn-outline-primary" id="stBulkOpen">
                     <i data-feather="layers" class="me-25"></i> Bulk add
                 </button>
@@ -127,6 +114,32 @@
                     <i data-feather="plus" class="me-25"></i> Add State
                 </button>
             </div>
+        </div>
+
+        <div class="card-body py-1">
+            <form id="statesFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-3">
+                    <select name="country_id" class="js-searchable form-select">
+                        <option value="">All countries</option>
+                        @foreach ($countries as $c)
+                            <option value="{{ $c->id }}" @selected(request('country_id') == $c->id)>{{ $c->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" name="search" placeholder="Search name or code…" value="{{ request('search') }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('admin.states.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                </div>
+            </form>
         </div>
 
         {{-- ── Table ─────────────────────────────────────────────── --}}

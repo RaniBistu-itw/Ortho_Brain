@@ -85,32 +85,35 @@
 
     <div class="card sc-card">
 
-        {{-- ── Toolbar: search / status / add ───────────────────── --}}
-        <div class="sc-toolbar">
-            <form id="scannersFilter" method="GET" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
-                <div class="sc-toolbar__search">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i data-feather="search" style="width:16px;height:16px;"></i></span>
-                        <input type="text" name="search" placeholder="Search scanners…" value="{{ request('search') }}" class="form-control border-start-0 ps-0">
-                    </div>
+        @php
+            $selectedStatus = request('status');
+            $statusLabel    = $selectedStatus ? ucfirst(strtolower($selectedStatus)) : null;
+            $headerTitle    = $statusLabel ? 'All ' . $statusLabel . ' Scanners' : 'All Scanners';
+        @endphp
+
+        <div class="card-header border-bottom">
+            <h4 class="card-title mb-0">{{ $headerTitle }}</h4>
+            <button type="button" class="btn btn-primary" id="scDrawerOpen">
+                <i data-feather="plus" class="me-25"></i> Add Scanner
+            </button>
+        </div>
+
+        <div class="card-body py-1">
+            <form id="scannersFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-5">
+                    <input type="text" name="search" placeholder="Search scanners…" value="{{ request('search') }}" class="form-control">
                 </div>
-                <div class="sc-toolbar__status">
+                <div class="col-md-3">
                     <select name="status" class="form-select">
                         <option value="">All statuses</option>
                         <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
                         <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
                     </select>
                 </div>
-                @if (request('search') || request('status'))
-                    <a href="{{ route('admin.scanners.index') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
-                @endif
+                <div class="col-md-2">
+                    <a href="{{ route('admin.scanners.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                </div>
             </form>
-            <div class="sc-toolbar__spacer"></div>
-            <div class="sc-toolbar__actions">
-                <button type="button" class="btn btn-primary" id="scDrawerOpen">
-                    <i data-feather="plus" class="me-25"></i> Add Scanner
-                </button>
-            </div>
         </div>
 
         {{-- ── Table ───────────────────────────────────────────── --}}

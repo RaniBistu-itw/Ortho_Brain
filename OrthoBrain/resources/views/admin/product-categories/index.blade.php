@@ -82,28 +82,15 @@
     </div>
 
     <div class="card pc-card">
-        {{-- ── Toolbar: search / filter / actions ──────────────── --}}
-        <div class="pc-toolbar">
-            <form id="categoriesFilter" method="GET" class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
-                <div class="pc-toolbar__search">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0"><i data-feather="search" style="width:16px;height:16px;"></i></span>
-                        <input type="text" name="search" placeholder="Search categories…" value="{{ request('search') }}" class="form-control border-start-0 ps-0">
-                    </div>
-                </div>
-                <div class="pc-toolbar__status">
-                    <select name="status" class="form-select">
-                        <option value="">All statuses</option>
-                        <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
-                        <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
-                    </select>
-                </div>
-                @if(request('search') || request('status'))
-                    <a href="{{ route('admin.product-categories.index') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
-                @endif
-            </form>
-            <div class="pc-toolbar__spacer"></div>
-            <div class="pc-toolbar__actions">
+        @php
+            $selectedStatus = request('status');
+            $statusLabel    = $selectedStatus ? ucfirst(strtolower($selectedStatus)) : null;
+            $headerTitle    = $statusLabel ? 'All ' . $statusLabel . ' Categories' : 'All Categories';
+        @endphp
+
+        <div class="card-header border-bottom">
+            <h4 class="card-title mb-0">{{ $headerTitle }}</h4>
+            <div class="d-flex gap-1">
                 <button type="button" class="btn btn-outline-primary" id="pcBulkOpen">
                     <i data-feather="layers" class="me-25"></i> Bulk add
                 </button>
@@ -111,6 +98,24 @@
                     <i data-feather="plus" class="me-25"></i> Add Category
                 </button>
             </div>
+        </div>
+
+        <div class="card-body py-1">
+            <form id="categoriesFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-5">
+                    <input type="text" name="search" placeholder="Search categories…" value="{{ request('search') }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('admin.product-categories.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                </div>
+            </form>
         </div>
 
         {{-- ── Table ───────────────────────────────────────────── --}}

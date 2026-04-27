@@ -16,10 +16,10 @@ class ShippingAddressRequest extends FormRequest
         return [
             'streetAddress'  => 'required|string|max:200',
             'streetAddress2' => 'nullable|string|max:200',
-            'zipId'          => 'required|string',
+            'zipId'          => 'required|integer|exists:zipcodes,id',
             'city'           => 'required|string|max:100',
             'state'          => 'required|string|max:100',
-            'country'        => 'required|in:US,CA,AU',
+            'country'        => 'required|string|exists:countries,country_code',
             'savedAddressId' => 'nullable|string',
         ];
     }

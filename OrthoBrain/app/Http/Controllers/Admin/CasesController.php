@@ -36,12 +36,19 @@ class CasesController extends Controller
             ->orderBy('last_name')
             ->get();
 
+        $statusCounts = CaseModel::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
         return view('admin.cases.index', [
             'cases' => $cases,
             'doctors' => $doctors,
             'statusOptions' => self::STATUS_OPTIONS,
             'statusFilter' => $statusFilter,
             'doctorFilter' => $doctorFilter,
+            'statusCounts' => $statusCounts,
+            'totalCount'   => (int) $statusCounts->sum(),
         ]);
     }
 

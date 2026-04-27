@@ -10,7 +10,19 @@
   border-left: 0;
   border-right: 0;
   border-top: 0;
+  border-bottom: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: sticky;
+}
+/* Brand accent strip along the top edge — uses --ob-gradient-accent so the
+   colour automatically follows the palette tokens. */
+.add-case-topbar::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: var(--ob-gradient-accent, linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%));
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
 }
 .add-case-topbar .add-case-topbar__back {
   width: 36px;

@@ -18,6 +18,7 @@ use App\Http\Controllers\AI\ImageAnalysisController;
 use App\Http\Controllers\AI\SmilePreviewController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CasePdfController;
 use App\Http\Controllers\CasesController;
 use App\Http\Controllers\DashboardController as DoctorDashboardController;
 use App\Http\Controllers\NotificationController;
@@ -27,7 +28,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Public / shared auth routes ──────────────────────────
-Route::view('/', 'landing')->name('landing');
+Route::redirect('/', '/login');
 Route::view('/login', 'login')->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
@@ -84,6 +85,7 @@ Route::middleware(['web', 'auth'])
             Route::get('/cases/{case}/edit',        [CasesController::class, 'edit'])->name('cases.edit');
             Route::post('/cases/{case}/submit',     [CasesController::class, 'submit'])->name('cases.submit');
             Route::post('/cases/{case}/prescription',[PrescriptionController::class, 'update'])->name('cases.prescription.update');
+            Route::match(['get', 'post'], '/cases/{case}/export.pdf', [CasePdfController::class, 'export'])->name('cases.export.pdf');
         });
 
         // AI vision — photo QC + Perfect Smile Plan generation
@@ -166,6 +168,7 @@ Route::middleware(['web', 'admin'])
         Route::get('/cases/{case}/edit',              [AdminCasesController::class, 'edit'])->name('cases.edit');
         Route::post('/cases/{case}/status',           [AdminCasesController::class, 'updateStatus'])->name('cases.status');
         Route::post('/cases/{case}/prescription',     [PrescriptionController::class, 'update'])->name('cases.prescription.update');
+        Route::match(['get', 'post'], '/cases/{case}/export.pdf', [CasePdfController::class, 'export'])->name('cases.export.pdf');
 
         // AI vision — admins can trigger classification / smile plan on any case
         Route::post('/cases/{case}/photos/classify',      [ImageAnalysisController::class, 'classify'])->name('cases.photos.classify');
