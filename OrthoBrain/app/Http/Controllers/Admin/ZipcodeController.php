@@ -31,7 +31,6 @@ class ZipcodeController extends Controller
             'city'    => 'cities.name',
             'state'   => 'states.name',
             'country' => 'countries.name',
-            'status'  => 'zipcodes.status',
         ];
         $sortKey = $request->get('sort');
         $sortCol = $sortable[$sortKey] ?? 'zipcodes.code';

@@ -38,7 +38,6 @@ class ProductController extends Controller
             'subcategory' => "{$subTable}.name",
             'name'        => 'products.name',
             'price'       => 'products.price',
-            'status'      => 'products.status',
         ];
         $sortKey = $request->get('sort');
         $sortCol = $sortable[$sortKey] ?? 'products.name';

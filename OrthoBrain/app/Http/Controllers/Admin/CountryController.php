@@ -18,7 +18,6 @@ class CountryController extends Controller
             'name'         => 'name',
             'country_code' => 'country_code',
             'phone_code'   => 'phone_code',
-            'status'       => 'status',
             'states_count' => 'states_count',
         ];
         $sort = $request->get('sort');

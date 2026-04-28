@@ -24,7 +24,6 @@ class PracticeController extends Controller
 
         $sortable = [
             'practice'      => 'practices.name',
-            'owner'         => 'doctors.last_name',
             'location'      => 'countries.name',
             'contact'       => 'practices.phone_number',
             'members_count' => 'members_count',
@@ -34,8 +33,8 @@ class PracticeController extends Controller
         $dir     = strtolower($request->get('dir', $sortKey ? 'asc' : 'desc')) === 'desc' ? 'desc' : 'asc';
 
         $query = Practice::query()
+            ->select('practices.*')
             ->with([
-                'owner:id,first_name,last_name',
                 'city:id,name',
                 'state:id,name',
                 'country:id,name',
@@ -43,13 +42,9 @@ class PracticeController extends Controller
             ->withCount('members')
             ->withCount(['doctors as pending_pivot_count' => function ($q) {
                 $q->where('doctor_practice.approval_status', 'PENDING');
-            }])
-            ->select('practices.*');
+            }]);
 
-        if ($sortKey === 'owner') {
-            $query->leftJoin('doctors', 'doctors.id', '=', 'practices.owner_id')
-                  ->orderBy($sortCol, $dir);
-        } elseif ($sortKey === 'location') {
+        if ($sortKey === 'location') {
             $query->leftJoin('countries', 'countries.id', '=', 'practices.country_id')
                   ->orderBy($sortCol, $dir);
         } else {

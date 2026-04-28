@@ -194,6 +194,14 @@
        buttons (.ob-icon-btn), and row actions (.ob-row-actions) live in
        orthobrain-palette.css so they're shared across admin index pages. */
 
+    /* Status pill — masters-style (matches countries/states/cities/products etc.) */
+    .dr-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
+    .dr-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+    .dr-status--success   { background: rgba(var(--bs-success-rgb), .14);   color: var(--bs-success); }
+    .dr-status--warning   { background: rgba(var(--bs-warning-rgb), .14);   color: var(--bs-warning); }
+    .dr-status--danger    { background: rgba(var(--bs-danger-rgb), .14);    color: var(--bs-danger); }
+    .dr-status--secondary { background: rgba(var(--bs-secondary-rgb), .14); color: var(--bs-secondary); }
+
     /* Doctor cell */
     .ob-doctor-cell { display: flex; align-items: center; gap: 0.75rem; min-width: 220px; }
     .ob-doctor-cell .ob-doctor-name {

@@ -135,8 +135,8 @@
                         <th>@include('admin._partials.sort_th', ['label' => 'Country', 'key' => 'country', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'State', 'key' => 'state', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'City', 'key' => 'name', 'default' => 'name'])</th>
-                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Zip Codes', 'key' => 'zipcodes_count', 'default' => 'name'])</th>
+                        <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -147,15 +147,15 @@
                             <td class="ci-cell-country">{{ $city->state?->country?->name ?? '—' }}</td>
                             <td class="ci-cell-state">{{ $city->state?->name ?? '—' }}</td>
                             <td class="fw-bolder ci-cell-name">{{ $city->name }}</td>
-                            <td>
-                                <span class="ci-status ci-status--{{ $city->status === 'ACTIVE' ? 'active' : 'inactive' }}" data-status="{{ $city->status }}">{{ $city->status }}</span>
-                            </td>
                             <td class="ci-cell-zips">
                                 @if ($hasZips)
                                     {{ $city->zipcodes_count }}
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
+                            </td>
+                            <td>
+                                <span class="ci-status ci-status--{{ $city->status === 'ACTIVE' ? 'active' : 'inactive' }}" data-status="{{ $city->status }}">{{ $city->status }}</span>
                             </td>
                             <td class="text-end">
                                 <div class="ci-action-group">
@@ -362,8 +362,8 @@
                 <td class="ci-cell-country">${escapeHtml(ci.country_name)}</td>
                 <td class="ci-cell-state">${escapeHtml(ci.state_name)}</td>
                 <td class="fw-bolder ci-cell-name">${escapeHtml(ci.name)}</td>
-                <td><span class="ci-status ${statusClass}" data-status="${ci.status}">${ci.status}</span></td>
                 <td class="ci-cell-zips">${zipsCell}</td>
+                <td><span class="ci-status ${statusClass}" data-status="${ci.status}">${ci.status}</span></td>
                 <td class="text-end">
                     <div class="ci-action-group">
                         <a href="${ci.show_url}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>

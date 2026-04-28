@@ -22,16 +22,15 @@ class ProductSubcategoryController extends Controller
             'category'       => "{$catTable}.name",
             'name'           => "{$subTable}.name",
             'products_count' => 'products_count',
-            'status'         => "{$subTable}.status",
         ];
         $sortKey = $request->get('sort');
         $sortCol = $sortable[$sortKey] ?? "{$subTable}.name";
         $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
 
         $query = ProductSubcategory::query()
+            ->select("{$subTable}.*")
             ->with('category')
-            ->withCount('products')
-            ->select("{$subTable}.*");
+            ->withCount('products');
 
         if ($sortKey === 'category') {
             $query->leftJoin($catTable, "{$catTable}.id", '=', "{$subTable}.category_id")

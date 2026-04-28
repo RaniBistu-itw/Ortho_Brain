@@ -123,7 +123,7 @@
                         <th>@include('admin._partials.sort_th', ['label' => 'Category', 'key' => 'category', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Sub-category', 'key' => 'name', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Products', 'key' => 'products_count', 'default' => 'name'])</th>
-                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'name'])</th>
+                        <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>

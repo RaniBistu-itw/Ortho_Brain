@@ -19,7 +19,6 @@ class StateController extends Controller
             'country'      => 'country_name',
             'name'         => 'states.name',
             'state_code'   => 'states.state_code',
-            'status'       => 'states.status',
             'cities_count' => 'cities_count',
         ];
         $sortKey = $request->get('sort');
@@ -27,9 +26,9 @@ class StateController extends Controller
         $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
 
         $query = State::query()
+            ->select('states.*')
             ->with('country')
-            ->withCount('cities')
-            ->select('states.*');
+            ->withCount('cities');
 
         if ($sortKey === 'country') {
             $query->leftJoin('countries', 'countries.id', '=', 'states.country_id')

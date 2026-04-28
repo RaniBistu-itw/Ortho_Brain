@@ -218,25 +218,10 @@
     }
     .ob-members-pill svg { width: 12px; height: 12px; }
 
-    .ob-status {
-        display: inline-flex; align-items: center; gap: 0.4rem;
-        padding: 0.28rem 0.65rem;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        border: 1px solid transparent;
-    }
-    .ob-status::before {
-        content: '';
-        width: 6px; height: 6px;
-        border-radius: 50%;
-        background: currentColor;
-        display: inline-block;
-    }
-    .ob-status--success   { background: var(--ob-accent-soft); color: #5a8f21; border-color: rgba(140, 198, 63, 0.28); }
-    .ob-status--secondary { background: #eef0f4; color: #6c7283; border-color: #e2e4eb; }
+    .pr-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
+    .pr-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+    .pr-status--active   { background: rgba(var(--bs-success-rgb), .14); color: var(--bs-success); }
+    .pr-status--inactive { background: rgba(var(--bs-danger-rgb), .14);  color: var(--bs-danger); }
 
     .ob-pending-pill {
         display: inline-block;
@@ -393,10 +378,10 @@
                 <thead>
                     <tr>
                         <th>@include('admin._partials.sort_th', ['label' => 'Practice', 'key' => 'practice', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
-                        <th>@include('admin._partials.sort_th', ['label' => 'Owner', 'key' => 'owner', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Location', 'key' => 'location', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Contact', 'key' => 'contact', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Members', 'key' => 'members_count', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+                        <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -405,10 +390,6 @@
                         @php
                             $initials = strtoupper(mb_substr(trim($practice->name ?? ''), 0, 2));
                             $logoUrl = $practice->logoUrl();
-
-                            $ownerName = $practice->owner
-                                ? 'Dr. ' . trim(($practice->owner->first_name ?? '') . ' ' . ($practice->owner->last_name ?? ''))
-                                : null;
 
                             $cityName    = $practice->city?->name;
                             $stateName   = $practice->state?->name;
@@ -450,9 +431,6 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="ob-owner">{{ $ownerName ?? '—' }}</span>
-                            </td>
-                            <td>
                                 @if ($locationMain !== '' || $countryName)
                                     <span class="ob-location">
                                         {{ $locationMain !== '' ? $locationMain : '—' }}
@@ -489,6 +467,9 @@
                                     <i data-feather="users"></i>
                                     {{ (int) ($practice->members_count ?? 0) }}
                                 </span>
+                            </td>
+                            <td>
+                                <span class="pr-status pr-status--{{ $practice->status === 'ACTIVE' ? 'active' : 'inactive' }}">{{ $practice->status }}</span>
                             </td>
                             <td class="text-end">
                                 <div class="ob-row-actions">

@@ -43,7 +43,7 @@
                 <th>@include('admin._partials.sort_th', ['label' => 'Practice', 'key' => 'practice', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
                 <th>@include('admin._partials.sort_th', ['label' => 'Contact', 'key' => 'contact', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
                 <th>@include('admin._partials.sort_th', ['label' => 'Registered', 'key' => 'created_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
-                <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+                <th>Status</th>
                 <th class="text-end">Actions</th>
             </tr>
         </thead>
@@ -102,7 +102,7 @@
                         </span>
                     </td>
                     <td>
-                        <span class="ob-status ob-status--{{ $badge['tone'] }}">
+                        <span class="dr-status dr-status--{{ $badge['tone'] }}">
                             {{ $badge['label'] }}
                         </span>
                     </td>

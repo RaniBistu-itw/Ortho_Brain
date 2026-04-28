@@ -28,6 +28,15 @@
 @endphp
 
 @section('content')
+<style>
+    .cs-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
+    .cs-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+    .cs-status--success   { background: rgba(var(--bs-success-rgb), .14);   color: var(--bs-success); }
+    .cs-status--warning   { background: rgba(var(--bs-warning-rgb), .14);   color: var(--bs-warning); }
+    .cs-status--danger    { background: rgba(var(--bs-danger-rgb), .14);    color: var(--bs-danger); }
+    .cs-status--info      { background: rgba(var(--bs-info-rgb), .14);      color: var(--bs-info); }
+    .cs-status--secondary { background: rgba(var(--bs-secondary-rgb), .14); color: var(--bs-secondary); }
+</style>
 <section id="admin-cases-list">
 
   {{-- ── KPI strip ───────────────────────────────────────────── --}}
@@ -102,7 +111,7 @@
               </td>
               <td>{{ $case->doctor?->practice?->name ?? '—' }}</td>
               <td>
-                <span class="ob-status ob-status--{{ $statusTone[$case->status] ?? 'secondary' }}">
+                <span class="cs-status cs-status--{{ $statusTone[$case->status] ?? 'secondary' }}">
                   {{ $statusLabels[$case->status] ?? $case->status }}
                 </span>
               </td>
