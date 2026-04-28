@@ -144,7 +144,9 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <a href="{{ route('admin.zipcodes.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                    <a href="{{ route('admin.zipcodes.index') }}" class="ob-btn-clear w-100">
+                        <i data-feather="x"></i> Clear
+                    </a>
                 </div>
             </form>
         </div>
@@ -154,11 +156,11 @@
             <table class="table table-hover zi-table" id="ziTable">
                 <thead>
                     <tr>
-                        <th>Zip Code</th>
-                        <th>City</th>
-                        <th>State</th>
-                        <th>Country</th>
-                        <th>Status</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Zip Code', 'key' => 'code', 'default' => 'code'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'City', 'key' => 'city', 'default' => 'code'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'State', 'key' => 'state', 'default' => 'code'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Country', 'key' => 'country', 'default' => 'code'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'code'])</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>

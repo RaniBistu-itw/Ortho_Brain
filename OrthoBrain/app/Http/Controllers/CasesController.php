@@ -28,12 +28,22 @@ class CasesController extends Controller
         // dashboard "X drafts stale" alert semantics (updated >3 days ago).
         $staleOnly = $activeStatus === 'DRAFT' && $request->boolean('stale');
 
+        $sortable = [
+            'id'           => 'id',
+            'case_code'    => 'case_code',
+            'created_at'   => 'created_at',
+            'submitted_at' => 'submitted_at',
+        ];
+        $sortKey = $request->get('sort');
+        $sortCol = $sortable[$sortKey] ?? 'created_at';
+        $dir     = strtolower($request->get('dir', $sortKey ? 'asc' : 'desc')) === 'desc' ? 'desc' : 'asc';
+
         $cases = CaseModel::where('doctor_id', $doctor->id)
             ->where('practice_id', $practiceId)
             ->when($activeStatus === 'ACTIVE', fn ($q) => $q->whereIn('status', self::ACTIVE_STATUSES))
             ->when($activeStatus && $activeStatus !== 'ACTIVE', fn ($q) => $q->where('status', $activeStatus))
             ->when($staleOnly, fn ($q) => $q->where('updated_at', '<', now()->subDays(3)))
-            ->latest()
+            ->orderBy($sortCol, $dir)
             ->paginate(20)
             ->withQueryString();
 

@@ -93,7 +93,11 @@
                         <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
                     </select>
                 </div>
-                <div class="col-md-2"><a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary w-100">Clear</a></div>
+                <div class="col-md-2">
+                    <a href="{{ route('admin.products.index') }}" class="ob-btn-clear w-100">
+                        <i data-feather="x"></i> Clear
+                    </a>
+                </div>
             </form>
         </div>
 
@@ -102,11 +106,11 @@
                 <thead>
                     <tr>
                         <th>Image</th>
-                        <th>Category</th>
-                        <th>Sub</th>
-                        <th>Name</th>
-                        <th>Price</th>
-                        <th>Status</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Category', 'key' => 'category', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Sub Category', 'key' => 'subcategory', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Product', 'key' => 'name', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Price', 'key' => 'price', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'name'])</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>

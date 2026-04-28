@@ -118,7 +118,9 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <a href="{{ route('admin.countries.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                    <a href="{{ route('admin.countries.index') }}" class="ob-btn-clear w-100">
+                        <i data-feather="x"></i> Clear
+                    </a>
                 </div>
             </form>
         </div>
@@ -128,11 +130,11 @@
             <table class="table ob-admin-table" id="coTable">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Code</th>
-                        <th>Phone</th>
-                        <th>Status</th>
-                        <th>States</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Country', 'key' => 'name', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Code', 'key' => 'country_code', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Phone', 'key' => 'phone_code', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'States', 'key' => 'states_count', 'default' => 'name'])</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>

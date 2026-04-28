@@ -104,7 +104,9 @@
           </select>
         </div>
         <div class="col-md-2">
-          <a href="{{ route('admin.cases.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+          <a href="{{ route('admin.cases.index') }}" class="ob-btn-clear w-100">
+            <i data-feather="x"></i> Clear
+          </a>
         </div>
       </form>
     </div>
@@ -113,13 +115,13 @@
       <table class="table ob-admin-table mb-0 align-middle">
         <thead>
           <tr>
-            <th>Case ID</th>
-            <th>Code</th>
-            <th>Doctor</th>
-            <th>Practice</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Case ID', 'key' => 'id', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Code', 'key' => 'case_code', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Doctor', 'key' => 'doctor', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Practice', 'key' => 'practice', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
             <th>Status</th>
-            <th>Created</th>
-            <th>Submitted</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Created', 'key' => 'created_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Submitted', 'key' => 'submitted_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>

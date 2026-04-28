@@ -21,7 +21,7 @@
       'SUBMITTED' => 'Submitted',
       'IN_REVIEW' => 'In Review',
       'APPROVED'  => 'Approved',
-      'REJECTED'  => 'Rejected',
+      'REJECTED'  => 'Unapproved',
       'ACTIVE'    => 'Active',
       default     => $status,
     };
@@ -79,11 +79,11 @@
       <table class="table table-hover mb-0 align-middle">
         <thead>
           <tr>
-            <th>Case ID</th>
-            <th>Code</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Case ID', 'key' => 'id', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Code', 'key' => 'case_code', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
             <th>Status</th>
-            <th>Created</th>
-            <th>Submitted</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Created', 'key' => 'created_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Submitted', 'key' => 'submitted_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
@@ -92,7 +92,7 @@
             <tr>
               <td><span class="fw-bolder">#{{ $case->id }}</span></td>
               <td>{{ $case->case_code ?? '—' }}</td>
-              <td><span class="{{ $statusBadge($case->status) }}">{{ $case->status }}</span></td>
+              <td><span class="{{ $statusBadge($case->status) }}">{{ $statusLabel($case->status) }}</span></td>
               <td>{{ $case->created_at?->format('Y-m-d H:i') }}</td>
               <td>{{ $case->submitted_at?->format('Y-m-d H:i') ?? '—' }}</td>
               <td class="text-end">

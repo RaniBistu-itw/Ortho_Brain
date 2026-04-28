@@ -87,7 +87,7 @@
             <h1>Case Report</h1>
             <div style="margin-top:4pt; color:#6b7280; font-size:10pt;">
                 Case <strong>#{{ $case->case_code ?: $case->id }}</strong> ·
-                <span class="badge">{{ $case->status }}</span>
+                <span class="badge">{{ $case->status === 'REJECTED' ? 'Unapproved' : $case->status }}</span>
             </div>
         </td>
         <td style="width:35%; text-align:right; color:#6b7280; font-size:9pt;">
@@ -273,7 +273,7 @@
 {{-- ── 8. Submit Order ──────────────────────────────────────────────────── --}}
 <h2>8. Submit Order</h2>
 <table class="kv">
-    <tr><td class="k">Status</td><td class="v">{{ $case->status }}</td></tr>
+    <tr><td class="k">Status</td><td class="v">{{ $case->status === 'REJECTED' ? 'Unapproved' : $case->status }}</td></tr>
     @if($case->submitted_at)
         <tr><td class="k">Submitted at</td><td class="v">{{ $case->submitted_at->format('M j, Y · H:i') }}</td></tr>
     @endif

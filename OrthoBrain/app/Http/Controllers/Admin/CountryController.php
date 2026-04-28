@@ -14,13 +14,24 @@ class CountryController extends Controller
 {
     public function index(Request $request)
     {
+        $sortable = [
+            'name'         => 'name',
+            'country_code' => 'country_code',
+            'phone_code'   => 'phone_code',
+            'status'       => 'status',
+            'states_count' => 'states_count',
+        ];
+        $sort = $request->get('sort');
+        $sort = isset($sortable[$sort]) ? $sortable[$sort] : 'name';
+        $dir  = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
         $countries = Country::withCount('states')
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = $request->string('search');
                 $q->where(fn ($w) => $w->where('name', 'like', "%{$s}%")->orWhere('country_code', 'like', "%{$s}%"));
             })
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            ->orderBy('name')
+            ->orderBy($sort, $dir)
             ->paginate(10)
             ->withQueryString();
 

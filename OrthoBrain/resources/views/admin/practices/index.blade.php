@@ -133,18 +133,7 @@
         border-color: var(--ob-primary);
         box-shadow: 0 0 0 3px var(--ob-primary-softer);
     }
-    .ob-btn-clear {
-        border: 1px solid #e2e0ea;
-        background: #fff;
-        color: var(--ob-muted);
-        font-weight: 600;
-        border-radius: 0.5rem;
-        padding: 0.5rem 0.85rem;
-        transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
-        display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-    }
-    .ob-btn-clear:hover { color: var(--ob-danger); border-color: rgba(234, 84, 85, 0.35); background: #fff7f7; }
-    .ob-btn-clear svg { width: 14px; height: 14px; }
+    /* .ob-btn-clear is defined globally in vuexy/css/orthobrain-overrides.css */
 
     .ob-active-filters {
         display: flex; flex-wrap: wrap; gap: 0.4rem;
@@ -436,11 +425,11 @@
             <table class="ob-table">
                 <thead>
                     <tr>
-                        <th>Practice</th>
-                        <th>Owner</th>
-                        <th>Location</th>
-                        <th>Contact</th>
-                        <th>Members</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Practice', 'key' => 'practice', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Owner', 'key' => 'owner', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Location', 'key' => 'location', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Contact', 'key' => 'contact', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Members', 'key' => 'members_count', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>

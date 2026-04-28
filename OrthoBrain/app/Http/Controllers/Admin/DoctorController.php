@@ -28,24 +28,44 @@ class DoctorController extends Controller
 
         $search = trim((string) $request->query('search', ''));
 
-        $doctors = Doctor::query()
+        $sortable = [
+            'doctor'     => 'doctors.last_name',
+            'contact'    => 'doctors.doctor_contact_email',
+            'practice'   => 'practices.name',
+            'status'     => 'doctors.approval_status',
+            'created_at' => 'doctors.created_at',
+        ];
+        $sortKey = $request->get('sort');
+        $sortCol = $sortable[$sortKey] ?? 'doctors.created_at';
+        $dir     = strtolower($request->get('dir', $sortKey ? 'asc' : 'desc')) === 'desc' ? 'desc' : 'asc';
+
+        $query = Doctor::query()
             ->with(['practice:id,name'])
-            ->when($status, fn ($q) => $q->where('approval_status', $status))
+            ->select('doctors.*');
+
+        if ($sortKey === 'practice') {
+            $query->leftJoin('practices', 'practices.id', '=', 'doctors.practice_id')
+                  ->orderBy($sortCol, $dir);
+        } else {
+            $query->orderBy($sortCol, $dir);
+        }
+
+        $doctors = $query
+            ->when($status, fn ($q) => $q->where('doctors.approval_status', $status))
             ->when(
                 $request->filled('practice_id'),
-                fn ($q) => $q->where('practice_id', $request->integer('practice_id'))
+                fn ($q) => $q->where('doctors.practice_id', $request->integer('practice_id'))
             )
             ->when($search !== '', function ($q) use ($search) {
                 $like = '%'.$search.'%';
                 $q->where(function ($w) use ($like) {
-                    $w->where('first_name', 'like', $like)
-                        ->orWhere('last_name', 'like', $like)
-                        ->orWhere('doctor_contact_email', 'like', $like)
-                        ->orWhere('other_email', 'like', $like)
-                        ->orWhere('doctor_cell_phone', 'like', $like);
+                    $w->where('doctors.first_name', 'like', $like)
+                        ->orWhere('doctors.last_name', 'like', $like)
+                        ->orWhere('doctors.doctor_contact_email', 'like', $like)
+                        ->orWhere('doctors.other_email', 'like', $like)
+                        ->orWhere('doctors.doctor_cell_phone', 'like', $like);
                 });
             })
-            ->orderByDesc('created_at')
             ->paginate(15)
             ->withQueryString();
 

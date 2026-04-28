@@ -11,10 +11,18 @@ class ScannerController extends Controller
 {
     public function index(Request $request)
     {
+        $sortable = [
+            'name'   => 'name',
+            'status' => 'status',
+        ];
+        $sort = $request->get('sort');
+        $sort = $sortable[$sort] ?? 'name';
+        $dir  = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
         $scanners = Scanner::query()
             ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%' . $request->string('search') . '%'))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            ->orderBy('name')
+            ->orderBy($sort, $dir)
             ->paginate(10)
             ->withQueryString();
 

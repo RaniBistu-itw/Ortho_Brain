@@ -107,7 +107,7 @@ class DashboardController extends Controller
             $alerts[] = [
                 'icon'   => 'alert-triangle',
                 'tone'   => 'danger',
-                'title'  => $stats['rejected'] . ' case' . ($stats['rejected'] > 1 ? 's' : '') . ' rejected',
+                'title'  => $stats['rejected'] . ' case' . ($stats['rejected'] > 1 ? 's' : '') . ' unapproved',
                 'sub'    => 'Reviewer feedback awaits',
                 'action' => 'Review',
                 'route'  => route('doctor.cases.index') . '?status=REJECTED',

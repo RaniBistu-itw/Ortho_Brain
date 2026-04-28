@@ -137,7 +137,9 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <a href="{{ route('admin.states.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                    <a href="{{ route('admin.states.index') }}" class="ob-btn-clear w-100">
+                        <i data-feather="x"></i> Clear
+                    </a>
                 </div>
             </form>
         </div>
@@ -147,11 +149,11 @@
             <table class="table table-hover st-table" id="stTable">
                 <thead>
                     <tr>
-                        <th>Country</th>
-                        <th>Name</th>
-                        <th>Code</th>
-                        <th>Status</th>
-                        <th>Cities</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Country', 'key' => 'country', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'State', 'key' => 'name', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Code', 'key' => 'state_code', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Cities', 'key' => 'cities_count', 'default' => 'name'])</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>

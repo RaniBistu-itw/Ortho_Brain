@@ -26,15 +26,38 @@ class ZipcodeController extends Controller
             }
         }
 
-        $zipcodes = Zipcode::with('city.state.country')
+        $sortable = [
+            'code'    => 'zipcodes.code',
+            'city'    => 'cities.name',
+            'state'   => 'states.name',
+            'country' => 'countries.name',
+            'status'  => 'zipcodes.status',
+        ];
+        $sortKey = $request->get('sort');
+        $sortCol = $sortable[$sortKey] ?? 'zipcodes.code';
+        $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $query = Zipcode::query()
+            ->with('city.state.country')
+            ->select('zipcodes.*');
+
+        if (in_array($sortKey, ['city', 'state', 'country'], true)) {
+            $query->leftJoin('cities', 'cities.id', '=', 'zipcodes.city_id')
+                  ->leftJoin('states', 'states.id', '=', 'cities.state_id')
+                  ->leftJoin('countries', 'countries.id', '=', 'states.country_id')
+                  ->orderBy($sortCol, $dir);
+        } else {
+            $query->orderBy($sortCol, $dir);
+        }
+
+        $zipcodes = $query
             ->when($request->filled('country_id'),
                 fn ($q) => $q->whereHas('city.state', fn ($s) => $s->where('country_id', $request->integer('country_id'))))
             ->when($request->filled('state_id'),
                 fn ($q) => $q->whereHas('city', fn ($c) => $c->where('state_id', $request->integer('state_id'))))
-            ->when($request->filled('city_id'), fn ($q) => $q->where('city_id', $request->integer('city_id')))
-            ->when($request->filled('search'), fn ($q) => $q->where('code', 'like', '%' . $request->string('search') . '%'))
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            ->orderBy('code')
+            ->when($request->filled('city_id'), fn ($q) => $q->where('zipcodes.city_id', $request->integer('city_id')))
+            ->when($request->filled('search'), fn ($q) => $q->where('zipcodes.code', 'like', '%' . $request->string('search') . '%'))
+            ->when($request->filled('status'), fn ($q) => $q->where('zipcodes.status', $request->string('status')))
             ->paginate(10)
             ->withQueryString();
 

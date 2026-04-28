@@ -39,11 +39,11 @@
     <table class="table ob-admin-table">
         <thead>
             <tr>
-                <th>Doctor</th>
-                <th>Practice</th>
-                <th>Contact</th>
-                <th>Registered</th>
-                <th>Status</th>
+                <th>@include('admin._partials.sort_th', ['label' => 'Doctor', 'key' => 'doctor', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+                <th>@include('admin._partials.sort_th', ['label' => 'Practice', 'key' => 'practice', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+                <th>@include('admin._partials.sort_th', ['label' => 'Contact', 'key' => 'contact', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+                <th>@include('admin._partials.sort_th', ['label' => 'Registered', 'key' => 'created_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+                <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
                 <th class="text-end">Actions</th>
             </tr>
         </thead>
