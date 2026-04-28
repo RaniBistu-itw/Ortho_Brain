@@ -78,10 +78,6 @@
         <i data-feather="arrow-left"></i> Back to Practice
     </a>
 
-    @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
     <form method="POST" action="{{ route('admin.practices.update', $practice) }}" novalidate>
         @csrf
         @method('PUT')

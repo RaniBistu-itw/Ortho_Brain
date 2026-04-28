@@ -253,10 +253,6 @@
         </div>
     </div>
 
-    @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
     {{-- Contact + Address --}}
     <div class="ob-card">
         <div class="ob-card-head">
