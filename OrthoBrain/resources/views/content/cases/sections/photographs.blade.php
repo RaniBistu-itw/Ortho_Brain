@@ -92,7 +92,7 @@
       </button>
       <input type="file"
              id="bulk-upload-photos"
-             class="d-none"
+             class="media-bulk-input"
              multiple
              accept="image/png,image/gif,image/jpeg,image/tiff,image/bmp,image/heic"
              @change="onBulkInputChange()">

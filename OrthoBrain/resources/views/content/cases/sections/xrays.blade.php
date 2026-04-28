@@ -86,7 +86,7 @@
       </button>
       <input type="file"
              id="bulk-upload-xrays"
-             class="d-none"
+             class="media-bulk-input"
              multiple
              accept="image/jpeg,image/bmp,image/tiff,image/heic,image/png"
              @change="onBulkInputChange()">

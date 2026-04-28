@@ -354,8 +354,12 @@
         var input = document.getElementById('tile-file-' + tileId);
         if (!input || !input.files.length) return;
         var file = input.files[0];
-        await this._processFile(tileId, file);
+        // Reset BEFORE the async processing so re-selecting the SAME file
+        // (e.g., after a removal) still fires the change event next time.
+        // Was at end of the function which left a window where input.value
+        // still held the old path if processing took >1 frame.
         input.value = '';
+        await this._processFile(tileId, file);
       },
 
       // ── Tile modal ──────────────────────────────────────────────────────────
