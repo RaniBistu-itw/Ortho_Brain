@@ -33,19 +33,6 @@
         --ob-shadow-md: 0 4px 20px rgba(24, 28, 40, 0.06);
     }
 
-    /* KPI strip — mirrors the masters / product-categories layout */
-    .pc-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
-    @media (max-width: 767.98px) { .pc-kpis { grid-template-columns: 1fr; } }
-    .pc-kpi { display: flex; align-items: center; gap: .9rem; padding: 1rem 1.1rem; border-radius: .6rem;
-              background: #fff; box-shadow: 0 2px 8px rgba(34, 41, 47, .05); border: 1px solid rgba(34, 41, 47, .05); }
-    .pc-kpi__icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; }
-    .pc-kpi__icon svg { width: 20px; height: 20px; }
-    .pc-kpi__icon--total    { background: rgba(var(--bs-primary-rgb), .12); color: var(--bs-primary); }
-    .pc-kpi__icon--active   { background: rgba(var(--bs-success-rgb), .12); color: var(--bs-success); }
-    .pc-kpi__icon--inactive { background: rgba(var(--bs-danger-rgb), .12);  color: var(--bs-danger); }
-    .pc-kpi__label { font-size: .78rem; color: #6e6b7b; text-transform: uppercase; letter-spacing: .04em; }
-    .pc-kpi__value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; color: #5e5873; }
-
     .ob-list-card {
         background: var(--ob-surface);
         border: 1px solid var(--ob-border);
@@ -336,33 +323,13 @@
 <section id="practices-page">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
-    @php
-        $activeCount   = (int) ($statusCounts['ACTIVE']   ?? 0);
-        $inactiveCount = (int) ($statusCounts['INACTIVE'] ?? 0);
-    @endphp
-    <div class="pc-kpis">
-        <div class="pc-kpi">
-            <div class="pc-kpi__icon pc-kpi__icon--total"><i data-feather="briefcase"></i></div>
-            <div>
-                <div class="pc-kpi__label">Total</div>
-                <div class="pc-kpi__value">{{ $totalCount ?? 0 }}</div>
-            </div>
-        </div>
-        <div class="pc-kpi">
-            <div class="pc-kpi__icon pc-kpi__icon--active"><i data-feather="check-circle"></i></div>
-            <div>
-                <div class="pc-kpi__label">Active</div>
-                <div class="pc-kpi__value">{{ $activeCount }}</div>
-            </div>
-        </div>
-        <div class="pc-kpi">
-            <div class="pc-kpi__icon pc-kpi__icon--inactive"><i data-feather="slash"></i></div>
-            <div>
-                <div class="pc-kpi__label">Inactive</div>
-                <div class="pc-kpi__value">{{ $inactiveCount }}</div>
-            </div>
-        </div>
-    </div>
+    @include('admin._partials.stat_cards', [
+        'cards' => [
+            ['label' => 'Total',    'value' => $totalCount ?? 0,                          'icon' => 'briefcase',    'tone' => 'primary'],
+            ['label' => 'Active',   'value' => (int) ($statusCounts['ACTIVE']   ?? 0),    'icon' => 'check-circle', 'tone' => 'success'],
+            ['label' => 'Inactive', 'value' => (int) ($statusCounts['INACTIVE'] ?? 0),    'icon' => 'slash',        'tone' => 'danger'],
+        ],
+    ])
 
     <div class="ob-list-card">
         {{-- Card head: dynamic title --}}
@@ -499,9 +466,11 @@
                             </td>
                             <td>
                                 @if ($phoneDisplay !== '')
+                                    @php $phoneHref = preg_replace('/[^0-9+]/', '', $phoneDisplay); @endphp
                                     <span class="ob-contact-line">
                                         <i data-feather="phone"></i>
-                                        {{ $phoneDisplay }}
+                                        <a href="tel:{{ $phoneHref }}"
+                                           title="Call {{ $practice->name }}">{{ $phoneDisplay }}</a>
                                     </span>
                                 @endif
                                 @if ($websiteDisplay)

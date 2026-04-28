@@ -4,19 +4,6 @@
 
 @push('styles')
 <style>
-    /* ── KPI strip ─────────────────────────────────────────────────── */
-    .ci-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
-    @media (max-width: 767.98px) { .ci-kpis { grid-template-columns: 1fr; } }
-    .ci-kpi { display: flex; align-items: center; gap: .9rem; padding: 1rem 1.1rem; border-radius: .6rem;
-              background: #fff; box-shadow: 0 2px 8px rgba(34, 41, 47, .05); border: 1px solid rgba(34, 41, 47, .05); }
-    .ci-kpi__icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; }
-    .ci-kpi__icon svg { width: 20px; height: 20px; }
-    .ci-kpi__icon--total    { background: rgba(var(--bs-primary-rgb), .12); color: var(--bs-primary); }
-    .ci-kpi__icon--active   { background: rgba(var(--bs-success-rgb), .12); color: var(--bs-success); }
-    .ci-kpi__icon--inactive { background: rgba(var(--bs-danger-rgb), .12);  color: var(--bs-danger); }
-    .ci-kpi__label { font-size: .78rem; color: #6e6b7b; text-transform: uppercase; letter-spacing: .04em; }
-    .ci-kpi__value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; color: #5e5873; }
-
     /* ── Cities — drawer + table polish ────────────────────────────── */
     .ci-card { border: 1px solid rgba(34, 41, 47, .05); box-shadow: 0 2px 10px rgba(34, 41, 47, .05); }
     .ci-toolbar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid rgba(34, 41, 47, .06); }
@@ -65,29 +52,13 @@
 <section id="cities-list">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
-    <div class="ci-kpis">
-        <div class="ci-kpi">
-            <div class="ci-kpi__icon ci-kpi__icon--total"><i data-feather="layers"></i></div>
-            <div>
-                <div class="ci-kpi__label">Total</div>
-                <div class="ci-kpi__value" data-stat="total">{{ $stats['total'] }}</div>
-            </div>
-        </div>
-        <div class="ci-kpi">
-            <div class="ci-kpi__icon ci-kpi__icon--active"><i data-feather="check-circle"></i></div>
-            <div>
-                <div class="ci-kpi__label">Active</div>
-                <div class="ci-kpi__value" data-stat="active">{{ $stats['active'] }}</div>
-            </div>
-        </div>
-        <div class="ci-kpi">
-            <div class="ci-kpi__icon ci-kpi__icon--inactive"><i data-feather="slash"></i></div>
-            <div>
-                <div class="ci-kpi__label">Inactive</div>
-                <div class="ci-kpi__value" data-stat="inactive">{{ $stats['inactive'] }}</div>
-            </div>
-        </div>
-    </div>
+    @include('admin._partials.stat_cards', [
+        'cards' => [
+            ['label' => 'Total',    'value' => $stats['total'],    'icon' => 'map-pin',      'tone' => 'primary', 'stat_key' => 'total'],
+            ['label' => 'Active',   'value' => $stats['active'],   'icon' => 'check-circle', 'tone' => 'success', 'stat_key' => 'active'],
+            ['label' => 'Inactive', 'value' => $stats['inactive'], 'icon' => 'slash',        'tone' => 'danger',  'stat_key' => 'inactive'],
+        ],
+    ])
 
     <div class="card ci-card">
 

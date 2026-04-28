@@ -226,6 +226,10 @@
     .ob-contact-line + .ob-contact-line { margin-top: 0.2rem; }
     .ob-contact-line svg { width: 13px; height: 13px; color: #9a9aab; flex: 0 0 auto; }
     .ob-contact-line.is-sub { color: var(--ob-muted); font-size: 0.76rem; }
+    .ob-contact-line a { color: var(--ob-text); text-decoration: none; }
+    .ob-contact-line a:hover { color: var(--ob-primary); text-decoration: underline; }
+    .ob-contact-line.is-sub a { color: var(--ob-muted); }
+    .ob-contact-line.is-sub a:hover { color: var(--ob-primary); }
 
     /* Practice cell */
     .ob-practice { color: var(--ob-text); font-weight: 600; }
