@@ -75,6 +75,7 @@
       _pendingReplaceTileId: null,
       _cameraModalInstance: null,
       _cameraStream: null,
+      _lastPickerOpenAt: 0,
 
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
@@ -346,6 +347,13 @@
       },
 
       _openFilePicker: function (tileId) {
+        // Re-entrancy guard. Even with @click.stop on the file input, a
+        // theoretical edge case where two clicks land in the same task tick
+        // would queue two OS file dialogs. The 250 ms window is well under
+        // any human's repeat-click rhythm.
+        var now = Date.now();
+        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) return;
+        this._lastPickerOpenAt = now;
         var input = document.getElementById('tile-file-' + tileId);
         if (input) input.click();
       },

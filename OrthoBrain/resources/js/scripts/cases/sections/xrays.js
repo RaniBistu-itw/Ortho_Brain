@@ -46,6 +46,7 @@
 
       _tileModalInstance: null,
       _pendingReplaceTileId: null,
+      _lastPickerOpenAt: 0,
 
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
@@ -217,6 +218,10 @@
       },
 
       _openFilePicker: function (tileId) {
+        // Re-entrancy guard — see photographs.js for the rationale.
+        var now = Date.now();
+        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) return;
+        this._lastPickerOpenAt = now;
         var input = document.getElementById('tile-file-' + tileId);
         if (input) input.click();
       },
