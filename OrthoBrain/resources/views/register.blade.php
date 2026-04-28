@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Orthobrain Registration</title>
+        <title>Doctor Registration</title>
 
         {{-- OrthoBrain palette (defines --ob-* CSS variables used by .reg-* classes) --}}
         <link rel="stylesheet" href="{{ asset('css/base/themes/orthobrain-palette.css') }}?v={{ @filemtime(public_path('css/base/themes/orthobrain-palette.css')) ?: time() }}" />
@@ -620,7 +620,7 @@
             {{-- ─────────────── CENTER: Wizard ─────────────── --}}
             <main class="reg-wizard-panel">
                 <header class="reg-wizard-head">
-                    <h1>Orthobrain Registration</h1>
+                    <h1>Doctor Registration</h1>
                     <p>Complete your profile to get started with Orthobrain.</p>
                 </header>
 
