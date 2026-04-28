@@ -147,23 +147,21 @@
   // Strip non-digits — lets users search by phone with or without formatting
   function digitsOnly(s) { return (s || '').replace(/[^0-9]/g, ''); }
 
-  // Match across name, email, phone, chartId, and DOB. Phone matching strips
-  // formatting so "(415) 555-0142" and "4155550142" both find the same row.
-  function filterPatients(query) {
-    if (!window.MOCK_PATIENTS) return [];
+  // Server-backed autocomplete. Replaces the previous MOCK_PATIENTS filter.
+  // The server (PatientController::search) handles name / email / chart_id /
+  // phone-digits matching identically; nothing else in this file changes.
+  // Cancellation: if the user is mid-fetch when they type again, drop the
+  // older request's result by checking the seq counter at resolve time.
+  var _searchSeq = 0;
+  function searchPatients(query) {
     var raw = (query || '').trim();
-    if (raw.length < 2) return [];
-    var q = raw.toLowerCase();
-    var qDigits = digitsOnly(raw);
-    return window.MOCK_PATIENTS.filter(function (p) {
-      var fullName = (p.firstName + ' ' + p.lastName).toLowerCase();
-      if (fullName.includes(q)) return true;
-      if ((p.email   || '').toLowerCase().includes(q)) return true;
-      if ((p.chartId || '').toLowerCase().includes(q)) return true;
-      if (formatDobDisplay(p.dob).includes(q)) return true;
-      if (qDigits.length >= 3 && digitsOnly(p.phone).includes(qDigits)) return true;
-      return false;
-    }).slice(0, 8);
+    if (raw.length < 2) return Promise.resolve([]);
+    if (!window.CaseApi || !window.CaseApi.searchPatients) return Promise.resolve([]);
+    var mySeq = ++_searchSeq;
+    return window.CaseApi.searchPatients(raw).then(function (rows) {
+      if (mySeq !== _searchSeq) return null; // a newer search has fired; ignore
+      return Array.isArray(rows) ? rows : [];
+    }).catch(function () { return []; });
   }
 
   function renderDropdown(patients) {
@@ -248,12 +246,19 @@
     checkExistence();
   }
 
+  // Debounce the server fetch so we don't hammer the endpoint on every key.
+  var debouncedRunSearch = debounce(function (value) {
+    searchPatients(value).then(function (matches) {
+      if (matches === null) return; // superseded by a newer keystroke
+      renderDropdown(matches);
+    });
+  }, 200);
+
   if (elSearch) {
     elSearch.addEventListener('input', function () {
-      var matches = filterPatients(this.value);
-      renderDropdown(matches);
       // Hide existence alert while typing in search
       elExistenceAlert.style.display = 'none';
+      debouncedRunSearch(this.value);
     });
 
     elSearch.addEventListener('blur', function () {
@@ -263,7 +268,9 @@
 
     elSearch.addEventListener('focus', function () {
       if (this.value.length >= 2) {
-        renderDropdown(filterPatients(this.value));
+        searchPatients(this.value).then(function (matches) {
+          if (matches !== null) renderDropdown(matches);
+        });
       }
     });
   }
@@ -272,22 +279,34 @@
 
   var existenceMatchedPatient = null;
 
-  function findExistingPatient() {
-    var fn  = (elFirstName.value || '').trim().toLowerCase();
-    var ln  = (elLastName.value || '').trim().toLowerCase();
-    var dob = elDob.value || '';
-    if (!fn || !ln || !dob || validateDob(dob)) return null;
-    return (window.MOCK_PATIENTS || []).find(function (p) {
-      return p.firstName.toLowerCase() === fn &&
-             p.lastName.toLowerCase() === ln &&
-             p.dob === dob;
-    }) || null;
-  }
-
+  // Server-backed existence check. Sends "{firstName} {lastName}" to the
+  // search endpoint and looks for an exact name+DOB match in the result
+  // set. The endpoint is doctor+practice scoped, so we'll only match
+  // patients in the requesting doctor's roster — same as the mock did.
   function checkExistence() {
-    var match = findExistingPatient();
-    existenceMatchedPatient = match;
-    elExistenceAlert.style.display = match ? '' : 'none';
+    if (!window.CaseApi || !window.CaseApi.searchPatients) return;
+    var fn  = (elFirstName.value || '').trim();
+    var ln  = (elLastName.value || '').trim();
+    var dob = elDob.value || '';
+    if (!fn || !ln || !dob || validateDob(dob)) {
+      existenceMatchedPatient = null;
+      elExistenceAlert.style.display = 'none';
+      return;
+    }
+    window.CaseApi.searchPatients(fn + ' ' + ln).then(function (rows) {
+      var fnL = fn.toLowerCase();
+      var lnL = ln.toLowerCase();
+      var match = (rows || []).find(function (p) {
+        return (p.firstName || '').toLowerCase() === fnL &&
+               (p.lastName  || '').toLowerCase() === lnL &&
+               (p.dob       || '') === dob;
+      }) || null;
+      existenceMatchedPatient = match;
+      elExistenceAlert.style.display = match ? '' : 'none';
+    }).catch(function () {
+      existenceMatchedPatient = null;
+      elExistenceAlert.style.display = 'none';
+    });
   }
 
   var debouncedExistenceCheck = debounce(checkExistence, 500);
@@ -391,18 +410,54 @@
 
   // ─── Hydration from draft ─────────────────────────────────────────────────
 
+  // Server-side prefill (window.__patientPrefill) is the source of truth —
+  // it survives across browsers and is what admins see. Layered priority:
+  //   1. Server prefill (cases.patient_id row, fetched in CasesController::edit)
+  //   2. localStorage draft (window.AddCaseState.patientInformation)
+  //   3. Empty form
+  // (1) overrides (2) so that opening an existing case from a different
+  // browser shows real data, not stale local draft.
   function hydrate() {
+    var server = window.__patientPrefill || null;
     var pi = window.AddCaseState && window.AddCaseState.patientInformation;
-    if (!pi) return;
+    var src = null;
 
-    if (elFirstName)  elFirstName.value  = pi.firstName  || '';
-    if (elLastName)   elLastName.value   = pi.lastName   || '';
-    if (elDob)        elDob.value        = pi.dateOfBirth || '';
-    if (elGender)     elGender.value     = pi.biologicalGender || '';
-    if (elGenderOther) elGenderOther.value = pi.biologicalGenderOther || '';
-    if (elChartId)    elChartId.value    = pi.patientChartId || '';
+    if (server) {
+      src = {
+        firstName:              server.firstName || '',
+        lastName:               server.lastName || '',
+        dateOfBirth:            server.dob || '',
+        biologicalGender:       server.gender || '',
+        biologicalGenderOther:  server.genderOther || '',
+        patientChartId:         server.chartId || '',
+        chiefComplaint:         server.chiefComplaint || '',
+        searchedPatientId:      server.id || null,
+        email:                  server.email || '',
+        phone:                  server.phone || '',
+      };
+      // Push the server prefill into shared state so the rest of the
+      // wizard (autosave, submit) sees it without further wiring.
+      if (window.AddCaseState) {
+        window.AddCaseState.patientInformation = Object.assign(
+          {},
+          window.AddCaseState.patientInformation || DEFAULT_STATE,
+          src
+        );
+      }
+    } else if (pi) {
+      src = pi;
+    }
+
+    if (!src) return;
+
+    if (elFirstName)  elFirstName.value  = src.firstName  || '';
+    if (elLastName)   elLastName.value   = src.lastName   || '';
+    if (elDob)        elDob.value        = src.dateOfBirth || '';
+    if (elGender)     elGender.value     = src.biologicalGender || '';
+    if (elGenderOther) elGenderOther.value = src.biologicalGenderOther || '';
+    if (elChartId)    elChartId.value    = src.patientChartId || '';
     if (elComplaint) {
-      elComplaint.value = pi.chiefComplaint || '';
+      elComplaint.value = src.chiefComplaint || '';
       if (elComplaintCount) elComplaintCount.textContent = elComplaint.value.length;
     }
 
@@ -411,7 +466,7 @@
       elGenderOtherWrap.style.display = '';
     }
 
-    selectedPatientId = pi.searchedPatientId || null;
+    selectedPatientId = src.searchedPatientId || null;
   }
 
   // ─── Public validation (called by submit flow in later phase) ─────────────

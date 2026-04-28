@@ -23,6 +23,7 @@ use App\Http\Controllers\CasePdfController;
 use App\Http\Controllers\CasesController;
 use App\Http\Controllers\DashboardController as DoctorDashboardController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PatientController;
 use App\Http\Controllers\PracticeController;
 use App\Http\Controllers\PrescriptionController;
 use App\Http\Controllers\ProfileController;
@@ -98,7 +99,14 @@ Route::middleware(['web', 'auth'])
             Route::get('/cases/{case}/edit',        [CasesController::class, 'edit'])->name('cases.edit');
             Route::post('/cases/{case}/submit',     [CasesController::class, 'submit'])->name('cases.submit');
             Route::post('/cases/{case}/prescription',[PrescriptionController::class, 'update'])->name('cases.prescription.update');
+            Route::post('/cases/{case}/patient',     [PatientController::class, 'upsert'])->name('cases.patient.upsert');
             Route::match(['get', 'post'], '/cases/{case}/export.pdf', [CasePdfController::class, 'export'])->name('cases.export.pdf');
+
+            // Patient autocomplete — typing in the search field on the case
+            // wizard. Returns up to 8 matches, scoped to the doctor's roster
+            // for the current practice.
+            Route::get('/patients/search', [PatientController::class, 'search'])
+                ->name('patients.search');
 
             // Case media (photographs / x-rays) — server-side persistence so drafts
             // survive across browsers and admins can see uploaded files.

@@ -203,6 +203,7 @@
     window.CASE_ID = '{{ $caseId ?? 'new' }}';
     window.__addCasePrefill = @json($prescriptionPrefill ?? null);
     window.__caseMediaPrefill = @json($caseMedia ?? []);
+    window.__patientPrefill = @json($patientPrefill ?? null);
     window.CASE_API_BASE = @json($apiBase);
     window.CASE_ADMIN_MODE = @json((bool) $adminMode);
     window.ACTIVE_PRACTICE_ADDRESS = @json($activePracticeAddress);
@@ -229,7 +230,7 @@
   <script src="{{ asset('js/scripts/cases/mock-patients.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/mock-preferences.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/tooth-layout.js') }}"></script>
-  <script src="{{ asset('js/scripts/cases/sections/patient-information.js') }}"></script>
+  <script src="{{ asset('js/scripts/cases/sections/patient-information.js') }}?v={{ @filemtime(public_path('js/scripts/cases/sections/patient-information.js')) ?: time() }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/prescription.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/additional-information.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/mock-scanners.js') }}"></script>

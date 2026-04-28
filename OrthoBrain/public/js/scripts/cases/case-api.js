@@ -1,7 +1,9 @@
-// Thin wrapper around Laravel's cases/prescription endpoints.
+// Thin wrapper around Laravel's cases/prescription/patient endpoints.
 // Usage:
 //   await window.CaseApi.createShell()                  -> { id, redirect }
 //   await window.CaseApi.savePrescription(id, payload)  -> { ok, savedAt }
+//   await window.CaseApi.savePatient(id, payload)       -> { ok, patient, caseId }
+//   await window.CaseApi.searchPatients(q)              -> [ {id,firstName,...}, ... ]
 //   await window.CaseApi.submitCase(id)                 -> { ok, redirect, message }
 (function () {
   'use strict';
@@ -79,6 +81,23 @@
 
     savePrescription: function (caseId, payload) {
       return request('POST', base() + '/' + encodeURIComponent(caseId) + '/prescription', payload);
+    },
+
+    // Patient identity persistence — replaces mock-patients.js. Body must
+    // satisfy PatientInformationRequest (firstName, lastName, dateOfBirth,
+    // biologicalGender, chiefComplaint required). Optional: email, phone,
+    // patientChartId, biologicalGenderOther, selectedPatientId.
+    savePatient: function (caseId, payload) {
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/patient', payload);
+    },
+
+    // Patient autocomplete for the case-wizard search field. Returns up to
+    // 8 matches, scoped to the doctor's roster for the current practice.
+    // The endpoint is doctor-only, so admin views won't fire this — admins
+    // see the patient via the inlined window.__patientPrefill instead.
+    searchPatients: function (q) {
+      var url = '/dev/patients/search?q=' + encodeURIComponent(q || '');
+      return request('GET', url, undefined);
     },
 
     submitCase: function (caseId) {

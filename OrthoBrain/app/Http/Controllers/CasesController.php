@@ -82,7 +82,7 @@ class CasesController extends Controller
         $doctor->loadMissing('practice:id,name');
         $practiceId = currentPractice()->id;
 
-        $case = CaseModel::with(['prescription.toothRestrictions', 'media'])
+        $case = CaseModel::with(['prescription.toothRestrictions', 'media', 'patient'])
             ->where('doctor_id', $doctor->id)
             ->where('practice_id', $practiceId)
             ->findOrFail($id);
@@ -93,6 +93,7 @@ class CasesController extends Controller
             'caseDoctor' => $doctor,
             'scanners' => $this->activeScanners(),
             'caseMedia' => $this->serializeMedia($case->media),
+            'patientPrefill' => $this->serializePatient($case->patient),
         ]);
     }
 
@@ -141,6 +142,30 @@ class CasesController extends Controller
         return Scanner::where('status', 'ACTIVE')
             ->orderBy('name')
             ->get(['id', 'name']);
+    }
+
+    /**
+     * Shape a Patient for the case wizard's hydration. Field names match
+     * what patient-information.js previously read from MOCK_PATIENTS so the
+     * JS consumer can swap-in cleanly.
+     */
+    private function serializePatient(?\App\Models\Patient $patient): ?array
+    {
+        if (! $patient) {
+            return null;
+        }
+        return [
+            'id'             => $patient->id,
+            'firstName'      => $patient->first_name,
+            'lastName'       => $patient->last_name,
+            'dob'            => $patient->date_of_birth?->toDateString(),
+            'gender'         => $patient->biological_gender,
+            'genderOther'    => $patient->biological_gender_other,
+            'chartId'        => $patient->chart_id,
+            'email'          => $patient->email,
+            'phone'          => $patient->phone,
+            'chiefComplaint' => $patient->chief_complaint,
+        ];
     }
 
     /**
