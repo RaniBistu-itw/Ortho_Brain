@@ -991,6 +991,27 @@
   display: none;
   -webkit-appearance: none;
 }
+
+/* Firefox-specific: Firefox renders the calendar picker as part of the
+   native widget chrome and does NOT expose a pseudo-element to hide it.
+   `appearance: none` removes most of the chrome on Firefox 113+ but the
+   icon often stays. Detect Firefox via @-moz-document and hide our
+   feather wrapper there so the user only sees the native icon — single
+   icon, native affordance. Chromium/Safari keep the custom feather. */
+@-moz-document url-prefix() {
+  .case-date-trigger {
+    display: none;
+  }
+  .case-date-group {
+    /* Without the trigger span, give the input the input-group's full width
+       so it doesn't render with an awkward leading rounded corner. */
+    display: block;
+  }
+  .case-date-input.form-control {
+    border-radius: 0.357rem;
+  }
+}
+
 .case-date-trigger {
   cursor: pointer;
   user-select: none;
