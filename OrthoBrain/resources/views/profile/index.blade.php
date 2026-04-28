@@ -106,6 +106,302 @@
         .profile-nav .list-group-item .nav-sub { display: none; }
         .preferences-card .pref-section { padding: .75rem 1rem; }
     }
+
+    /* ── Shipping / Billing address panes — premium SaaS polish ── */
+    .addr-pane {
+        position: relative;
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.65);
+        border-radius: 20px;
+        box-shadow:
+            0 1px 2px rgba(15, 23, 42, 0.03),
+            0 12px 32px -18px rgba(15, 23, 42, 0.10);
+        padding: 36px 36px 32px;
+        margin-top: .25rem;
+        font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+        color: #0F172A;
+        overflow: hidden;
+    }
+    .addr-pane::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent 0%, #60A5FA 30%, #2563EB 50%, #60A5FA 70%, transparent 100%);
+        opacity: .55;
+    }
+    .addr-pane .card-title {
+        font-size: 1.5rem;
+        font-weight: 500;
+        color: #0F172A;
+        letter-spacing: -0.015em;
+        line-height: 1.3;
+    }
+    .addr-pane > .d-flex.mb-2 { margin-bottom: 1.75rem !important; }
+
+    /* CTA button → premium gradient pill */
+    .addr-pane .btn.btn-info,
+    .addr-pane .btn.btn-info:focus {
+        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%);
+        border: none;
+        border-radius: 999px;
+        padding: .6rem 1.25rem;
+        color: #fff;
+        font-weight: 500;
+        font-size: .9rem;
+        letter-spacing: .002em;
+        box-shadow:
+            0 1px 2px rgba(37, 99, 235, 0.20),
+            0 8px 20px -6px rgba(37, 99, 235, 0.40);
+        transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+    }
+    .addr-pane .btn.btn-info:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.06);
+        box-shadow:
+            0 2px 4px rgba(37, 99, 235, 0.25),
+            0 14px 28px -8px rgba(37, 99, 235, 0.50);
+        color: #fff;
+    }
+    .addr-pane .btn.btn-info:active {
+        transform: translateY(-1px);
+        filter: brightness(0.98);
+    }
+
+    /* Filter strip */
+    .addr-pane > .border-top.border-bottom {
+        border-color: #f1f5f9 !important;
+        padding: 1rem 0 !important;
+        margin-bottom: 1.5rem !important;
+    }
+    .addr-pane .form-select-sm,
+    .addr-pane .form-control-sm {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: .45rem .75rem;
+        color: #0F172A;
+        background-color: #fff;
+        transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+    }
+    .addr-pane .form-control-sm { padding: .45rem .85rem; }
+    .addr-pane .form-select-sm:hover,
+    .addr-pane .form-control-sm:hover {
+        border-color: #cbd5e1;
+    }
+    .addr-pane .form-select-sm:focus,
+    .addr-pane .form-control-sm:focus {
+        border-color: #3B82F6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+        outline: none;
+    }
+
+    /* Table container — frameless, light separators */
+    .addr-pane .table-responsive {
+        background: #ffffff;
+        border: none;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+    .addr-pane .table {
+        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .addr-pane .table thead th {
+        background: #fafbfc;
+        color: #94A3B8;
+        font-size: .68rem;
+        font-weight: 500;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        border-bottom: 1px solid #f1f5f9;
+        border-top: 0;
+        padding: 1rem 1.1rem;
+    }
+    .addr-pane .table tbody td {
+        padding: 1.15rem 1.1rem;
+        border-top: 1px solid #f5f7fa;
+        color: #1E293B;
+        font-size: .92rem;
+        vertical-align: middle;
+    }
+    .addr-pane .table tbody tr:first-child td { border-top: 0; }
+    .addr-pane .table.table-hover tbody tr {
+        transition: background-color .2s ease;
+    }
+    .addr-pane .table.table-hover tbody tr:hover {
+        background-color: rgba(59, 130, 246, 0.04);
+    }
+    .addr-pane .table tbody tr.empty-state td,
+    .addr-pane .table tbody tr.no-results td {
+        padding: 2.5rem 1rem;
+        color: #94a3b8;
+        font-size: .9rem;
+    }
+
+    /* Action icons — softer, more spacing, scale on hover */
+    .addr-pane .btn-icon.btn-sm {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        color: #94A3B8;
+        background: transparent;
+        transition: background-color .2s ease, color .2s ease, transform .2s ease;
+    }
+    .addr-pane .btn-icon.btn-sm + .btn-icon.btn-sm { margin-left: .5rem; }
+    .addr-pane .btn-flat-success:hover {
+        background-color: rgba(34, 197, 94, 0.10);
+        color: #16a34a;
+        transform: scale(1.08);
+    }
+    .addr-pane .btn-flat-info:hover {
+        background-color: rgba(59, 130, 246, 0.10);
+        color: #2563EB;
+        transform: scale(1.08);
+    }
+    .addr-pane .btn-icon.btn-sm svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Badges — soft pill, muted tones */
+    .addr-pane .badge.bg-light-success {
+        background: rgba(16, 185, 129, 0.10) !important;
+        color: #059669 !important;
+        font-weight: 500;
+        font-size: .72rem;
+        letter-spacing: .01em;
+        padding: .4rem .75rem;
+        border-radius: 999px;
+        border: 1px solid rgba(16, 185, 129, 0.18);
+    }
+    .addr-pane .badge.bg-light-secondary {
+        background: #f1f5f9 !important;
+        color: #64748B !important;
+        font-weight: 500;
+        font-size: .72rem;
+        letter-spacing: .01em;
+        padding: .4rem .75rem;
+        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* Footer / pagination */
+    .addr-pane > .d-flex.mt-1 {
+        margin-top: 1.5rem !important;
+    }
+    .addr-pane #ship-footer,
+    .addr-pane #bill-footer {
+        color: #94A3B8;
+        font-size: .82rem;
+    }
+    .addr-pane .pagination-sm .page-link {
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        color: #64748B;
+        margin: 0 3px;
+        padding: .35rem .7rem;
+        font-size: .85rem;
+        transition: all .2s ease;
+    }
+    .addr-pane .pagination-sm .page-link:hover {
+        background: #f8fafc;
+        color: #2563EB;
+        border-color: #cbd5e1;
+        transform: translateY(-1px);
+    }
+    .addr-pane .pagination-sm .page-item.active .page-link {
+        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+        border-color: transparent;
+        color: #fff;
+        box-shadow: 0 4px 10px -2px rgba(37, 99, 235, 0.35);
+    }
+    .addr-pane .pagination-sm .page-item.disabled .page-link {
+        background: #f8fafc;
+        color: #cbd5e1;
+        border-color: #f1f5f9;
+    }
+
+    @media (max-width: 575.98px) {
+        .addr-pane { padding: 24px 20px 20px; border-radius: 16px; }
+        .addr-pane .card-title { font-size: 1.3rem; }
+        .addr-pane > .d-flex.mb-2 { margin-bottom: 1.25rem !important; }
+    }
+
+    /* ── Dark theme: align .addr-pane with Vuexy dark-layout (Practice page reference) ── */
+    .dark-layout .addr-pane {
+        background: #283046;
+        border-color: rgba(255, 255, 255, 0.06);
+        box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.20),
+            0 12px 32px -18px rgba(0, 0, 0, 0.55);
+        color: #b4b7bd;
+    }
+    .dark-layout .addr-pane .card-title { color: #d0d2d6; }
+    .dark-layout .addr-pane > .border-top.border-bottom { border-color: #3b4253 !important; }
+    .dark-layout .addr-pane .form-select-sm,
+    .dark-layout .addr-pane .form-control-sm {
+        background-color: #283046;
+        border-color: #404656;
+        color: #b4b7bd;
+    }
+    .dark-layout .addr-pane .form-select-sm:hover,
+    .dark-layout .addr-pane .form-control-sm:hover { border-color: #4d5670; }
+    .dark-layout .addr-pane .table-responsive { background: transparent; }
+    .dark-layout .addr-pane .table thead th {
+        background: #2a3149;
+        color: rgba(255, 255, 255, 0.5);
+        border-bottom-color: #3b4253;
+    }
+    .dark-layout .addr-pane .table tbody td {
+        color: #b4b7bd;
+        border-top-color: #3b4253;
+    }
+    .dark-layout .addr-pane .table.table-hover tbody tr:hover { background-color: rgba(59, 130, 246, 0.08); }
+    .dark-layout .addr-pane .table tbody tr.empty-state td,
+    .dark-layout .addr-pane .table tbody tr.no-results td { color: rgba(255, 255, 255, 0.45); }
+    .dark-layout .addr-pane .btn-icon.btn-sm { color: #b4b7bd; }
+    .dark-layout .addr-pane .badge.bg-light-success {
+        background: rgba(16, 185, 129, 0.18) !important;
+        color: #34D399 !important;
+        border-color: rgba(16, 185, 129, 0.30);
+    }
+    .dark-layout .addr-pane .badge.bg-light-secondary {
+        background: #3b4253 !important;
+        color: #b4b7bd !important;
+        border-color: #4d5670;
+    }
+    .dark-layout .addr-pane #ship-footer,
+    .dark-layout .addr-pane #bill-footer { color: rgba(255, 255, 255, 0.45); }
+    .dark-layout .addr-pane .pagination-sm .page-link {
+        background: #283046;
+        border-color: #404656;
+        color: #b4b7bd;
+    }
+    .dark-layout .addr-pane .pagination-sm .page-link:hover {
+        background: #2a3149;
+        color: #60A5FA;
+        border-color: #4d5670;
+    }
+    .dark-layout .addr-pane .pagination-sm .page-item.disabled .page-link {
+        background: #1f2638;
+        color: #4d5670;
+        border-color: #2e3548;
+    }
+
+    /* Smooth theme cross-fade */
+    .addr-pane,
+    .addr-pane .form-select-sm,
+    .addr-pane .form-control-sm,
+    .addr-pane .table thead th,
+    .addr-pane .table tbody td,
+    .addr-pane .pagination-sm .page-link {
+        transition:
+            background-color .25s ease,
+            border-color .25s ease,
+            color .25s ease,
+            box-shadow .25s ease;
+    }
 </style>
 @endpush
 
@@ -406,6 +702,7 @@
 
                 {{-- ─── Tab: Shipping ─── --}}
                 @if($tab == 'shipping')
+                <div class="addr-pane">
                 <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 mb-2">
                     <h4 class="card-title mb-0">Shipping Addresses</h4>
                     <a href="{{ route('doctor.profile.address.create', ['type' => 'shipping']) }}" class="btn btn-info align-self-start align-self-sm-auto">
@@ -484,11 +781,13 @@
                     <small id="ship-footer" class="text-muted"></small>
                     <ul id="ship-pager" class="pagination pagination-sm mb-0"></ul>
                 </div>
+                </div>
                 @endif
 
 
                 {{-- ─── Tab: Billing ─── --}}
                 @if($tab == 'billing')
+                <div class="addr-pane">
                 <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 mb-2">
                     <h4 class="card-title mb-0">Billing Addresses</h4>
                     <a href="{{ route('doctor.profile.address.create', ['type' => 'billing']) }}" class="btn btn-info align-self-start align-self-sm-auto">
@@ -560,6 +859,7 @@
                 <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 mt-1">
                     <small id="bill-footer" class="text-muted"></small>
                     <ul id="bill-pager" class="pagination pagination-sm mb-0"></ul>
+                </div>
                 </div>
                 @endif
 
