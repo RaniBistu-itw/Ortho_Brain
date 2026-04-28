@@ -47,6 +47,10 @@
       _tileModalInstance: null,
       _pendingReplaceTileId: null,
       _lastPickerOpenAt: 0,
+      _pickerLockedTile: null,
+      _pickerLockTimer: null,
+      _bulkPickerLocked: false,
+      _bulkPickerLockTimer: null,
 
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
@@ -218,22 +222,39 @@
       },
 
       _openFilePicker: function (tileId) {
-        // Re-entrancy guard — see photographs.js for the rationale.
+        // Per-tile lock + 250ms global window — see photographs.js for the
+        // full rationale.
+        if (this._pickerLockedTile === tileId) return;
         var now = Date.now();
         if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) return;
         this._lastPickerOpenAt = now;
+
         var input = document.getElementById('tile-file-' + tileId);
-        if (input) input.click();
+        if (!input) return;
+
+        this._pickerLockedTile = tileId;
+        clearTimeout(this._pickerLockTimer);
+        var self = this;
+        this._pickerLockTimer = setTimeout(function () {
+          if (self._pickerLockedTile === tileId) self._pickerLockedTile = null;
+        }, 60000);
+
+        input.click();
       },
 
       onFileInputChange: async function (tileId) {
+        if (this._pickerLockedTile === tileId) {
+          this._pickerLockedTile = null;
+          clearTimeout(this._pickerLockTimer);
+        }
+
         var input = document.getElementById('tile-file-' + tileId);
         if (!input || !input.files.length) return;
         var file = input.files[0];
-        // Reset BEFORE the async processing so re-selecting the same file
-        // (e.g., after a removal) still fires the change event next time.
-        input.value = '';
         await this._processFile(tileId, file);
+        // Reset value AFTER processing keeps the file reference stable
+        // through the entire flow.
+        input.value = '';
       },
 
       // ── Tile modal ──────────────────────────────────────────────────────────
@@ -420,11 +441,22 @@
       // ── Bulk upload ─────────────────────────────────────────────────────────
 
       openBulkPicker: function () {
+        if (this._bulkPickerLocked) return;
         var input = document.getElementById('bulk-upload-xrays');
-        if (input) input.click();
+        if (!input) return;
+        this._bulkPickerLocked = true;
+        clearTimeout(this._bulkPickerLockTimer);
+        var self = this;
+        this._bulkPickerLockTimer = setTimeout(function () {
+          self._bulkPickerLocked = false;
+        }, 60000);
+        input.click();
       },
 
       onBulkInputChange: async function () {
+        this._bulkPickerLocked = false;
+        clearTimeout(this._bulkPickerLockTimer);
+
         var input = document.getElementById('bulk-upload-xrays');
         if (!input || !input.files.length) return;
 

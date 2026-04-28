@@ -76,6 +76,10 @@
       _cameraModalInstance: null,
       _cameraStream: null,
       _lastPickerOpenAt: 0,
+      _pickerLockedTile: null,
+      _pickerLockTimer: null,
+      _bulkPickerLocked: false,
+      _bulkPickerLockTimer: null,
 
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
@@ -347,27 +351,55 @@
       },
 
       _openFilePicker: function (tileId) {
-        // Re-entrancy guard. Even with @click.stop on the file input, a
-        // theoretical edge case where two clicks land in the same task tick
-        // would queue two OS file dialogs. The 250 ms window is well under
-        // any human's repeat-click rhythm.
+        // Two-layer guard:
+        //
+        // 1. Per-tile lock — set when we open the picker for THIS tile,
+        //    cleared in onFileInputChange (or after 60s if the user cancels
+        //    the OS dialog without selecting). Prevents the second-dialog
+        //    reopen the user keeps reporting: even if a stray code path
+        //    calls _openFilePicker again for the same tile while we're
+        //    waiting for selection, this short-circuits.
+        //
+        // 2. Time-window guard — 250 ms window across ALL tiles, catches
+        //    the synthetic-click bubble case that bit us in PR #72 if any
+        //    future markup change re-introduces it.
+        if (this._pickerLockedTile === tileId) return;
         var now = Date.now();
         if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) return;
         this._lastPickerOpenAt = now;
+
         var input = document.getElementById('tile-file-' + tileId);
-        if (input) input.click();
+        if (!input) return;
+
+        this._pickerLockedTile = tileId;
+        // Auto-clear after 60 s in case the user cancelled the OS dialog
+        // (file inputs do NOT fire any event on cancel — there's no clean
+        // signal). Without this the lock would block re-uploads forever.
+        clearTimeout(this._pickerLockTimer);
+        var self = this;
+        this._pickerLockTimer = setTimeout(function () {
+          if (self._pickerLockedTile === tileId) self._pickerLockedTile = null;
+        }, 60000);
+
+        input.click();
       },
 
       onFileInputChange: async function (tileId) {
+        // ALWAYS clear the per-tile lock first — even on early-returns —
+        // otherwise a no-file change event would leave the tile locked.
+        if (this._pickerLockedTile === tileId) {
+          this._pickerLockedTile = null;
+          clearTimeout(this._pickerLockTimer);
+        }
+
         var input = document.getElementById('tile-file-' + tileId);
         if (!input || !input.files.length) return;
         var file = input.files[0];
-        // Reset BEFORE the async processing so re-selecting the SAME file
-        // (e.g., after a removal) still fires the change event next time.
-        // Was at end of the function which left a window where input.value
-        // still held the old path if processing took >1 frame.
-        input.value = '';
         await this._processFile(tileId, file);
+        // Reset value AFTER processing so the file reference stays valid
+        // throughout. Resetting earlier introduced timing weirdness in
+        // some Chromium builds (the OS dialog re-opening after Select).
+        input.value = '';
       },
 
       // ── Tile modal ──────────────────────────────────────────────────────────
@@ -586,11 +618,25 @@
       // ── Bulk upload ─────────────────────────────────────────────────────────
 
       openBulkPicker: function () {
+        // Same single-shot lock as per-tile pickers — prevents the "dialog
+        // reopens after Select" symptom on bulk too.
+        if (this._bulkPickerLocked) return;
         var input = document.getElementById('bulk-upload-photos');
-        if (input) input.click();
+        if (!input) return;
+        this._bulkPickerLocked = true;
+        clearTimeout(this._bulkPickerLockTimer);
+        var self = this;
+        this._bulkPickerLockTimer = setTimeout(function () {
+          self._bulkPickerLocked = false;
+        }, 60000);
+        input.click();
       },
 
       onBulkInputChange: async function () {
+        // Always release the lock first.
+        this._bulkPickerLocked = false;
+        clearTimeout(this._bulkPickerLockTimer);
+
         var input = document.getElementById('bulk-upload-photos');
         if (!input || !input.files.length) return;
 
