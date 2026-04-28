@@ -51,6 +51,8 @@
       _pickerLockTimer: null,
       _bulkPickerLocked: false,
       _bulkPickerLockTimer: null,
+      _lastChangeByTile: {},
+      _lastBulkChangeAt: 0,
 
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
@@ -222,25 +224,13 @@
       },
 
       _openFilePicker: function (tileId) {
-        var t = (Date.now() % 100000);
-        // Diagnostic toasts — temporary, removed in the follow-up fix PR.
-        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
-          window.MediaTileHelpers.showToast('XR-OPEN ' + tileId + ' @' + t, 2500);
-        }
+        // Chrome+GTK quirk guard — see photographs.js for the full rationale.
+        var lastChange = this._lastChangeByTile && this._lastChangeByTile[tileId];
+        if (lastChange && Date.now() - lastChange < 800) return;
 
-        if (this._pickerLockedTile === tileId) {
-          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
-            window.MediaTileHelpers.showToast('XR-SKIP-locked ' + tileId, 2500);
-          }
-          return;
-        }
+        if (this._pickerLockedTile === tileId) return;
         var now = Date.now();
-        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) {
-          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
-            window.MediaTileHelpers.showToast('XR-SKIP-window ' + tileId, 2500);
-          }
-          return;
-        }
+        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) return;
         this._lastPickerOpenAt = now;
 
         var input = document.getElementById('tile-file-' + tileId);
@@ -257,18 +247,15 @@
       },
 
       onFileInputChange: async function (tileId) {
-        var t = (Date.now() % 100000);
-        var input = document.getElementById('tile-file-' + tileId);
-        var fileCount = input && input.files ? input.files.length : 0;
-        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
-          window.MediaTileHelpers.showToast('XR-CHANGE ' + tileId + ' files=' + fileCount + ' @' + t, 2500);
-        }
+        if (!this._lastChangeByTile) this._lastChangeByTile = {};
+        this._lastChangeByTile[tileId] = Date.now();
 
         if (this._pickerLockedTile === tileId) {
           this._pickerLockedTile = null;
           clearTimeout(this._pickerLockTimer);
         }
 
+        var input = document.getElementById('tile-file-' + tileId);
         if (!input || !input.files.length) return;
         var file = input.files[0];
         await this._processFile(tileId, file);
@@ -314,6 +301,10 @@
         this.tiles[id].previewUrl = null;
         this.tiles[id].cropParams = null;
         this.syncToState();
+
+        // User intentionally removed — clear the change-recency lock so
+        // a quick re-click on the empty tile opens the dialog right away.
+        if (this._lastChangeByTile) delete this._lastChangeByTile[id];
 
         if (this._tileModalInstance) this._closeTileModal();
 
@@ -459,16 +450,8 @@
       // ── Bulk upload ─────────────────────────────────────────────────────────
 
       openBulkPicker: function () {
-        var t = (Date.now() % 100000);
-        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
-          window.MediaTileHelpers.showToast('XR-BULK-OPEN @' + t, 2500);
-        }
-        if (this._bulkPickerLocked) {
-          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
-            window.MediaTileHelpers.showToast('XR-BULK-SKIP locked', 2500);
-          }
-          return;
-        }
+        if (this._lastBulkChangeAt && Date.now() - this._lastBulkChangeAt < 800) return;
+        if (this._bulkPickerLocked) return;
         var input = document.getElementById('bulk-upload-xrays');
         if (!input) return;
         this._bulkPickerLocked = true;
@@ -481,13 +464,7 @@
       },
 
       onBulkInputChange: async function () {
-        var t = (Date.now() % 100000);
-        var input = document.getElementById('bulk-upload-xrays');
-        var fileCount = input && input.files ? input.files.length : 0;
-        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
-          window.MediaTileHelpers.showToast('XR-BULK-CHANGE files=' + fileCount + ' @' + t, 2500);
-        }
-
+        this._lastBulkChangeAt = Date.now();
         this._bulkPickerLocked = false;
         clearTimeout(this._bulkPickerLockTimer);
 
