@@ -216,10 +216,6 @@
         trim(collect([$practice->city?->name, $practice->state?->name, $practice->zipcode?->code])->filter()->implode(', ')),
         $practice->country?->name,
     ]));
-
-    $ownerName = $practice->owner
-        ? 'Dr. ' . trim(($practice->owner->first_name ?? '') . ' ' . ($practice->owner->last_name ?? ''))
-        : null;
 @endphp
 
 <section id="practice-show">
@@ -240,8 +236,7 @@
             <div class="flex-grow-1">
                 <h4 class="ob-hero-name">{{ $practice->name }}</h4>
                 <div class="ob-hero-sub">
-                    {{ $ownerName ? 'Owned by ' . $ownerName : 'No owner on file' }}
-                    · Added {{ $practice->created_at?->toFormattedDateString() ?? '—' }}
+                    Added {{ $practice->created_at?->toFormattedDateString() ?? '—' }}
                 </div>
             </div>
             <div class="ob-hero-status">
@@ -265,10 +260,6 @@
         </div>
         <div class="ob-card-body">
             <div class="ob-grid">
-                <div>
-                    <span class="ob-field-label">Owner</span>
-                    <div class="ob-field-value">{{ $ownerName ?? '—' }}</div>
-                </div>
                 <div>
                     <span class="ob-field-label">Phone</span>
                     <div class="ob-field-value">{{ $phoneDisplay !== '' ? $phoneDisplay : '—' }}</div>
