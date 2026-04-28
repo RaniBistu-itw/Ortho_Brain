@@ -280,6 +280,10 @@
       replaceTile: function () {
         var tileId = this.tileModal.activeTileId;
         if (!tileId) return;
+        // Bypass the post-change recency guard from PR #78 — user explicitly
+        // asked to replace, and the guard would otherwise silently no-op
+        // a Replace clicked within 800ms of an upload.
+        if (this._lastChangeByTile) delete this._lastChangeByTile[tileId];
         this._pendingReplaceTileId = tileId;
         this._closeTileModal();
       },

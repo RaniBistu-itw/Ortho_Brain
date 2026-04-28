@@ -418,6 +418,10 @@
       replaceTile: function () {
         var tileId = this.tileModal.activeTileId;
         if (!tileId) return;
+        // User explicitly asked to replace — bypass the post-change recency
+        // guard from PR #78. Without this, clicking Replace within 800ms of
+        // an upload silently no-ops (modal closes, no file dialog).
+        if (this._lastChangeByTile) delete this._lastChangeByTile[tileId];
         this._pendingReplaceTileId = tileId;
         this._closeTileModal();
         // _openFilePicker is called from the hidden.bs.modal handler
