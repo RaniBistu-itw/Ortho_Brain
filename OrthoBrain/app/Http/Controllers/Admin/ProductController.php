@@ -30,16 +30,41 @@ class ProductController extends Controller
             }
         }
 
-        $products = Product::with(['category', 'subcategory', 'images'])
+        $catTable = (new ProductCategory)->getTable();
+        $subTable = (new ProductSubcategory)->getTable();
+
+        $sortable = [
+            'category'    => "{$catTable}.name",
+            'subcategory' => "{$subTable}.name",
+            'name'        => 'products.name',
+            'price'       => 'products.price',
+            'status'      => 'products.status',
+        ];
+        $sortKey = $request->get('sort');
+        $sortCol = $sortable[$sortKey] ?? 'products.name';
+        $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $query = Product::query()
+            ->with(['category', 'subcategory', 'images'])
+            ->select('products.*');
+
+        if (in_array($sortKey, ['category', 'subcategory'], true)) {
+            $query->leftJoin($catTable, "{$catTable}.id", '=', 'products.category_id')
+                  ->leftJoin($subTable, "{$subTable}.id", '=', 'products.subcategory_id')
+                  ->orderBy($sortCol, $dir);
+        } else {
+            $query->orderBy($sortCol, $dir);
+        }
+
+        $products = $query
             ->when($request->filled('category_id'),
-                fn ($q) => $q->where('category_id', $request->integer('category_id')))
+                fn ($q) => $q->where('products.category_id', $request->integer('category_id')))
             ->when($request->filled('subcategory_id'),
-                fn ($q) => $q->where('subcategory_id', $request->integer('subcategory_id')))
+                fn ($q) => $q->where('products.subcategory_id', $request->integer('subcategory_id')))
             ->when($request->filled('status'),
-                fn ($q) => $q->where('status', $request->string('status')))
+                fn ($q) => $q->where('products.status', $request->string('status')))
             ->when($request->filled('search'),
-                fn ($q) => $q->where('name', 'like', '%' . $request->string('search') . '%'))
-            ->orderBy('name')
+                fn ($q) => $q->where('products.name', 'like', '%' . $request->string('search') . '%'))
             ->paginate(10)
             ->withQueryString();
 

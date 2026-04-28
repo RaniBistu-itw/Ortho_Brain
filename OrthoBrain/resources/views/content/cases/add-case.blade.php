@@ -9,7 +9,7 @@
       'SUBMITTED' => 'Submitted',
       'IN_REVIEW' => 'In Review',
       'APPROVED'  => 'Approved',
-      'REJECTED'  => 'Rejected',
+      'REJECTED'  => 'Unapproved',
   ];
   $apiBase = $adminMode ? '/admin/cases' : '/dev/cases';
   $backUrl = $adminMode ? route('admin.cases.index') : route('doctor.cases.index');

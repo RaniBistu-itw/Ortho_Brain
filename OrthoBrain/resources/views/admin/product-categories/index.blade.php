@@ -113,7 +113,9 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <a href="{{ route('admin.product-categories.index') }}" class="btn btn-outline-secondary w-100">Clear</a>
+                    <a href="{{ route('admin.product-categories.index') }}" class="ob-btn-clear w-100">
+                        <i data-feather="x"></i> Clear
+                    </a>
                 </div>
             </form>
         </div>
@@ -123,10 +125,10 @@
             <table class="table table-hover pc-table" id="pcTable">
                 <thead>
                     <tr>
-                        <th style="width: 40%;">Name</th>
-                        <th>Sub-categories</th>
-                        <th>Products</th>
-                        <th>Status</th>
+                        <th style="width: 40%;">@include('admin._partials.sort_th', ['label' => 'Category', 'key' => 'name', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Sub-categories', 'key' => 'subcategories_count', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Products', 'key' => 'products_count', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'name'])</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>

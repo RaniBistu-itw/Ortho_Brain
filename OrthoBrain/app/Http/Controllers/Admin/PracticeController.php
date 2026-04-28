@@ -22,7 +22,18 @@ class PracticeController extends Controller
 
         $search = trim((string) $request->query('search', ''));
 
-        $practices = Practice::query()
+        $sortable = [
+            'practice'      => 'practices.name',
+            'owner'         => 'doctors.last_name',
+            'location'      => 'countries.name',
+            'contact'       => 'practices.phone_number',
+            'members_count' => 'members_count',
+        ];
+        $sortKey = $request->get('sort');
+        $sortCol = $sortable[$sortKey] ?? 'practices.created_at';
+        $dir     = strtolower($request->get('dir', $sortKey ? 'asc' : 'desc')) === 'desc' ? 'desc' : 'asc';
+
+        $query = Practice::query()
             ->with([
                 'owner:id,first_name,last_name',
                 'city:id,name',
@@ -33,20 +44,32 @@ class PracticeController extends Controller
             ->withCount(['doctors as pending_pivot_count' => function ($q) {
                 $q->where('doctor_practice.approval_status', 'PENDING');
             }])
-            ->when($status, fn ($q) => $q->where('status', $status))
+            ->select('practices.*');
+
+        if ($sortKey === 'owner') {
+            $query->leftJoin('doctors', 'doctors.id', '=', 'practices.owner_id')
+                  ->orderBy($sortCol, $dir);
+        } elseif ($sortKey === 'location') {
+            $query->leftJoin('countries', 'countries.id', '=', 'practices.country_id')
+                  ->orderBy($sortCol, $dir);
+        } else {
+            $query->orderBy($sortCol, $dir);
+        }
+
+        $practices = $query
+            ->when($status, fn ($q) => $q->where('practices.status', $status))
             ->when(
                 $request->filled('country_id'),
-                fn ($q) => $q->where('country_id', $request->integer('country_id'))
+                fn ($q) => $q->where('practices.country_id', $request->integer('country_id'))
             )
             ->when($search !== '', function ($q) use ($search) {
                 $like = '%' . $search . '%';
                 $q->where(function ($w) use ($like) {
-                    $w->where('name', 'like', $like)
-                      ->orWhere('website', 'like', $like)
-                      ->orWhere('phone_number', 'like', $like);
+                    $w->where('practices.name', 'like', $like)
+                      ->orWhere('practices.website', 'like', $like)
+                      ->orWhere('practices.phone_number', 'like', $like);
                 });
             })
-            ->orderByDesc('created_at')
             ->paginate(15)
             ->withQueryString();
 

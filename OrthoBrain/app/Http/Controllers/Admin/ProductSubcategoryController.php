@@ -15,11 +15,35 @@ class ProductSubcategoryController extends Controller
 {
     public function index(Request $request)
     {
-        $subcategories = ProductSubcategory::with('category')->withCount('products')
-            ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->integer('category_id')))
-            ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%' . $request->string('search') . '%'))
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status') === 'ACTIVE'))
-            ->orderBy('name')
+        $subTable = (new ProductSubcategory)->getTable();
+        $catTable = (new \App\Models\ProductCategory)->getTable();
+
+        $sortable = [
+            'category'       => "{$catTable}.name",
+            'name'           => "{$subTable}.name",
+            'products_count' => 'products_count',
+            'status'         => "{$subTable}.status",
+        ];
+        $sortKey = $request->get('sort');
+        $sortCol = $sortable[$sortKey] ?? "{$subTable}.name";
+        $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $query = ProductSubcategory::query()
+            ->with('category')
+            ->withCount('products')
+            ->select("{$subTable}.*");
+
+        if ($sortKey === 'category') {
+            $query->leftJoin($catTable, "{$catTable}.id", '=', "{$subTable}.category_id")
+                  ->orderBy($sortCol, $dir);
+        } else {
+            $query->orderBy($sortCol, $dir);
+        }
+
+        $subcategories = $query
+            ->when($request->filled('category_id'), fn ($q) => $q->where("{$subTable}.category_id", $request->integer('category_id')))
+            ->when($request->filled('search'), fn ($q) => $q->where("{$subTable}.name", 'like', '%' . $request->string('search') . '%'))
+            ->when($request->filled('status'), fn ($q) => $q->where("{$subTable}.status", $request->input('status') === 'ACTIVE'))
             ->paginate(10)
             ->withQueryString();
 

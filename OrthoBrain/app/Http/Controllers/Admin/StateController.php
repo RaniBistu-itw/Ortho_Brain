@@ -15,14 +15,36 @@ class StateController extends Controller
 {
     public function index(Request $request)
     {
-        $states = State::with('country')->withCount('cities')
-            ->when($request->filled('country_id'), fn ($q) => $q->where('country_id', $request->integer('country_id')))
+        $sortable = [
+            'country'      => 'country_name',
+            'name'         => 'states.name',
+            'state_code'   => 'states.state_code',
+            'status'       => 'states.status',
+            'cities_count' => 'cities_count',
+        ];
+        $sortKey = $request->get('sort');
+        $sortCol = $sortable[$sortKey] ?? 'states.name';
+        $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $query = State::query()
+            ->with('country')
+            ->withCount('cities')
+            ->select('states.*');
+
+        if ($sortKey === 'country') {
+            $query->leftJoin('countries', 'countries.id', '=', 'states.country_id')
+                  ->orderBy('countries.name', $dir);
+        } else {
+            $query->orderBy($sortCol, $dir);
+        }
+
+        $states = $query
+            ->when($request->filled('country_id'), fn ($q) => $q->where('states.country_id', $request->integer('country_id')))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = $request->string('search');
-                $q->where(fn ($w) => $w->where('name', 'like', "%{$s}%")->orWhere('state_code', 'like', "%{$s}%"));
+                $q->where(fn ($w) => $w->where('states.name', 'like', "%{$s}%")->orWhere('states.state_code', 'like', "%{$s}%"));
             })
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            ->orderBy('name')
+            ->when($request->filled('status'), fn ($q) => $q->where('states.status', $request->string('status')))
             ->paginate(10)
             ->withQueryString();
 

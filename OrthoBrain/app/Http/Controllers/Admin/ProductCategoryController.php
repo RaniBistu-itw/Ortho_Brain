@@ -13,10 +13,20 @@ class ProductCategoryController extends Controller
 {
     public function index(Request $request)
     {
+        $sortable = [
+            'name'                => 'name',
+            'subcategories_count' => 'subcategories_count',
+            'products_count'      => 'products_count',
+            'status'              => 'status',
+        ];
+        $sort = $request->get('sort');
+        $sort = $sortable[$sort] ?? 'name';
+        $dir  = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
         $categories = ProductCategory::withCount(['subcategories', 'products'])
             ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%' . $request->string('search') . '%'))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            ->orderBy('name')
+            ->orderBy($sort, $dir)
             ->paginate(10)
             ->withQueryString();
 

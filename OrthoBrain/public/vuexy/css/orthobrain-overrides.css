@@ -765,3 +765,60 @@ body.dark-layout .ob-sb-quote { color: rgba(14,165,197,.35); }
     border-radius: 7px;
     display: block;
 }
+
+/* ────────────────────────────────────────────────────────────
+   Unified Clear button — subtle red tint, deeper red on hover.
+   Sized to align with Vuexy form-control (0.358rem radius,
+   0.486rem 1rem padding, 0.9rem font-size).
+   ──────────────────────────────────────────────────────────── */
+.ob-btn-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.486rem 1rem;
+    border-radius: 0.358rem;
+    border: 1px solid transparent;
+    background: rgba(234, 84, 85, 0.12);
+    color: #EA5455;
+    font-weight: 500;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+.ob-btn-clear:hover,
+.ob-btn-clear:focus {
+    background: #EA5455;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(234, 84, 85, 0.25);
+    text-decoration: none;
+}
+.ob-btn-clear:focus-visible {
+    outline: 2px solid rgba(234, 84, 85, 0.45);
+    outline-offset: 2px;
+}
+.ob-btn-clear svg,
+.ob-btn-clear i { width: 14px; height: 14px; font-size: 14px; line-height: 1; }
+
+/* ────────────────────────────────────────────────────────────
+   Sortable table column headers
+   ──────────────────────────────────────────────────────────── */
+.ob-th-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: inherit;
+    text-decoration: none;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+    user-select: none;
+}
+.ob-th-sort:hover { color: var(--ob-primary, #3B82F6); }
+.ob-th-sort i { font-size: 0.85em; opacity: 0.55; transition: opacity 120ms ease; }
+.ob-th-sort:hover i { opacity: 0.9; }
+.ob-th-sort.is-active { color: var(--ob-primary, #3B82F6); }
+.ob-th-sort.is-active i { opacity: 1; }

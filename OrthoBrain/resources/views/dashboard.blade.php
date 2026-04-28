@@ -821,7 +821,7 @@ body #ob-dash .ob-inbox-row-sub         { color: rgba(255,255,255,.55); }
                 <div class="ob-kpi-icon-wrap"><i data-feather="alert-triangle"></i></div>
                 <div class="ob-kpi-badge"><i data-feather="bell"></i>&nbsp;Needs Attention</div>
                 <div class="ob-kpi-num" data-count-to="{{ $attentionCount }}">{{ $attentionCount }}</div>
-                <div class="ob-kpi-sub">Rejected + stale drafts</div>
+                <div class="ob-kpi-sub">Unapproved + stale drafts</div>
             </a>
         </div>
     </div>

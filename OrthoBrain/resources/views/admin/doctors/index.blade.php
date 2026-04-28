@@ -161,18 +161,7 @@
         border-color: var(--ob-primary);
         box-shadow: 0 0 0 3px var(--ob-primary-softer);
     }
-    .ob-btn-clear {
-        border: 1px solid var(--ob-border);
-        background: var(--ob-surface-1);
-        color: var(--ob-text-muted);
-        font-weight: 600;
-        border-radius: 0.5rem;
-        padding: 0.5rem 0.85rem;
-        transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
-        display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-    }
-    .ob-btn-clear:hover { color: var(--ob-danger); border-color: rgba(234, 84, 85, 0.35); background: var(--ob-danger-soft); }
-    .ob-btn-clear svg { width: 14px; height: 14px; }
+    /* .ob-btn-clear is defined globally in vuexy/css/orthobrain-overrides.css */
 
     /* Active-filter chips row */
     .ob-active-filters {
@@ -374,9 +363,14 @@
         const status = $form.find('input[name="status"]').val();
         const search = ($input.val() || '').trim();
         const practice = $practice.val();
+        const current = new URLSearchParams(window.location.search);
+        const sort = current.get('sort');
+        const dir  = current.get('dir');
         if (status)   params.set('status', status);
         if (search)   params.set('search', search);
         if (practice) params.set('practice_id', practice);
+        if (sort)     params.set('sort', sort);
+        if (dir)      params.set('dir', dir);
         return params;
     }
 

@@ -18,7 +18,7 @@ class CasesController extends Controller
         'SUBMITTED' => 'Submitted',
         'IN_REVIEW' => 'In Review',
         'APPROVED'  => 'Approved',
-        'REJECTED'  => 'Rejected',
+        'REJECTED'  => 'Unapproved',
     ];
 
     // Allowed status transitions. Anything not in this map is rejected by
@@ -38,15 +38,36 @@ class CasesController extends Controller
         $statusFilter = $request->query('status');
         $doctorFilter = $request->query('doctor_id');
 
-        $query = CaseModel::with(['doctor:id,first_name,last_name,practice_id', 'doctor.practice:id,name'])
-            ->latest();
+        $sortable = [
+            'id'           => 'cases.id',
+            'case_code'    => 'cases.case_code',
+            'doctor'       => 'doctors.last_name',
+            'practice'     => 'practices.name',
+            'created_at'   => 'cases.created_at',
+            'submitted_at' => 'cases.submitted_at',
+        ];
+        $sortKey = $request->get('sort');
+        $sortCol = $sortable[$sortKey] ?? 'cases.created_at';
+        $dir     = strtolower($request->get('dir', $sortKey ? 'asc' : 'desc')) === 'desc' ? 'desc' : 'asc';
+
+        $query = CaseModel::query()
+            ->with(['doctor:id,first_name,last_name,practice_id', 'doctor.practice:id,name'])
+            ->select('cases.*');
+
+        if (in_array($sortKey, ['doctor', 'practice'], true)) {
+            $query->leftJoin('doctors', 'doctors.id', '=', 'cases.doctor_id')
+                  ->leftJoin('practices', 'practices.id', '=', 'doctors.practice_id')
+                  ->orderBy($sortCol, $dir);
+        } else {
+            $query->orderBy($sortCol, $dir);
+        }
 
         if ($statusFilter && in_array($statusFilter, self::STATUS_OPTIONS, true)) {
-            $query->where('status', $statusFilter);
+            $query->where('cases.status', $statusFilter);
         }
 
         if ($doctorFilter) {
-            $query->where('doctor_id', $doctorFilter);
+            $query->where('cases.doctor_id', $doctorFilter);
         }
 
         $cases = $query->paginate(20)->withQueryString();

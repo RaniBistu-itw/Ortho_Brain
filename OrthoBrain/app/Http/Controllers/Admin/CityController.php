@@ -26,16 +26,39 @@ class CityController extends Controller
             }
         }
 
-        $cities = City::with('state.country')->withCount('zipcodes')
+        $sortable = [
+            'country'        => 'countries.name',
+            'state'          => 'states.name',
+            'name'           => 'cities.name',
+            'status'         => 'cities.status',
+            'zipcodes_count' => 'zipcodes_count',
+        ];
+        $sortKey = $request->get('sort');
+        $sortCol = $sortable[$sortKey] ?? 'cities.name';
+        $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $query = City::query()
+            ->with('state.country')
+            ->withCount('zipcodes')
+            ->select('cities.*');
+
+        if (in_array($sortKey, ['country', 'state'], true)) {
+            $query->leftJoin('states', 'states.id', '=', 'cities.state_id')
+                  ->leftJoin('countries', 'countries.id', '=', 'states.country_id')
+                  ->orderBy($sortCol, $dir);
+        } else {
+            $query->orderBy($sortCol, $dir);
+        }
+
+        $cities = $query
             ->when($request->filled('country_id'),
                 fn ($q) => $q->whereHas('state', fn ($s) => $s->where('country_id', $request->integer('country_id'))))
             ->when($request->filled('state_id'),
-                fn ($q) => $q->where('state_id', $request->integer('state_id')))
+                fn ($q) => $q->where('cities.state_id', $request->integer('state_id')))
             ->when($request->filled('search'),
-                fn ($q) => $q->where('name', 'like', '%' . $request->string('search') . '%'))
+                fn ($q) => $q->where('cities.name', 'like', '%' . $request->string('search') . '%'))
             ->when($request->filled('status'),
-                fn ($q) => $q->where('status', $request->string('status')))
-            ->orderBy('name')
+                fn ($q) => $q->where('cities.status', $request->string('status')))
             ->paginate(10)
             ->withQueryString();
 
