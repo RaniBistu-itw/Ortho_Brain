@@ -253,10 +253,17 @@
         </div>
     </div>
 
+    @if (session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+
     {{-- Contact + Address --}}
     <div class="ob-card">
         <div class="ob-card-head">
             <h5 class="ob-card-title">Practice details</h5>
+            <a href="{{ route('admin.practices.edit', $practice) }}" class="btn btn-sm btn-outline-primary">
+                <i data-feather="edit-2"></i> Edit details
+            </a>
         </div>
         <div class="ob-card-body">
             <div class="ob-grid">

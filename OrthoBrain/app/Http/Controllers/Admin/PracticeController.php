@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\Practice;
+use App\Models\Zipcode;
 use App\Notifications\PracticeActivatedNotification;
 use App\Notifications\PracticeRequestApproved;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class PracticeController extends Controller
 {
@@ -100,6 +102,60 @@ class PracticeController extends Controller
         return view('admin.practices.show', [
             'practice' => $practice,
         ]);
+    }
+
+    public function edit(Practice $practice)
+    {
+        $practice->load(['city', 'state', 'country', 'zipcode']);
+
+        $zipcodes = Zipcode::with('city.state.country')
+            ->where('status', 'ACTIVE')
+            ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
+            ->orderBy('code')
+            ->get();
+
+        $phoneCodes = Country::where('status', 'ACTIVE')
+            ->select('phone_code')
+            ->distinct()
+            ->orderBy('phone_code')
+            ->pluck('phone_code')
+            ->all();
+
+        return view('admin.practices.edit', [
+            'practice'   => $practice,
+            'zipcodes'   => $zipcodes,
+            'phoneCodes' => $phoneCodes,
+        ]);
+    }
+
+    public function update(Request $request, Practice $practice)
+    {
+        $phoneCodes = Country::where('status', 'ACTIVE')
+            ->select('phone_code')
+            ->distinct()
+            ->pluck('phone_code')
+            ->all();
+
+        $data = $request->validate([
+            'name'               => 'required|string|max:200',
+            'website'            => 'nullable|string|max:500',
+            'phone_country_code' => ['required', Rule::in($phoneCodes)],
+            'phone_number'       => 'required|string|regex:/^\d{10}$/',
+            'street_address_1'   => 'required|string|min:5|max:255',
+            'street_address_2'   => 'nullable|string|max:255',
+            'zip_id'             => 'required|integer|exists:zipcodes,id',
+            'city_id'            => 'required|integer|exists:cities,id',
+            'state_id'           => 'required|integer|exists:states,id',
+            'country_id'         => 'required|integer|exists:countries,id',
+        ], [
+            'phone_number.regex' => 'Phone must be exactly 10 digits.',
+        ]);
+
+        $practice->update($data);
+
+        return redirect()
+            ->route('admin.practices.show', $practice)
+            ->with('success', 'Practice details updated.');
     }
 
     public function updateStatus(Request $request, Practice $practice)

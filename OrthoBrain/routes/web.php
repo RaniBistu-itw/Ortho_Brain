@@ -234,11 +234,11 @@ Route::middleware(['web', 'admin'])
         // Unified pivot-status endpoint — approve / reject / suspend / reactivate.
         Route::post('doctors/{doctor}/practices/{link}/status', [\App\Http\Controllers\Admin\DoctorPracticeController::class, 'updatePivotStatus'])->name('doctors.practices.status');
 
-        // Admin Practices — read-only list + detail (no add)
+        // Admin Practices — list + detail + edit (no add/destroy)
         Route::post('practices/{practice}/status', [AdminPracticeController::class, 'updateStatus'])
             ->name('practices.status');
         Route::resource('practices', AdminPracticeController::class)
-            ->only(['index', 'show']);
+            ->only(['index', 'show', 'edit', 'update']);
 
         // Countries — AJAX drawer endpoints (must precede resource)
         Route::post('countries/ajax', [CountryController::class, 'ajaxStore'])
