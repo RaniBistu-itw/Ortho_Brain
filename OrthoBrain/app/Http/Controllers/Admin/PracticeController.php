@@ -44,6 +44,9 @@ class PracticeController extends Controller
                 $q->where('doctor_practice.approval_status', 'PENDING');
             }]);
 
+        // Always float practices with pending doctor approvals to the top.
+        $query->orderByDesc('pending_pivot_count');
+
         if ($sortKey === 'location') {
             $query->leftJoin('countries', 'countries.id', '=', 'practices.country_id')
                   ->orderBy($sortCol, $dir);
