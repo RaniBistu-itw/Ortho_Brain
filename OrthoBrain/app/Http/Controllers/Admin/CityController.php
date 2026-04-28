@@ -30,7 +30,6 @@ class CityController extends Controller
             'country'        => 'countries.name',
             'state'          => 'states.name',
             'name'           => 'cities.name',
-            'status'         => 'cities.status',
             'zipcodes_count' => 'zipcodes_count',
         ];
         $sortKey = $request->get('sort');
@@ -38,9 +37,9 @@ class CityController extends Controller
         $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
 
         $query = City::query()
+            ->select('cities.*')
             ->with('state.country')
-            ->withCount('zipcodes')
-            ->select('cities.*');
+            ->withCount('zipcodes');
 
         if (in_array($sortKey, ['country', 'state'], true)) {
             $query->leftJoin('states', 'states.id', '=', 'cities.state_id')

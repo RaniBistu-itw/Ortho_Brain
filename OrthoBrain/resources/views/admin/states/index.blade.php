@@ -123,8 +123,8 @@
                         <th>@include('admin._partials.sort_th', ['label' => 'Country', 'key' => 'country', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'State', 'key' => 'name', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Code', 'key' => 'state_code', 'default' => 'name'])</th>
-                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Cities', 'key' => 'cities_count', 'default' => 'name'])</th>
+                        <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -135,15 +135,15 @@
                             <td class="st-cell-country">{{ $s->country?->name ?? '—' }}</td>
                             <td class="fw-bolder st-cell-name">{{ $s->name }}</td>
                             <td class="st-cell-code">{{ $s->state_code }}</td>
-                            <td>
-                                <span class="st-status st-status--{{ $s->status === 'ACTIVE' ? 'active' : 'inactive' }}" data-status="{{ $s->status }}">{{ $s->status }}</span>
-                            </td>
                             <td class="st-cell-cities">
                                 @if ($hasCities)
                                     {{ $s->cities_count }}
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
+                            </td>
+                            <td>
+                                <span class="st-status st-status--{{ $s->status === 'ACTIVE' ? 'active' : 'inactive' }}" data-status="{{ $s->status }}">{{ $s->status }}</span>
                             </td>
                             <td class="text-end">
                                 <div class="st-action-group">
@@ -332,8 +332,8 @@
                 <td class="st-cell-country">${escapeHtml(st.country_name)}</td>
                 <td class="fw-bolder st-cell-name">${escapeHtml(st.name)}</td>
                 <td class="st-cell-code">${escapeHtml(st.state_code)}</td>
-                <td><span class="st-status ${statusClass}" data-status="${st.status}">${st.status}</span></td>
                 <td class="st-cell-cities">${citiesCell}</td>
+                <td><span class="st-status ${statusClass}" data-status="${st.status}">${st.status}</span></td>
                 <td class="text-end">
                     <div class="st-action-group">
                         <a href="${st.show_url}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>

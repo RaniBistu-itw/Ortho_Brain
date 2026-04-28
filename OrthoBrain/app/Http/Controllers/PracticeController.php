@@ -29,6 +29,9 @@ class PracticeController extends Controller
         $practices = Practice::with(['zipcode', 'city', 'state', 'country'])
             ->where('status', 'ACTIVE')
             ->where('name', 'LIKE', '%' . $q . '%')
+            // Only surface practices that have a location populated.
+            ->whereNotNull('city_id')
+            ->whereNotNull('country_id')
             ->when($doctor, function ($query) use ($doctor) {
                 $query->whereNotIn('practices.id', function ($sub) use ($doctor) {
                     $sub->select('practice_id')

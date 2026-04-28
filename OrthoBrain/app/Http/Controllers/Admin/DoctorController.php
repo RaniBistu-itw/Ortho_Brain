@@ -32,7 +32,6 @@ class DoctorController extends Controller
             'doctor'     => 'doctors.last_name',
             'contact'    => 'doctors.doctor_contact_email',
             'practice'   => 'practices.name',
-            'status'     => 'doctors.approval_status',
             'created_at' => 'doctors.created_at',
         ];
         $sortKey = $request->get('sort');

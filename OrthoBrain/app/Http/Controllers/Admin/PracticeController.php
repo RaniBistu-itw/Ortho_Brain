@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Country;
+use App\Models\Doctor;
 use App\Models\Practice;
+use App\Models\Zipcode;
 use App\Notifications\PracticeActivatedNotification;
+use App\Notifications\PracticeDeactivatedNotification;
 use App\Notifications\PracticeRequestApproved;
+use App\Notifications\PracticeRequestRejected;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class PracticeController extends Controller
 {
@@ -24,7 +29,6 @@ class PracticeController extends Controller
 
         $sortable = [
             'practice'      => 'practices.name',
-            'owner'         => 'doctors.last_name',
             'location'      => 'countries.name',
             'contact'       => 'practices.phone_number',
             'members_count' => 'members_count',
@@ -34,8 +38,8 @@ class PracticeController extends Controller
         $dir     = strtolower($request->get('dir', $sortKey ? 'asc' : 'desc')) === 'desc' ? 'desc' : 'asc';
 
         $query = Practice::query()
+            ->select('practices.*')
             ->with([
-                'owner:id,first_name,last_name',
                 'city:id,name',
                 'state:id,name',
                 'country:id,name',
@@ -43,13 +47,12 @@ class PracticeController extends Controller
             ->withCount('members')
             ->withCount(['doctors as pending_pivot_count' => function ($q) {
                 $q->where('doctor_practice.approval_status', 'PENDING');
-            }])
-            ->select('practices.*');
+            }]);
 
-        if ($sortKey === 'owner') {
-            $query->leftJoin('doctors', 'doctors.id', '=', 'practices.owner_id')
-                  ->orderBy($sortCol, $dir);
-        } elseif ($sortKey === 'location') {
+        // Always float practices with pending doctor approvals to the top.
+        $query->orderByDesc('pending_pivot_count');
+
+        if ($sortKey === 'location') {
             $query->leftJoin('countries', 'countries.id', '=', 'practices.country_id')
                   ->orderBy($sortCol, $dir);
         } else {
@@ -104,6 +107,60 @@ class PracticeController extends Controller
         ]);
     }
 
+    public function edit(Practice $practice)
+    {
+        $practice->load(['city', 'state', 'country', 'zipcode']);
+
+        $zipcodes = Zipcode::with('city.state.country')
+            ->where('status', 'ACTIVE')
+            ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
+            ->orderBy('code')
+            ->get();
+
+        $phoneCodes = Country::where('status', 'ACTIVE')
+            ->select('phone_code')
+            ->distinct()
+            ->orderBy('phone_code')
+            ->pluck('phone_code')
+            ->all();
+
+        return view('admin.practices.edit', [
+            'practice'   => $practice,
+            'zipcodes'   => $zipcodes,
+            'phoneCodes' => $phoneCodes,
+        ]);
+    }
+
+    public function update(Request $request, Practice $practice)
+    {
+        $phoneCodes = Country::where('status', 'ACTIVE')
+            ->select('phone_code')
+            ->distinct()
+            ->pluck('phone_code')
+            ->all();
+
+        $data = $request->validate([
+            'name'               => 'required|string|max:200',
+            'website'            => 'nullable|string|max:500',
+            'phone_country_code' => ['required', Rule::in($phoneCodes)],
+            'phone_number'       => 'required|string|regex:/^\d{10}$/',
+            'street_address_1'   => 'required|string|min:5|max:255',
+            'street_address_2'   => 'nullable|string|max:255',
+            'zip_id'             => 'required|integer|exists:zipcodes,id',
+            'city_id'            => 'required|integer|exists:cities,id',
+            'state_id'           => 'required|integer|exists:states,id',
+            'country_id'         => 'required|integer|exists:countries,id',
+        ], [
+            'phone_number.regex' => 'Phone must be exactly 10 digits.',
+        ]);
+
+        $practice->update($data);
+
+        return redirect()
+            ->route('admin.practices.show', $practice)
+            ->with('success', 'Practice details updated.');
+    }
+
     public function updateStatus(Request $request, Practice $practice)
     {
         $data = $request->validate([
@@ -148,11 +205,95 @@ class PracticeController extends Controller
                         $doctor->user?->notify(new PracticeActivatedNotification($practice));
                     });
             }
+
+            if ($previous === 'ACTIVE' && $data['status'] === 'INACTIVE') {
+                // Approved-pivot rows are intentionally left unchanged so reactivation
+                // restores access without manual re-approval. We only notify the
+                // affected doctors that their access at this practice is paused.
+                $practice->doctors()
+                    ->wherePivot('approval_status', 'APPROVED')
+                    ->with('user')
+                    ->get()
+                    ->each(function ($doctor) use ($practice) {
+                        $doctor->user?->notify(new PracticeDeactivatedNotification($practice));
+                    });
+            }
         });
 
         return response()->json([
             'ok'     => true,
             'status' => $practice->fresh()->status,
         ]);
+    }
+
+    /**
+     * Bulk approve or reject every PENDING doctor link for a practice.
+     */
+    public function bulkPendingAction(Request $request, Practice $practice)
+    {
+        $data = $request->validate([
+            'action' => 'required|in:APPROVE,REJECT',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        if ($data['action'] === 'REJECT' && empty(trim((string) ($data['reason'] ?? '')))) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'A rejection reason is required.',
+            ], 422);
+        }
+
+        $pendingPivots = DB::table('doctor_practice')
+            ->where('practice_id', $practice->id)
+            ->where('approval_status', 'PENDING')
+            ->get(['id', 'doctor_id']);
+
+        if ($pendingPivots->isEmpty()) {
+            return response()->json(['ok' => true, 'count' => 0]);
+        }
+
+        $adminId    = Auth::user()?->admin?->id;
+        $doctorIds  = $pendingPivots->pluck('doctor_id')->all();
+        $count      = $pendingPivots->count();
+
+        DB::transaction(function () use ($practice, $data, $adminId) {
+            if ($data['action'] === 'APPROVE') {
+                DB::table('doctor_practice')
+                    ->where('practice_id', $practice->id)
+                    ->where('approval_status', 'PENDING')
+                    ->update([
+                        'approval_status'      => 'APPROVED',
+                        'approved_at'          => now(),
+                        'approved_by_admin_id' => $adminId,
+                        'rejected_at'          => null,
+                        'rejection_reason'     => null,
+                        'updated_at'           => now(),
+                    ]);
+            } else {
+                DB::table('doctor_practice')
+                    ->where('practice_id', $practice->id)
+                    ->where('approval_status', 'PENDING')
+                    ->update([
+                        'approval_status'      => 'REJECTED',
+                        'rejected_at'          => now(),
+                        'rejection_reason'     => $data['reason'],
+                        'approved_by_admin_id' => $adminId,
+                        'approved_at'          => null,
+                        'updated_at'           => now(),
+                    ]);
+            }
+        });
+
+        $doctors = Doctor::with('user')->whereIn('id', $doctorIds)->get();
+        foreach ($doctors as $doctor) {
+            if (! $doctor->user) continue;
+            $doctor->user->notify(
+                $data['action'] === 'APPROVE'
+                    ? new PracticeRequestApproved($practice)
+                    : new PracticeRequestRejected($practice, $data['reason'])
+            );
+        }
+
+        return response()->json(['ok' => true, 'count' => $count]);
     }
 }

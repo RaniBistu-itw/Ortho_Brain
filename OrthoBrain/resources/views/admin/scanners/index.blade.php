@@ -103,7 +103,7 @@
                         <th>@include('admin._partials.sort_th', ['label' => 'Scanner', 'key' => 'name', 'default' => 'name'])</th>
                         <th>Description</th>
                         <th>Portal Link</th>
-                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'name'])</th>
+                        <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>

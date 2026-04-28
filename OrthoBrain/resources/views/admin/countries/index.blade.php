@@ -104,8 +104,8 @@
                         <th>@include('admin._partials.sort_th', ['label' => 'Country', 'key' => 'name', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Code', 'key' => 'country_code', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Phone', 'key' => 'phone_code', 'default' => 'name'])</th>
-                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'States', 'key' => 'states_count', 'default' => 'name'])</th>
+                        <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -116,15 +116,15 @@
                             <td class="fw-bolder co-cell-name">{{ $c->name }}</td>
                             <td class="co-cell-code">{{ $c->country_code }}</td>
                             <td class="co-cell-phone">{{ $c->phone_code }}</td>
-                            <td>
-                                <span class="co-status co-status--{{ $c->status === 'ACTIVE' ? 'active' : 'inactive' }}" data-status="{{ $c->status }}">{{ $c->status }}</span>
-                            </td>
                             <td class="co-cell-states">
                                 @if ($hasStates)
                                     {{ $c->states_count }}
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
+                            </td>
+                            <td>
+                                <span class="co-status co-status--{{ $c->status === 'ACTIVE' ? 'active' : 'inactive' }}" data-status="{{ $c->status }}">{{ $c->status }}</span>
                             </td>
                             <td class="text-end">
                                 <div class="co-action-group">
@@ -298,8 +298,8 @@
                 <td class="fw-bolder co-cell-name">${escapeHtml(co.name)}</td>
                 <td class="co-cell-code">${escapeHtml(co.country_code)}</td>
                 <td class="co-cell-phone">${escapeHtml(co.phone_code)}</td>
-                <td><span class="co-status ${statusClass}" data-status="${co.status}">${co.status}</span></td>
                 <td class="co-cell-states">${statesCell}</td>
+                <td><span class="co-status ${statusClass}" data-status="${co.status}">${co.status}</span></td>
                 <td class="text-end">
                     <div class="co-action-group">
                         <a href="${co.show_url}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>

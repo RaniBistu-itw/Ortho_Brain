@@ -3,6 +3,12 @@
 @section('page_title', 'Products')
 
 @section('content')
+<style>
+    .pd-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
+    .pd-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+    .pd-status--active   { background: rgba(var(--bs-success-rgb), .14); color: var(--bs-success); }
+    .pd-status--inactive { background: rgba(var(--bs-danger-rgb), .14);  color: var(--bs-danger); }
+</style>
 <section id="products-list">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
@@ -77,7 +83,7 @@
                         <th>@include('admin._partials.sort_th', ['label' => 'Sub Category', 'key' => 'subcategory', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Product', 'key' => 'name', 'default' => 'name'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Price', 'key' => 'price', 'default' => 'name'])</th>
-                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'name'])</th>
+                        <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -111,7 +117,7 @@
                             <td class="fw-bolder">{{ $p->name }}</td>
                             <td>${{ number_format((float) $p->base_price, 2) }}</td>
                             <td>
-                                <span class="badge rounded-pill badge-light-{{ $p->status === 'ACTIVE' ? 'success' : 'danger' }}">{{ $p->status }}</span>
+                                <span class="pd-status pd-status--{{ $p->status === 'ACTIVE' ? 'active' : 'inactive' }}">{{ $p->status }}</span>
                             </td>
                             <td class="text-end">
                                 <a href="{{ route('admin.products.show', $p) }}" class="btn btn-icon btn-sm btn-outline-success" title="View"><i data-feather="eye"></i></a>

@@ -145,12 +145,150 @@
         transition: all 0.15s ease;
     }
     .pend-cancel-ghost:hover { color: var(--ob-danger); background: color-mix(in srgb, var(--ob-danger) 7%, transparent); }
+
+    /* ── On-hold banner (practice deactivated by admin) ────── */
+    .hold-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.85rem;
+        background: color-mix(in srgb, #fde2e2 80%, var(--ob-surface));
+        border: 1px solid color-mix(in srgb, #d43f3a 28%, transparent);
+        border-radius: 0.6rem;
+        padding: 1rem 1.1rem;
+        box-shadow: 0 1px 3px rgba(24,28,40,0.04);
+        margin-bottom: 1rem;
+    }
+    .hold-banner-icon {
+        flex: 0 0 auto;
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 0.45rem;
+        background: #d43f3a;
+        color: #fff;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 1.05rem;
+    }
+    .hold-banner-body { flex: 1; font-size: 0.9rem; color: var(--ob-text); line-height: 1.5; }
+    .hold-banner-body strong { display: block; font-size: 0.96rem; margin-bottom: 0.25rem; }
+    .hold-banner-body ul { margin: 0.4rem 0 0 1.1rem; padding: 0; }
+    .hold-banner-body li { font-size: 0.85rem; }
+
+    .hold-actions {
+        display: flex; flex-wrap: wrap; gap: 0.5rem;
+        margin-top: 0.85rem;
+    }
+    .hold-btn {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        padding: 0.5rem 0.9rem;
+        border-radius: 0.4rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border: 1px solid transparent;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    }
+    .hold-btn--primary { background: var(--ob-primary, #5bc0de); color: #fff; border-color: var(--ob-primary, #5bc0de); }
+    .hold-btn--primary:hover { background: #3fb1d4; border-color: #3fb1d4; color: #fff; }
+    .hold-btn--ghost { background: #fff; color: var(--ob-text); border-color: var(--ob-border); }
+    .hold-btn--ghost:hover { background: var(--ob-surface, #f8f8fb); }
+
+    .hold-switcher {
+        display: flex; flex-wrap: wrap; gap: 0.4rem;
+        margin-top: 0.5rem;
+    }
+    .hold-switcher .switch-form { margin: 0; }
+    .hold-switcher .switch-btn {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        padding: 0.4rem 0.75rem;
+        background: #fff;
+        border: 1px solid var(--ob-border);
+        border-radius: 999px;
+        font-size: 0.8rem;
+        color: var(--ob-text);
+        cursor: pointer;
+        transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+    }
+    .hold-switcher .switch-btn:hover {
+        border-color: var(--ob-primary, #5bc0de);
+        color: var(--ob-primary, #5bc0de);
+        background: color-mix(in srgb, var(--ob-primary, #5bc0de) 8%, transparent);
+    }
+
+    .hold-row-meta { color: var(--ob-text-muted); font-size: 0.78rem; }
+    .hold-row-meta i { margin-right: 0.25rem; }
 </style>
 @endpush
 
 @section('content')
+@php
+    $onHold     = $onHold     ?? collect();
+    $switchable = $switchable ?? collect();
+    $profilePracticesUrl = route('doctor.profile.index') . '?tab=practices';
+@endphp
 <div class="row g-3">
     <div class="col-12">
+
+        @if ($onHold->isNotEmpty())
+            {{-- ── Practice paused: doctor cannot register cases until they switch or add a new practice ── --}}
+            <div class="hold-banner">
+                <span class="hold-banner-icon"><i class="bi bi-pause-circle-fill"></i></span>
+                <div class="hold-banner-body">
+                    <strong>
+                        @if ($onHold->count() === 1)
+                            Your practice <em>{{ $onHold->first()->name }}</em> is currently paused
+                        @else
+                            {{ $onHold->count() }} of your practices are currently paused
+                        @endif
+                    </strong>
+                    We're sorry for the inconvenience — access to cases at
+                    {{ $onHold->count() === 1 ? 'this practice' : 'these practices' }}
+                    is temporarily paused while
+                    {{ $onHold->count() === 1 ? 'it is' : 'they are' }}
+                    inactive on the admin side. You'll get full access back automatically the moment
+                    {{ $onHold->count() === 1 ? "it's" : "they're" }}
+                    reactivated.
+                    In the meantime you can switch to another practice or add a new one — case registration is unavailable until you're on an active practice.
+
+                    @if ($onHold->count() > 1)
+                        <ul>
+                            @foreach ($onHold as $p)
+                                <li><strong>{{ $p->name }}</strong></li>
+                            @endforeach
+                        </ul>
+                    @endif
+
+                    @if ($switchable->isNotEmpty())
+                        <div class="mt-2 hold-row-meta"><i class="bi bi-arrow-left-right"></i> Switch to one of your active practices:</div>
+                        <div class="hold-switcher">
+                            @foreach ($switchable as $sp)
+                                <form method="POST" action="{{ route('doctor.practice.switch') }}" class="switch-form">
+                                    @csrf
+                                    <input type="hidden" name="practice_id" value="{{ $sp->id }}">
+                                    <button type="submit" class="switch-btn">
+                                        <i class="bi bi-shop"></i> {{ $sp->name }}
+                                    </button>
+                                </form>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    <div class="hold-actions">
+                        @if ($switchable->isEmpty())
+                            <span class="hold-row-meta"><i class="bi bi-info-circle"></i> No other active practice is available — please add a new one to continue.</span>
+                        @endif
+                        <a href="{{ $profilePracticesUrl }}" class="hold-btn hold-btn--primary">
+                            <i class="bi bi-plus-circle"></i> Add a new practice
+                        </a>
+                        <a href="{{ $profilePracticesUrl }}" class="hold-btn hold-btn--ghost">
+                            <i class="bi bi-buildings"></i> Manage my practices
+                        </a>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        @if ($pending->isNotEmpty() || $onHold->isEmpty())
         <div class="pend-alert mb-3">
             <span class="pend-alert-icon"><i class="bi bi-hourglass-split"></i></span>
             <div class="pend-alert-body">
@@ -160,7 +298,9 @@
                 awaiting system integration.
             </div>
         </div>
+        @endif
 
+        @if ($pending->isNotEmpty() || $onHold->isEmpty())
         <div class="pend-card mb-3">
             <div class="pend-list-head">
                 <div>
@@ -201,6 +341,7 @@
                 @endforeach
             @endif
         </div>
+        @endif
 
         @if($rejected->isNotEmpty())
             <div class="pend-card">

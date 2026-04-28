@@ -12,8 +12,7 @@ class ScannerController extends Controller
     public function index(Request $request)
     {
         $sortable = [
-            'name'   => 'name',
-            'status' => 'status',
+            'name' => 'name',
         ];
         $sort = $request->get('sort');
         $sort = $sortable[$sort] ?? 'name';

@@ -43,7 +43,7 @@
                 <th>@include('admin._partials.sort_th', ['label' => 'Practice', 'key' => 'practice', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
                 <th>@include('admin._partials.sort_th', ['label' => 'Contact', 'key' => 'contact', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
                 <th>@include('admin._partials.sort_th', ['label' => 'Registered', 'key' => 'created_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
-                <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+                <th>Status</th>
                 <th class="text-end">Actions</th>
             </tr>
         </thead>
@@ -96,13 +96,22 @@
                         @endif
                     </td>
                     <td>
-                        <span class="ob-when" title="{{ $doctor->created_at?->toDayDateTimeString() }}">
+                        @php($_reg = $doctor->created_at)
+                        <span class="ob-when" title="{{ $_reg?->toDayDateTimeString() }}">
                             <i data-feather="calendar"></i>
-                            {{ $doctor->created_at?->diffForHumans() ?? '—' }}
+                            @if ($_reg)
+                                @if ($_reg->lt(now()->subDay()))
+                                    {{ $_reg->format('M j, Y · g:i A') }}
+                                @else
+                                    {{ $_reg->diffForHumans() }}
+                                @endif
+                            @else
+                                —
+                            @endif
                         </span>
                     </td>
                     <td>
-                        <span class="ob-status ob-status--{{ $badge['tone'] }}">
+                        <span class="dr-status dr-status--{{ $badge['tone'] }}">
                             {{ $badge['label'] }}
                         </span>
                     </td>

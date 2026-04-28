@@ -131,7 +131,7 @@
                         <th>@include('admin._partials.sort_th', ['label' => 'City', 'key' => 'city', 'default' => 'code'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'State', 'key' => 'state', 'default' => 'code'])</th>
                         <th>@include('admin._partials.sort_th', ['label' => 'Country', 'key' => 'country', 'default' => 'code'])</th>
-                        <th>@include('admin._partials.sort_th', ['label' => 'Status', 'key' => 'status', 'default' => 'code'])</th>
+                        <th>Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>

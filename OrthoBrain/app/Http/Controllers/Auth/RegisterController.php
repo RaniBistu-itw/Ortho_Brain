@@ -79,7 +79,6 @@ class RegisterController extends Controller
             'last_name'             => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
             'password'              => 'required|string|min:8|confirmed:confirm_password|regex:/[A-Z]/|regex:/[a-z]/|regex:/\d/|regex:/[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\\\\/]/',
             'confirm_password'      => 'required|string',
-            'preferred_language'    => 'required|string|max:50',
 
             'providing_ortho'       => 'nullable|in:yes,no',
             'contact_preference'    => 'nullable|in:doctor,employee,both',
@@ -227,7 +226,7 @@ class RegisterController extends Controller
                 'practice_id'                        => $practiceId,
                 'first_name'                         => $data['first_name'],
                 'last_name'                          => $data['last_name'],
-                'preferred_language'                 => $data['preferred_language'],
+                'preferred_language'                 => 'English',
                 'currently_providing_ortho_services' => ($data['providing_ortho'] ?? 'no') === 'yes',
                 'preferred_contact_mode'             => $contactMap[$data['contact_preference'] ?? 'doctor'] ?? 'DOCTOR_ONLY',
                 'doctor_contact_email'               => $data['email'],

@@ -17,7 +17,6 @@ class ProductCategoryController extends Controller
             'name'                => 'name',
             'subcategories_count' => 'subcategories_count',
             'products_count'      => 'products_count',
-            'status'              => 'status',
         ];
         $sort = $request->get('sort');
         $sort = $sortable[$sort] ?? 'name';
