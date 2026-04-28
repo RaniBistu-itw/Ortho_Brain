@@ -66,8 +66,12 @@ Route::middleware(['web', 'auth'])
         Route::post('/practices/{link}/leave',  [\App\Http\Controllers\PracticeMembershipController::class, 'leave'])->name('practices.leave');
         Route::post('/practices/{link}/primary',[\App\Http\Controllers\PracticeMembershipController::class, 'makePrimary'])->name('practices.primary');
 
-        // Doctor dashboard (landing page after login)
-        Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
+        // Doctor dashboard (landing page after login). Behind active.practice so a
+        // paused-only doctor lands on the pending notice instead of a dashboard
+        // they can't actually use.
+        Route::middleware(['active.practice'])->group(function () {
+            Route::get('/dashboard', [DoctorDashboardController::class, 'index'])->name('dashboard');
+        });
 
         // Lightweight ZIP/postal lookup used by the case-wizard shipping
         // address combobox. Replaces the previous practice of inlining
@@ -237,6 +241,8 @@ Route::middleware(['web', 'admin'])
         // Admin Practices — list + detail + edit (no add/destroy)
         Route::post('practices/{practice}/status', [AdminPracticeController::class, 'updateStatus'])
             ->name('practices.status');
+        Route::post('practices/{practice}/doctors/bulk', [AdminPracticeController::class, 'bulkPendingAction'])
+            ->name('practices.doctors.bulk');
         Route::resource('practices', AdminPracticeController::class)
             ->only(['index', 'show', 'edit', 'update']);
 

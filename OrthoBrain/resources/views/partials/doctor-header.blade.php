@@ -6,8 +6,12 @@
     $navEmail  = auth()->user()?->email;
 
     $navActivePractice = currentPractice();
+    $navIsPaused       = $navActivePractice && $navActivePractice->status !== 'ACTIVE';
+    // All APPROVED links — both ACTIVE and paused (INACTIVE) practices show in the
+    // switcher so the doctor can move between them deliberately.
     $navOtherPractices = $navDoctor
-        ? $navDoctor->activePractices()
+        ? $navDoctor->practices()
+            ->wherePivot('approval_status', 'APPROVED')
             ->when($navActivePractice, fn ($q) => $q->where('practices.id', '!=', $navActivePractice->id))
             ->get()
         : collect();
@@ -56,6 +60,33 @@
     .doc-nav__practice-name { color: #1e6c85; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .doc-nav__practice i.bi-building { font-size: 1rem; }
     .doc-nav__practice i.bi-chevron-down { font-size: 0.7rem; opacity: 0.7; margin-left: 0.1rem; }
+    /* Paused state */
+    .doc-nav__practice.is-paused {
+        background: rgba(212, 63, 58, 0.08);
+        border-color: rgba(212, 63, 58, 0.32);
+        color: #b13233;
+    }
+    .doc-nav__practice.is-paused:hover {
+        background: rgba(212, 63, 58, 0.14);
+        border-color: rgba(212, 63, 58, 0.5);
+        color: #b13233;
+    }
+    .doc-nav__practice.is-paused .doc-nav__practice-name { color: #b13233; }
+    .doc-paused-pill {
+        display: inline-flex; align-items: center;
+        padding: 0.05rem 0.45rem;
+        background: rgba(212, 63, 58, 0.12);
+        color: #b13233;
+        border-radius: 999px;
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-left: 0.35rem;
+        line-height: 1.5;
+    }
+    .doc-nav__switcher-active.is-paused i { color: #d43f3a; }
+    .dropdown-item .doc-paused-pill { margin-left: auto; }
 
     /* Icon buttons (help + bell) */
     .doc-nav__icon-btn {
@@ -234,31 +265,42 @@
         <i data-feather="menu"></i>
     </button>
 
-    {{-- Practice switcher (only shown when an active practice exists) --}}
+    {{-- Practice switcher (only shown when the doctor has at least one approved practice) --}}
     @if($navActivePractice)
         <div class="dropdown">
-            <a class="doc-nav__practice" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-building"></i>
-                <span class="doc-nav__practice-label">Working at</span>
+            <a class="doc-nav__practice {{ $navIsPaused ? 'is-paused' : '' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi {{ $navIsPaused ? 'bi-pause-circle-fill' : 'bi-building' }}"></i>
+                <span class="doc-nav__practice-label">{{ $navIsPaused ? 'Paused at' : 'Working at' }}</span>
                 <span class="doc-nav__practice-name">{{ $navActivePractice->name }}</span>
+                @if($navIsPaused)
+                    <span class="doc-paused-pill">Paused</span>
+                @endif
                 <i class="bi bi-chevron-down"></i>
             </a>
             <div class="dropdown-menu">
-                <h6 class="dropdown-header">Working at</h6>
-                <div class="doc-nav__switcher-active">
-                    <i class="bi bi-star-fill"></i>
+                <h6 class="dropdown-header">{{ $navIsPaused ? 'Currently selected' : 'Working at' }}</h6>
+                <div class="doc-nav__switcher-active {{ $navIsPaused ? 'is-paused' : '' }}">
+                    <i class="bi {{ $navIsPaused ? 'bi-pause-circle-fill' : 'bi-star-fill' }}"></i>
                     <strong>{{ $navActivePractice->name }}</strong>
+                    @if($navIsPaused)
+                        <span class="doc-paused-pill">Paused</span>
+                    @endif
                 </div>
 
                 @if($navOtherPractices->isNotEmpty())
                     <div class="dropdown-divider"></div>
                     <h6 class="dropdown-header">Switch to</h6>
                     @foreach($navOtherPractices as $p)
+                        @php $pIsPaused = $p->status !== 'ACTIVE'; @endphp
                         <form method="POST" action="{{ route('doctor.practice.switch') }}" class="m-0">
                             @csrf
                             <input type="hidden" name="practice_id" value="{{ $p->id }}">
-                            <button type="submit" class="dropdown-item">
-                                <i class="bi bi-arrow-left-right"></i>{{ $p->name }}
+                            <button type="submit" class="dropdown-item d-flex align-items-center">
+                                <i class="bi {{ $pIsPaused ? 'bi-pause-circle' : 'bi-arrow-left-right' }}"></i>
+                                <span>{{ $p->name }}</span>
+                                @if($pIsPaused)
+                                    <span class="doc-paused-pill">Paused</span>
+                                @endif
                             </button>
                         </form>
                     @endforeach

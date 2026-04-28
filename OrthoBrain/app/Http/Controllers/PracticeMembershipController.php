@@ -30,16 +30,31 @@ class PracticeMembershipController extends Controller
     }
 
     /**
-     * Landing page when the doctor is approved but has no active practice links yet.
+     * Landing page for a doctor who has no usable active-practice context.
+     * Covers three cases:
+     *   1. Brand-new doctor with PENDING / REJECTED requests only.
+     *   2. Doctor whose APPROVED practices are all paused (practices.status = INACTIVE).
+     *   3. Mix of the above.
      */
     public function pending()
     {
         $doctor = Auth::user()?->doctor;
         abort_unless($doctor, 403);
 
+        // APPROVED pivots whose practice is currently INACTIVE — the "on hold" set.
+        $onHold = $doctor->practices()
+            ->where('practices.status', 'INACTIVE')
+            ->wherePivot('approval_status', 'APPROVED')
+            ->get();
+
+        // Other APPROVED links at ACTIVE practices the doctor could switch to.
+        $switchable = $doctor->activePractices()->get();
+
         return view('doctor.practices.pending', [
-            'pending'  => $doctor->pendingPractices()->get(),
-            'rejected' => $doctor->rejectedPractices()->get(),
+            'pending'    => $doctor->pendingPractices()->get(),
+            'rejected'   => $doctor->rejectedPractices()->get(),
+            'onHold'     => $onHold,
+            'switchable' => $switchable,
         ]);
     }
 

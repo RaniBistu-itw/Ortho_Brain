@@ -23,7 +23,13 @@ class EnsureActivePractice
             return $next($request);
         }
 
-        if (ActivePractice::get()) {
+        $current = ActivePractice::get();
+
+        // A usable context = practice exists AND is ACTIVE. If either is missing
+        // (no link yet, or the chosen practice has been paused by the admin),
+        // route the doctor to the pending page so they see the explanation +
+        // switch / add-new options instead of being silently shuffled around.
+        if ($current && $current->status === 'ACTIVE') {
             return $next($request);
         }
 
@@ -31,6 +37,11 @@ class EnsureActivePractice
             'doctor.profile.index',
             'doctor.profile.update',
             'doctor.practices.pending',
+            'doctor.practice.switch',
+            'doctor.practices.request',
+            'doctor.practices.cancel',
+            'doctor.practices.leave',
+            'doctor.practices.primary',
             'logout',
         ];
 

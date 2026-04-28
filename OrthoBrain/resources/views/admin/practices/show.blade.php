@@ -122,6 +122,7 @@
     #practice-show .ob-pivot-pill--rejected  { background: #fde7e7; color: #b13233; border-color: #f5caca; }
     #practice-show .ob-pivot-pill--cancelled,
     #practice-show .ob-pivot-pill--left      { background: #eef0f4; color: #6c7283; border-color: #e2e4eb; }
+    #practice-show .ob-pivot-pill--onhold    { background: #fff5e5; color: #b9681a; border-color: #ffdcaf; }
 
     #practice-show .ob-inline-btn {
         display: inline-flex; align-items: center; gap: 0.3rem;
@@ -192,6 +193,85 @@
     #practice-show .ob-doctor-state--rejected  { background-color: #fde7e7; color: #b13233; border-color: #f5caca; }
     #practice-show .ob-doctor-state--suspended { background-color: #eef0f4; color: #555668; border-color: #d5d8e0; }
     #practice-show .ob-doctor-state[disabled]  { opacity: .6; cursor: wait; }
+
+    /* Doctor card toolbar (search + bulk actions) */
+    #practice-show .ob-doctors-toolbar {
+        display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+        padding: .85rem 1.25rem;
+        border-bottom: 1px solid var(--ob-border);
+        background: var(--ob-surface-alt);
+    }
+    #practice-show .ob-doctors-search {
+        flex: 1 1 240px;
+        position: relative;
+        min-width: 220px;
+    }
+    #practice-show .ob-doctors-search > svg {
+        position: absolute;
+        left: .75rem; top: 50%; transform: translateY(-50%);
+        width: 16px; height: 16px;
+        color: #9a9aab;
+        pointer-events: none;
+    }
+    #practice-show .ob-doctors-search input {
+        width: 100%;
+        padding: .45rem .75rem .45rem 2.3rem;
+        border: 1px solid #e2e0ea;
+        border-radius: .5rem;
+        background: #fff;
+        font-size: .85rem;
+        color: var(--ob-text);
+    }
+    #practice-show .ob-doctors-search input:focus {
+        outline: none;
+        border-color: var(--ob-primary);
+        box-shadow: 0 0 0 3px var(--ob-primary-softer);
+    }
+    #practice-show .ob-bulk-actions {
+        display: inline-flex; align-items: center; gap: .4rem;
+    }
+    #practice-show .ob-bulk-btn {
+        display: inline-flex; align-items: center; gap: .35rem;
+        padding: .45rem .85rem;
+        border-radius: .5rem;
+        font-size: .8rem;
+        font-weight: 600;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
+        background: #fff;
+    }
+    #practice-show .ob-bulk-btn svg { width: 14px; height: 14px; }
+    #practice-show .ob-bulk-btn--approve {
+        background: #2eb85c;
+        color: #fff;
+        border-color: #2eb85c;
+    }
+    #practice-show .ob-bulk-btn--approve:hover:not(:disabled) {
+        background: #289c4f;
+        border-color: #289c4f;
+        transform: translateY(-1px);
+    }
+    #practice-show .ob-bulk-btn--reject {
+        background: #fff;
+        color: #c53030;
+        border-color: #f5caca;
+    }
+    #practice-show .ob-bulk-btn--reject:hover:not(:disabled) {
+        background: #fde7e7;
+        transform: translateY(-1px);
+    }
+    #practice-show .ob-bulk-btn:disabled {
+        opacity: .55;
+        cursor: not-allowed;
+        transform: none;
+    }
+    #practice-show .ob-empty-row td {
+        padding: 1.5rem 1.25rem;
+        text-align: center;
+        color: var(--ob-muted);
+        font-size: .85rem;
+    }
 </style>
 @endpush
 
@@ -344,11 +424,35 @@
             <h5 class="ob-card-title">
                 Doctors ({{ $pivotRows->count() }})
                 @if ($pendingPivotCount > 0)
-                    <span class="ob-pivot-pill ob-pivot-pill--pending ms-2">{{ $pendingPivotCount }} pending</span>
+                    <span class="ob-pivot-pill ob-pivot-pill--pending ms-2" id="pendingPivotBadge">{{ $pendingPivotCount }} pending</span>
                 @endif
             </h5>
         </div>
         @if ($pivotRows->count())
+            <div class="ob-doctors-toolbar">
+                <div class="ob-doctors-search">
+                    <i data-feather="search"></i>
+                    <input type="text" id="doctorSearchInput" placeholder="Search by doctor name or email…" autocomplete="off">
+                </div>
+                <div class="ob-bulk-actions">
+                    <button type="button"
+                            id="bulkApproveBtn"
+                            class="ob-bulk-btn ob-bulk-btn--approve"
+                            data-url="{{ route('admin.practices.doctors.bulk', $practice) }}"
+                            data-practice-name="{{ $practice->name }}"
+                            @disabled($pendingPivotCount === 0)>
+                        <i data-feather="check"></i> Approve all
+                    </button>
+                    <button type="button"
+                            id="bulkRejectBtn"
+                            class="ob-bulk-btn ob-bulk-btn--reject"
+                            data-url="{{ route('admin.practices.doctors.bulk', $practice) }}"
+                            data-practice-name="{{ $practice->name }}"
+                            @disabled($pendingPivotCount === 0)>
+                        <i data-feather="x"></i> Reject all
+                    </button>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="ob-members-list">
                     <thead>
@@ -359,7 +463,7 @@
                             <th class="text-end">Approval</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="doctorRowsBody">
                         @foreach ($pivotRows as $d)
                             @php
                                 $cur         = $d->pivot->approval_status ?? 'PENDING';
@@ -367,15 +471,17 @@
                                 $tone        = $stateTone[$cur] ?? 'pending';
                                 $requestedAt = $d->pivot->requested_at ?? $d->pivot->created_at;
                                 $actions     = $transitions[$cur] ?? [];
+                                $doctorEmail = $d->user?->email ?? $d->doctor_contact_email ?? '';
+                                $searchHaystack = mb_strtolower(trim('Dr. ' . $d->first_name . ' ' . $d->last_name . ' ' . $doctorEmail));
                             @endphp
-                            <tr>
+                            <tr data-doctor-row data-search="{{ $searchHaystack }}">
                                 <td>
                                     Dr. {{ $d->first_name }} {{ $d->last_name }}
                                     @if($d->pivot->is_primary)
                                         <span class="ob-pivot-pill ob-pivot-pill--approved ms-1">primary</span>
                                     @endif
                                 </td>
-                                <td>{{ $d->user?->email ?? $d->doctor_contact_email ?? '—' }}</td>
+                                <td>{{ $doctorEmail !== '' ? $doctorEmail : '—' }}</td>
                                 <td>
                                     @if($requestedAt)
                                         {{ \Carbon\Carbon::parse($requestedAt)->diffForHumans() }}
@@ -389,7 +495,13 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    @if (count($actions))
+                                    @if ($practice->status === 'INACTIVE' && $cur === 'APPROVED')
+                                        {{-- Practice is paused: per-doctor approval still APPROVED in DB,
+                                             but we surface the practice-level hold so admin sees the system state. --}}
+                                        <span class="ob-pivot-pill ob-pivot-pill--onhold" title="Practice is currently inactive">
+                                            On Hold
+                                        </span>
+                                    @elseif (count($actions))
                                         <select
                                             class="ob-doctor-state ob-doctor-state--{{ $tone }}"
                                             data-url="{{ route('admin.doctors.practices.status', [$d, $d->pivot->id]) }}"
@@ -407,6 +519,9 @@
                                 </td>
                             </tr>
                         @endforeach
+                        <tr id="doctorSearchEmpty" hidden>
+                            <td colspan="4" class="ob-empty-row">No doctors match your search.</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -565,36 +680,98 @@
                 var reason = needsReason ? (result.value || '').trim() : null;
                 sel.disabled = true;
                 jsonPost(url, { status: target, reason: reason })
-                    .then(function (res) {
-                        var newStatus = res.status;
-                        sel.setAttribute('data-current', newStatus);
-                        // Rebuild the <option>s to reflect new valid transitions.
-                        var newOptions = {
-                            PENDING:   [['APPROVED','Approve'], ['REJECTED','Reject']],
-                            APPROVED:  [['SUSPENDED','Suspend']],
-                            REJECTED:  [['APPROVED','Re-approve']],
-                            SUSPENDED: [['APPROVED','Re-approve']]
-                        }[newStatus] || [];
-                        sel.innerHTML = '';
-                        var head = document.createElement('option');
-                        head.value = ''; head.textContent = labelFor[newStatus] || newStatus; head.selected = true;
-                        sel.appendChild(head);
-                        newOptions.forEach(function (pair) {
-                            var opt = document.createElement('option');
-                            opt.value = pair[0]; opt.textContent = pair[1];
-                            sel.appendChild(opt);
-                        });
-                        reapplyTone(sel, newStatus);
-                        Swal.fire({ icon: 'success', title: actionLabel + 'd.', timer: 1100, showConfirmButton: false });
+                    .then(function () {
+                        // Reload so the pending badge, bulk-button enabled state, and
+                        // valid transitions all stay in sync without bespoke client diffing.
+                        Swal.fire({ icon: 'success', title: actionLabel + 'd.', timer: 900, showConfirmButton: false })
+                            .then(function () { window.location.reload(); });
+                        setTimeout(function () { window.location.reload(); }, 1000);
                     })
                     .catch(function (msg) {
                         sel.value = '';
+                        sel.disabled = false;
                         Swal.fire({ icon: 'error', title: 'Update failed', text: String(msg) });
-                    })
-                    .finally(function () { sel.disabled = false; });
+                    });
             });
         });
     });
+
+    // ── Doctor search: client-side filter ────────────────────────────
+    var searchInput = document.getElementById('doctorSearchInput');
+    var emptyRow    = document.getElementById('doctorSearchEmpty');
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            var q = (searchInput.value || '').trim().toLowerCase();
+            var visible = 0;
+            document.querySelectorAll('tr[data-doctor-row]').forEach(function (row) {
+                var hay = row.getAttribute('data-search') || '';
+                var match = q === '' || hay.indexOf(q) !== -1;
+                row.hidden = !match;
+                if (match) visible++;
+            });
+            if (emptyRow) emptyRow.hidden = visible !== 0;
+        });
+    }
+
+    // ── Bulk approve / reject all PENDING doctors ────────────────────
+    function runBulk(btn, action) {
+        var url          = btn.getAttribute('data-url');
+        var practiceName = btn.getAttribute('data-practice-name') || 'this practice';
+        var isReject     = action === 'REJECT';
+        var actionWord   = isReject ? 'Reject' : 'Approve';
+
+        var swalCfg = {
+            title: actionWord + ' all pending doctors?',
+            showCancelButton: true,
+            confirmButtonText: actionWord + ' all',
+            cancelButtonText:  'Cancel',
+            customClass: {
+                confirmButton: 'btn ' + (isReject ? 'btn-danger' : 'btn-success'),
+                cancelButton:  'btn btn-outline-secondary ms-1'
+            },
+            buttonsStyling: false
+        };
+
+        if (isReject) {
+            swalCfg.input = 'textarea';
+            swalCfg.inputLabel = 'Rejection reason (sent to every doctor)';
+            swalCfg.inputPlaceholder = 'Brief reason…';
+            swalCfg.inputAttributes = { maxlength: 500 };
+            swalCfg.inputValidator = function (v) {
+                if (!v || !v.trim()) return 'A reason is required.';
+            };
+        } else {
+            swalCfg.icon = 'question';
+            swalCfg.text = 'Every pending doctor at ' + practiceName + ' will be approved.';
+        }
+
+        Swal.fire(swalCfg).then(function (result) {
+            if (!result.value) return;
+            var reason = isReject ? (result.value || '').trim() : null;
+
+            btn.disabled = true;
+            jsonPost(url, { action: action, reason: reason })
+                .then(function (res) {
+                    var n = (res && res.count) || 0;
+                    Swal.fire({
+                        icon: 'success',
+                        title: actionWord + 'd ' + n + ' ' + (n === 1 ? 'doctor' : 'doctors') + '.',
+                        timer: 1100,
+                        showConfirmButton: false
+                    }).then(function () { window.location.reload(); });
+                    setTimeout(function () { window.location.reload(); }, 1200);
+                })
+                .catch(function (msg) {
+                    btn.disabled = false;
+                    Swal.fire({ icon: 'error', title: 'Bulk update failed', text: String(msg) });
+                });
+        });
+    }
+
+    var bulkApproveBtn = document.getElementById('bulkApproveBtn');
+    var bulkRejectBtn  = document.getElementById('bulkRejectBtn');
+    if (bulkApproveBtn) bulkApproveBtn.addEventListener('click', function () { runBulk(bulkApproveBtn, 'APPROVE'); });
+    if (bulkRejectBtn)  bulkRejectBtn .addEventListener('click', function () { runBulk(bulkRejectBtn,  'REJECT');  });
 })();
 </script>
 @endpush

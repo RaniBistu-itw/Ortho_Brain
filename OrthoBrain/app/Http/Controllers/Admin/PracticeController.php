@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Country;
+use App\Models\Doctor;
 use App\Models\Practice;
 use App\Models\Zipcode;
 use App\Notifications\PracticeActivatedNotification;
+use App\Notifications\PracticeDeactivatedNotification;
 use App\Notifications\PracticeRequestApproved;
+use App\Notifications\PracticeRequestRejected;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -202,11 +205,95 @@ class PracticeController extends Controller
                         $doctor->user?->notify(new PracticeActivatedNotification($practice));
                     });
             }
+
+            if ($previous === 'ACTIVE' && $data['status'] === 'INACTIVE') {
+                // Approved-pivot rows are intentionally left unchanged so reactivation
+                // restores access without manual re-approval. We only notify the
+                // affected doctors that their access at this practice is paused.
+                $practice->doctors()
+                    ->wherePivot('approval_status', 'APPROVED')
+                    ->with('user')
+                    ->get()
+                    ->each(function ($doctor) use ($practice) {
+                        $doctor->user?->notify(new PracticeDeactivatedNotification($practice));
+                    });
+            }
         });
 
         return response()->json([
             'ok'     => true,
             'status' => $practice->fresh()->status,
         ]);
+    }
+
+    /**
+     * Bulk approve or reject every PENDING doctor link for a practice.
+     */
+    public function bulkPendingAction(Request $request, Practice $practice)
+    {
+        $data = $request->validate([
+            'action' => 'required|in:APPROVE,REJECT',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        if ($data['action'] === 'REJECT' && empty(trim((string) ($data['reason'] ?? '')))) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'A rejection reason is required.',
+            ], 422);
+        }
+
+        $pendingPivots = DB::table('doctor_practice')
+            ->where('practice_id', $practice->id)
+            ->where('approval_status', 'PENDING')
+            ->get(['id', 'doctor_id']);
+
+        if ($pendingPivots->isEmpty()) {
+            return response()->json(['ok' => true, 'count' => 0]);
+        }
+
+        $adminId    = Auth::user()?->admin?->id;
+        $doctorIds  = $pendingPivots->pluck('doctor_id')->all();
+        $count      = $pendingPivots->count();
+
+        DB::transaction(function () use ($practice, $data, $adminId) {
+            if ($data['action'] === 'APPROVE') {
+                DB::table('doctor_practice')
+                    ->where('practice_id', $practice->id)
+                    ->where('approval_status', 'PENDING')
+                    ->update([
+                        'approval_status'      => 'APPROVED',
+                        'approved_at'          => now(),
+                        'approved_by_admin_id' => $adminId,
+                        'rejected_at'          => null,
+                        'rejection_reason'     => null,
+                        'updated_at'           => now(),
+                    ]);
+            } else {
+                DB::table('doctor_practice')
+                    ->where('practice_id', $practice->id)
+                    ->where('approval_status', 'PENDING')
+                    ->update([
+                        'approval_status'      => 'REJECTED',
+                        'rejected_at'          => now(),
+                        'rejection_reason'     => $data['reason'],
+                        'approved_by_admin_id' => $adminId,
+                        'approved_at'          => null,
+                        'updated_at'           => now(),
+                    ]);
+            }
+        });
+
+        $doctors = Doctor::with('user')->whereIn('id', $doctorIds)->get();
+        foreach ($doctors as $doctor) {
+            if (! $doctor->user) continue;
+            $doctor->user->notify(
+                $data['action'] === 'APPROVE'
+                    ? new PracticeRequestApproved($practice)
+                    : new PracticeRequestRejected($practice, $data['reason'])
+            );
+        }
+
+        return response()->json(['ok' => true, 'count' => $count]);
     }
 }
