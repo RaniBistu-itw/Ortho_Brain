@@ -85,6 +85,58 @@
     return window.CaseApi.savePrescription(caseId, state.prescription);
   }
 
+  // Persist patient identity (firstName, lastName, DOB, gender, chartId,
+  // chiefComplaint, plus optional email/phone). Skips silently when the
+  // form isn't yet complete enough to satisfy PatientInformationRequest —
+  // so a partially-filled draft just retries on the next dirty cycle.
+  function persistPatient() {
+    if (!window.CaseApi || caseId === 'new') return Promise.resolve();
+    var pi = state.patientInformation;
+    if (!pi) return Promise.resolve();
+
+    var firstName = (pi.firstName || '').trim();
+    var lastName  = (pi.lastName  || '').trim();
+    var dob       = (pi.dateOfBirth || '').trim();
+    var gender    = (pi.biologicalGender || '').trim();
+    var complaint = (pi.chiefComplaint || '').trim();
+
+    // PatientInformationRequest gates these as required. Skip the round-trip
+    // until the user has filled the minimum.
+    if (!firstName || !lastName || !dob || !gender || !complaint) {
+      return Promise.resolve();
+    }
+    if (gender === 'Self-describe/Other' && !(pi.biologicalGenderOther || '').trim()) {
+      return Promise.resolve();
+    }
+
+    return window.CaseApi.savePatient(caseId, {
+      firstName:              firstName,
+      lastName:               lastName,
+      dateOfBirth:            dob,
+      biologicalGender:       gender,
+      biologicalGenderOther:  pi.biologicalGenderOther || null,
+      patientChartId:         pi.patientChartId || null,
+      chiefComplaint:         complaint,
+      email:                  pi.email || null,
+      phone:                  pi.phone || null,
+      selectedPatientId:      pi.searchedPatientId || null,
+    }).then(function (res) {
+      // Server tells us which patient row got created/updated; remember the
+      // id so subsequent autosaves keep updating the same row instead of
+      // creating duplicates.
+      if (res && res.patient && res.patient.id) {
+        pi.searchedPatientId = res.patient.id;
+        if (window.AddCaseState && window.AddCaseState.patientInformation) {
+          window.AddCaseState.patientInformation.searchedPatientId = res.patient.id;
+        }
+      }
+    }).catch(function (err) {
+      // 422 = validation failed; fields are still being typed. Silent retry.
+      if (err && err.status === 422) return;
+      console.warn('persistPatient failed', err);
+    });
+  }
+
   // ─── Save Draft ────────────────────────────────────────────────────────────
 
   function saveDraft() {
@@ -95,6 +147,7 @@
 
     return ensureShellCreated()
       .then(persistPrescription)
+      .then(persistPatient)
       .then(function () {
         // TODO: teammate-owned sections — replace with real endpoints as each lands.
         try { localStorage.setItem(draftKey, JSON.stringify(state)); } catch (e) { /* ignore quota */ }

@@ -15,6 +15,7 @@ class CaseModel extends Model
     protected $fillable = [
         'doctor_id',
         'practice_id',
+        'patient_id',
         'case_code',
         'status',
         'submitted_at',
@@ -32,6 +33,11 @@ class CaseModel extends Model
     public function practice()
     {
         return $this->belongsTo(Practice::class);
+    }
+
+    public function patient()
+    {
+        return $this->belongsTo(Patient::class);
     }
 
     public function prescription()

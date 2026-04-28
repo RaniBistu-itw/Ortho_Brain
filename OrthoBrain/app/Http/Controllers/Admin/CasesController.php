@@ -80,21 +80,26 @@ class CasesController extends Controller
                 'doctor.practice:id,name',
                 'prescription.toothRestrictions',
                 'media',
+                'patient',
             ])
             ->findOrFail($id);
 
-        // Reuse the doctor CasesController's serializer so the Prescription
-        // prefill shape matches exactly what the Alpine component expects.
+        // Reuse the doctor CasesController's serializers so the prefill
+        // shapes (prescription / media / patient) match exactly what the
+        // Alpine components expect.
         $doctorController = new DoctorCasesController();
+
         $reflection = new \ReflectionMethod($doctorController, 'serializePrescription');
         $reflection->setAccessible(true);
         $prescriptionPrefill = $reflection->invoke($doctorController, $case->prescription);
 
-        // Same trick for the media serializer — keep the JS hydration shape
-        // identical between doctor and admin views.
         $serializeMedia = new \ReflectionMethod($doctorController, 'serializeMedia');
         $serializeMedia->setAccessible(true);
         $caseMedia = $serializeMedia->invoke($doctorController, $case->media);
+
+        $serializePatient = new \ReflectionMethod($doctorController, 'serializePatient');
+        $serializePatient->setAccessible(true);
+        $patientPrefill = $serializePatient->invoke($doctorController, $case->patient);
 
         return view('content.cases.add-case', [
             'id' => $case->id,
@@ -106,6 +111,7 @@ class CasesController extends Controller
             'statusLabels' => self::STATUS_LABELS,
             'scanners' => Scanner::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
             'caseMedia' => $caseMedia,
+            'patientPrefill' => $patientPrefill,
         ]);
     }
 
