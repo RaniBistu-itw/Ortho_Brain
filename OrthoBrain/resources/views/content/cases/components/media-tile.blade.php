@@ -86,10 +86,16 @@
     <i data-feather="x"></i>
   </button>
 
-  {{-- Hidden file input — triggered programmatically on empty-tile click --}}
+  {{-- Hidden file input — triggered programmatically on empty-tile click.
+       @click.stop is critical: input.click() dispatches a synthetic click
+       that bubbles up to the .media-tile div's @click="onTileClick(...)"
+       and would re-fire _openFilePicker, queuing a second OS file dialog.
+       (display:none used to suppress this because the element was out of
+       the event tree; the visually-hidden replacement keeps it in.) --}}
   <input type="file"
          id="tile-file-{{ $tileId }}"
          class="media-tile__file-input"
          :accept="acceptAttribute"
+         @click.stop
          @change="onFileInputChange('{{ $tileId }}')">
 </div>

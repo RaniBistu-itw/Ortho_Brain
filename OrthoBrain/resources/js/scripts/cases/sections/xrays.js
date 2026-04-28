@@ -46,6 +46,7 @@
 
       _tileModalInstance: null,
       _pendingReplaceTileId: null,
+      _lastPickerOpenAt: 0,
 
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
@@ -217,6 +218,10 @@
       },
 
       _openFilePicker: function (tileId) {
+        // Re-entrancy guard — see photographs.js for the rationale.
+        var now = Date.now();
+        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) return;
+        this._lastPickerOpenAt = now;
         var input = document.getElementById('tile-file-' + tileId);
         if (input) input.click();
       },
@@ -225,8 +230,10 @@
         var input = document.getElementById('tile-file-' + tileId);
         if (!input || !input.files.length) return;
         var file = input.files[0];
-        await this._processFile(tileId, file);
+        // Reset BEFORE the async processing so re-selecting the same file
+        // (e.g., after a removal) still fires the change event next time.
         input.value = '';
+        await this._processFile(tileId, file);
       },
 
       // ── Tile modal ──────────────────────────────────────────────────────────

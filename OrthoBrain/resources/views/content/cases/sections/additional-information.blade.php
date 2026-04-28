@@ -80,7 +80,7 @@
     <div class="ai-subsection">
       <p class="ai-subsection__title">B. Medical History</p>
 
-      <div class="ai-wnl-check form-check mb-75">
+      <div class="ai-wnl-check mb-75">
         <input class="form-check-input" type="checkbox" id="ai-mh-wnl"
                x-model="medicalHistory.wnl"
                @change="medicalHistory.wnl ? applyWnl('medicalHistory') : syncToState()">
@@ -198,7 +198,7 @@
       <p class="ai-subsection__title">C. Dental History</p>
       <p class="text-muted small mb-75">Does the patient currently have or a history of:</p>
 
-      <div class="ai-wnl-check form-check mb-75">
+      <div class="ai-wnl-check mb-75">
         <input class="form-check-input" type="checkbox" id="ai-dh-wnl"
                x-model="dentalHistory.wnl"
                @change="dentalHistory.wnl ? applyWnl('dentalHistory') : syncToState()">
@@ -419,7 +419,7 @@
     <div class="ai-subsection">
       <p class="ai-subsection__title">F. Periodontal Evaluation</p>
 
-      <div class="ai-wnl-check form-check mb-75">
+      <div class="ai-wnl-check mb-75">
         <input class="form-check-input" type="checkbox" id="ai-pe-wnl"
                x-model="periodontalEvaluation.wnl"
                @change="periodontalEvaluation.wnl ? applyWnl('periodontal') : syncToState()">

@@ -75,6 +75,7 @@
       _pendingReplaceTileId: null,
       _cameraModalInstance: null,
       _cameraStream: null,
+      _lastPickerOpenAt: 0,
 
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
@@ -346,6 +347,13 @@
       },
 
       _openFilePicker: function (tileId) {
+        // Re-entrancy guard. Even with @click.stop on the file input, a
+        // theoretical edge case where two clicks land in the same task tick
+        // would queue two OS file dialogs. The 250 ms window is well under
+        // any human's repeat-click rhythm.
+        var now = Date.now();
+        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) return;
+        this._lastPickerOpenAt = now;
         var input = document.getElementById('tile-file-' + tileId);
         if (input) input.click();
       },
@@ -354,8 +362,12 @@
         var input = document.getElementById('tile-file-' + tileId);
         if (!input || !input.files.length) return;
         var file = input.files[0];
-        await this._processFile(tileId, file);
+        // Reset BEFORE the async processing so re-selecting the SAME file
+        // (e.g., after a removal) still fires the change event next time.
+        // Was at end of the function which left a window where input.value
+        // still held the old path if processing took >1 frame.
         input.value = '';
+        await this._processFile(tileId, file);
       },
 
       // ── Tile modal ──────────────────────────────────────────────────────────
