@@ -344,7 +344,20 @@
 
       // ── Tile click ──────────────────────────────────────────────────────────
 
-      onTileClick: function (tileId) {
+      onTileClick: function (tileId, evt) {
+        // Guard against synthetic click events (event.isTrusted === false).
+        // The hidden <input type="file"> fires input.click() programmatically
+        // when the user clicks an empty tile; the resulting synthetic click
+        // event bubbles up to this .media-tile div despite @click.stop on
+        // the input (cross-browser quirk — observed on both Chrome and
+        // Firefox). Without this guard, the bubble re-enters onTileClick
+        // AFTER _processFile has set tile.filled=true, which then opens
+        // the photo modal AND queues a second OS file dialog, giving the
+        // user a confusing "modal + dialog both open at once" experience.
+        // Real user clicks (mouse, touch, keyboard Enter/Space) are
+        // event.isTrusted === true and pass through normally.
+        if (evt && evt.isTrusted === false) return;
+
         if (this.tiles[tileId].filled) {
           this._openTileModal(tileId);
         } else {
@@ -418,6 +431,10 @@
       replaceTile: function () {
         var tileId = this.tileModal.activeTileId;
         if (!tileId) return;
+        // User explicitly asked to replace — bypass the post-change recency
+        // guard from PR #78. Without this, clicking Replace within 800ms of
+        // an upload silently no-ops (modal closes, no file dialog opens).
+        if (this._lastChangeByTile) delete this._lastChangeByTile[tileId];
         this._pendingReplaceTileId = tileId;
         this._closeTileModal();
         // _openFilePicker is called from the hidden.bs.modal handler
