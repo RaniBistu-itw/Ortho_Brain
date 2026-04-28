@@ -351,30 +351,33 @@
       },
 
       _openFilePicker: function (tileId) {
-        // Two-layer guard:
-        //
-        // 1. Per-tile lock — set when we open the picker for THIS tile,
-        //    cleared in onFileInputChange (or after 60s if the user cancels
-        //    the OS dialog without selecting). Prevents the second-dialog
-        //    reopen the user keeps reporting: even if a stray code path
-        //    calls _openFilePicker again for the same tile while we're
-        //    waiting for selection, this short-circuits.
-        //
-        // 2. Time-window guard — 250 ms window across ALL tiles, catches
-        //    the synthetic-click bubble case that bit us in PR #72 if any
-        //    future markup change re-introduces it.
-        if (this._pickerLockedTile === tileId) return;
+        var t = (Date.now() % 100000);
+        // Diagnostic toasts so we can see the sequence without DevTools.
+        // These are temporary — remove once the second-dialog symptom is
+        // fully understood + fixed.
+        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+          window.MediaTileHelpers.showToast('OPEN ' + tileId + ' @' + t, 2500);
+        }
+
+        if (this._pickerLockedTile === tileId) {
+          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+            window.MediaTileHelpers.showToast('SKIP-locked ' + tileId, 2500);
+          }
+          return;
+        }
         var now = Date.now();
-        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) return;
+        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) {
+          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+            window.MediaTileHelpers.showToast('SKIP-window ' + tileId, 2500);
+          }
+          return;
+        }
         this._lastPickerOpenAt = now;
 
         var input = document.getElementById('tile-file-' + tileId);
         if (!input) return;
 
         this._pickerLockedTile = tileId;
-        // Auto-clear after 60 s in case the user cancelled the OS dialog
-        // (file inputs do NOT fire any event on cancel — there's no clean
-        // signal). Without this the lock would block re-uploads forever.
         clearTimeout(this._pickerLockTimer);
         var self = this;
         this._pickerLockTimer = setTimeout(function () {
@@ -385,20 +388,21 @@
       },
 
       onFileInputChange: async function (tileId) {
-        // ALWAYS clear the per-tile lock first — even on early-returns —
-        // otherwise a no-file change event would leave the tile locked.
+        var t = (Date.now() % 100000);
+        var input = document.getElementById('tile-file-' + tileId);
+        var fileCount = input && input.files ? input.files.length : 0;
+        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+          window.MediaTileHelpers.showToast('CHANGE ' + tileId + ' files=' + fileCount + ' @' + t, 2500);
+        }
+
         if (this._pickerLockedTile === tileId) {
           this._pickerLockedTile = null;
           clearTimeout(this._pickerLockTimer);
         }
 
-        var input = document.getElementById('tile-file-' + tileId);
         if (!input || !input.files.length) return;
         var file = input.files[0];
         await this._processFile(tileId, file);
-        // Reset value AFTER processing so the file reference stays valid
-        // throughout. Resetting earlier introduced timing weirdness in
-        // some Chromium builds (the OS dialog re-opening after Select).
         input.value = '';
       },
 
@@ -618,9 +622,16 @@
       // ── Bulk upload ─────────────────────────────────────────────────────────
 
       openBulkPicker: function () {
-        // Same single-shot lock as per-tile pickers — prevents the "dialog
-        // reopens after Select" symptom on bulk too.
-        if (this._bulkPickerLocked) return;
+        var t = (Date.now() % 100000);
+        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+          window.MediaTileHelpers.showToast('BULK-OPEN @' + t, 2500);
+        }
+        if (this._bulkPickerLocked) {
+          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+            window.MediaTileHelpers.showToast('BULK-SKIP locked', 2500);
+          }
+          return;
+        }
         var input = document.getElementById('bulk-upload-photos');
         if (!input) return;
         this._bulkPickerLocked = true;
@@ -633,11 +644,16 @@
       },
 
       onBulkInputChange: async function () {
-        // Always release the lock first.
+        var t = (Date.now() % 100000);
+        var input = document.getElementById('bulk-upload-photos');
+        var fileCount = input && input.files ? input.files.length : 0;
+        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+          window.MediaTileHelpers.showToast('BULK-CHANGE files=' + fileCount + ' @' + t, 2500);
+        }
+
         this._bulkPickerLocked = false;
         clearTimeout(this._bulkPickerLockTimer);
 
-        var input = document.getElementById('bulk-upload-photos');
         if (!input || !input.files.length) return;
 
         var files = Array.from(input.files);

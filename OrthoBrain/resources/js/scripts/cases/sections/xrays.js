@@ -222,11 +222,25 @@
       },
 
       _openFilePicker: function (tileId) {
-        // Per-tile lock + 250ms global window — see photographs.js for the
-        // full rationale.
-        if (this._pickerLockedTile === tileId) return;
+        var t = (Date.now() % 100000);
+        // Diagnostic toasts — temporary, removed in the follow-up fix PR.
+        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+          window.MediaTileHelpers.showToast('XR-OPEN ' + tileId + ' @' + t, 2500);
+        }
+
+        if (this._pickerLockedTile === tileId) {
+          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+            window.MediaTileHelpers.showToast('XR-SKIP-locked ' + tileId, 2500);
+          }
+          return;
+        }
         var now = Date.now();
-        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) return;
+        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) {
+          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+            window.MediaTileHelpers.showToast('XR-SKIP-window ' + tileId, 2500);
+          }
+          return;
+        }
         this._lastPickerOpenAt = now;
 
         var input = document.getElementById('tile-file-' + tileId);
@@ -243,17 +257,21 @@
       },
 
       onFileInputChange: async function (tileId) {
+        var t = (Date.now() % 100000);
+        var input = document.getElementById('tile-file-' + tileId);
+        var fileCount = input && input.files ? input.files.length : 0;
+        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+          window.MediaTileHelpers.showToast('XR-CHANGE ' + tileId + ' files=' + fileCount + ' @' + t, 2500);
+        }
+
         if (this._pickerLockedTile === tileId) {
           this._pickerLockedTile = null;
           clearTimeout(this._pickerLockTimer);
         }
 
-        var input = document.getElementById('tile-file-' + tileId);
         if (!input || !input.files.length) return;
         var file = input.files[0];
         await this._processFile(tileId, file);
-        // Reset value AFTER processing keeps the file reference stable
-        // through the entire flow.
         input.value = '';
       },
 
@@ -441,7 +459,16 @@
       // ── Bulk upload ─────────────────────────────────────────────────────────
 
       openBulkPicker: function () {
-        if (this._bulkPickerLocked) return;
+        var t = (Date.now() % 100000);
+        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+          window.MediaTileHelpers.showToast('XR-BULK-OPEN @' + t, 2500);
+        }
+        if (this._bulkPickerLocked) {
+          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+            window.MediaTileHelpers.showToast('XR-BULK-SKIP locked', 2500);
+          }
+          return;
+        }
         var input = document.getElementById('bulk-upload-xrays');
         if (!input) return;
         this._bulkPickerLocked = true;
@@ -454,10 +481,16 @@
       },
 
       onBulkInputChange: async function () {
+        var t = (Date.now() % 100000);
+        var input = document.getElementById('bulk-upload-xrays');
+        var fileCount = input && input.files ? input.files.length : 0;
+        if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+          window.MediaTileHelpers.showToast('XR-BULK-CHANGE files=' + fileCount + ' @' + t, 2500);
+        }
+
         this._bulkPickerLocked = false;
         clearTimeout(this._bulkPickerLockTimer);
 
-        var input = document.getElementById('bulk-upload-xrays');
         if (!input || !input.files.length) return;
 
         var files = Array.from(input.files);
