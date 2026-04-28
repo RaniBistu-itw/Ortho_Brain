@@ -79,13 +79,19 @@
                     <td>
                         <span class="ob-contact-line">
                             <i data-feather="mail"></i>
-                            {{ $doctor->doctor_contact_email }}
+                            @if ($doctor->doctor_contact_email)
+                                <a href="mailto:{{ $doctor->doctor_contact_email }}"
+                                   title="Email Dr. {{ $doctor->first_name }} {{ $doctor->last_name }}">{{ $doctor->doctor_contact_email }}</a>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
                         </span>
                         @if ($doctor->doctor_cell_phone)
                             <br>
                             <span class="ob-contact-line is-sub">
                                 <i data-feather="phone"></i>
-                                {{ $doctor->doctor_cell_phone }}
+                                <a href="tel:{{ preg_replace('/[^0-9+]/', '', $doctor->doctor_cell_phone) }}"
+                                   title="Call Dr. {{ $doctor->first_name }} {{ $doctor->last_name }}">{{ $doctor->doctor_cell_phone }}</a>
                             </span>
                         @endif
                     </td>

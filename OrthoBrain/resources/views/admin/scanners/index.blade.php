@@ -32,6 +32,12 @@
     .sc-table .sc-row-new { animation: sc-row-flash 1.4s ease-out; }
     @keyframes sc-row-flash { 0% { background: rgba(var(--bs-success-rgb), .2); } 100% { background: transparent; } }
     .sc-cell-link a { max-width: 240px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+    .sc-portal-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .65rem; border-radius: 999px;
+                     font-size: .76rem; font-weight: 500; line-height: 1; text-decoration: none;
+                     background: rgba(var(--bs-primary-rgb), .1); color: var(--bs-primary);
+                     border: 1px solid rgba(var(--bs-primary-rgb), .18); transition: background .15s ease, color .15s ease, border-color .15s ease; }
+    .sc-portal-btn:hover { background: var(--bs-primary); color: #fff; border-color: var(--bs-primary); }
+    .sc-portal-btn svg { width: 13px; height: 13px; }
 
     .sc-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
     .sc-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
@@ -143,7 +149,11 @@
                             </td>
                             <td class="sc-cell-link">
                                 @if ($sc->portal_link)
-                                    <a href="{{ $sc->portal_link }}" target="_blank" rel="noopener" class="text-primary">{{ $sc->portal_link }}</a>
+                                    <a href="{{ $sc->portal_link }}" target="_blank" rel="noopener"
+                                       class="sc-portal-btn" title="{{ $sc->portal_link }}">
+                                        <i data-feather="external-link"></i>
+                                        Open portal
+                                    </a>
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif
@@ -300,7 +310,7 @@
             : '<span class="text-muted">—</span>';
 
         const linkCell = sc.portal_link
-            ? `<a href="${escapeHtml(sc.portal_link)}" target="_blank" rel="noopener" class="text-primary">${escapeHtml(sc.portal_link)}</a>`
+            ? `<a href="${escapeHtml(sc.portal_link)}" target="_blank" rel="noopener" class="sc-portal-btn" title="${escapeHtml(sc.portal_link)}"><i data-feather="external-link"></i> Open portal</a>`
             : '<span class="text-muted">—</span>';
 
         return `
@@ -346,7 +356,7 @@
         );
         $row.find('.sc-cell-link').html(
             sc.portal_link
-                ? `<a href="${escapeHtml(sc.portal_link)}" target="_blank" rel="noopener" class="text-primary">${escapeHtml(sc.portal_link)}</a>`
+                ? `<a href="${escapeHtml(sc.portal_link)}" target="_blank" rel="noopener" class="sc-portal-btn" title="${escapeHtml(sc.portal_link)}"><i data-feather="external-link"></i> Open portal</a>`
                 : '<span class="text-muted">—</span>'
         );
 
@@ -365,6 +375,8 @@
              .attr('data-url', sc.update_url);
 
         $row.find('.js-delete-form').attr('data-confirm', `Delete scanner '${sc.name}'?`);
+
+        if (window.feather) window.feather.replace();
 
         // flash highlight
         $row.removeClass('sc-row-new'); void $row[0].offsetWidth; $row.addClass('sc-row-new');

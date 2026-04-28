@@ -499,9 +499,11 @@
                             </td>
                             <td>
                                 @if ($phoneDisplay !== '')
+                                    @php $phoneHref = preg_replace('/[^0-9+]/', '', $phoneDisplay); @endphp
                                     <span class="ob-contact-line">
                                         <i data-feather="phone"></i>
-                                        {{ $phoneDisplay }}
+                                        <a href="tel:{{ $phoneHref }}"
+                                           title="Call {{ $practice->name }}">{{ $phoneDisplay }}</a>
                                     </span>
                                 @endif
                                 @if ($websiteDisplay)
