@@ -4,19 +4,6 @@
 
 @push('styles')
 <style>
-    /* ── KPI strip ─────────────────────────────────────────────────── */
-    .co-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
-    @media (max-width: 767.98px) { .co-kpis { grid-template-columns: 1fr; } }
-    .co-kpi { display: flex; align-items: center; gap: .9rem; padding: 1rem 1.1rem; border-radius: .6rem;
-              background: #fff; box-shadow: 0 2px 8px rgba(34, 41, 47, .05); border: 1px solid rgba(34, 41, 47, .05); }
-    .co-kpi__icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; }
-    .co-kpi__icon svg { width: 20px; height: 20px; }
-    .co-kpi__icon--total    { background: rgba(var(--bs-primary-rgb), .12); color: var(--bs-primary); }
-    .co-kpi__icon--active   { background: rgba(var(--bs-success-rgb), .12); color: var(--bs-success); }
-    .co-kpi__icon--inactive { background: rgba(var(--bs-danger-rgb), .12);  color: var(--bs-danger); }
-    .co-kpi__label { font-size: .78rem; color: #6e6b7b; text-transform: uppercase; letter-spacing: .04em; }
-    .co-kpi__value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; color: #5e5873; }
-
     /* ── Countries — drawer + table polish ─────────────────────────── */
     .co-card { border: 1px solid rgba(34, 41, 47, .05); box-shadow: 0 2px 10px rgba(34, 41, 47, .05); }
     .co-toolbar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid rgba(34, 41, 47, .06); }
@@ -61,29 +48,13 @@
 <section id="countries-list">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
-    <div class="co-kpis">
-        <div class="co-kpi">
-            <div class="co-kpi__icon co-kpi__icon--total"><i data-feather="layers"></i></div>
-            <div>
-                <div class="co-kpi__label">Total</div>
-                <div class="co-kpi__value" data-stat="total">{{ $stats['total'] }}</div>
-            </div>
-        </div>
-        <div class="co-kpi">
-            <div class="co-kpi__icon co-kpi__icon--active"><i data-feather="check-circle"></i></div>
-            <div>
-                <div class="co-kpi__label">Active</div>
-                <div class="co-kpi__value" data-stat="active">{{ $stats['active'] }}</div>
-            </div>
-        </div>
-        <div class="co-kpi">
-            <div class="co-kpi__icon co-kpi__icon--inactive"><i data-feather="slash"></i></div>
-            <div>
-                <div class="co-kpi__label">Inactive</div>
-                <div class="co-kpi__value" data-stat="inactive">{{ $stats['inactive'] }}</div>
-            </div>
-        </div>
-    </div>
+    @include('admin._partials.stat_cards', [
+        'cards' => [
+            ['label' => 'Total',    'value' => $stats['total'],    'icon' => 'globe',        'tone' => 'primary', 'stat_key' => 'total'],
+            ['label' => 'Active',   'value' => $stats['active'],   'icon' => 'check-circle', 'tone' => 'success', 'stat_key' => 'active'],
+            ['label' => 'Inactive', 'value' => $stats['inactive'], 'icon' => 'slash',        'tone' => 'danger',  'stat_key' => 'inactive'],
+        ],
+    ])
 
     <div class="card co-card">
 

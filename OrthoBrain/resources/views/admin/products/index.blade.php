@@ -2,50 +2,17 @@
 @section('title', 'Products')
 @section('page_title', 'Products')
 
-@push('styles')
-<style>
-    /* ── KPI strip ─────────────────────────────────────────────────── */
-    .pr-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
-    @media (max-width: 767.98px) { .pr-kpis { grid-template-columns: 1fr; } }
-    .pr-kpi { display: flex; align-items: center; gap: .9rem; padding: 1rem 1.1rem; border-radius: .6rem;
-              background: #fff; box-shadow: 0 2px 8px rgba(34, 41, 47, .05); border: 1px solid rgba(34, 41, 47, .05); }
-    .pr-kpi__icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; }
-    .pr-kpi__icon svg { width: 20px; height: 20px; }
-    .pr-kpi__icon--total    { background: rgba(var(--bs-primary-rgb), .12); color: var(--bs-primary); }
-    .pr-kpi__icon--active   { background: rgba(var(--bs-success-rgb), .12); color: var(--bs-success); }
-    .pr-kpi__icon--inactive { background: rgba(var(--bs-danger-rgb), .12);  color: var(--bs-danger); }
-    .pr-kpi__label { font-size: .78rem; color: #6e6b7b; text-transform: uppercase; letter-spacing: .04em; }
-    .pr-kpi__value { font-size: 1.5rem; font-weight: 600; line-height: 1.2; color: #5e5873; }
-</style>
-@endpush
-
 @section('content')
 <section id="products-list">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
-    <div class="pr-kpis">
-        <div class="pr-kpi">
-            <div class="pr-kpi__icon pr-kpi__icon--total"><i data-feather="layers"></i></div>
-            <div>
-                <div class="pr-kpi__label">Total</div>
-                <div class="pr-kpi__value" data-stat="total">{{ $stats['total'] }}</div>
-            </div>
-        </div>
-        <div class="pr-kpi">
-            <div class="pr-kpi__icon pr-kpi__icon--active"><i data-feather="check-circle"></i></div>
-            <div>
-                <div class="pr-kpi__label">Active</div>
-                <div class="pr-kpi__value" data-stat="active">{{ $stats['active'] }}</div>
-            </div>
-        </div>
-        <div class="pr-kpi">
-            <div class="pr-kpi__icon pr-kpi__icon--inactive"><i data-feather="slash"></i></div>
-            <div>
-                <div class="pr-kpi__label">Inactive</div>
-                <div class="pr-kpi__value" data-stat="inactive">{{ $stats['inactive'] }}</div>
-            </div>
-        </div>
-    </div>
+    @include('admin._partials.stat_cards', [
+        'cards' => [
+            ['label' => 'Total',    'value' => $stats['total'],    'icon' => 'box',          'tone' => 'primary', 'stat_key' => 'total'],
+            ['label' => 'Active',   'value' => $stats['active'],   'icon' => 'check-circle', 'tone' => 'success', 'stat_key' => 'active'],
+            ['label' => 'Inactive', 'value' => $stats['inactive'], 'icon' => 'slash',        'tone' => 'danger',  'stat_key' => 'inactive'],
+        ],
+    ])
 
     <div class="card">
         @php
