@@ -2,12 +2,6 @@
 @section('title', 'Add Doctor')
 @section('page_title', 'Add Doctor')
 
-@section('breadcrumbs')
-    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Admin</a></li>
-    <li class="breadcrumb-item"><a href="{{ route('admin.doctors.index') }}">Doctors</a></li>
-    <li class="breadcrumb-item active">Add Doctor</li>
-@endsection
-
 @push('styles')
 <style>
     /* ──────────────────────────────────────────────────────────────
@@ -655,7 +649,7 @@
                 </section>
 
                 {{-- ─── §2 Practice & Address ─────────────────────── --}}
-                <section class="obw-section" id="obw-section-2" data-step="2" data-required="practice_name,practice_phone_number,practice_website,preferred_language,street_address_1,zip_id">
+                <section class="obw-section" id="obw-section-2" data-step="2" data-required="practice_name,practice_phone_number,practice_website,street_address_1,zip_id">
                     <div class="card">
                         <div class="card-header d-flex">
                             <div>
@@ -719,9 +713,8 @@
                                         <label for="practice_phone_number" class="form-label">Practice Phone<span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <select id="practice_phone_country_code" name="practice_phone_country_code" class="form-select" style="max-width:110px;">
-                                                <option value="+1_US"  @selected(old('practice_phone_country_code','+1_US') === '+1_US')>+1 US</option>
-                                                <option value="+1_CA"  @selected(old('practice_phone_country_code') === '+1_CA')>+1 CA</option>
-                                                <option value="+61_AU" @selected(old('practice_phone_country_code') === '+61_AU')>+61 AU</option>
+                                                <option value="+1"  @selected(old('practice_phone_country_code','+1') === '+1')>+1 (US/CA)</option>
+                                                <option value="+61" @selected(old('practice_phone_country_code') === '+61')>+61 (AU)</option>
                                             </select>
                                             <input id="practice_phone_number" name="practice_phone_number" type="tel"
                                                    value="{{ old('practice_phone_number') }}"
@@ -742,17 +735,6 @@
                                                    class="form-control @error('practice_website') is-invalid @enderror">
                                         </div>
                                         <div id="practice_website-err" class="invalid-feedback d-block" data-err-for="practice_website">@error('practice_website'){{ $message }}@enderror</div>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <label for="preferred_language" class="form-label">Preferred Language<span class="text-danger">*</span></label>
-                                        <select id="preferred_language" name="preferred_language" required
-                                                class="form-select @error('preferred_language') is-invalid @enderror">
-                                            <option value="English" @selected(old('preferred_language','English') === 'English')>English</option>
-                                            <option value="Spanish" @selected(old('preferred_language') === 'Spanish')>Spanish</option>
-                                            <option value="French"  @selected(old('preferred_language') === 'French')>French</option>
-                                        </select>
-                                        <div id="preferred_language-err" class="invalid-feedback d-block" data-err-for="preferred_language">@error('preferred_language'){{ $message }}@enderror</div>
                                     </div>
                                 </div>
 
@@ -1304,7 +1286,6 @@ $(function () {
             const v = ($('#practice_website').val() || '').trim();
             return !v ? 'Website is required' : !websiteRe.test(v) ? 'Enter a valid website' : '';
         },
-        preferred_language: v => !v ? 'Pick a language' : '',
         street_address_1: () => {
             if ($('#practice_id').val()) return '';
             const v = ($('#street_address_1').val() || '').trim();
@@ -1514,7 +1495,7 @@ $(function () {
         const stepOf = {
             email: 1, first_name: 1, last_name: 1, password: 1, confirm_password: 1,
             practice_name: 2, practice_phone_number: 2, practice_website: 2,
-            preferred_language: 2, street_address_1: 2, zip_id: 2,
+            street_address_1: 2, zip_id: 2,
             terms_agreed: 4,
         };
 
@@ -1581,16 +1562,12 @@ $(function () {
         }).then(r => { if (r.isConfirmed) { isDirty = false; window.location.href = DOCTORS_INDEX_URL; } });
     }
     $('#obw-cancel').on('click', confirmLeave);
-    window.addEventListener('beforeunload', (e) => {
-        if (isDirty) { e.preventDefault(); e.returnValue = ''; }
-    });
-
     // ─── Server-side error recovery: jump to earliest bad section ─
     if (SERVER_ERROR_FIELDS && SERVER_ERROR_FIELDS.length) {
         const stepFor = {
             email: 1, first_name: 1, last_name: 1, password: 1, confirm_password: 1,
             practice_id: 2, practice_name: 2, practice_phone_number: 2, practice_phone_country_code: 2,
-            practice_website: 2, preferred_language: 2, street_address_1: 2, street_address_2: 2,
+            practice_website: 2, street_address_1: 2, street_address_2: 2,
             zip_id: 2, city_id: 2, state_id: 2, country_id: 2,
             terms_agreed: 4,
         };

@@ -96,9 +96,18 @@
                         @endif
                     </td>
                     <td>
-                        <span class="ob-when" title="{{ $doctor->created_at?->toDayDateTimeString() }}">
+                        @php($_reg = $doctor->created_at)
+                        <span class="ob-when" title="{{ $_reg?->toDayDateTimeString() }}">
                             <i data-feather="calendar"></i>
-                            {{ $doctor->created_at?->diffForHumans() ?? '—' }}
+                            @if ($_reg)
+                                @if ($_reg->lt(now()->subDay()))
+                                    {{ $_reg->format('M j, Y · g:i A') }}
+                                @else
+                                    {{ $_reg->diffForHumans() }}
+                                @endif
+                            @else
+                                —
+                            @endif
                         </span>
                     </td>
                     <td>
