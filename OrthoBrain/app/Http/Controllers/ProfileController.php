@@ -130,11 +130,12 @@ class ProfileController extends Controller
         $doctor = Doctor::where('user_id', Auth::id())->first();
 
         return view('profile.address-form', [
-            'mode'     => 'create',
-            'type'     => $type,
-            'doctor'   => $doctor,
-            'address'  => null,
-            'zipcodes' => $this->activeZipcodes(),
+            'mode'           => 'create',
+            'type'           => $type,
+            'doctor'         => $doctor,
+            'activePractice' => currentPractice(),
+            'address'        => null,
+            'zipcodes'       => $this->activeZipcodes(),
         ]);
     }
 
@@ -142,11 +143,12 @@ class ProfileController extends Controller
     {
         $this->authorizeAddress($address);
         return view('profile.address-form', [
-            'mode'     => 'view',
-            'type'     => $address->type,
-            'doctor'   => $address->doctor,
-            'address'  => $address->load('zipcode', 'city', 'state', 'country'),
-            'zipcodes' => $this->activeZipcodes(),
+            'mode'           => 'view',
+            'type'           => $address->type,
+            'doctor'         => $address->doctor,
+            'activePractice' => currentPractice(),
+            'address'        => $address->load('zipcode', 'city', 'state', 'country'),
+            'zipcodes'       => $this->activeZipcodes(),
         ]);
     }
 
@@ -154,11 +156,12 @@ class ProfileController extends Controller
     {
         $this->authorizeAddress($address);
         return view('profile.address-form', [
-            'mode'     => 'edit',
-            'type'     => $address->type,
-            'doctor'   => $address->doctor,
-            'address'  => $address->load('zipcode', 'city', 'state', 'country'),
-            'zipcodes' => $this->activeZipcodes(),
+            'mode'           => 'edit',
+            'type'           => $address->type,
+            'doctor'         => $address->doctor,
+            'activePractice' => currentPractice(),
+            'address'        => $address->load('zipcode', 'city', 'state', 'country'),
+            'zipcodes'       => $this->activeZipcodes(),
         ]);
     }
 

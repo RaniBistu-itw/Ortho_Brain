@@ -10,7 +10,7 @@
              : ($isEdit ? 'Edit Address'
              :            'Add ' . ucfirst($type) . ' Address');
 
-    $practice = $doctor?->practice?->name ?? '';
+    $practice = $activePractice?->name ?? $doctor?->practice?->name ?? '';
     $docName  = trim(($doctor?->first_name ?? '') . ' ' . ($doctor?->last_name ?? ''));
 
     // Pre-fill values when editing / viewing an existing address.
@@ -24,10 +24,313 @@
 
 @section('title', $heading)
 
+@push('styles')
+<style>
+    /* ── Address form — login-style premium polish ── */
+    .addr-form-shell {
+        padding: 1rem 0 2rem;
+    }
+    .addr-form-card {
+        position: relative;
+        max-width: 940px;
+        margin: 0 auto;
+        background: #ffffff;
+        border: 1px solid rgba(226, 232, 240, 0.65) !important;
+        border-radius: 20px !important;
+        box-shadow:
+            0 1px 2px rgba(15, 23, 42, 0.03),
+            0 12px 32px -18px rgba(15, 23, 42, 0.10) !important;
+        overflow: hidden;
+        font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+        color: #0F172A;
+    }
+    .addr-form-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent 0%, #60A5FA 30%, #2563EB 50%, #60A5FA 70%, transparent 100%);
+        opacity: .55;
+        z-index: 1;
+    }
+    .addr-form-card > .card-body {
+        padding: 36px 40px !important;
+    }
+
+    /* Title */
+    .addr-form-card .addr-form-title {
+        font-size: 1.5rem;
+        font-weight: 500;
+        color: #0F172A;
+        letter-spacing: -0.015em;
+        line-height: 1.3;
+        margin-bottom: 1.75rem !important;
+    }
+
+    /* Validation error alert */
+    .addr-form-card .alert.alert-danger {
+        background: rgba(220, 38, 38, 0.06);
+        border: 1px solid rgba(220, 38, 38, 0.18);
+        color: #991B1B;
+        border-radius: 12px;
+        padding: .85rem 1rem;
+        margin-bottom: 1.5rem;
+    }
+    .addr-form-card .alert.alert-danger p { color: #991B1B; }
+
+    /* Row spacing */
+    .addr-form-card .row > [class*="col-"].mb-1 {
+        margin-bottom: 1.25rem !important;
+    }
+
+    /* Labels */
+    .addr-form-card .form-label {
+        font-size: .78rem;
+        font-weight: 500;
+        color: #64748B;
+        letter-spacing: .01em;
+        margin-bottom: .45rem;
+    }
+    .addr-form-card .form-label .text-danger {
+        color: #DC2626 !important;
+        margin-left: 2px;
+    }
+
+    /* Inputs & selects */
+    .addr-form-card .form-control,
+    .addr-form-card .form-select {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: .65rem .85rem;
+        font-size: .92rem;
+        color: #0F172A;
+        background-color: #ffffff;
+        transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+    }
+    .addr-form-card .form-control::placeholder {
+        color: #94A3B8;
+    }
+    .addr-form-card .form-control:hover:not(:disabled):not([readonly]),
+    .addr-form-card .form-select:hover:not(:disabled) {
+        border-color: #cbd5e1;
+    }
+    .addr-form-card .form-control:focus,
+    .addr-form-card .form-select:focus {
+        border-color: #3B82F6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+        outline: none;
+        background-color: #ffffff;
+    }
+    .addr-form-card .form-control.is-invalid,
+    .addr-form-card .form-select.is-invalid {
+        border-color: #DC2626;
+        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.10);
+    }
+    .addr-form-card .form-control[readonly],
+    .addr-form-card .form-control.bg-light-secondary,
+    .addr-form-card .form-select.bg-light-secondary,
+    .addr-form-card .form-select:disabled {
+        background-color: #f8fafc !important;
+        color: #64748B !important;
+        border-color: #eef2f7;
+        cursor: not-allowed;
+    }
+    .addr-form-card .form-control[readonly]:focus,
+    .addr-form-card .form-control.bg-light-secondary:focus,
+    .addr-form-card .form-select.bg-light-secondary:focus {
+        border-color: #eef2f7;
+        box-shadow: none;
+    }
+
+    /* Input-group icon (location/mail) */
+    .addr-form-card .input-group {
+        position: relative;
+    }
+    .addr-form-card .input-group .input-group-text {
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-right: 0;
+        color: #94A3B8;
+        border-radius: 10px 0 0 10px;
+        padding: 0 .85rem;
+        transition: border-color .2s ease, color .2s ease;
+    }
+    .addr-form-card .input-group .input-group-text svg {
+        width: 16px;
+        height: 16px;
+    }
+    .addr-form-card .input-group .form-control {
+        border-radius: 0 10px 10px 0 !important;
+        border-left: 0;
+    }
+    .addr-form-card .input-group:focus-within .input-group-text {
+        border-color: #3B82F6;
+        color: #3B82F6;
+    }
+    .addr-form-card .input-group:focus-within .form-control {
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+    }
+    .addr-form-card .input-group:hover:not(:focus-within) .input-group-text {
+        border-color: #cbd5e1;
+    }
+
+    /* Validation error text under fields */
+    .addr-form-card small.text-danger {
+        display: block;
+        color: #DC2626 !important;
+        font-size: .78rem;
+        margin-top: .35rem;
+    }
+
+    /* Action row */
+    .addr-form-card .addr-form-actions {
+        gap: .75rem;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 1.5rem;
+        margin-top: 2rem !important;
+    }
+
+    /* Save / Update button (was btn-success) → blue gradient pill */
+    .addr-form-card .addr-form-actions .btn-success {
+        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%);
+        border: none;
+        color: #fff;
+        font-weight: 500;
+        font-size: .92rem;
+        border-radius: 999px;
+        padding: .65rem 1.6rem;
+        box-shadow:
+            0 1px 2px rgba(37, 99, 235, 0.20),
+            0 8px 20px -6px rgba(37, 99, 235, 0.40);
+        transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+    }
+    .addr-form-card .addr-form-actions .btn-success:hover,
+    .addr-form-card .addr-form-actions .btn-success:focus {
+        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%);
+        transform: translateY(-2px);
+        filter: brightness(1.06);
+        box-shadow:
+            0 2px 4px rgba(37, 99, 235, 0.25),
+            0 14px 28px -8px rgba(37, 99, 235, 0.50);
+        color: #fff;
+    }
+    .addr-form-card .addr-form-actions .btn-success:active {
+        transform: translateY(-1px);
+        filter: brightness(0.98);
+    }
+
+    /* Cancel / Back button (was btn-danger) → outline gray */
+    .addr-form-card .addr-form-actions .btn-danger {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        color: #64748B;
+        font-weight: 500;
+        font-size: .92rem;
+        border-radius: 999px;
+        padding: .65rem 1.6rem;
+        box-shadow: none;
+        transition: background-color .2s ease, border-color .2s ease, color .2s ease, transform .2s ease;
+    }
+    .addr-form-card .addr-form-actions .btn-danger:hover,
+    .addr-form-card .addr-form-actions .btn-danger:focus {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        color: #1E293B;
+        transform: translateY(-1px);
+    }
+
+    /* Mobile */
+    @media (max-width: 575.98px) {
+        .addr-form-card { border-radius: 16px !important; }
+        .addr-form-card > .card-body { padding: 24px 20px !important; }
+        .addr-form-card .addr-form-title { font-size: 1.3rem; margin-bottom: 1.25rem !important; }
+        .addr-form-card .addr-form-actions { flex-direction: column-reverse; align-items: stretch; }
+        .addr-form-card .addr-form-actions .btn { width: 100%; margin-right: 0 !important; }
+    }
+
+    /* ── Dark theme: align .addr-form-card with Vuexy dark-layout ── */
+    .dark-layout .addr-form-card {
+        background: #283046 !important;
+        border-color: rgba(255, 255, 255, 0.06) !important;
+        box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.20),
+            0 12px 32px -18px rgba(0, 0, 0, 0.55) !important;
+        color: #b4b7bd;
+    }
+    .dark-layout .addr-form-card .addr-form-title { color: #d0d2d6; }
+    .dark-layout .addr-form-card .alert.alert-danger {
+        background: rgba(220, 38, 38, 0.10);
+        border-color: rgba(220, 38, 38, 0.30);
+        color: #FCA5A5;
+    }
+    .dark-layout .addr-form-card .alert.alert-danger p { color: #FCA5A5; }
+    .dark-layout .addr-form-card .form-label { color: rgba(255, 255, 255, 0.55); }
+    .dark-layout .addr-form-card .form-control,
+    .dark-layout .addr-form-card .form-select {
+        background-color: #283046;
+        border-color: #404656;
+        color: #d0d2d6;
+    }
+    .dark-layout .addr-form-card .form-control::placeholder { color: rgba(255, 255, 255, 0.35); }
+    .dark-layout .addr-form-card .form-control:hover:not(:disabled):not([readonly]),
+    .dark-layout .addr-form-card .form-select:hover:not(:disabled) { border-color: #4d5670; }
+    .dark-layout .addr-form-card .form-control:focus,
+    .dark-layout .addr-form-card .form-select:focus {
+        border-color: #3B82F6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18);
+        background-color: #283046;
+    }
+    .dark-layout .addr-form-card .form-control[readonly],
+    .dark-layout .addr-form-card .form-control.bg-light-secondary,
+    .dark-layout .addr-form-card .form-select.bg-light-secondary,
+    .dark-layout .addr-form-card .form-select:disabled {
+        background-color: #1f2638 !important;
+        color: rgba(255, 255, 255, 0.55) !important;
+        border-color: #2e3548;
+    }
+    .dark-layout .addr-form-card .input-group .input-group-text {
+        background-color: #283046;
+        border-color: #404656;
+        color: rgba(255, 255, 255, 0.45);
+    }
+    .dark-layout .addr-form-card .input-group:hover:not(:focus-within) .input-group-text { border-color: #4d5670; }
+    .dark-layout .addr-form-card .input-group:focus-within .input-group-text {
+        border-color: #3B82F6;
+        color: #60A5FA;
+    }
+    .dark-layout .addr-form-card .addr-form-actions { border-top-color: #3b4253; }
+    .dark-layout .addr-form-card .addr-form-actions .btn-danger {
+        background: #283046;
+        border-color: #404656;
+        color: #b4b7bd;
+    }
+    .dark-layout .addr-form-card .addr-form-actions .btn-danger:hover {
+        background: #2a3149;
+        border-color: #4d5670;
+        color: #d0d2d6;
+    }
+    /* Save/Update keeps the blue gradient (works in both themes — no override) */
+
+    /* Smooth theme cross-fade */
+    .addr-form-card,
+    .addr-form-card .form-control,
+    .addr-form-card .form-select,
+    .addr-form-card .input-group-text,
+    .addr-form-card .addr-form-actions .btn-danger {
+        transition:
+            background-color .25s ease,
+            border-color .25s ease,
+            color .25s ease,
+            box-shadow .25s ease;
+    }
+</style>
+@endpush
+
 @section('content')
-<div class="card">
+<div class="addr-form-shell">
+<div class="card addr-form-card">
     <div class="card-body">
-        <h4 class="card-title mb-2">{{ $heading }}</h4>
+        <h4 class="card-title addr-form-title mb-2">{{ $heading }}</h4>
 
         @if($errors->any())
             <div class="alert alert-danger" role="alert">
@@ -150,7 +453,7 @@
                 </div>
             </div>
 
-            <div class="d-flex mt-2">
+            <div class="d-flex addr-form-actions mt-2">
                 @if($isView)
                     <a href="{{ route('doctor.profile.index', ['tab' => $type]) }}" class="btn btn-danger">Back</a>
                 @elseif($isEdit)
@@ -163,6 +466,7 @@
             </div>
         </form>
     </div>
+</div>
 </div>
 @endsection
 
