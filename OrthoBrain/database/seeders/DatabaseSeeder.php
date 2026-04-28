@@ -17,6 +17,10 @@ class DatabaseSeeder extends Seeder
             DoctorSeeder::class,
             CaseDemoSeeder::class,
             CaseDashboardSeeder::class,
+            // Patient persistence layer (PR #69) + image persistence (PR #64)
+            // need their own demo data so a fresh DB has populated wizards.
+            PatientsDemoSeeder::class,
+            CaseMediaDemoSeeder::class,
         ]);
     }
 }
