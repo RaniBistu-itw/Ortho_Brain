@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             // need their own demo data so a fresh DB has populated wizards.
             PatientsDemoSeeder::class,
             CaseMediaDemoSeeder::class,
+            // PerformanceTestSeeder::class, // run on-demand: php artisan db:seed --class=PerformanceTestSeeder
         ]);
     }
 }
