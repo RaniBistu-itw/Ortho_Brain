@@ -402,7 +402,7 @@
                                 ? (\Illuminate\Support\Str::startsWith($websiteDisplay, ['http://', 'https://']) ? $websiteDisplay : 'http://' . $websiteDisplay)
                                 : null;
                         @endphp
-                        <tr>
+                        <tr data-row-href="{{ route('admin.practices.show', $practice) }}">
                             <td>
                                 <div class="ob-practice-cell">
                                     <span class="ob-logo">

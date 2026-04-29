@@ -131,7 +131,7 @@
                 <tbody id="stTbody">
                     @forelse ($states as $s)
                         @php $hasCities = $s->cities_count > 0; @endphp
-                        <tr data-id="{{ $s->id }}">
+                        <tr data-id="{{ $s->id }}" data-row-href="{{ route('admin.states.show', $s) }}">
                             <td class="st-cell-country">{{ $s->country?->name ?? '—' }}</td>
                             <td class="fw-bolder st-cell-name">{{ $s->name }}</td>
                             <td class="st-cell-code">{{ $s->state_code }}</td>
@@ -328,7 +328,7 @@
                </form>`;
 
         return `
-            <tr class="st-row-new" data-id="${st.id}">
+            <tr class="st-row-new" data-id="${st.id}" data-row-href="${st.show_url}">
                 <td class="st-cell-country">${escapeHtml(st.country_name)}</td>
                 <td class="fw-bolder st-cell-name">${escapeHtml(st.name)}</td>
                 <td class="st-cell-code">${escapeHtml(st.state_code)}</td>

@@ -2,7 +2,7 @@
     $hasDeps = $cat->subcategories_count > 0 || $cat->products_count > 0;
     $isActive = $cat->status === 'ACTIVE';
 @endphp
-<tr data-id="{{ $cat->id }}">
+<tr data-id="{{ $cat->id }}" data-row-href="{{ route('admin.product-categories.show', $cat) }}">
     <td class="fw-bolder pc-cell-name">{{ $cat->name }}</td>
     <td>
         @if ($cat->subcategories_count > 0)

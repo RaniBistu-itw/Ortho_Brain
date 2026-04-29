@@ -89,7 +89,7 @@
                 </thead>
                 <tbody>
                     @forelse ($products as $p)
-                        <tr>
+                        <tr data-row-href="{{ route('admin.products.show', $p) }}">
                             <td>
                                 @php
                                     $imgService = app(\App\Services\ImageUploadService::class);

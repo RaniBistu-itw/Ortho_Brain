@@ -99,7 +99,7 @@
         </thead>
         <tbody>
           @forelse($cases as $case)
-            <tr>
+            <tr data-row-href="{{ route('admin.cases.edit', $case->id) }}">
               <td><span class="fw-bolder">#{{ $case->id }}</span></td>
               <td>{{ $case->case_code ?? '—' }}</td>
               <td>

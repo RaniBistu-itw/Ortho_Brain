@@ -488,6 +488,32 @@
             window.addEventListener('resize', hide);
         })();
 
+        // ─── Row-click navigation (admin index tables) ───
+        // Any <tr data-row-href="..."> becomes clickable. Clicks on interactive
+        // descendants (links, buttons, forms, form controls, action groups, or
+        // anything tagged [data-no-row-click]) are ignored so the existing
+        // view/edit/delete buttons keep working as before. Cmd/Ctrl/middle-click
+        // opens the show page in a new tab.
+        $(document).on('click', 'tr[data-row-href]', function (e) {
+            if (e.target.closest('a, button, form, input, select, textarea, label, [data-no-row-click]')) return;
+            if (window.getSelection && String(window.getSelection())) return;
+            const href = this.getAttribute('data-row-href');
+            if (!href) return;
+            if (e.ctrlKey || e.metaKey || e.button === 1) {
+                window.open(href, '_blank', 'noopener');
+            } else {
+                window.location.href = href;
+            }
+        });
+        $(document).on('auxclick', 'tr[data-row-href]', function (e) {
+            if (e.button !== 1) return;
+            if (e.target.closest('a, button, form, input, select, textarea, label, [data-no-row-click]')) return;
+            const href = this.getAttribute('data-row-href');
+            if (!href) return;
+            e.preventDefault();
+            window.open(href, '_blank', 'noopener');
+        });
+
         // ─── Delete confirmation (Vuexy SweetAlert2) ───
         $(document).on('submit', 'form.js-delete-form', function (e) {
             const $form = $(this);

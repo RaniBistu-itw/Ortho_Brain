@@ -112,7 +112,7 @@
                 <tbody id="coTbody">
                     @forelse ($countries as $c)
                         @php $hasStates = $c->states_count > 0; @endphp
-                        <tr data-id="{{ $c->id }}">
+                        <tr data-id="{{ $c->id }}" data-row-href="{{ route('admin.countries.show', $c) }}">
                             <td class="fw-bolder co-cell-name">{{ $c->name }}</td>
                             <td class="co-cell-code">{{ $c->country_code }}</td>
                             <td class="co-cell-phone">{{ $c->phone_code }}</td>
@@ -294,7 +294,7 @@
                </form>`;
 
         return `
-            <tr class="co-row-new" data-id="${co.id}">
+            <tr class="co-row-new" data-id="${co.id}" data-row-href="${co.show_url}">
                 <td class="fw-bolder co-cell-name">${escapeHtml(co.name)}</td>
                 <td class="co-cell-code">${escapeHtml(co.country_code)}</td>
                 <td class="co-cell-phone">${escapeHtml(co.phone_code)}</td>

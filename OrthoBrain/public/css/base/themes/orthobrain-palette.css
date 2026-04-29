@@ -282,6 +282,10 @@ h1, h2, h3, h4, h5, h6,
 .ob-admin-table tbody tr:hover {
   background-color: var(--ob-surface-2);
 }
+.ob-admin-table tbody tr[data-row-href],
+table tbody tr[data-row-href] {
+  cursor: pointer;
+}
 .ob-admin-table .ob-icon-btn {
   width: 34px;
   height: 34px;
