@@ -11,8 +11,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['email', 'password_hash', 'role', 'is_active', 'last_login_at', 'password_reset_token', 'password_reset_expires_at'])]
-#[Hidden(['password_hash', 'password_reset_token'])]
+#[Fillable([
+    'email', 'password_hash', 'role', 'is_active', 'last_login_at',
+    'password_reset_token', 'password_reset_expires_at',
+    'email_verified_at', 'verification_otp', 'verification_otp_expires_at',
+    'failed_login_attempts', 'locked_until',
+])]
+#[Hidden(['password_hash', 'password_reset_token', 'verification_otp'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -30,6 +35,9 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
             'password_reset_expires_at' => 'datetime',
+            'email_verified_at' => 'datetime',
+            'verification_otp_expires_at' => 'datetime',
+            'locked_until' => 'datetime',
         ];
     }
 

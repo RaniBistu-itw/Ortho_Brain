@@ -111,6 +111,9 @@
             .ortho-back-link:hover { color: #46b8da; }
             .ortho-error-text { color: #ea5455; font-size: 0.78rem; margin: 0.125rem 0 0; }
         </style>
+        @if(config('captcha.site_key'))
+            <script src="https://www.google.com/recaptcha/api.js?render={{ config('captcha.site_key') }}"></script>
+        @endif
     </head>
     <body>
         <div class="ortho-auth-wrap">
@@ -143,8 +146,16 @@
                 @endif
 
                 {{-- Form --}}
-                <form action="{{ url('/forgot-password') }}" method="POST" class="text-start" novalidate>
+                @if($errors->has('captcha'))
+                    <div class="ortho-alert-success" style="background:#FEE2E2;border-color:#FCA5A5;color:#991B1B;">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <span>{{ $errors->first('captcha') }}</span>
+                    </div>
+                @endif
+
+                <form id="forgot-form" action="{{ url('/forgot-password') }}" method="POST" class="text-start" novalidate>
                     @csrf
+                    <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response-forgot" value="" />
 
                     <div class="mb-3">
                         <label for="email" class="ortho-label">Email</label>
@@ -171,5 +182,26 @@
                 </div>
             </div>
         </div>
+
+        @if(config('captcha.site_key'))
+        <script>
+            (function () {
+                const form = document.getElementById('forgot-form');
+                const tokenField = document.getElementById('g-recaptcha-response-forgot');
+                const siteKey = "{{ config('captcha.site_key') }}";
+                if (!form || !tokenField || !siteKey || typeof grecaptcha === 'undefined') return;
+
+                form.addEventListener('submit', function (e) {
+                    if (tokenField.value) return;
+                    e.preventDefault();
+                    grecaptcha.ready(function () {
+                        grecaptcha.execute(siteKey, { action: 'reset' })
+                            .then(function (token) { tokenField.value = token; form.submit(); })
+                            .catch(function () { form.submit(); });
+                    });
+                });
+            })();
+        </script>
+        @endif
     </body>
 </html>
