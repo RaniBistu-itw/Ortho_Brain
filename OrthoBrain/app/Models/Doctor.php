@@ -36,6 +36,14 @@ class Doctor extends Model
         'approved_at',
         'approved_by_admin_id',
         'rejection_reason',
+        'primary_address_source',
+        'primary_address_practice_id',
+        'street_address_1',
+        'street_address_2',
+        'zip_id',
+        'city_id',
+        'state_id',
+        'country_id',
     ];
 
     protected $casts = [
