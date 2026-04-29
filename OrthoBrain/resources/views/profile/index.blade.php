@@ -107,301 +107,44 @@
         .preferences-card .pref-section { padding: .75rem 1rem; }
     }
 
-    /* ── Shipping / Billing address panes — premium SaaS polish ── */
-    .addr-pane {
-        position: relative;
-        background: #ffffff;
-        border: 1px solid rgba(226, 232, 240, 0.65);
-        border-radius: 20px;
-        box-shadow:
-            0 1px 2px rgba(15, 23, 42, 0.03),
-            0 12px 32px -18px rgba(15, 23, 42, 0.10);
-        padding: 36px 36px 32px;
-        margin-top: .25rem;
-        font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-        color: #0F172A;
-        overflow: hidden;
-    }
-    .addr-pane::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, transparent 0%, #60A5FA 30%, #2563EB 50%, #60A5FA 70%, transparent 100%);
-        opacity: .55;
-    }
-    .addr-pane .card-title {
-        font-size: 1.5rem;
-        font-weight: 500;
-        color: #0F172A;
-        letter-spacing: -0.015em;
-        line-height: 1.3;
-    }
-    .addr-pane > .d-flex.mb-2 { margin-bottom: 1.75rem !important; }
-
-    /* CTA button → premium gradient pill */
-    .addr-pane .btn.btn-info,
-    .addr-pane .btn.btn-info:focus {
-        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%);
-        border: none;
-        border-radius: 999px;
-        padding: .6rem 1.25rem;
-        color: #fff;
-        font-weight: 500;
-        font-size: .9rem;
-        letter-spacing: .002em;
-        box-shadow:
-            0 1px 2px rgba(37, 99, 235, 0.20),
-            0 8px 20px -6px rgba(37, 99, 235, 0.40);
-        transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
-    }
-    .addr-pane .btn.btn-info:hover {
-        transform: translateY(-2px);
-        filter: brightness(1.06);
-        box-shadow:
-            0 2px 4px rgba(37, 99, 235, 0.25),
-            0 14px 28px -8px rgba(37, 99, 235, 0.50);
-        color: #fff;
-    }
-    .addr-pane .btn.btn-info:active {
-        transform: translateY(-1px);
-        filter: brightness(0.98);
-    }
-
-    /* Filter strip */
-    .addr-pane > .border-top.border-bottom {
-        border-color: #f1f5f9 !important;
-        padding: 1rem 0 !important;
-        margin-bottom: 1.5rem !important;
-    }
-    .addr-pane .form-select-sm,
-    .addr-pane .form-control-sm {
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: .45rem .75rem;
-        color: #0F172A;
-        background-color: #fff;
-        transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
-    }
-    .addr-pane .form-control-sm { padding: .45rem .85rem; }
-    .addr-pane .form-select-sm:hover,
-    .addr-pane .form-control-sm:hover {
-        border-color: #cbd5e1;
-    }
-    .addr-pane .form-select-sm:focus,
-    .addr-pane .form-control-sm:focus {
-        border-color: #3B82F6;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
-        outline: none;
-    }
-
-    /* Table container — frameless, light separators */
-    .addr-pane .table-responsive {
-        background: #ffffff;
-        border: none;
-        border-radius: 14px;
-        overflow: hidden;
-    }
-    .addr-pane .table {
-        margin-bottom: 0;
-        border-collapse: separate;
-        border-spacing: 0;
-    }
+    /* ── Shipping / Billing address panes ─────────────────────
+       Plain card-body content (matches Account/Practice tabs).
+       Action group mirrors the masters/add-doctor pattern:
+       32×32 icon-only outline buttons (success=view, primary=edit). */
     .addr-pane .table thead th {
-        background: #fafbfc;
-        color: #94A3B8;
-        font-size: .68rem;
-        font-weight: 500;
-        letter-spacing: .08em;
+        background: #f8f8f8;
         text-transform: uppercase;
-        border-bottom: 1px solid #f1f5f9;
-        border-top: 0;
-        padding: 1rem 1.1rem;
+        font-size: .74rem;
+        letter-spacing: .06em;
+        color: #6e6b7b;
+        font-weight: 600;
+        border-bottom: 1px solid rgba(34, 41, 47, .08);
     }
-    .addr-pane .table tbody td {
-        padding: 1.15rem 1.1rem;
-        border-top: 1px solid #f5f7fa;
-        color: #1E293B;
-        font-size: .92rem;
-        vertical-align: middle;
-    }
-    .addr-pane .table tbody tr:first-child td { border-top: 0; }
-    .addr-pane .table.table-hover tbody tr {
-        transition: background-color .2s ease;
-    }
-    .addr-pane .table.table-hover tbody tr:hover {
-        background-color: rgba(59, 130, 246, 0.04);
-    }
+    .addr-pane .table tbody tr { transition: background-color .15s ease; }
+    .addr-pane .table tbody tr:hover { background: rgba(var(--bs-primary-rgb), .04); }
     .addr-pane .table tbody tr.empty-state td,
     .addr-pane .table tbody tr.no-results td {
-        padding: 2.5rem 1rem;
-        color: #94a3b8;
-        font-size: .9rem;
+        text-align: center;
+        color: #6e6b7b;
+        padding: 2rem 1rem;
     }
 
-    /* Action icons — softer, more spacing, scale on hover */
-    .addr-pane .btn-icon.btn-sm {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        color: #94A3B8;
-        background: transparent;
-        transition: background-color .2s ease, color .2s ease, transform .2s ease;
+    .addr-action-group { display: inline-flex; gap: .25rem; }
+    .addr-action-group .btn {
+        width: 32px; height: 32px;
+        padding: 0;
+        display: inline-grid; place-items: center;
     }
-    .addr-pane .btn-icon.btn-sm + .btn-icon.btn-sm { margin-left: .5rem; }
-    .addr-pane .btn-flat-success:hover {
-        background-color: rgba(34, 197, 94, 0.10);
-        color: #16a34a;
-        transform: scale(1.08);
-    }
-    .addr-pane .btn-flat-info:hover {
-        background-color: rgba(59, 130, 246, 0.10);
-        color: #2563EB;
-        transform: scale(1.08);
-    }
-    .addr-pane .btn-icon.btn-sm svg {
-        width: 16px;
-        height: 16px;
-    }
+    .addr-action-group .btn svg { width: 15px; height: 15px; }
 
-    /* Badges — soft pill, muted tones */
-    .addr-pane .badge.bg-light-success {
-        background: rgba(16, 185, 129, 0.10) !important;
-        color: #059669 !important;
-        font-weight: 500;
-        font-size: .72rem;
-        letter-spacing: .01em;
-        padding: .4rem .75rem;
-        border-radius: 999px;
-        border: 1px solid rgba(16, 185, 129, 0.18);
-    }
-    .addr-pane .badge.bg-light-secondary {
-        background: #f1f5f9 !important;
-        color: #64748B !important;
-        font-weight: 500;
-        font-size: .72rem;
-        letter-spacing: .01em;
-        padding: .4rem .75rem;
-        border-radius: 999px;
-        border: 1px solid #e2e8f0;
-    }
-
-    /* Footer / pagination */
-    .addr-pane > .d-flex.mt-1 {
-        margin-top: 1.5rem !important;
-    }
-    .addr-pane #ship-footer,
-    .addr-pane #bill-footer {
-        color: #94A3B8;
-        font-size: .82rem;
-    }
-    .addr-pane .pagination-sm .page-link {
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        color: #64748B;
-        margin: 0 3px;
-        padding: .35rem .7rem;
-        font-size: .85rem;
-        transition: all .2s ease;
-    }
-    .addr-pane .pagination-sm .page-link:hover {
-        background: #f8fafc;
-        color: #2563EB;
-        border-color: #cbd5e1;
-        transform: translateY(-1px);
-    }
-    .addr-pane .pagination-sm .page-item.active .page-link {
-        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-        border-color: transparent;
-        color: #fff;
-        box-shadow: 0 4px 10px -2px rgba(37, 99, 235, 0.35);
-    }
-    .addr-pane .pagination-sm .page-item.disabled .page-link {
-        background: #f8fafc;
-        color: #cbd5e1;
-        border-color: #f1f5f9;
-    }
-
-    @media (max-width: 575.98px) {
-        .addr-pane { padding: 24px 20px 20px; border-radius: 16px; }
-        .addr-pane .card-title { font-size: 1.3rem; }
-        .addr-pane > .d-flex.mb-2 { margin-bottom: 1.25rem !important; }
-    }
-
-    /* ── Dark theme: align .addr-pane with Vuexy dark-layout (Practice page reference) ── */
-    .dark-layout .addr-pane {
-        background: #283046;
-        border-color: rgba(255, 255, 255, 0.06);
-        box-shadow:
-            0 1px 2px rgba(0, 0, 0, 0.20),
-            0 12px 32px -18px rgba(0, 0, 0, 0.55);
-        color: #b4b7bd;
-    }
-    .dark-layout .addr-pane .card-title { color: #d0d2d6; }
-    .dark-layout .addr-pane > .border-top.border-bottom { border-color: #3b4253 !important; }
-    .dark-layout .addr-pane .form-select-sm,
-    .dark-layout .addr-pane .form-control-sm {
-        background-color: #283046;
-        border-color: #404656;
-        color: #b4b7bd;
-    }
-    .dark-layout .addr-pane .form-select-sm:hover,
-    .dark-layout .addr-pane .form-control-sm:hover { border-color: #4d5670; }
-    .dark-layout .addr-pane .table-responsive { background: transparent; }
     .dark-layout .addr-pane .table thead th {
         background: #2a3149;
-        color: rgba(255, 255, 255, 0.5);
+        color: rgba(255, 255, 255, 0.6);
         border-bottom-color: #3b4253;
     }
-    .dark-layout .addr-pane .table tbody td {
-        color: #b4b7bd;
-        border-top-color: #3b4253;
-    }
-    .dark-layout .addr-pane .table.table-hover tbody tr:hover { background-color: rgba(59, 130, 246, 0.08); }
+    .dark-layout .addr-pane .table.table-hover tbody tr:hover { background-color: rgba(var(--bs-primary-rgb), .08); }
     .dark-layout .addr-pane .table tbody tr.empty-state td,
     .dark-layout .addr-pane .table tbody tr.no-results td { color: rgba(255, 255, 255, 0.45); }
-    .dark-layout .addr-pane .btn-icon.btn-sm { color: #b4b7bd; }
-    .dark-layout .addr-pane .badge.bg-light-success {
-        background: rgba(16, 185, 129, 0.18) !important;
-        color: #34D399 !important;
-        border-color: rgba(16, 185, 129, 0.30);
-    }
-    .dark-layout .addr-pane .badge.bg-light-secondary {
-        background: #3b4253 !important;
-        color: #b4b7bd !important;
-        border-color: #4d5670;
-    }
-    .dark-layout .addr-pane #ship-footer,
-    .dark-layout .addr-pane #bill-footer { color: rgba(255, 255, 255, 0.45); }
-    .dark-layout .addr-pane .pagination-sm .page-link {
-        background: #283046;
-        border-color: #404656;
-        color: #b4b7bd;
-    }
-    .dark-layout .addr-pane .pagination-sm .page-link:hover {
-        background: #2a3149;
-        color: #60A5FA;
-        border-color: #4d5670;
-    }
-    .dark-layout .addr-pane .pagination-sm .page-item.disabled .page-link {
-        background: #1f2638;
-        color: #4d5670;
-        border-color: #2e3548;
-    }
-
-    /* Smooth theme cross-fade */
-    .addr-pane,
-    .addr-pane .form-select-sm,
-    .addr-pane .form-control-sm,
-    .addr-pane .table thead th,
-    .addr-pane .table tbody td,
-    .addr-pane .pagination-sm .page-link {
-        transition:
-            background-color .25s ease,
-            border-color .25s ease,
-            color .25s ease,
-            box-shadow .25s ease;
-    }
 </style>
 @endpush
 
@@ -557,7 +300,7 @@
                     </div>
 
                     <div class="d-flex mt-2">
-                        <button type="button" onclick="validateAccountForm()" class="btn btn-success me-1">Save</button>
+                        <button type="button" onclick="validateAccountForm()" class="btn btn-primary me-1">Save</button>
                         <a href="/dev/cases/list" class="btn btn-outline-secondary">Cancel</a>
                     </div>
                 </form>
@@ -676,7 +419,7 @@
                     </div>
 
                     <div class="d-flex mt-2">
-                        <button type="button" onclick="validatePracticeForm()" class="btn btn-success me-1">Save</button>
+                        <button type="button" onclick="validatePracticeForm()" class="btn btn-primary me-1">Save</button>
                         <a href="/dev/cases/list" class="btn btn-outline-secondary">Cancel</a>
                     </div>
                 </form>
@@ -705,7 +448,7 @@
                 <div class="addr-pane">
                 <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 mb-2">
                     <h4 class="card-title mb-0">Shipping Addresses</h4>
-                    <a href="{{ route('doctor.profile.address.create', ['type' => 'shipping']) }}" class="btn btn-info align-self-start align-self-sm-auto">
+                    <a href="{{ route('doctor.profile.address.create', ['type' => 'shipping']) }}" class="btn btn-primary align-self-start align-self-sm-auto">
                         <i data-feather="plus" class="me-25"></i> Add Shipping Address
                     </a>
                 </div>
@@ -754,8 +497,10 @@
                                 @endphp
                                 <tr data-searchable="{{ $searchText }}">
                                     <td>
-                                        <a href="{{ route('doctor.profile.address.show', $addr) }}" class="btn btn-icon btn-sm btn-flat-success" title="View"><i data-feather="eye"></i></a>
-                                        <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="btn btn-icon btn-sm btn-flat-info" title="Edit"><i data-feather="edit-2"></i></a>
+                                        <div class="addr-action-group">
+                                            <a href="{{ route('doctor.profile.address.show', $addr) }}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
+                                            <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="btn btn-outline-primary" title="Edit"><i data-feather="edit-2"></i></a>
+                                        </div>
                                     </td>
                                     <td>{{ $addr->street_address_1 }}{{ $addr->street_address_2 ? ', ' . $addr->street_address_2 : '' }}</td>
                                     <td>{{ $addr->city?->name }}</td>
@@ -790,7 +535,7 @@
                 <div class="addr-pane">
                 <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 mb-2">
                     <h4 class="card-title mb-0">Billing Addresses</h4>
-                    <a href="{{ route('doctor.profile.address.create', ['type' => 'billing']) }}" class="btn btn-info align-self-start align-self-sm-auto">
+                    <a href="{{ route('doctor.profile.address.create', ['type' => 'billing']) }}" class="btn btn-primary align-self-start align-self-sm-auto">
                         <i data-feather="plus" class="me-25"></i> Add Billing Address
                     </a>
                 </div>
@@ -839,8 +584,10 @@
                                 @endphp
                                 <tr data-searchable="{{ $searchText }}">
                                     <td>
-                                        <a href="{{ route('doctor.profile.address.show', $addr) }}" class="btn btn-icon btn-sm btn-flat-success" title="View"><i data-feather="eye"></i></a>
-                                        <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="btn btn-icon btn-sm btn-flat-info" title="Edit"><i data-feather="edit-2"></i></a>
+                                        <div class="addr-action-group">
+                                            <a href="{{ route('doctor.profile.address.show', $addr) }}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
+                                            <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="btn btn-outline-primary" title="Edit"><i data-feather="edit-2"></i></a>
+                                        </div>
                                     </td>
                                     <td>{{ $addr->street_address_1 }}{{ $addr->street_address_2 ? ', ' . $addr->street_address_2 : '' }}</td>
                                     <td>{{ $addr->city?->name }}</td>
@@ -965,7 +712,7 @@
                             <label class="form-label">Other Email</label>
                             <div id="doc-other-emails" class="d-flex flex-column gap-1"></div>
                         </div>
-                        <button type="button" onclick="addOtherEmail('doc')" class="btn btn-info btn-sm">
+                        <button type="button" onclick="addOtherEmail('doc')" class="btn btn-outline-primary btn-sm">
                             <i data-feather="plus" class="me-25"></i> Add Other Email
                         </button>
                     </div>
@@ -1012,7 +759,7 @@
                             <label class="form-label">Other Email</label>
                             <div id="emp-other-emails" class="d-flex flex-column gap-1"></div>
                         </div>
-                        <button type="button" onclick="addOtherEmail('emp')" class="btn btn-info btn-sm">
+                        <button type="button" onclick="addOtherEmail('emp')" class="btn btn-outline-primary btn-sm">
                             <i data-feather="plus" class="me-25"></i> Add Other Email
                         </button>
                     </div>
@@ -1173,7 +920,7 @@
                 </div>
 
                 <div class="d-flex mt-2">
-                    <button type="submit" class="btn btn-info me-1">Save changes</button>
+                    <button type="submit" class="btn btn-primary me-1">Save changes</button>
                     <a href="/dev/cases/list" class="btn btn-outline-secondary">Cancel</a>
                 </div>
 
@@ -1198,7 +945,7 @@
                         @foreach($active as $p)
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
-                                    <span class="badge" style="background:var(--ob-success);color:#fff;font-weight:600;">APPROVED</span>
+                                    <span class="badge bg-light-success">Approved</span>
                                     <strong class="ms-2">{{ $p->name }}</strong>
                                     @if($p->pivot->is_primary)
                                         <span class="badge bg-light-primary ms-1">primary</span>
@@ -1207,18 +954,22 @@
                                         <span class="badge bg-light-success ms-1">currently active</span>
                                     @endif
                                 </div>
-                                <div>
+                                <div class="d-flex gap-1 flex-wrap">
                                     @if(!$p->pivot->is_primary)
-                                        <form method="POST" action="{{ route('doctor.practices.primary', $p->pivot->id) }}" class="d-inline m-0">
+                                        <form method="POST" action="{{ route('doctor.practices.primary', $p->pivot->id) }}" class="m-0">
                                             @csrf
-                                            <button class="btn btn-sm btn-outline-primary" type="submit">Make primary</button>
+                                            <button class="btn btn-sm btn-outline-primary" type="submit">
+                                                <i data-feather="star" class="me-25"></i> Make primary
+                                            </button>
                                         </form>
                                     @endif
                                     @if($active->count() > 1)
-                                        <form method="POST" action="{{ route('doctor.practices.leave', $p->pivot->id) }}" class="d-inline m-0"
+                                        <form method="POST" action="{{ route('doctor.practices.leave', $p->pivot->id) }}" class="m-0"
                                               onsubmit="return confirm('Leave {{ $p->name }}?')">
                                             @csrf
-                                            <button class="btn btn-sm btn-outline-danger" type="submit">Leave</button>
+                                            <button class="btn btn-sm btn-outline-danger" type="submit">
+                                                <i data-feather="log-out" class="me-25"></i> Leave
+                                            </button>
                                         </form>
                                     @endif
                                 </div>
@@ -1233,7 +984,7 @@
                         @foreach($pending as $p)
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
-                                    <span class="badge" style="background:var(--ob-warning);color:#fff;font-weight:600;">PENDING</span>
+                                    <span class="badge bg-light-warning">Pending</span>
                                     <strong class="ms-2">{{ $p->name }}</strong>
                                     @if($p->pivot->is_primary)
                                         <span class="badge bg-light-primary ms-1">primary</span>
@@ -1243,7 +994,9 @@
                                 <form method="POST" action="{{ route('doctor.practices.cancel', $p->pivot->id) }}" class="m-0"
                                       onsubmit="return confirm('Cancel this request?')">
                                     @csrf
-                                    <button class="btn btn-sm btn-outline-secondary" type="submit">Cancel request</button>
+                                    <button class="btn btn-sm btn-outline-secondary" type="submit">
+                                        <i data-feather="x" class="me-25"></i> Cancel request
+                                    </button>
                                 </form>
                             </li>
                         @endforeach
@@ -1255,7 +1008,7 @@
                     <ul class="list-group mb-3">
                         @foreach($rejected as $p)
                             <li class="list-group-item">
-                                <span class="badge" style="background:var(--ob-danger);color:#fff;font-weight:600;">REJECTED</span>
+                                <span class="badge bg-light-danger">Rejected</span>
                                 <strong class="ms-2">{{ $p->name }}</strong>
                                 @if($p->pivot->rejection_reason)
                                     <small class="text-muted d-block">Reason: {{ $p->pivot->rejection_reason }}</small>
@@ -1320,31 +1073,31 @@
 
                 <style>
                     .profile-req-row {
-                        border: 1px solid #e0dee8; border-radius: 0.5rem; padding: 1rem;
-                        margin-top: 0.75rem; background: #fafafd; position: relative;
+                        border: 1px solid #ebe9f1;
+                        border-radius: .428rem;
+                        padding: 1rem;
+                        margin-top: .75rem;
+                        background: #f8f8f8;
+                        position: relative;
                     }
                     .profile-req-row-head {
                         display: flex; justify-content: space-between; align-items: center;
-                        gap: 1rem; margin-bottom: 0.75rem; flex-wrap: wrap;
+                        gap: 1rem; margin-bottom: .75rem; flex-wrap: wrap;
                     }
                     .profile-req-row-head-left { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-                    .profile-req-btn-del {
-                        border: 1px solid #f5caca; background: #fdf0f0; color: #c53030;
-                        padding: 0.25rem 0.55rem; border-radius: 0.35rem; cursor: pointer;
-                    }
-                    .profile-req-btn-del:hover { background: #fde7e7; }
-                    .profile-req-btn-del[disabled] { opacity: 0.4; cursor: not-allowed; }
                     .profile-req-menu {
                         position: absolute; top: 100%; left: 0; right: 0;
-                        background: #fff; border: 1px solid #e5e7eb; border-radius: 0.35rem;
-                        box-shadow: 0 4px 12px rgba(24,28,40,0.08);
+                        background: #fff; border: 1px solid #ebe9f1; border-radius: .428rem;
+                        box-shadow: 0 4px 12px rgba(34, 41, 47, .08);
                         z-index: 20; max-height: 240px; overflow-y: auto;
                     }
                     .profile-req-menu .list-group-item { border-radius: 0; cursor: pointer; }
                     .profile-req-zip-preview {
-                        margin-top: 0.35rem; font-size: 0.78rem; color: #5a8f21;
+                        margin-top: .35rem; font-size: .78rem; color: var(--bs-success, #28c76f);
                         display: none;
                     }
+                    .dark-layout .profile-req-row { background: #242b3d; border-color: #3b4253; }
+                    .dark-layout .profile-req-menu { background: #283046; border-color: #3b4253; }
                 </style>
 
                 <script>
@@ -1376,7 +1129,7 @@
                                         <span class="form-check-label">Create new</span>
                                     </label>
                                 </div>
-                                <button type="button" class="profile-req-btn-del" onclick="profileReqRemove(${idx})" title="Remove this row">
+                                <button type="button" class="profile-req-btn-del btn btn-sm btn-outline-danger" onclick="profileReqRemove(${idx})" title="Remove this row">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
@@ -1639,7 +1392,7 @@
                 <span class="input-group-text"><i data-feather="mail"></i></span>
                 <input type="email" placeholder="Enter other email" class="form-control">
             </div>
-            <button type="button" class="btn btn-icon btn-flat-danger" title="Remove">
+            <button type="button" class="btn btn-icon btn-outline-danger" title="Remove">
                 <i data-feather="trash-2"></i>
             </button>
         `;
