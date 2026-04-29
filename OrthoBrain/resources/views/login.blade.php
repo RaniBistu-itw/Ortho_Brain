@@ -8,6 +8,9 @@
         {{-- OrthoBrain palette (Inter + Public Sans, brand tokens) --}}
         <link rel="stylesheet" href="{{ asset('css/base/themes/orthobrain-palette.css') }}?v={{ @filemtime(public_path('css/base/themes/orthobrain-palette.css')) ?: time() }}" />
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+        @if(config('captcha.site_key'))
+            <script src="https://www.google.com/recaptcha/api.js?render={{ config('captcha.site_key') }}"></script>
+        @endif
 
         <style>
             *, *::before, *::after { box-sizing: border-box; }
@@ -740,8 +743,32 @@
                         </div>
                     @endif
 
-                    <form action="{{ url('/login') }}" method="POST" class="ortho-form" novalidate>
+                    @if($errors->has('captcha'))
+                        <div class="alert-success" role="alert" style="background:#FEE2E2; border-color:#FCA5A5; color:#991B1B;">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>{{ $errors->first('captcha') }}</span>
+                        </div>
+                    @endif
+
+                    @if (session('locked_until'))
+                        <div id="lockout-banner"
+                             role="alert"
+                             data-unlock-at="{{ session('locked_until') }}"
+                             style="background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; border-radius:10px; padding:14px 16px; margin-bottom:14px; display:flex; gap:12px; align-items:flex-start;">
+                            <i class="bi bi-shield-lock-fill" style="font-size:1.3rem; line-height:1.2;"></i>
+                            <div style="flex:1;">
+                                <div style="font-weight:600; margin-bottom:4px;">Too many attempts</div>
+                                <div style="font-size:.9rem; line-height:1.45;">
+                                    Wrong password entered too many times. Try again in
+                                    <span id="lockout-timer" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-weight:700; font-size:1.05rem;">--:--</span>.
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <form id="login-form" action="{{ url('/login') }}" method="POST" class="ortho-form" novalidate>
                         @csrf
+                        <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response-login" value="" />
 
                         {{-- Email --}}
                         <div class="field">
@@ -921,5 +948,80 @@
                 }
             })();
         </script>
+
+        <script>
+            // Lockout countdown. The server flashes `locked_until` (ISO 8601)
+            // into session when the per-account counter trips; we render a
+            // banner with that timestamp and tick down locally against the
+            // user's clock until the unlock instant. While the banner is
+            // present, the form is disabled; when the timer hits 0 we hide
+            // the banner and re-enable inputs in place — no page reload.
+            (function () {
+                const banner = document.getElementById('lockout-banner');
+                if (!banner) return;
+
+                const unlockAt = Date.parse(banner.dataset.unlockAt);
+                if (!Number.isFinite(unlockAt)) return;
+
+                const form     = document.getElementById('login-form');
+                const timerEl  = document.getElementById('lockout-timer');
+                const fields   = form ? form.querySelectorAll('input, button') : [];
+
+                fields.forEach(el => { el.disabled = true; });
+                if (form) form.setAttribute('aria-busy', 'true');
+
+                const fmt = (ms) => {
+                    const total = Math.max(0, Math.floor(ms / 1000));
+                    const m = String(Math.floor(total / 60)).padStart(2, '0');
+                    const s = String(total % 60).padStart(2, '0');
+                    return `${m}:${s}`;
+                };
+
+                const tick = () => {
+                    const remaining = unlockAt - Date.now();
+                    if (remaining <= 0) {
+                        clearInterval(interval);
+                        banner.style.display = 'none';
+                        fields.forEach(el => { el.disabled = false; });
+                        if (form) form.removeAttribute('aria-busy');
+                        const email = document.getElementById('email');
+                        if (email) email.focus();
+                        return;
+                    }
+                    timerEl.textContent = fmt(remaining);
+                };
+
+                tick();
+                const interval = setInterval(tick, 1000);
+            })();
+        </script>
+
+        @if(config('captcha.site_key'))
+        <script>
+            // reCAPTCHA v3: fetch a fresh token on submit, attach it to the
+            // hidden field, then submit normally. If grecaptcha is unavailable
+            // (e.g. user is offline), fall back to plain submit so the page
+            // never becomes unsubmittable.
+            (function () {
+                const form = document.getElementById('login-form');
+                const tokenField = document.getElementById('g-recaptcha-response-login');
+                const siteKey = "{{ config('captcha.site_key') }}";
+                if (!form || !tokenField || !siteKey || typeof grecaptcha === 'undefined') return;
+
+                form.addEventListener('submit', function (e) {
+                    if (tokenField.value) return; // already populated, allow submit
+                    e.preventDefault();
+                    grecaptcha.ready(function () {
+                        grecaptcha.execute(siteKey, { action: 'login' }).then(function (token) {
+                            tokenField.value = token;
+                            form.submit();
+                        }).catch(function () {
+                            form.submit();
+                        });
+                    });
+                });
+            })();
+        </script>
+        @endif
     </body>
 </html>

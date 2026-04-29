@@ -576,6 +576,9 @@
             .reg-substep-head h3 { font-size: 1rem; font-weight: 600; color: var(--ob-text); margin: 0 0 0.2rem; }
             .reg-substep-head p { font-size: 0.85rem; color: var(--ob-text-muted); margin: 0; }
         </style>
+        @if(config('captcha.site_key'))
+            <script src="https://www.google.com/recaptcha/api.js?render={{ config('captcha.site_key') }}"></script>
+        @endif
     </head>
     <body class="reg-body">
         <div class="reg-shell-3col">
@@ -649,6 +652,29 @@
 
                 <form id="registrationForm" action="{{ url('/register') }}" method="POST" novalidate onsubmit="return validateForm(event)">
                     @csrf
+                    <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response-register" value="" />
+                    @if($errors->has('captcha'))
+                        <div class="reg-form-banner reg-form-banner--error" role="alert" style="background:#FEE2E2;border:1px solid #FCA5A5;color:#991B1B;padding:0.6rem 0.85rem;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;">
+                            {{ $errors->first('captcha') }}
+                        </div>
+                    @endif
+
+                    @if (session('throttle_retry_at'))
+                        <div id="throttle-banner"
+                             role="alert"
+                             data-retry-at="{{ session('throttle_retry_at') }}"
+                             style="background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; border-radius:10px; padding:14px 16px; margin-bottom:1rem; display:flex; gap:12px; align-items:flex-start;">
+                            <i class="bi bi-shield-lock-fill" style="font-size:1.3rem; line-height:1.2;"></i>
+                            <div style="flex:1;">
+                                <div style="font-weight:600; margin-bottom:4px;">Too many attempts</div>
+                                <div style="font-size:.9rem; line-height:1.45;">
+                                    {{ session('throttle_message', 'You\'ve submitted too many times.') }}
+                                    Try again in
+                                    <span id="throttle-timer" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-weight:700; font-size:1.05rem;">--:--</span>.
+                                </div>
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- preferred_language is fixed (no UI dropdown) — server still requires the field. --}}
                     <input type="hidden" name="preferred_language" value="English">
@@ -1791,9 +1817,28 @@
 
                 if (isValid) {
                     cleanExtraRows();
-                    document.getElementById('registrationForm').submit();
+                    submitWithRecaptcha();
                 }
                 return isValid;
+            }
+
+            // Fetch a reCAPTCHA v3 token, attach it to the hidden field,
+            // then submit. Falls back to plain submit when captcha isn't
+            // configured or the script failed to load (offline localhost).
+            function submitWithRecaptcha() {
+                const form = document.getElementById('registrationForm');
+                const tokenField = document.getElementById('g-recaptcha-response-register');
+                const siteKey = "{{ config('captcha.site_key') }}";
+
+                if (!siteKey || typeof grecaptcha === 'undefined' || !tokenField) {
+                    form.submit();
+                    return;
+                }
+                grecaptcha.ready(function () {
+                    grecaptcha.execute(siteKey, { action: 'register' })
+                        .then(function (token) { tokenField.value = token; form.submit(); })
+                        .catch(function () { form.submit(); });
+                });
             }
 
             // ────────────────────────────────────────────────────────────────
@@ -2163,6 +2208,55 @@
                     }
                 });
             });
+        </script>
+
+        <script>
+            // Throttle countdown for /register. The global exception
+            // handler in bootstrap/app.php flashes `throttle_retry_at`
+            // (ISO 8601) into session whenever ThrottleRequestsException
+            // fires. We render a banner with that timestamp and tick
+            // down locally against the user's clock until the retry
+            // instant. While the banner is present, the registration
+            // form is disabled; when the timer hits 0 we hide the
+            // banner and re-enable inputs in place — no page reload.
+            (function () {
+                const banner = document.getElementById('throttle-banner');
+                if (!banner) return;
+
+                const retryAt = Date.parse(banner.dataset.retryAt);
+                if (!Number.isFinite(retryAt)) return;
+
+                const form    = document.getElementById('registrationForm');
+                const timerEl = document.getElementById('throttle-timer');
+                const fields  = form ? form.querySelectorAll('input, button, select, textarea') : [];
+
+                fields.forEach(el => { el.disabled = true; });
+                if (form) form.setAttribute('aria-busy', 'true');
+
+                const fmt = (ms) => {
+                    const total = Math.max(0, Math.floor(ms / 1000));
+                    const m = String(Math.floor(total / 60)).padStart(2, '0');
+                    const s = String(total % 60).padStart(2, '0');
+                    return `${m}:${s}`;
+                };
+
+                const tick = () => {
+                    const remaining = retryAt - Date.now();
+                    if (remaining <= 0) {
+                        clearInterval(interval);
+                        banner.style.display = 'none';
+                        fields.forEach(el => { el.disabled = false; });
+                        if (form) form.removeAttribute('aria-busy');
+                        const first = document.getElementById('in-email');
+                        if (first) first.focus();
+                        return;
+                    }
+                    timerEl.textContent = fmt(remaining);
+                };
+
+                tick();
+                const interval = setInterval(tick, 1000);
+            })();
         </script>
     </body>
 </html>

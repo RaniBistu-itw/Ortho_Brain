@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Mail\RegistrationReceivedMail;
 use App\Models\BuccalCorridorOption;
 use App\Models\Country;
 use App\Models\Doctor;
@@ -13,10 +12,10 @@ use App\Models\Specialty;
 use App\Models\TreatmentModality;
 use App\Models\User;
 use App\Models\Zipcode;
+use App\Rules\NotDisposableEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class RegisterController extends Controller
@@ -61,20 +60,25 @@ class RegisterController extends Controller
         // Allowed phone codes — driven by countries.phone_code (distinct).
         $phoneCodes = $this->activePhoneCodes();
 
-        // Resurrection: if this email belongs to a previously-rejected doctor,
-        // allow re-registration — we'll overwrite the existing user/doctor rows
-        // and reset approval back to PENDING (see DB::transaction below).
+        // Resurrection: allow re-registration if this email belongs to either
+        //  (a) a previously-rejected doctor (existing behaviour), or
+        //  (b) an unverified-stale user whose previous registration was abandoned
+        //      mid-OTP (their Doctor row is currently soft-deleted; admin never
+        //      saw them, so it's safe to wipe and start over).
         $resurrecting = null;
         if ($request->filled('email')) {
             $resurrecting = User::where('email', $request->email)
-                ->whereHas('doctor', fn ($q) => $q->where('approval_status', 'REJECTED'))
+                ->where(function ($q) {
+                    $q->whereHas('doctor', fn ($d) => $d->where('approval_status', 'REJECTED'))
+                      ->orWhereNull('email_verified_at');
+                })
                 ->first();
         }
 
         $rules = [
             'email'                 => $resurrecting
-                ? 'required|email|max:150'
-                : 'required|email|max:150|unique:users,email',
+                ? ['required', 'email', 'max:150', new NotDisposableEmail]
+                : ['required', 'email', 'max:150', 'unique:users,email', new NotDisposableEmail],
             'first_name'            => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
             'last_name'             => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
             'password'              => 'required|string|min:8|confirmed:confirm_password|regex:/[A-Z]/|regex:/[a-z]/|regex:/\d/|regex:/[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\\\\/]/',
@@ -183,9 +187,22 @@ class RegisterController extends Controller
 
         DB::transaction(function () use ($data, $contactMap, $isExisting, $resurrecting, $existingIds, $newRows, &$createdUser, &$createdDoctor) {
             if ($resurrecting) {
+                // Unverified-stale path: the previous registration left a
+                // soft-deleted Doctor row + its pivot rows behind. Hard-delete
+                // them so the Doctor::create() below can run cleanly. (For the
+                // REJECTED-resurrection path the Doctor is not trashed and the
+                // existing fill-in-place logic still kicks in.)
+                $orphan = $resurrecting->doctor()->withTrashed()->first();
+                if ($orphan && $orphan->trashed()) {
+                    $orphan->practices()->detach();
+                    $orphan->forceDelete();
+                    $resurrecting->unsetRelation('doctor');
+                }
+
                 $user = $resurrecting;
-                $user->password_hash = Hash::make($data['password']);
-                $user->is_active     = true;
+                $user->password_hash     = Hash::make($data['password']);
+                $user->is_active         = true;
+                $user->email_verified_at = null;
                 $user->save();
             } else {
                 $user = User::create([
@@ -313,12 +330,27 @@ class RegisterController extends Controller
             $doctor->buccalCorridorOptions()->sync($data['buccal_corridors'] ?? []);
         });
 
-        // Send "application received" email only for public registrations.
-        // Admin-created doctors are auto-approved downstream, and will get the
-        // approval email (not this one) via the Doctor observer.
         $isAdminCreating = auth()->check() && auth()->user()->role === 'ADMIN';
+
         if (! $isAdminCreating && $createdUser && $createdDoctor) {
-            Mail::to($createdUser->email)->send(new RegistrationReceivedMail($createdDoctor));
+            // Public registration: hide the Doctor row from admin queries until
+            // the OTP is verified. Soft-delete is automatically respected by
+            // every Doctor::query() in the admin area (and elsewhere) thanks
+            // to the SoftDeletes trait on the Doctor model. The matching
+            // ->restore() lives in EmailVerificationController::markVerified.
+            $createdDoctor->delete();
+
+            EmailVerificationController::sendVerificationEmail($createdUser);
+
+            return redirect()
+                ->route('verify-email.show', ['email' => $createdUser->email])
+                ->with('success', 'Registration submitted. Check your email for a 6-digit verification code.');
+        }
+
+        // Admin-created doctor: skip the OTP step entirely. Mark the user as
+        // verified now so Gate 3 in LoginController doesn't block them later.
+        if ($isAdminCreating && $createdUser && is_null($createdUser->email_verified_at)) {
+            $createdUser->forceFill(['email_verified_at' => now()])->save();
         }
 
         return redirect('/login')->with('success', 'Registration submitted. Your account is pending admin approval — you\'ll receive an email once approved.');

@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\ZipcodeController;
 use App\Http\Controllers\AI\ImageAnalysisController;
 use App\Http\Controllers\AI\SmilePreviewController;
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CaseMediaController;
@@ -33,12 +34,27 @@ use Illuminate\Support\Facades\Route;
 // ─── Public / shared auth routes ──────────────────────────
 Route::view('/', 'landing')->name('landing');
 Route::view('/login', 'login')->name('login');
-Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/login', [LoginController::class, 'login'])
+    ->middleware(['recaptcha:login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::get('/register',         [\App\Http\Controllers\Auth\RegisterController::class, 'show']);
 Route::get('/register/doctor',  [\App\Http\Controllers\Auth\RegisterController::class, 'show']);
-Route::post('/register',        [\App\Http\Controllers\Auth\RegisterController::class, 'store']);
+Route::post('/register',        [\App\Http\Controllers\Auth\RegisterController::class, 'store'])
+    ->middleware(['throttle:register', 'recaptcha:register']);
+
+// Email verification (post-registration; no auth required since user
+// hasn't logged in yet — they're proving they own the inbox).
+Route::get('/verify-email',                  [EmailVerificationController::class, 'showForm'])->name('verify-email.show');
+Route::post('/verify-email',                 [EmailVerificationController::class, 'submitOtp'])
+    ->middleware('throttle:verify-otp')
+    ->name('verify-email.submit');
+Route::get('/verify-email/link/{user}',      [EmailVerificationController::class, 'verifyLink'])
+    ->middleware('signed')
+    ->name('verify-email.link');
+Route::post('/verify-email/resend',          [EmailVerificationController::class, 'resend'])
+    ->middleware('throttle:resend-verification')
+    ->name('verify-email.resend');
 
 Route::get('/contact-support',  [\App\Http\Controllers\SupportController::class, 'show'])->name('support.show');
 Route::post('/contact-support', [\App\Http\Controllers\SupportController::class, 'store'])->name('support.send');
@@ -46,7 +62,8 @@ Route::post('/contact-support', [\App\Http\Controllers\SupportController::class,
 Route::redirect('/admin/login', '/login');
 
 Route::get('/forgot-password',  [ForgotPasswordController::class, 'showForm'])->name('password.request');
-Route::post('/forgot-password', [ForgotPasswordController::class, 'send'])->middleware('throttle:5,1');
+Route::post('/forgot-password', [ForgotPasswordController::class, 'send'])
+    ->middleware(['throttle:password-reset', 'recaptcha:reset']);
 Route::get('/reset-password/{token}',  [ForgotPasswordController::class, 'showReset'])->name('password.reset');
 Route::post('/reset-password',         [ForgotPasswordController::class, 'reset'])->name('password.update');
 
