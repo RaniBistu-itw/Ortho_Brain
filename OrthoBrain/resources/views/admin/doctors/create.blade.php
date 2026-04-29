@@ -445,19 +445,6 @@
         display: inline-flex; align-items: center; gap: .5rem;
     }
     #obw .obw-actionbar-hint i { color: var(--obw-success); }
-    #obw .obw-actionbar .btn {
-        padding: .55rem 1.25rem; font-weight: 500;
-        border-radius: var(--obw-radius-sm);
-    }
-    #obw #obw-save {
-        background: var(--obw-accent); border-color: var(--obw-accent);
-        color: #fff; box-shadow: 0 2px 8px rgba(91,192,222,.35);
-    }
-    #obw #obw-save:hover,
-    #obw #obw-save:focus {
-        background: var(--obw-accent-600); border-color: var(--obw-accent-600);
-        box-shadow: 0 4px 12px rgba(91,192,222,.45);
-    }
 
     /* ── Dark-mode parity (token override) ────────────────── */
     [data-theme="dark"] #obw {
@@ -1143,12 +1130,8 @@
                     <i data-feather="check-circle"></i>
                     Saved doctors are auto-approved and can log in immediately.
                 </span>
-                <button type="button" class="btn btn-outline-secondary" id="obw-cancel">
-                    <i data-feather="x" class="me-25"></i>Cancel
-                </button>
-                <button type="submit" class="btn btn-primary" id="obw-save">
-                    <i data-feather="save" class="me-25"></i>Save Doctor
-                </button>
+                <button type="submit" class="btn btn-primary me-1" id="obw-save">Save Doctor</button>
+                <button type="button" class="btn btn-outline-secondary" id="obw-cancel">Cancel</button>
             </div>
         </div>
     </form>
