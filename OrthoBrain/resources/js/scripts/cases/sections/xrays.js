@@ -46,13 +46,6 @@
 
       _tileModalInstance: null,
       _pendingReplaceTileId: null,
-      _lastPickerOpenAt: 0,
-      _pickerLockedTile: null,
-      _pickerLockTimer: null,
-      _bulkPickerLocked: false,
-      _bulkPickerLockTimer: null,
-      _lastChangeByTile: {},
-      _lastBulkChangeAt: 0,
 
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
@@ -224,37 +217,11 @@
       },
 
       _openFilePicker: function (tileId) {
-        // Chrome+GTK quirk guard — see photographs.js for the full rationale.
-        var lastChange = this._lastChangeByTile && this._lastChangeByTile[tileId];
-        if (lastChange && Date.now() - lastChange < 800) return;
-
-        if (this._pickerLockedTile === tileId) return;
-        var now = Date.now();
-        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) return;
-        this._lastPickerOpenAt = now;
-
         var input = document.getElementById('tile-file-' + tileId);
-        if (!input) return;
-
-        this._pickerLockedTile = tileId;
-        clearTimeout(this._pickerLockTimer);
-        var self = this;
-        this._pickerLockTimer = setTimeout(function () {
-          if (self._pickerLockedTile === tileId) self._pickerLockedTile = null;
-        }, 60000);
-
-        input.click();
+        if (input) input.click();
       },
 
       onFileInputChange: async function (tileId) {
-        if (!this._lastChangeByTile) this._lastChangeByTile = {};
-        this._lastChangeByTile[tileId] = Date.now();
-
-        if (this._pickerLockedTile === tileId) {
-          this._pickerLockedTile = null;
-          clearTimeout(this._pickerLockTimer);
-        }
-
         var input = document.getElementById('tile-file-' + tileId);
         if (!input || !input.files.length) return;
         var file = input.files[0];
@@ -301,10 +268,6 @@
         this.tiles[id].previewUrl = null;
         this.tiles[id].cropParams = null;
         this.syncToState();
-
-        // User intentionally removed — clear the change-recency lock so
-        // a quick re-click on the empty tile opens the dialog right away.
-        if (this._lastChangeByTile) delete this._lastChangeByTile[id];
 
         if (this._tileModalInstance) this._closeTileModal();
 
@@ -450,24 +413,12 @@
       // ── Bulk upload ─────────────────────────────────────────────────────────
 
       openBulkPicker: function () {
-        if (this._lastBulkChangeAt && Date.now() - this._lastBulkChangeAt < 800) return;
-        if (this._bulkPickerLocked) return;
         var input = document.getElementById('bulk-upload-xrays');
-        if (!input) return;
-        this._bulkPickerLocked = true;
-        clearTimeout(this._bulkPickerLockTimer);
-        var self = this;
-        this._bulkPickerLockTimer = setTimeout(function () {
-          self._bulkPickerLocked = false;
-        }, 60000);
-        input.click();
+        if (input) input.click();
       },
 
       onBulkInputChange: async function () {
-        this._lastBulkChangeAt = Date.now();
-        this._bulkPickerLocked = false;
-        clearTimeout(this._bulkPickerLockTimer);
-
+        var input = document.getElementById('bulk-upload-xrays');
         if (!input || !input.files.length) return;
 
         var files = Array.from(input.files);
