@@ -97,6 +97,28 @@ class RegisterController extends Controller
             'buccal_corridors'      => 'nullable|array',
             'buccal_corridors.*'    => 'integer|exists:buccal_corridor_options,id',
 
+            // Doctor's primary practice address — Step 3 always submitted, regardless of whether
+            // the primary practice is existing or new. The address values themselves come from
+            // either a chosen practice (auto-filled by JS) or manual entry ("Other" mode).
+            'street_address_1'              => 'required|string|min:5|max:255',
+            'street_address_2'              => 'nullable|string|max:255',
+            'zip_id'                        => 'required|integer|exists:zipcodes,id',
+            'city_id'                       => 'required|integer|exists:cities,id',
+            'state_id'                      => 'required|integer|exists:states,id',
+            'country_id'                    => 'required|integer|exists:countries,id',
+
+            // Step 3 dropdown — what populated the address fields above.
+            //   PRACTICE = address came from one of the doctor's entered practices (ref points to which one)
+            //   OTHER    = doctor entered address manually
+            'primary_address_source'        => 'required|in:PRACTICE,OTHER',
+            'primary_address_practice_ref'  => [
+                'required_if:primary_address_source,PRACTICE',
+                'nullable',
+                'string',
+                'max:30',
+                'regex:/^(primary|extra-\d+)$/',
+            ],
+
             // Other practices the doctor also works at — each row has a mode, then conditional fields.
             'additional_practices'                          => 'nullable|array|max:5',
             'additional_practices.*.mode'                   => 'required_with:additional_practices|in:existing,new',
@@ -121,12 +143,6 @@ class RegisterController extends Controller
                 'practice_phone_country_code' => ['required', Rule::in($phoneCodes)],
                 'practice_phone_number'       => 'required|string|regex:/^\d{10}$/',
                 'practice_website'            => 'required|string|max:500',
-                'street_address_1'            => 'required|string|min:5|max:255',
-                'street_address_2'            => 'nullable|string|max:255',
-                'zip_id'                      => 'required|integer|exists:zipcodes,id',
-                'city_id'                     => 'required|integer|exists:cities,id',
-                'state_id'                    => 'required|integer|exists:states,id',
-                'country_id'                  => 'required|integer|exists:countries,id',
             ]);
         }
 
@@ -167,21 +183,24 @@ class RegisterController extends Controller
 
         // Split additional rows into "pick existing" vs "create new" lists.
         // De-dupe existing IDs and exclude the primary practice if also picked.
+        // Each entry tracks its original form index so we can resolve the
+        // Step 3 dropdown's `primary_address_practice_ref` (e.g. "extra-2") to
+        // a real practice_id after creation.
         $primaryExistingId = $isExisting ? (int) ($data['practice_id'] ?? 0) : 0;
         $existingIds = [];
         $newRows     = [];
         $seenExisting = $primaryExistingId ? [$primaryExistingId] : [];
 
-        foreach (($data['additional_practices'] ?? []) as $row) {
+        foreach (($data['additional_practices'] ?? []) as $i => $row) {
             $mode = $row['mode'] ?? 'existing';
             if ($mode === 'existing') {
                 $pid = (int) ($row['practice_id'] ?? 0);
                 if ($pid && ! in_array($pid, $seenExisting, true)) {
-                    $existingIds[]  = $pid;
+                    $existingIds[]  = ['form_idx' => $i, 'id' => $pid];
                     $seenExisting[] = $pid;
                 }
             } else {
-                $newRows[] = $row;
+                $newRows[] = ['form_idx' => $i, 'data' => $row];
             }
         }
 
@@ -260,6 +279,17 @@ class RegisterController extends Controller
                 'approved_at'                        => null,
                 'approved_by_admin_id'               => null,
                 'rejection_reason'                   => null,
+                // Step 3 primary practice address — copied from whichever source the doctor
+                // chose in the dropdown (an existing/new practice, or "Other"). Stored as a
+                // snapshot so a single doctor read returns the address without joining.
+                'primary_address_source'             => $data['primary_address_source'],
+                // primary_address_practice_id resolved below once all practices exist.
+                'street_address_1'                   => $data['street_address_1'],
+                'street_address_2'                   => $data['street_address_2'] ?? null,
+                'zip_id'                             => $data['zip_id'],
+                'city_id'                            => $data['city_id'],
+                'state_id'                           => $data['state_id'],
+                'country_id'                         => $data['country_id'],
             ];
 
             if ($resurrecting && $resurrecting->doctor) {
@@ -286,19 +316,26 @@ class RegisterController extends Controller
                 'requested_at'    => now(),
             ]);
 
+            // Build the form-index → practice_id resolution map so we can later
+            // translate the Step 3 dropdown's `primary_address_practice_ref`
+            // (e.g. "primary" or "extra-2") into a real practices.id.
+            $refMap = ['primary' => $practiceId];
+
             // Additional existing-practice claims — all pending.
-            foreach ($existingIds as $aid) {
-                $doctor->practices()->attach($aid, [
+            foreach ($existingIds as $entry) {
+                $doctor->practices()->attach($entry['id'], [
                     'approval_status' => 'PENDING',
                     'is_primary'      => false,
                     'requested_at'    => now(),
                 ]);
+                $refMap['extra-' . $entry['form_idx']] = $entry['id'];
             }
 
             // Additional new-practice creations — create Practice rows owned by
             // this doctor, then attach as PENDING. Admin still has to approve
             // each one (per product decision: every practice needs admin review).
-            foreach ($newRows as $row) {
+            foreach ($newRows as $entry) {
+                $row = $entry['data'];
                 $created = Practice::create([
                     'owner_id'           => $doctor->id,
                     'name'               => $row['name'],
@@ -318,6 +355,15 @@ class RegisterController extends Controller
                     'approval_status' => 'PENDING',
                     'is_primary'      => false,
                     'requested_at'    => now(),
+                ]);
+                $refMap['extra-' . $entry['form_idx']] = $created->id;
+            }
+
+            // Resolve the Step 3 dropdown ref → real practice_id (PRACTICE source only).
+            if (($data['primary_address_source'] ?? null) === 'PRACTICE') {
+                $ref = $data['primary_address_practice_ref'] ?? null;
+                $doctor->update([
+                    'primary_address_practice_id' => $refMap[$ref] ?? null,
                 ]);
             }
 
