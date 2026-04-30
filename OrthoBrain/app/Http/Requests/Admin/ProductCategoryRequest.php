@@ -14,9 +14,23 @@ class ProductCategoryRequest extends FormRequest
 
     public function rules(): array
     {
+        $categoryId = $this->route('product_category')?->id ?? $this->route('productCategory')?->id;
+
         return [
-            'name'   => ['required', 'string', 'max:255'],
+            'name'   => [
+                'required', 'string', 'max:255',
+                Rule::unique('products_category', 'name')
+                    ->ignore($categoryId)
+                    ->whereNull('deleted_at'),
+            ],
             'status' => ['required', Rule::in(['ACTIVE', 'INACTIVE'])],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'name.unique' => 'A category with this name already exists.',
         ];
     }
 }

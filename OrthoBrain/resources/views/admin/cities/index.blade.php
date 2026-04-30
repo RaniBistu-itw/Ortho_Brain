@@ -21,14 +21,6 @@
     .ci-table .ci-row-new { animation: ci-row-flash 1.4s ease-out; }
     @keyframes ci-row-flash { 0% { background: rgba(var(--bs-success-rgb), .2); } 100% { background: transparent; } }
 
-    .ci-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
-    .ci-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
-    .ci-status--active   { background: rgba(var(--bs-success-rgb), .14); color: var(--bs-success); }
-    .ci-status--inactive { background: rgba(var(--bs-danger-rgb), .14);  color: var(--bs-danger); }
-
-    .ci-action-group { display: inline-flex; gap: .25rem; }
-    .ci-action-group .btn { width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; }
-    .ci-action-group .btn svg { width: 15px; height: 15px; }
 
     .ci-empty { text-align: center; padding: 3rem 1rem; color: #6e6b7b; }
     .ci-empty svg { width: 56px; height: 56px; opacity: .35; margin-bottom: .75rem; }
@@ -36,7 +28,8 @@
     /* Slide-over drawer */
     .ci-drawer { width: min(560px, 100vw); display: flex; flex-direction: column; }
     .ci-drawer .offcanvas-header { border-bottom: 1px solid rgba(34, 41, 47, .08); }
-    .ci-drawer .offcanvas-body { overflow-y: auto; }
+    /* Body hugs its content so the action bar sits right below the form, not pinned at the panel's bottom edge */
+    .ci-drawer .offcanvas-body { flex: 0 1 auto; overflow-y: auto; }
     .ci-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: #fafafa; }
     .ci-drawer .form-label { font-weight: 500; }
     .ci-drawer .select2-container--default .select2-selection--single { height: calc(2.4rem + 2px); padding: .3rem .4rem; }
@@ -49,6 +42,7 @@
 @endpush
 
 @section('content')
+@include('admin._partials.inline_status_dropdown')
 <section id="cities-list">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
@@ -93,7 +87,7 @@
 
         <div class="card-body py-1">
             <form id="citiesFilter" method="GET" class="row g-1 py-1">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select id="filter_country_id" name="country_id" data-ob-cascade-parent class="js-searchable form-select">
                         <option value="">All countries</option>
                         @foreach ($countries as $c)
@@ -101,7 +95,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select id="filter_state_id" name="state_id" class="js-searchable form-select">
                         <option value="">All states</option>
                         @foreach ($states as $s)
@@ -117,6 +111,12 @@
                         <option value="">All statuses</option>
                         <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
                         <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="order" class="form-select" aria-label="Sort order">
+                        <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+                        <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -155,12 +155,18 @@
                                 @endif
                             </td>
                             <td>
-                                <span class="ci-status ci-status--{{ $city->status === 'ACTIVE' ? 'active' : 'inactive' }}" data-status="{{ $city->status }}">{{ $city->status }}</span>
+                                <select class="ob-status-select" data-inline-status
+                                        data-url="{{ route('admin.cities.status', $city) }}"
+                                        data-status="{{ $city->status }}"
+                                        aria-label="Update status for {{ $city->name }}">
+                                    <option value="ACTIVE"   @selected($city->status === 'ACTIVE')>Active</option>
+                                    <option value="INACTIVE" @selected($city->status === 'INACTIVE')>Inactive</option>
+                                </select>
                             </td>
                             <td class="text-end">
-                                <div class="ci-action-group">
-                                    <a href="{{ route('admin.cities.show', $city) }}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                                    <button type="button" class="btn btn-outline-primary ci-edit" title="Edit"
+                                <div class="ob-row-actions">
+                                    <a href="{{ route('admin.cities.show', $city) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                                    <button type="button" class="ob-icon-btn ob-icon-btn--edit ci-edit" title="Edit"
                                             data-id="{{ $city->id }}"
                                             data-country-id="{{ $city->state?->country_id }}"
                                             data-state-id="{{ $city->state_id }}"
@@ -173,10 +179,10 @@
                                     @if (! $hasZips)
                                         <form method="POST" action="{{ route('admin.cities.destroy', $city) }}" class="d-inline js-delete-form" data-confirm="Delete city '{{ $city->name }}'?">
                                             @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                                            <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                                         </form>
                                     @else
-                                        <button type="button" class="btn btn-outline-danger js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '{{ $city->name }}' — it has linked zip codes. Remove them first.">
+                                        <button type="button" class="ob-icon-btn ob-icon-btn--disabled js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '{{ $city->name }}' — it has linked zip codes. Remove them first.">
                                             <i data-feather="trash-2"></i>
                                         </button>
                                     @endif
@@ -320,10 +326,16 @@
 
     const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const ROUTES = {
-        store:  @json(route('admin.cities.ajax.store')),
-        bulk:   @json(route('admin.cities.ajax.bulk')),
-        states: @json(route('admin.ajax.states')),
+        store:        @json(route('admin.cities.ajax.store')),
+        bulk:         @json(route('admin.cities.ajax.bulk')),
+        checkUnique:  @json(route('admin.cities.ajax.check-unique')),
+        states:       @json(route('admin.ajax.states')),
     };
+
+    function debounce(fn, ms) {
+        let t;
+        return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+    }
 
     const $tbody = $('#ciTbody');
 
@@ -346,15 +358,14 @@
     function removeEmptyPlaceholder() { $('#ciEmptyRow').remove(); }
 
     function buildRowHtml(ci) {
-        const statusClass = ci.status === 'ACTIVE' ? 'ci-status--active' : 'ci-status--inactive';
         const hasZips = ci.zipcodes_count > 0;
         const zipsCell = hasZips ? String(ci.zipcodes_count) : '<span class="text-muted">—</span>';
         const deleteBtn = hasZips
-            ? `<button type="button" class="btn btn-outline-danger js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '${escapeHtml(ci.name)}' — it has linked zip codes. Remove them first."><i data-feather="trash-2"></i></button>`
+            ? `<button type="button" class="ob-icon-btn ob-icon-btn--disabled js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '${escapeHtml(ci.name)}' — it has linked zip codes. Remove them first."><i data-feather="trash-2"></i></button>`
             : `<form method="POST" action="${ci.destroy_url}" class="d-inline js-delete-form" data-confirm="Delete city '${escapeHtml(ci.name)}'?">
                    <input type="hidden" name="_token" value="${CSRF}">
                    <input type="hidden" name="_method" value="DELETE">
-                   <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                   <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                </form>`;
 
         return `
@@ -363,11 +374,16 @@
                 <td class="ci-cell-state">${escapeHtml(ci.state_name)}</td>
                 <td class="fw-bolder ci-cell-name">${escapeHtml(ci.name)}</td>
                 <td class="ci-cell-zips">${zipsCell}</td>
-                <td><span class="ci-status ${statusClass}" data-status="${ci.status}">${ci.status}</span></td>
+                <td>
+                    <select class="ob-status-select" data-inline-status data-url="${ci.status_url}" data-status="${ci.status}" aria-label="Update status for ${escapeHtml(ci.name)}">
+                        <option value="ACTIVE"${ci.status === 'ACTIVE' ? ' selected' : ''}>Active</option>
+                        <option value="INACTIVE"${ci.status === 'INACTIVE' ? ' selected' : ''}>Inactive</option>
+                    </select>
+                </td>
                 <td class="text-end">
-                    <div class="ci-action-group">
-                        <a href="${ci.show_url}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                        <button type="button" class="btn btn-outline-primary ci-edit" title="Edit"
+                    <div class="ob-row-actions">
+                        <a href="${ci.show_url}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                        <button type="button" class="ob-icon-btn ob-icon-btn--edit ci-edit" title="Edit"
                                 data-id="${ci.id}"
                                 data-country-id="${ci.country_id ?? ''}"
                                 data-state-id="${ci.state_id}"
@@ -394,11 +410,8 @@
         $row.find('.ci-cell-state').text(ci.state_name);
         $row.find('.ci-cell-name').text(ci.name);
 
-        const $status = $row.find('.ci-status');
-        $status.text(ci.status)
-            .removeClass('ci-status--active ci-status--inactive')
-            .addClass(ci.status === 'ACTIVE' ? 'ci-status--active' : 'ci-status--inactive')
-            .attr('data-status', ci.status);
+        const $status = $row.find('.ob-status-select');
+        $status.attr('data-status', ci.status).val(ci.status);
 
         const $edit = $row.find('.ci-edit');
         $edit.attr('data-country-id', ci.country_id ?? '')
@@ -510,6 +523,77 @@
         setTimeout(() => $('#ciDrawerName').trigger('focus'), 50);
     });
 
+    // ── Live duplicate check on the single drawer (name per state) ────────
+    const liveCheckDrawer = debounce(function () {
+        const name      = $('#ciDrawerName').val().trim();
+        const state_id  = $('#ciDrawerState').val();
+        const ignore_id = $('#ciDrawerId').val() || null;
+        if (!name || !state_id) {
+            $('#ciDrawerName').removeClass('is-invalid');
+            $('#ciDrawerNameErr').text('');
+            return;
+        }
+        $.post(ROUTES.checkUnique, { _token: CSRF, name, state_id, ignore_id })
+            .done((res) => {
+                if ($('#ciDrawerName').val().trim() !== name) return;
+                if (res.available) {
+                    $('#ciDrawerName').removeClass('is-invalid');
+                    $('#ciDrawerNameErr').text('');
+                } else {
+                    $('#ciDrawerName').addClass('is-invalid');
+                    $('#ciDrawerNameErr').text(res.message || 'Already exists.');
+                }
+            });
+    }, 350);
+    $(document).on('input', '#ciDrawerName', liveCheckDrawer);
+    $(document).on('change', '#ciDrawerState', liveCheckDrawer);
+
+    // ── Live duplicate check on each bulk row (name per state) ────────────
+    function bulkRowLiveCheck($input) {
+        const $row    = $input.closest('.ci-bulk-row');
+        const $err    = $row.find('.ci-bulk-row__err');
+        const name    = $input.val().trim();
+        const stateId = $('#ciBulkState').val();
+
+        let dupInBatch = false;
+        if (name) {
+            $('#ciBulkRows .ci-bulk-row').each(function () {
+                if (this === $row[0]) return;
+                const other = $(this).find('.ci-bulk-name').val().trim().toLowerCase();
+                if (other && other === name.toLowerCase()) dupInBatch = true;
+            });
+        }
+        if (dupInBatch) {
+            $input.addClass('is-invalid');
+            $err.text('Duplicate name in this batch.');
+            return;
+        }
+
+        if (!name || !stateId) {
+            $input.removeClass('is-invalid');
+            $err.text('');
+            return;
+        }
+        $.post(ROUTES.checkUnique, { _token: CSRF, name, state_id: stateId })
+            .done((res) => {
+                if ($input.val().trim() !== name) return;
+                if (res.available) {
+                    $input.removeClass('is-invalid');
+                    $err.text('');
+                } else {
+                    $input.addClass('is-invalid');
+                    $err.text(res.message || 'Already exists.');
+                }
+            });
+    }
+    const bulkRowLiveCheckDebounced = debounce(function (el) { bulkRowLiveCheck($(el)); }, 350);
+    $(document).on('input', '#ciBulkRows .ci-bulk-name', function () {
+        bulkRowLiveCheckDebounced(this);
+    });
+    $(document).on('change', '#ciBulkState', function () {
+        $('#ciBulkRows .ci-bulk-name').each(function () { bulkRowLiveCheck($(this)); });
+    });
+
     $('#ciDrawerOpen').on('click', openDrawerCreate);
 
     $(document).on('click', '.ci-edit', function () {
@@ -563,8 +647,7 @@
             .done((res) => {
                 if (!res || !res.ok) return;
                 if (isEdit) {
-                    const $prevStatus = $(`#ciTbody tr[data-id="${res.city.id}"] .ci-status`);
-                    const prev = $prevStatus.data('status');
+                    const prev = $(`#ciTbody tr[data-id="${res.city.id}"] .ob-status-select`).attr('data-status');
                     if (prev && prev !== res.city.status) {
                         bumpStat(prev === 'ACTIVE' ? 'active' : 'inactive', -1);
                         bumpStat(res.city.status === 'ACTIVE' ? 'active' : 'inactive', 1);

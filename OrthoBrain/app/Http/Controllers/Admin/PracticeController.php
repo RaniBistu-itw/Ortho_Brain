@@ -32,10 +32,18 @@ class PracticeController extends Controller
             'location'      => 'countries.name',
             'contact'       => 'practices.phone_number',
             'members_count' => 'members_count',
+            'created_at'    => 'practices.created_at',
         ];
+        $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
         $sortKey = $request->get('sort');
-        $sortCol = $sortable[$sortKey] ?? 'practices.created_at';
-        $dir     = strtolower($request->get('dir', $sortKey ? 'asc' : 'desc')) === 'desc' ? 'desc' : 'asc';
+        if ($sortKey && isset($sortable[$sortKey])) {
+            $sortCol = $sortable[$sortKey];
+            $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        } else {
+            $sortKey = null;
+            $sortCol = 'practices.created_at';
+            $dir     = $order === 'oldest' ? 'asc' : 'desc';
+        }
 
         $query = Practice::query()
             ->select([

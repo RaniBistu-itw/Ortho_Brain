@@ -20,14 +20,6 @@
     .zi-table .zi-row-new { animation: zi-row-flash 1.4s ease-out; }
     @keyframes zi-row-flash { 0% { background: rgba(var(--bs-success-rgb), .2); } 100% { background: transparent; } }
 
-    .zi-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
-    .zi-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
-    .zi-status--active   { background: rgba(var(--bs-success-rgb), .14); color: var(--bs-success); }
-    .zi-status--inactive { background: rgba(var(--bs-danger-rgb), .14);  color: var(--bs-danger); }
-
-    .zi-action-group { display: inline-flex; gap: .25rem; }
-    .zi-action-group .btn { width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; }
-    .zi-action-group .btn svg { width: 15px; height: 15px; }
 
     .zi-empty { text-align: center; padding: 3rem 1rem; color: #6e6b7b; }
     .zi-empty svg { width: 56px; height: 56px; opacity: .35; margin-bottom: .75rem; }
@@ -35,7 +27,8 @@
     /* Slide-over drawer */
     .zi-drawer { width: min(560px, 100vw); display: flex; flex-direction: column; }
     .zi-drawer .offcanvas-header { border-bottom: 1px solid rgba(34, 41, 47, .08); }
-    .zi-drawer .offcanvas-body { overflow-y: auto; }
+    /* Body hugs its content so the action bar sits right below the form, not pinned at the panel's bottom edge */
+    .zi-drawer .offcanvas-body { flex: 0 1 auto; overflow-y: auto; }
     .zi-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: #fafafa; }
     .zi-drawer .form-label { font-weight: 500; }
     .zi-drawer .select2-container--default .select2-selection--single { height: calc(2.4rem + 2px); padding: .3rem .4rem; }
@@ -43,6 +36,7 @@
 @endpush
 
 @section('content')
+@include('admin._partials.inline_status_dropdown')
 <section id="zipcodes-list">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
@@ -115,6 +109,12 @@
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <select name="order" class="form-select" aria-label="Sort order">
+                        <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+                        <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <a href="{{ route('admin.zipcodes.index') }}" class="ob-btn-clear w-100">
                         <i data-feather="x"></i> Clear
                     </a>
@@ -143,12 +143,18 @@
                             <td class="zi-cell-state">{{ $z->city?->state?->name ?? '—' }}</td>
                             <td class="zi-cell-country">{{ $z->city?->state?->country?->name ?? '—' }}</td>
                             <td>
-                                <span class="zi-status zi-status--{{ $z->status === 'ACTIVE' ? 'active' : 'inactive' }}" data-status="{{ $z->status }}">{{ $z->status }}</span>
+                                <select class="ob-status-select" data-inline-status
+                                        data-url="{{ route('admin.zipcodes.status', $z) }}"
+                                        data-status="{{ $z->status }}"
+                                        aria-label="Update status for {{ $z->code }}">
+                                    <option value="ACTIVE"   @selected($z->status === 'ACTIVE')>Active</option>
+                                    <option value="INACTIVE" @selected($z->status === 'INACTIVE')>Inactive</option>
+                                </select>
                             </td>
                             <td class="text-end">
-                                <div class="zi-action-group">
-                                    <a href="{{ route('admin.zipcodes.show', $z) }}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                                    <button type="button" class="btn btn-outline-primary zi-edit" title="Edit"
+                                <div class="ob-row-actions">
+                                    <a href="{{ route('admin.zipcodes.show', $z) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                                    <button type="button" class="ob-icon-btn ob-icon-btn--edit zi-edit" title="Edit"
                                             data-id="{{ $z->id }}"
                                             data-country-id="{{ $z->city?->state?->country_id }}"
                                             data-state-id="{{ $z->city?->state_id }}"
@@ -161,7 +167,7 @@
                                     </button>
                                     <form method="POST" action="{{ route('admin.zipcodes.destroy', $z) }}" class="d-inline js-delete-form" data-confirm="Delete zip '{{ $z->code }}'?">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                                        <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                                     </form>
                                 </div>
                             </td>
@@ -271,10 +277,16 @@
 
     const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const ROUTES = {
-        store:  @json(route('admin.zipcodes.ajax.store')),
-        states: @json(route('admin.ajax.states')),
-        cities: @json(route('admin.ajax.cities')),
+        store:        @json(route('admin.zipcodes.ajax.store')),
+        checkUnique:  @json(route('admin.zipcodes.ajax.check-unique')),
+        states:       @json(route('admin.ajax.states')),
+        cities:       @json(route('admin.ajax.cities')),
     };
+
+    function debounce(fn, ms) {
+        let t;
+        return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+    }
 
     const $tbody = $('#ziTbody');
 
@@ -297,18 +309,22 @@
     function removeEmptyPlaceholder() { $('#ziEmptyRow').remove(); }
 
     function buildRowHtml(zi) {
-        const statusClass = zi.status === 'ACTIVE' ? 'zi-status--active' : 'zi-status--inactive';
         return `
             <tr class="zi-row-new" data-id="${zi.id}" data-row-href="${zi.show_url}">
                 <td class="fw-bolder zi-cell-code">${escapeHtml(zi.code)}</td>
                 <td class="zi-cell-city">${escapeHtml(zi.city_name)}</td>
                 <td class="zi-cell-state">${escapeHtml(zi.state_name)}</td>
                 <td class="zi-cell-country">${escapeHtml(zi.country_name)}</td>
-                <td><span class="zi-status ${statusClass}" data-status="${zi.status}">${zi.status}</span></td>
+                <td>
+                    <select class="ob-status-select" data-inline-status data-url="${zi.status_url}" data-status="${zi.status}" aria-label="Update status for ${escapeHtml(zi.code)}">
+                        <option value="ACTIVE"${zi.status === 'ACTIVE' ? ' selected' : ''}>Active</option>
+                        <option value="INACTIVE"${zi.status === 'INACTIVE' ? ' selected' : ''}>Inactive</option>
+                    </select>
+                </td>
                 <td class="text-end">
-                    <div class="zi-action-group">
-                        <a href="${zi.show_url}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                        <button type="button" class="btn btn-outline-primary zi-edit" title="Edit"
+                    <div class="ob-row-actions">
+                        <a href="${zi.show_url}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                        <button type="button" class="ob-icon-btn ob-icon-btn--edit zi-edit" title="Edit"
                                 data-id="${zi.id}"
                                 data-country-id="${zi.country_id ?? ''}"
                                 data-state-id="${zi.state_id ?? ''}"
@@ -320,7 +336,7 @@
                         <form method="POST" action="${zi.destroy_url}" class="d-inline js-delete-form" data-confirm="Delete zip '${escapeHtml(zi.code)}'?">
                             <input type="hidden" name="_token" value="${CSRF}">
                             <input type="hidden" name="_method" value="DELETE">
-                            <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                            <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                         </form>
                     </div>
                 </td>
@@ -341,11 +357,8 @@
         $row.find('.zi-cell-state').text(zi.state_name);
         $row.find('.zi-cell-country').text(zi.country_name);
 
-        const $status = $row.find('.zi-status');
-        $status.text(zi.status)
-            .removeClass('zi-status--active zi-status--inactive')
-            .addClass(zi.status === 'ACTIVE' ? 'zi-status--active' : 'zi-status--inactive')
-            .attr('data-status', zi.status);
+        const $status = $row.find('.ob-status-select');
+        $status.attr('data-status', zi.status).val(zi.status);
 
         const $edit = $row.find('.zi-edit');
         $edit.attr('data-country-id', zi.country_id ?? '')
@@ -497,6 +510,31 @@
         setTimeout(() => $('#ziDrawerCode').trigger('focus'), 50);
     });
 
+    // ── Live duplicate check on the zipcode drawer (code per city) ───────
+    const liveCheckDrawer = debounce(function () {
+        const code      = $('#ziDrawerCode').val().trim();
+        const city_id   = $('#ziDrawerCity').val();
+        const ignore_id = $('#ziDrawerId').val() || null;
+        if (!code || !city_id) {
+            $('#ziDrawerCode').removeClass('is-invalid');
+            $('#ziDrawerCodeErr').text('');
+            return;
+        }
+        $.post(ROUTES.checkUnique, { _token: CSRF, code, city_id, ignore_id })
+            .done((res) => {
+                if ($('#ziDrawerCode').val().trim() !== code) return;
+                if (res.available) {
+                    $('#ziDrawerCode').removeClass('is-invalid');
+                    $('#ziDrawerCodeErr').text('');
+                } else {
+                    $('#ziDrawerCode').addClass('is-invalid');
+                    $('#ziDrawerCodeErr').text(res.message || 'Already exists.');
+                }
+            });
+    }, 350);
+    $(document).on('input', '#ziDrawerCode', liveCheckDrawer);
+    $(document).on('change', '#ziDrawerCity', liveCheckDrawer);
+
     $('#ziDrawerOpen').on('click', openDrawerCreate);
 
     $(document).on('click', '.zi-edit', function () {
@@ -555,8 +593,7 @@
             .done((res) => {
                 if (!res || !res.ok) return;
                 if (isEdit) {
-                    const $prevStatus = $(`#ziTbody tr[data-id="${res.zipcode.id}"] .zi-status`);
-                    const prev = $prevStatus.data('status');
+                    const prev = $(`#ziTbody tr[data-id="${res.zipcode.id}"] .ob-status-select`).attr('data-status');
                     if (prev && prev !== res.zipcode.status) {
                         bumpStat(prev === 'ACTIVE' ? 'active' : 'inactive', -1);
                         bumpStat(res.zipcode.status === 'ACTIVE' ? 'active' : 'inactive', 1);

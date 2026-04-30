@@ -118,7 +118,7 @@
                     <td class="text-end">
                         <div class="ob-row-actions">
                             <a href="{{ route('admin.doctors.show', $doctor) }}"
-                               class="ob-icon-btn" title="View details">
+                               class="ob-icon-btn ob-icon-btn--view" title="View details">
                                 <i data-feather="eye"></i>
                             </a>
                         </div>

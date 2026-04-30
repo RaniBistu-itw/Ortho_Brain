@@ -19,22 +19,14 @@
     .psc-table .psc-row-new { animation: psc-row-flash 1.4s ease-out; }
     @keyframes psc-row-flash { 0% { background: rgba(var(--bs-success-rgb), .2); } 100% { background: transparent; } }
 
-    .psc-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
-    .psc-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
-    .psc-status--active   { background: rgba(var(--bs-success-rgb), .14); color: var(--bs-success); }
-    .psc-status--inactive { background: rgba(var(--bs-danger-rgb), .14);  color: var(--bs-danger); }
-
-    .psc-action-group { display: inline-flex; gap: .25rem; }
-    .psc-action-group .btn { width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; }
-    .psc-action-group .btn svg { width: 15px; height: 15px; }
-
     .psc-empty { text-align: center; padding: 3rem 1rem; color: #6e6b7b; }
     .psc-empty svg { width: 56px; height: 56px; opacity: .35; margin-bottom: .75rem; }
 
     /* Slide-over drawer */
     .psc-drawer { width: min(560px, 100vw); display: flex; flex-direction: column; }
     .psc-drawer .offcanvas-header { border-bottom: 1px solid rgba(34, 41, 47, .08); }
-    .psc-drawer .offcanvas-body { overflow-y: auto; }
+    /* Body hugs its content so the action bar sits right below the form, not pinned at the panel's bottom edge */
+    .psc-drawer .offcanvas-body { flex: 0 1 auto; overflow-y: auto; }
     .psc-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: #fafafa; }
     .psc-drawer .form-label { font-weight: 500; }
     /* Keep Select2 inside the drawer visually consistent */
@@ -48,6 +40,7 @@
 @endpush
 
 @section('content')
+@include('admin._partials.inline_status_dropdown')
 <section id="subcategories-list">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
@@ -97,14 +90,20 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <input type="text" name="search" placeholder="Search sub-categories…" value="{{ request('search') }}" class="form-control">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select name="status" class="form-select">
                         <option value="">All statuses</option>
                         <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
                         <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="order" class="form-select" aria-label="Sort order">
+                        <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+                        <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -144,12 +143,18 @@
                                 @endif
                             </td>
                             <td>
-                                <span class="psc-status psc-status--{{ $sub->status ? 'active' : 'inactive' }}" data-status="{{ $statusStr }}">{{ $statusStr }}</span>
+                                <select class="ob-status-select" data-inline-status
+                                        data-url="{{ route('admin.product-subcategories.status', $sub) }}"
+                                        data-status="{{ $statusStr }}"
+                                        aria-label="Update status for {{ $sub->name }}">
+                                    <option value="ACTIVE"   @selected($statusStr === 'ACTIVE')>Active</option>
+                                    <option value="INACTIVE" @selected($statusStr === 'INACTIVE')>Inactive</option>
+                                </select>
                             </td>
                             <td class="text-end">
-                                <div class="psc-action-group">
-                                    <a href="{{ route('admin.product-subcategories.show', $sub) }}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                                    <button type="button" class="btn btn-outline-primary psc-edit" title="Edit"
+                                <div class="ob-row-actions">
+                                    <a href="{{ route('admin.product-subcategories.show', $sub) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                                    <button type="button" class="ob-icon-btn ob-icon-btn--edit psc-edit" title="Edit"
                                             data-id="{{ $sub->id }}"
                                             data-category-id="{{ $sub->category_id }}"
                                             data-name="{{ $sub->name }}"
@@ -161,10 +166,10 @@
                                     @if (! $hasProducts)
                                         <form method="POST" action="{{ route('admin.product-subcategories.destroy', $sub) }}" class="d-inline js-delete-form" data-confirm="Delete '{{ $sub->name }}'?">
                                             @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                                            <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                                         </form>
                                     @else
-                                        <button type="button" class="btn btn-outline-danger js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '{{ $sub->name }}' — it has linked products. Remove them first.">
+                                        <button type="button" class="ob-icon-btn ob-icon-btn--disabled js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '{{ $sub->name }}' — it has linked products. Remove them first.">
                                             <i data-feather="trash-2"></i>
                                         </button>
                                     @endif
@@ -293,9 +298,15 @@
 
     const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const ROUTES = {
-        store: @json(route('admin.product-subcategories.ajax.store')),
-        bulk:  @json(route('admin.product-subcategories.ajax.bulk')),
+        store:        @json(route('admin.product-subcategories.ajax.store')),
+        bulk:         @json(route('admin.product-subcategories.ajax.bulk')),
+        checkUnique:  @json(route('admin.product-subcategories.ajax.check-unique')),
     };
+
+    function debounce(fn, ms) {
+        let t;
+        return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+    }
 
     const $tbody = $('#pscTbody');
 
@@ -318,17 +329,16 @@
     function removeEmptyPlaceholder() { $('#pscEmptyRow').remove(); }
 
     function buildRowHtml(sub) {
-        const statusClass = sub.status === 'ACTIVE' ? 'psc-status--active' : 'psc-status--inactive';
         const hasProducts = sub.products_count > 0;
         const productsCell = hasProducts
             ? String(sub.products_count)
             : '<span class="text-muted">—</span>';
         const deleteBtn = hasProducts
-            ? `<button type="button" class="btn btn-outline-danger js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '${escapeHtml(sub.name)}' — it has linked products. Remove them first."><i data-feather="trash-2"></i></button>`
+            ? `<button type="button" class="ob-icon-btn ob-icon-btn--disabled js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '${escapeHtml(sub.name)}' — it has linked products. Remove them first."><i data-feather="trash-2"></i></button>`
             : `<form method="POST" action="${sub.destroy_url}" class="d-inline js-delete-form" data-confirm="Delete '${escapeHtml(sub.name)}'?">
                    <input type="hidden" name="_token" value="${CSRF}">
                    <input type="hidden" name="_method" value="DELETE">
-                   <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                   <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                </form>`;
 
         return `
@@ -336,11 +346,16 @@
                 <td class="psc-cell-category">${escapeHtml(sub.category_name)}</td>
                 <td class="fw-bolder psc-cell-name">${escapeHtml(sub.name)}</td>
                 <td class="psc-cell-products">${productsCell}</td>
-                <td><span class="psc-status ${statusClass}" data-status="${sub.status}">${sub.status}</span></td>
+                <td>
+                    <select class="ob-status-select" data-inline-status data-url="${sub.status_url}" data-status="${sub.status}" aria-label="Update status for ${escapeHtml(sub.name)}">
+                        <option value="ACTIVE"${sub.status === 'ACTIVE' ? ' selected' : ''}>Active</option>
+                        <option value="INACTIVE"${sub.status === 'INACTIVE' ? ' selected' : ''}>Inactive</option>
+                    </select>
+                </td>
                 <td class="text-end">
-                    <div class="psc-action-group">
-                        <a href="${sub.show_url}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                        <button type="button" class="btn btn-outline-primary psc-edit" title="Edit"
+                    <div class="ob-row-actions">
+                        <a href="${sub.show_url}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                        <button type="button" class="ob-icon-btn ob-icon-btn--edit psc-edit" title="Edit"
                                 data-id="${sub.id}"
                                 data-category-id="${sub.category_id}"
                                 data-name="${escapeHtml(sub.name)}"
@@ -367,11 +382,8 @@
         $row.find('.psc-cell-products').html(
             sub.products_count > 0 ? String(sub.products_count) : '<span class="text-muted">—</span>'
         );
-        const $status = $row.find('.psc-status');
-        $status.text(sub.status)
-            .removeClass('psc-status--active psc-status--inactive')
-            .addClass(sub.status === 'ACTIVE' ? 'psc-status--active' : 'psc-status--inactive')
-            .attr('data-status', sub.status);
+        const $status = $row.find('.ob-status-select');
+        $status.attr('data-status', sub.status).val(sub.status);
 
         const $edit = $row.find('.psc-edit');
         $edit.attr('data-category-id', sub.category_id)
@@ -449,6 +461,80 @@
         setTimeout(() => $('#pscDrawerName').trigger('focus'), 50);
     });
 
+    // ── Live duplicate check on the single drawer (name + category combo) ─
+    const liveCheckDrawer = debounce(function () {
+        const name        = $('#pscDrawerName').val().trim();
+        const category_id = $('#pscDrawerCategory').val();
+        const ignore_id   = $('#pscDrawerId').val() || null;
+        if (!name || !category_id) {
+            $('#pscDrawerName').removeClass('is-invalid');
+            $('#pscDrawerNameErr').text('');
+            return;
+        }
+        $.post(ROUTES.checkUnique, { _token: CSRF, name, category_id, ignore_id })
+            .done((res) => {
+                if ($('#pscDrawerName').val().trim() !== name) return;
+                if (res.available) {
+                    $('#pscDrawerName').removeClass('is-invalid');
+                    $('#pscDrawerNameErr').text('');
+                } else {
+                    $('#pscDrawerName').addClass('is-invalid');
+                    $('#pscDrawerNameErr').text(res.message || 'Already exists.');
+                }
+            });
+    }, 350);
+    $(document).on('input', '#pscDrawerName', liveCheckDrawer);
+    // Re-run when the user changes the parent category — uniqueness is scoped per category
+    $(document).on('change', '#pscDrawerCategory', liveCheckDrawer);
+
+    // ── Live duplicate check on each bulk row ────────────────────────────
+    function bulkRowLiveCheck($input) {
+        const $row       = $input.closest('.psc-bulk-row');
+        const $err       = $row.find('.psc-bulk-row__err');
+        const name       = $input.val().trim();
+        const categoryId = $('#pscBulkCategory').val();
+
+        // Within-batch duplicates first (case-insensitive)
+        let dupInBatch = false;
+        if (name) {
+            $('#pscBulkRows .psc-bulk-row').each(function () {
+                if (this === $row[0]) return;
+                const other = $(this).find('.psc-bulk-name').val().trim().toLowerCase();
+                if (other && other === name.toLowerCase()) dupInBatch = true;
+            });
+        }
+        if (dupInBatch) {
+            $input.addClass('is-invalid');
+            $err.text('Duplicate name in this batch.');
+            return;
+        }
+
+        if (!name || !categoryId) {
+            $input.removeClass('is-invalid');
+            $err.text('');
+            return;
+        }
+        $.post(ROUTES.checkUnique, { _token: CSRF, name, category_id: categoryId })
+            .done((res) => {
+                if ($input.val().trim() !== name) return;
+                if (res.available) {
+                    $input.removeClass('is-invalid');
+                    $err.text('');
+                } else {
+                    $input.addClass('is-invalid');
+                    $err.text(res.message || 'Already exists.');
+                }
+            });
+    }
+    const bulkRowLiveCheckDebounced = debounce(function (el) { bulkRowLiveCheck($(el)); }, 350);
+    $(document).on('input', '#pscBulkRows .psc-bulk-name', function () {
+        bulkRowLiveCheckDebounced(this);
+    });
+    // Re-check all rows whenever the parent category changes
+    $(document).on('change', '#pscBulkCategory', function () {
+        $('#pscBulkRows .psc-bulk-name').each(function () { bulkRowLiveCheck($(this)); });
+    });
+
     $('#pscDrawerOpen').on('click', openDrawerCreate);
 
     $(document).on('click', '.psc-edit', function () {
@@ -503,8 +589,7 @@
             .done((res) => {
                 if (!res || !res.ok) return;
                 if (isEdit) {
-                    const $prevStatus = $(`#pscTbody tr[data-id="${res.subcategory.id}"] .psc-status`);
-                    const prev = $prevStatus.data('status');
+                    const prev = $(`#pscTbody tr[data-id="${res.subcategory.id}"] .ob-status-select`).attr('data-status');
                     if (prev && prev !== res.subcategory.status) {
                         bumpStat(prev === 'ACTIVE' ? 'active' : 'inactive', -1);
                         bumpStat(res.subcategory.status === 'ACTIVE' ? 'active' : 'inactive', 1);

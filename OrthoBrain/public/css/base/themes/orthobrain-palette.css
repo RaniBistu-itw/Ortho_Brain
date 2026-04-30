@@ -286,7 +286,16 @@ h1, h2, h3, h4, h5, h6,
 table tbody tr[data-row-href] {
   cursor: pointer;
 }
-.ob-admin-table .ob-icon-btn {
+/* Row-level action button group — works inside any table or card. */
+.ob-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  justify-content: flex-end;
+}
+
+/* Filled-tint icon button — base (neutral). Color variants below. */
+.ob-icon-btn {
   width: 34px;
   height: 34px;
   display: inline-flex;
@@ -296,25 +305,79 @@ table tbody tr[data-row-href] {
   border: 1px solid var(--ob-border);
   background: var(--ob-surface-1);
   color: var(--ob-text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0;
   transition: color 0.12s var(--ob-ease),
               border-color 0.12s var(--ob-ease),
               background-color 0.12s var(--ob-ease),
               transform 0.12s var(--ob-ease);
 }
-.ob-admin-table .ob-row-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  justify-content: flex-end;
-}
-.ob-admin-table .ob-icon-btn + .ob-icon-btn { margin-left: 0; }
-.ob-admin-table .ob-icon-btn:hover {
+.ob-icon-btn + .ob-icon-btn { margin-left: 0; }
+.ob-icon-btn:hover {
   color: var(--ob-primary);
   border-color: var(--ob-primary);
   background: var(--ob-primary-soft);
   transform: translateY(-1px);
 }
-.ob-admin-table .ob-icon-btn svg { width: 15px; height: 15px; }
+.ob-icon-btn svg { width: 15px; height: 15px; }
+
+/* View — green filled tint */
+.ob-icon-btn--view {
+  color: var(--ob-success);
+  border-color: rgba(74, 222, 128, 0.32);
+  background: rgba(74, 222, 128, 0.12);
+}
+.ob-icon-btn--view:hover {
+  color: #fff;
+  border-color: var(--ob-success);
+  background: var(--ob-success);
+}
+
+/* Edit — clean look: dark icon at rest, blue fill on hover. Keeps the
+   pencil neutral so it sits comfortably next to coloured view/delete tints. */
+.ob-icon-btn--edit {
+  color: var(--ob-text);
+  border-color: var(--ob-border-strong);
+  background: var(--ob-surface-1);
+}
+.ob-icon-btn--edit:hover {
+  color: #fff;
+  border-color: var(--ob-primary);
+  background: var(--ob-primary);
+}
+
+/* Delete — danger red filled tint */
+.ob-icon-btn--delete {
+  color: var(--ob-danger);
+  border-color: rgba(197, 48, 48, 0.32);
+  background: rgba(197, 48, 48, 0.12);
+}
+.ob-icon-btn--delete:hover {
+  color: #fff;
+  border-color: var(--ob-danger);
+  background: var(--ob-danger);
+}
+
+/* Disabled — visually distinct: dashed border, muted, no hover lift. Used for
+   delete buttons that are blocked because the row has dependent records. */
+.ob-icon-btn--disabled,
+.ob-icon-btn[aria-disabled="true"] {
+  color: var(--ob-text-muted);
+  border: 1px dashed var(--ob-border-strong);
+  background: var(--ob-surface-2);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.ob-icon-btn--disabled:hover,
+.ob-icon-btn[aria-disabled="true"]:hover {
+  color: var(--ob-text-muted);
+  border-color: var(--ob-border-strong);
+  background: var(--ob-surface-2);
+  transform: none;
+}
+.ob-icon-btn--disabled svg,
+.ob-icon-btn[aria-disabled="true"] svg { opacity: 0.65; }
 
 /* Status pill — palette-driven, dot prefix. Variants reuse semantic tokens
    so they auto-shift between light & dark modes. */

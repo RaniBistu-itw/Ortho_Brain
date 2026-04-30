@@ -31,10 +31,18 @@ class CityController extends Controller
             'state'          => 'states.name',
             'name'           => 'cities.name',
             'zipcodes_count' => 'zipcodes_count',
+            'created_at'     => 'cities.created_at',
         ];
+        $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
         $sortKey = $request->get('sort');
-        $sortCol = $sortable[$sortKey] ?? 'cities.name';
-        $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        if ($sortKey && isset($sortable[$sortKey])) {
+            $sortCol = $sortable[$sortKey];
+            $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        } else {
+            $sortKey = null;
+            $sortCol = 'cities.created_at';
+            $dir     = $order === 'oldest' ? 'asc' : 'desc';
+        }
 
         $query = City::query()
             ->select('cities.*')
@@ -120,6 +128,19 @@ class CityController extends Controller
         ]);
     }
 
+    public function updateStatus(Request $request, City $city)
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+        $city->update(['status' => $data['status']]);
+        return response()->json([
+            'ok'      => true,
+            'status'  => $city->status,
+            'message' => 'Status updated.',
+        ]);
+    }
+
     public function ajaxBulk(Request $request)
     {
         $payload = $request->input('cities', []);
@@ -130,6 +151,30 @@ class CityController extends Controller
             'cities.*.name'     => ['required', 'string', 'max:100'],
             'cities.*.status'   => ['required', 'in:ACTIVE,INACTIVE'],
         ]);
+
+        // City name is unique per state — guard within-batch + against existing rows.
+        $validator->after(function ($v) use ($payload) {
+            $seen = [];
+            foreach ($payload as $i => $row) {
+                $stateId = $row['state_id'] ?? null;
+                $name    = strtolower(trim($row['name'] ?? ''));
+                if (! $stateId || $name === '') continue;
+
+                $key = $stateId . '|' . $name;
+                if (isset($seen[$key])) {
+                    $v->errors()->add("cities.{$i}.name", 'Duplicate city name for this state in the batch.');
+                }
+                $seen[$key] = true;
+
+                $exists = City::where('state_id', $stateId)
+                    ->whereRaw('LOWER(name) = ?', [$name])
+                    ->whereNull('deleted_at')
+                    ->exists();
+                if ($exists) {
+                    $v->errors()->add("cities.{$i}.name", 'A city with this name already exists for the selected state.');
+                }
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json([
@@ -161,6 +206,28 @@ class CityController extends Controller
         ]);
     }
 
+    public function ajaxCheckUnique(Request $request)
+    {
+        $name     = trim((string) $request->input('name', ''));
+        $stateId  = $request->integer('state_id') ?: null;
+        $ignoreId = $request->integer('ignore_id') ?: null;
+
+        if ($name === '' || ! $stateId) {
+            return response()->json(['available' => true]);
+        }
+
+        $exists = City::where('state_id', $stateId)
+            ->whereRaw('LOWER(name) = ?', [strtolower($name)])
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->whereNull('deleted_at')
+            ->exists();
+
+        return response()->json([
+            'available' => ! $exists,
+            'message'   => $exists ? 'A city with this name already exists for the selected state.' : null,
+        ]);
+    }
+
     private function presentRow(City $c): array
     {
         return [
@@ -175,6 +242,7 @@ class CityController extends Controller
             'update_url'     => route('admin.cities.ajax.update', $c),
             'destroy_url'    => route('admin.cities.destroy', $c),
             'show_url'       => route('admin.cities.show', $c),
+            'status_url'     => route('admin.cities.status', $c),
         ];
     }
 }

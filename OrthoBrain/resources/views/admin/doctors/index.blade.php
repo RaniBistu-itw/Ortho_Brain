@@ -317,7 +317,7 @@
                 @if ($currentStatus)
                     <input type="hidden" name="status" value="{{ $currentStatus }}">
                 @endif
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <select name="practice_id" class="js-searchable form-select">
                         <option value="">All practices</option>
                         @foreach ($practices as $p)
@@ -325,12 +325,18 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="ob-input-icon">
                         <i data-feather="search"></i>
                         <input type="text" name="search" placeholder="Search by name, email, or phone"
                                value="{{ $searchTerm }}" class="form-control">
                     </div>
+                </div>
+                <div class="col-md-2">
+                    <select name="order" class="form-select" aria-label="Sort order">
+                        <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+                        <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
+                    </select>
                 </div>
                 <div class="col-md-2">
                     <a href="{{ route('admin.doctors.index') }}" class="ob-btn-clear w-100">
@@ -366,6 +372,7 @@
     const $form    = $('#doctorsFilter');
     const $input   = $form.find('input[name="search"]');
     const $practice = $form.find('select[name="practice_id"]');
+    const $order   = $form.find('select[name="order"]');
     const baseUrl  = @json(route('admin.doctors.index'));
     let inflight  = null;
     let textTimer;
@@ -375,12 +382,14 @@
         const status = $form.find('input[name="status"]').val();
         const search = ($input.val() || '').trim();
         const practice = $practice.val();
+        const order = $order.val();
         const current = new URLSearchParams(window.location.search);
         const sort = current.get('sort');
         const dir  = current.get('dir');
         if (status)   params.set('status', status);
         if (search)   params.set('search', search);
         if (practice) params.set('practice_id', practice);
+        if (order)    params.set('order', order);
         if (sort)     params.set('sort', sort);
         if (dir)      params.set('dir', dir);
         return params;
@@ -418,6 +427,7 @@
         textTimer = setTimeout(reload, 250);
     });
     $practice.on('change', reload);
+    $order.on('change', reload);
 
     // Tab clicks (status filter) and pagination links inside the swapped pane
     // remain plain anchors → full-page navigation. That keeps the URL canonical

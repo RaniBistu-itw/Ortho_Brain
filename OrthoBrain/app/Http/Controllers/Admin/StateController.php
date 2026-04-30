@@ -20,10 +20,18 @@ class StateController extends Controller
             'name'         => 'states.name',
             'state_code'   => 'states.state_code',
             'cities_count' => 'cities_count',
+            'created_at'   => 'states.created_at',
         ];
+        $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
         $sortKey = $request->get('sort');
-        $sortCol = $sortable[$sortKey] ?? 'states.name';
-        $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        if ($sortKey && isset($sortable[$sortKey])) {
+            $sortCol = $sortable[$sortKey];
+            $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        } else {
+            $sortKey = null;
+            $sortCol = 'states.created_at';
+            $dir     = $order === 'oldest' ? 'asc' : 'desc';
+        }
 
         $query = State::query()
             ->select('states.*')
@@ -101,6 +109,19 @@ class StateController extends Controller
         ]);
     }
 
+    public function updateStatus(Request $request, State $state)
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+        $state->update(['status' => $data['status']]);
+        return response()->json([
+            'ok'      => true,
+            'status'  => $state->status,
+            'message' => 'Status updated.',
+        ]);
+    }
+
     public function ajaxBulk(Request $request)
     {
         $payload = $request->input('states', []);
@@ -113,26 +134,46 @@ class StateController extends Controller
             'states.*.status'     => ['required', 'in:ACTIVE,INACTIVE'],
         ]);
 
-        // state_code is unique per country — guard both within-batch and against existing rows.
+        // Name and state_code are unique per country — guard within-batch and against existing rows.
         $validator->after(function ($v) use ($payload) {
-            $seen = [];
+            $seenCode = [];
+            $seenName = [];
             foreach ($payload as $i => $row) {
                 $countryId = $row['country_id'] ?? null;
-                $code      = $row['state_code'] ?? '';
-                if (! $countryId || $code === '') continue;
+                $code      = strtolower(trim($row['state_code'] ?? ''));
+                $name      = strtolower(trim($row['name'] ?? ''));
+                if (! $countryId) continue;
 
-                $key = $countryId . '|' . strtolower(trim($code));
-                if (isset($seen[$key])) {
-                    $v->errors()->add("states.{$i}.state_code", 'Duplicate state code for this country in the batch.');
+                if ($code !== '') {
+                    $key = $countryId . '|' . $code;
+                    if (isset($seenCode[$key])) {
+                        $v->errors()->add("states.{$i}.state_code", 'Duplicate state code for this country in the batch.');
+                    }
+                    $seenCode[$key] = true;
+
+                    $exists = State::where('country_id', $countryId)
+                        ->whereRaw('LOWER(state_code) = ?', [$code])
+                        ->whereNull('deleted_at')
+                        ->exists();
+                    if ($exists) {
+                        $v->errors()->add("states.{$i}.state_code", 'A state with this code already exists for the selected country.');
+                    }
                 }
-                $seen[$key] = true;
 
-                $exists = State::where('country_id', $countryId)
-                    ->where('state_code', $code)
-                    ->whereNull('deleted_at')
-                    ->exists();
-                if ($exists) {
-                    $v->errors()->add("states.{$i}.state_code", 'A state with this code already exists for the selected country.');
+                if ($name !== '') {
+                    $key = $countryId . '|' . $name;
+                    if (isset($seenName[$key])) {
+                        $v->errors()->add("states.{$i}.name", 'Duplicate state name for this country in the batch.');
+                    }
+                    $seenName[$key] = true;
+
+                    $exists = State::where('country_id', $countryId)
+                        ->whereRaw('LOWER(name) = ?', [$name])
+                        ->whereNull('deleted_at')
+                        ->exists();
+                    if ($exists) {
+                        $v->errors()->add("states.{$i}.name", 'A state with this name already exists for the selected country.');
+                    }
                 }
             }
         });
@@ -168,6 +209,34 @@ class StateController extends Controller
         ]);
     }
 
+    public function ajaxCheckUnique(Request $request)
+    {
+        $field     = $request->input('field') === 'state_code' ? 'state_code' : 'name';
+        $value     = trim((string) $request->input('value', ''));
+        $countryId = $request->integer('country_id') ?: null;
+        $ignoreId  = $request->integer('ignore_id') ?: null;
+
+        if ($value === '' || ! $countryId) {
+            return response()->json(['available' => true]);
+        }
+
+        $exists = State::where('country_id', $countryId)
+            ->whereRaw("LOWER({$field}) = ?", [strtolower($value)])
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->whereNull('deleted_at')
+            ->exists();
+
+        $messages = [
+            'name'       => 'A state with this name already exists for the selected country.',
+            'state_code' => 'A state with this code already exists for the selected country.',
+        ];
+
+        return response()->json([
+            'available' => ! $exists,
+            'message'   => $exists ? $messages[$field] : null,
+        ]);
+    }
+
     private function presentRow(State $s): array
     {
         return [
@@ -181,6 +250,7 @@ class StateController extends Controller
             'update_url'   => route('admin.states.ajax.update', $s),
             'destroy_url'  => route('admin.states.destroy', $s),
             'show_url'     => route('admin.states.show', $s),
+            'status_url'   => route('admin.states.status', $s),
         ];
     }
 }

@@ -60,7 +60,7 @@
             @endforeach
           </select>
         </div>
-        <div class="col-md-5">
+        <div class="col-md-4">
           <select name="doctor_id" id="adminCasesDoctorSelect" class="form-select" data-placeholder="All doctors">
             <option value="">All doctors</option>
             @if($selectedDoctor)
@@ -68,6 +68,12 @@
                 {{ trim($selectedDoctor->first_name . ' ' . $selectedDoctor->last_name) }}@if($selectedDoctor->practice) — {{ $selectedDoctor->practice->name }}@endif
               </option>
             @endif
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select name="order" class="form-select" aria-label="Sort order" onchange="this.form.submit()">
+            <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+            <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
           </select>
         </div>
         <div class="col-md-2">
@@ -115,12 +121,12 @@
               <td class="text-end">
                 <div class="ob-row-actions">
                   <a href="{{ route('admin.cases.edit', $case->id) }}"
-                     class="ob-icon-btn"
+                     class="ob-icon-btn ob-icon-btn--view"
                      title="View case">
                     <i data-feather="eye"></i>
                   </a>
                   <a href="{{ route('admin.cases.edit', $case->id) }}"
-                     class="ob-icon-btn"
+                     class="ob-icon-btn ob-icon-btn--edit"
                      title="Edit case">
                     <i data-feather="edit-2"></i>
                   </a>
