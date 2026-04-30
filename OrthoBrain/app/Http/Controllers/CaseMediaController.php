@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CaseMedia;
 use App\Models\CaseModel;
 use App\Models\Doctor;
+use App\Services\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +21,8 @@ use Illuminate\Support\Str;
 class CaseMediaController extends Controller
 {
     private const SECTIONS = ['photograph', 'xray'];
+
+    public function __construct(private ImageUploadService $images) {}
 
     private const PHOTOGRAPH_TILES = [
         'profile', 'frontal-rest', 'frontal-smile',
@@ -108,7 +111,7 @@ class CaseMediaController extends Controller
             'id'      => $media->id,
             'section' => $media->section,
             'tile_id' => $media->tile_id,
-            'url'     => Storage::disk($media->disk)->url($media->path),
+            'url'     => $this->images->url($media->path),
             'mime'    => $media->mime_type,
             'size'    => $media->size_bytes,
         ]);
