@@ -110,7 +110,7 @@
                     <div class="col-md-6">
                         <label for="phone_number" class="form-label">Phone<span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <select id="phone_country_code" name="phone_country_code" class="form-select" style="max-width:110px;">
+                            <select id="phone_country_code" name="phone_country_code" class="form-select js-searchable" style="max-width:110px;">
                                 @php $currentCode = old('phone_country_code', $practice->phone_country_code ?? '+1'); @endphp
                                 @forelse ($phoneCodes as $code)
                                     <option value="{{ $code }}" @selected($currentCode === $code)>{{ $code }}</option>

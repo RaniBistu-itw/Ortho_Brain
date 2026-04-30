@@ -255,7 +255,7 @@
                             <label for="in-acc-phone" class="form-label">Phone Number</label>
                             <div class="row g-1">
                                 <div class="col-5 col-sm-4">
-                                    <select name="practice_phone_country_code" class="form-select">
+                                    <select name="practice_phone_country_code" class="form-select js-searchable">
                                         @foreach($phoneCodes as $code)
                                             <option value="{{ $code }}" @selected(old('practice_phone_country_code', $doctor?->practice?->phone_country_code ?? '+1') === $code)>{{ $code }}</option>
                                         @endforeach
@@ -363,7 +363,7 @@
                             <label for="in-prac-phone" class="form-label">Practice Phone Number<span class="text-danger">*</span></label>
                             <div class="row g-1">
                                 <div class="col-5 col-sm-4">
-                                    <select name="practice_phone_country_code" class="form-select">
+                                    <select name="practice_phone_country_code" class="form-select js-searchable">
                                         @foreach($phoneCodes as $code)
                                             <option value="{{ $code }}" @selected(old('practice_phone_country_code', $activePractice?->phone_country_code ?? '+1') === $code)>{{ $code }}</option>
                                         @endforeach

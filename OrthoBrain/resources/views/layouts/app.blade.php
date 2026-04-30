@@ -118,6 +118,52 @@
         $.ajaxSetup({
             headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
         });
+
+        // ─── Searchable dropdown helper (Select2) ──────
+        // Mirror of admin.blade.php's obSearchable so doctor-side master /
+        // practice / location dropdowns get the same searchable behaviour
+        // (type-to-search box on click, auto-focused so the user can type
+        // immediately without a second click).
+        window.obSearchable = function (selector, opts) {
+            const $el = $(selector);
+            if (!$el.length || typeof $.fn.select2 !== 'function') return $el;
+            $el.each(function () {
+                const $s = $(this);
+                if ($s.data('select2')) return;
+                const placeholder = $s.data('placeholder')
+                    || $s.find('option[value=""]').first().text()
+                    || 'Select...';
+                $s.select2(Object.assign({
+                    placeholder: placeholder,
+                    allowClear: !$s.prop('required') && !!$s.find('option[value=""]').length,
+                    width: '100%',
+                    dropdownParent: $s.closest('.modal').length
+                        ? $s.closest('.modal')
+                        : ($s.closest('.offcanvas').length ? $s.closest('.offcanvas') : document.body),
+                }, opts || {}));
+
+                // Auto-focus the search input when the dropdown opens.
+                $s.on('select2:open.obSearch', function () {
+                    setTimeout(function () {
+                        const field = document.querySelector(
+                            '.select2-container--open .select2-search__field'
+                        );
+                        if (field) field.focus();
+                    }, 0);
+                });
+            });
+            return $el;
+        };
+
+        window.obSearchableRefresh = function (selector) {
+            const $el = $(selector);
+            $el.each(function () {
+                const $s = $(this);
+                if (!$s.data('select2')) return;
+                $s.select2('destroy');
+                window.obSearchable($s);
+            });
+        };
     }
 
     // ════════════════════════════════════════════════════════════════════════
@@ -175,6 +221,9 @@
         window.obSyncViewportClasses();
 
         if (window.feather) feather.replace({ width: 14, height: 14 });
+
+        // Select2 auto-init (idempotent — obSearchable skips already-initialised)
+        if (window.obSearchable) window.obSearchable('select.js-searchable');
 
         // Active state is now server-rendered via request()->routeIs(...) on
         // every navigate (sidebar is no longer x-persist'd).

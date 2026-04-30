@@ -231,6 +231,22 @@
         box-shadow: 0 0 0 2px #fff, 0 0 8px rgba(91, 192, 222, 0.4);
     }
 
+    .doc-nav__notif-close {
+        position: absolute;
+        top: 0.55rem; right: 0.5rem;
+        background: transparent;
+        border: 0;
+        width: 22px; height: 22px;
+        border-radius: 999px;
+        color: #9ca3af;
+        cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: center;
+        line-height: 1;
+        transition: background 0.15s, color 0.15s;
+    }
+    .doc-nav__notif-close i { font-size: 0.78rem; }
+    .doc-nav__notif-close:hover { background: #fee2e2; color: #c53030; }
+
     /* Dark-mode overrides */
     html[data-theme="dark"] .doc-nav {
         background: #1f2a37;

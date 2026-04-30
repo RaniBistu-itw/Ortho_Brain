@@ -347,7 +347,7 @@
 
                 <div class="col-md-6 mb-1">
                     <label for="in-zip" class="form-label">Zip<span class="text-danger">*</span></label>
-                    <select id="in-zip" name="zip_id" class="form-select {{ $isView ? 'bg-light-secondary' : '' }}" {{ $isView ? 'disabled' : '' }}>
+                    <select id="in-zip" name="zip_id" class="form-select js-searchable {{ $isView ? 'bg-light-secondary' : '' }}" {{ $isView ? 'disabled' : '' }}>
                         <option value="" disabled {{ $selZipId ? '' : 'selected' }}>Select zip code</option>
                         @foreach($zipcodes as $z)
                             <option value="{{ $z->id }}"
