@@ -7,6 +7,7 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -16,7 +17,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class LogSlowRequests
 {
-    private const THRESHOLD_QUERY_COUNT = 20;
+    // TEMP: lowered from 20 → 1 to force log entries for testing. Restore to 20.
+    private const THRESHOLD_QUERY_COUNT = 1;
     private const THRESHOLD_QUERY_MS    = 500;
     private const THRESHOLD_REQUEST_MS  = 1500;
 
@@ -71,5 +73,15 @@ class LogSlowRequests
             $line,
             FILE_APPEND | LOCK_EX,
         );
+
+        // Mirrored into Telescope's Logs tab via the LogWatcher.
+        Log::warning('Slow request', [
+            'url'         => $request->fullUrl(),
+            'method'      => $request->method(),
+            'status'      => $response->getStatusCode(),
+            'query_count' => $this->queryCount,
+            'query_ms'    => round($this->queryTimeMs, 2),
+            'request_ms'  => round($requestMs, 2),
+        ]);
     }
 }
