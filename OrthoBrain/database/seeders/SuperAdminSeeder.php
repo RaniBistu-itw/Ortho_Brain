@@ -21,9 +21,10 @@ class SuperAdminSeeder extends Seeder
             $user = User::withTrashed()->updateOrCreate(
                 ['email' => $email],
                 [
-                    'password_hash' => $password,
-                    'role'          => 'ADMIN',
-                    'is_active'     => true,
+                    'password_hash'     => $password,
+                    'role'              => 'ADMIN',
+                    'is_active'         => true,
+                    'email_verified_at' => now(),
                 ]
             );
 

@@ -183,11 +183,14 @@ class PracticeController extends Controller
         $previous = $practice->status;
         $adminId  = Auth::user()?->admin?->id;
 
-        DB::transaction(function () use ($practice, $data, $previous, $adminId) {
+        $pendingDoctors    = collect();
+        $approvedDoctors   = collect();
+        $deactivatedDoctors = collect();
+
+        DB::transaction(function () use ($practice, $data, $previous, $adminId, &$pendingDoctors, &$approvedDoctors, &$deactivatedDoctors) {
             $practice->update(['status' => $data['status']]);
 
             if ($previous === 'INACTIVE' && $data['status'] === 'ACTIVE') {
-                // Cascade: approve every PENDING pivot for this practice.
                 $pendingDoctors = $practice->doctors()
                     ->wherePivot('approval_status', 'PENDING')
                     ->with('user')
@@ -203,35 +206,35 @@ class PracticeController extends Controller
                             'approved_by_admin_id' => $adminId,
                             'updated_at'           => now(),
                         ]);
-
-                    foreach ($pendingDoctors as $doctor) {
-                        $doctor->user?->notify(new PracticeRequestApproved($practice));
-                    }
                 }
 
-                // Already-approved doctors: notify that the practice is back online.
-                $practice->doctors()
+                $approvedDoctors = $practice->doctors()
                     ->wherePivot('approval_status', 'APPROVED')
                     ->with('user')
-                    ->get()
-                    ->each(function ($doctor) use ($practice) {
-                        $doctor->user?->notify(new PracticeActivatedNotification($practice));
-                    });
+                    ->get();
             }
 
             if ($previous === 'ACTIVE' && $data['status'] === 'INACTIVE') {
-                // Approved-pivot rows are intentionally left unchanged so reactivation
-                // restores access without manual re-approval. We only notify the
-                // affected doctors that their access at this practice is paused.
-                $practice->doctors()
+                $deactivatedDoctors = $practice->doctors()
                     ->wherePivot('approval_status', 'APPROVED')
                     ->with('user')
-                    ->get()
-                    ->each(function ($doctor) use ($practice) {
-                        $doctor->user?->notify(new PracticeDeactivatedNotification($practice));
-                    });
+                    ->get();
             }
         });
+
+        // Send notifications outside the transaction so mail failures never roll back DB changes.
+        foreach ($pendingDoctors as $doctor) {
+            try { $doctor->user?->notify(new PracticeRequestApproved($practice)); } catch (\Throwable) {}
+            usleep(600000);
+        }
+        foreach ($approvedDoctors as $doctor) {
+            try { $doctor->user?->notify(new PracticeActivatedNotification($practice)); } catch (\Throwable) {}
+            usleep(600000);
+        }
+        foreach ($deactivatedDoctors as $doctor) {
+            try { $doctor->user?->notify(new PracticeDeactivatedNotification($practice)); } catch (\Throwable) {}
+            usleep(600000);
+        }
 
         return response()->json([
             'ok'     => true,
@@ -300,11 +303,14 @@ class PracticeController extends Controller
         $doctors = Doctor::with('user')->whereIn('id', $doctorIds)->get();
         foreach ($doctors as $doctor) {
             if (! $doctor->user) continue;
-            $doctor->user->notify(
-                $data['action'] === 'APPROVE'
-                    ? new PracticeRequestApproved($practice)
-                    : new PracticeRequestRejected($practice, $data['reason'])
-            );
+            try {
+                $doctor->user->notify(
+                    $data['action'] === 'APPROVE'
+                        ? new PracticeRequestApproved($practice)
+                        : new PracticeRequestRejected($practice, $data['reason'])
+                );
+            } catch (\Throwable) {}
+            usleep(600000);
         }
 
         return response()->json(['ok' => true, 'count' => $count]);

@@ -49,9 +49,10 @@ class DoctorSeeder extends Seeder
         $user = User::updateOrCreate(
             ['email' => $email],
             [
-                'password_hash' => $password,
-                'role'          => 'DOCTOR',
-                'is_active'     => true,
+                'password_hash'     => $password,
+                'role'              => 'DOCTOR',
+                'is_active'         => true,
+                'email_verified_at' => now(),
             ]
         );
 
@@ -126,9 +127,10 @@ class DoctorSeeder extends Seeder
             $user = User::updateOrCreate(
                 ['email' => $email],
                 [
-                    'password_hash' => 'Password@1',
-                    'role'          => 'DOCTOR',
-                    'is_active'     => true,
+                    'password_hash'     => 'Password@1',
+                    'role'              => 'DOCTOR',
+                    'is_active'         => true,
+                    'email_verified_at' => now(),
                 ]
             );
 
