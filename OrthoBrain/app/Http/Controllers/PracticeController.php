@@ -26,7 +26,18 @@ class PracticeController extends Controller
 
         $doctor = auth()->user()?->doctor;
 
-        $practices = Practice::with(['zipcode', 'city', 'state', 'country'])
+        $practices = Practice::select([
+                'id', 'name', 'website',
+                'phone_country_code', 'phone_number',
+                'street_address_1', 'street_address_2',
+                'zip_id', 'city_id', 'state_id', 'country_id',
+            ])
+            ->with([
+                'zipcode:id,code',
+                'city:id,name',
+                'state:id,name,state_code',
+                'country:id,name',
+            ])
             ->where('status', 'ACTIVE')
             ->where('name', 'LIKE', '%' . $q . '%')
             // Only surface practices that have a location populated.

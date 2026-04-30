@@ -40,7 +40,18 @@ class DoctorController extends Controller
 
         $query = Doctor::query()
             ->with(['practice:id,name'])
-            ->select('doctors.*');
+            ->select([
+                'doctors.id',
+                'doctors.first_name',
+                'doctors.last_name',
+                'doctors.doctor_contact_email',
+                'doctors.other_email',
+                'doctors.doctor_cell_phone',
+                'doctors.approval_status',
+                'doctors.practice_id',
+                'doctors.created_at',
+                'doctors.profile_photo_s3_key',
+            ]);
 
         if ($sortKey === 'practice') {
             $query->leftJoin('practices', 'practices.id', '=', 'doctors.practice_id')

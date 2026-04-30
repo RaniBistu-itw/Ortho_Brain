@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin'           => \App\Http\Middleware\EnsureSuperAdmin::class,
             'active.practice' => \App\Http\Middleware\EnsureActivePractice::class,
         ]);
+
+        $middleware->web(append: [
+            \App\Http\Middleware\LogSlowRequests::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Local PHP 8.3 dev workaround.

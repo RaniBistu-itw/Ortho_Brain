@@ -32,10 +32,3 @@ docs/multi-practice-feature.md
 Docs/api.md
 # Backups produced by the /switch-branch skill
 .env.*.backup
-/docs/audit-report.md
-/docs/n-plus-one-issues.md
-/docs/missing-indexes.md
-/docs/select-waste.md
-/docs/performance-log.md
-/docs/performance-final-report.md
-/docs/performance-final-report.pdf
