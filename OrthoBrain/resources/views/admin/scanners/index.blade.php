@@ -109,7 +109,7 @@
                 </thead>
                 <tbody id="scTbody">
                     @forelse ($scanners as $sc)
-                        <tr data-id="{{ $sc->id }}">
+                        <tr data-id="{{ $sc->id }}" data-row-href="{{ route('admin.scanners.show', $sc) }}">
                             <td class="fw-bolder sc-cell-name">{{ $sc->name }}</td>
                             <td class="sc-cell-description">
                                 @if ($sc->description)
@@ -285,7 +285,7 @@
             : '<span class="text-muted">—</span>';
 
         return `
-            <tr class="sc-row-new" data-id="${sc.id}">
+            <tr class="sc-row-new" data-id="${sc.id}" data-row-href="${sc.show_url}">
                 <td class="fw-bolder sc-cell-name">${escapeHtml(sc.name)}</td>
                 <td class="sc-cell-description">${descCell}</td>
                 <td class="sc-cell-link">${linkCell}</td>

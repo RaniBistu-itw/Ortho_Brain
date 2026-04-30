@@ -16,13 +16,9 @@
     ? \Illuminate\Support\Str::of($statusFilter)->lower()->replace('_', ' ')->title() . ' Cases'
     : 'All Cases';
 
-  $doctorName = null;
-  if ($doctorFilter) {
-    $selectedDoctor = $doctors->firstWhere('id', (int) $doctorFilter);
-    if ($selectedDoctor) {
-      $doctorName = trim($selectedDoctor->first_name . ' ' . $selectedDoctor->last_name);
-    }
-  }
+  $doctorName = $selectedDoctor
+    ? trim($selectedDoctor->first_name . ' ' . $selectedDoctor->last_name)
+    : null;
 
   $heading = $doctorName ? "{$statusLabel} — Dr. {$doctorName}" : $statusLabel;
 @endphp
@@ -65,14 +61,13 @@
           </select>
         </div>
         <div class="col-md-5">
-          <select name="doctor_id" class="form-select js-searchable" data-placeholder="All doctors" onchange="this.form.submit()">
+          <select name="doctor_id" id="adminCasesDoctorSelect" class="form-select" data-placeholder="All doctors">
             <option value="">All doctors</option>
-            @foreach($doctors as $doc)
-              <option value="{{ $doc->id }}" @selected((string) $doctorFilter === (string) $doc->id)>
-                {{ trim($doc->first_name . ' ' . $doc->last_name) }}
-                @if($doc->practice) — {{ $doc->practice->name }} @endif
+            @if($selectedDoctor)
+              <option value="{{ $selectedDoctor->id }}" selected>
+                {{ trim($selectedDoctor->first_name . ' ' . $selectedDoctor->last_name) }}@if($selectedDoctor->practice) — {{ $selectedDoctor->practice->name }}@endif
               </option>
-            @endforeach
+            @endif
           </select>
         </div>
         <div class="col-md-2">
@@ -99,7 +94,7 @@
         </thead>
         <tbody>
           @forelse($cases as $case)
-            <tr>
+            <tr data-row-href="{{ route('admin.cases.edit', $case->id) }}">
               <td><span class="fw-bolder">#{{ $case->id }}</span></td>
               <td>{{ $case->case_code ?? '—' }}</td>
               <td>
@@ -149,3 +144,32 @@
   </div>
 </section>
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    'use strict';
+
+    const $sel = $('#adminCasesDoctorSelect');
+    if (!$sel.length || typeof $.fn.select2 !== 'function') return;
+
+    $sel.select2({
+        placeholder: 'All doctors',
+        allowClear: true,
+        width: '100%',
+        ajax: {
+            url: @json(route('admin.ajax.doctors-search')),
+            dataType: 'json',
+            delay: 200,
+            data: (params) => ({ q: params.term || '' }),
+            processResults: (data) => ({ results: data }),
+            cache: true,
+        },
+    });
+
+    $sel.on('change', function () {
+        document.getElementById('adminCasesFilter').submit();
+    });
+})();
+</script>
+@endpush

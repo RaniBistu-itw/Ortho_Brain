@@ -37,7 +37,12 @@ class ZipcodeSearchController extends Controller
             return response()->json([]);
         }
 
-        $query = Zipcode::with(['city.state.country'])
+        $query = Zipcode::select(['id', 'code', 'city_id'])
+            ->with([
+                'city:id,name,state_id',
+                'city.state:id,name,state_code,country_id',
+                'city.state.country:id,country_code',
+            ])
             ->where('status', 'ACTIVE')
             ->whereHas('city', fn ($c) => $c->where('status', 'ACTIVE'));
 

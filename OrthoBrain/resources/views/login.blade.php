@@ -339,7 +339,7 @@
                 color: #1E293B;
                 margin: 0;
             }
-            .field-label .req { color: var(--ob-primary, #3B82F6); margin-left: 2px; }
+            .field-label .req { color: #EF4444; margin-left: 2px; }
             .field-link {
                 font-size: 0.82rem;
                 font-weight: 500;

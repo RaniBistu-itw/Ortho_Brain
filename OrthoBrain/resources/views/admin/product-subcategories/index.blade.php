@@ -133,7 +133,7 @@
                             $statusStr = $sub->status ? 'ACTIVE' : 'INACTIVE';
                             $hasProducts = $sub->products_count > 0;
                         @endphp
-                        <tr data-id="{{ $sub->id }}">
+                        <tr data-id="{{ $sub->id }}" data-row-href="{{ route('admin.product-subcategories.show', $sub) }}">
                             <td class="psc-cell-category">{{ $sub->category?->name ?? '—' }}</td>
                             <td class="fw-bolder psc-cell-name">{{ $sub->name }}</td>
                             <td class="psc-cell-products">
@@ -332,7 +332,7 @@
                </form>`;
 
         return `
-            <tr class="psc-row-new" data-id="${sub.id}">
+            <tr class="psc-row-new" data-id="${sub.id}" data-row-href="${sub.show_url}">
                 <td class="psc-cell-category">${escapeHtml(sub.category_name)}</td>
                 <td class="fw-bolder psc-cell-name">${escapeHtml(sub.name)}</td>
                 <td class="psc-cell-products">${productsCell}</td>

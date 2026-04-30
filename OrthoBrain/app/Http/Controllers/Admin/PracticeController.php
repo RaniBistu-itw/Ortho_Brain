@@ -38,7 +38,20 @@ class PracticeController extends Controller
         $dir     = strtolower($request->get('dir', $sortKey ? 'asc' : 'desc')) === 'desc' ? 'desc' : 'asc';
 
         $query = Practice::query()
-            ->select('practices.*')
+            ->select([
+                'practices.id',
+                'practices.name',
+                'practices.street_address_1',
+                'practices.phone_country_code',
+                'practices.phone_number',
+                'practices.website',
+                'practices.status',
+                'practices.city_id',
+                'practices.state_id',
+                'practices.country_id',
+                'practices.logo_path',
+                'practices.created_at',
+            ])
             ->with([
                 'city:id,name',
                 'state:id,name',

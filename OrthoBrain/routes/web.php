@@ -302,8 +302,9 @@ Route::middleware(['web', 'admin'])
             ->only(['index', 'show', 'destroy']);
 
         Route::prefix('ajax')->name('ajax.')->group(function () {
-            Route::get('states',        [LookupController::class, 'statesByCountry'])->name('states');
-            Route::get('cities',        [LookupController::class, 'citiesByState'])->name('cities');
-            Route::get('subcategories', [LookupController::class, 'subcategoriesByCategory'])->name('subcategories');
+            Route::get('states',         [LookupController::class, 'statesByCountry'])->name('states');
+            Route::get('cities',         [LookupController::class, 'citiesByState'])->name('cities');
+            Route::get('subcategories',  [LookupController::class, 'subcategoriesByCategory'])->name('subcategories');
+            Route::get('doctors/search', [LookupController::class, 'doctorSearch'])->name('doctors-search');
         });
     });

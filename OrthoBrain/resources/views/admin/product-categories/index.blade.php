@@ -231,7 +231,7 @@
                </form>`;
 
         return `
-            <tr class="pc-row-new" data-id="${cat.id}">
+            <tr class="pc-row-new" data-id="${cat.id}" data-row-href="${cat.show_url}">
                 <td class="fw-bolder pc-cell-name">${escapeHtml(cat.name)}</td>
                 <td>${cat.subcategories_count > 0 ? cat.subcategories_count : '<span class="text-muted">—</span>'}</td>
                 <td>${cat.products_count > 0 ? cat.products_count : '<span class="text-muted">—</span>'}</td>

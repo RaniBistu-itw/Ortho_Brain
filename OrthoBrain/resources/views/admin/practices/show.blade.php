@@ -227,9 +227,39 @@
         border-color: var(--ob-primary);
         box-shadow: 0 0 0 3px var(--ob-primary-softer);
     }
+    #practice-show .ob-doctors-filter {
+        position: relative;
+        flex: 0 0 auto;
+    }
+    #practice-show .ob-doctors-filter select {
+        appearance: none;
+        padding: .45rem 2rem .45rem .75rem;
+        border: 1px solid #e2e0ea;
+        border-radius: .5rem;
+        background: #fff;
+        font-size: .85rem;
+        color: var(--ob-text);
+        cursor: pointer;
+        background-repeat: no-repeat;
+        background-position: right .6rem center;
+        background-size: 10px 10px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M1 3l4 4 4-4' stroke='%236e6b7b' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    }
+    #practice-show .ob-doctors-filter select:focus {
+        outline: none;
+        border-color: var(--ob-primary);
+        box-shadow: 0 0 0 3px var(--ob-primary-softer);
+    }
     #practice-show .ob-bulk-actions {
         display: inline-flex; align-items: center; gap: .4rem;
     }
+    #practice-show .ob-contact-line {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        color: var(--ob-text);
+    }
+    #practice-show .ob-contact-line svg { width: 13px; height: 13px; color: #9a9aab; flex: 0 0 auto; }
+    #practice-show .ob-contact-line a { color: var(--ob-text); text-decoration: none; }
+    #practice-show .ob-contact-line a:hover { color: var(--ob-primary); text-decoration: underline; }
     #practice-show .ob-bulk-btn {
         display: inline-flex; align-items: center; gap: .35rem;
         padding: .45rem .85rem;
@@ -434,6 +464,13 @@
                     <i data-feather="search"></i>
                     <input type="text" id="doctorSearchInput" placeholder="Search by doctor name or email…" autocomplete="off">
                 </div>
+                <div class="ob-doctors-filter">
+                    <select id="doctorRelationshipFilter" aria-label="Filter doctors by primary or secondary relationship">
+                        <option value="all">All doctors</option>
+                        <option value="primary">Primary only</option>
+                        <option value="secondary">Secondary only</option>
+                    </select>
+                </div>
                 <div class="ob-bulk-actions">
                     <button type="button"
                             id="bulkApproveBtn"
@@ -474,14 +511,26 @@
                                 $doctorEmail = $d->user?->email ?? $d->doctor_contact_email ?? '';
                                 $searchHaystack = mb_strtolower(trim('Dr. ' . $d->first_name . ' ' . $d->last_name . ' ' . $doctorEmail));
                             @endphp
-                            <tr data-doctor-row data-search="{{ $searchHaystack }}">
+                            <tr data-doctor-row data-search="{{ $searchHaystack }}" data-relationship="{{ $d->pivot->is_primary ? 'primary' : 'secondary' }}">
                                 <td>
                                     Dr. {{ $d->first_name }} {{ $d->last_name }}
                                     @if($d->pivot->is_primary)
-                                        <span class="ob-pivot-pill ob-pivot-pill--approved ms-1">primary</span>
+                                        <span class="ob-pivot-pill ob-pivot-pill--approved ms-1" title="This practice is the doctor's primary practice">primary</span>
+                                    @else
+                                        <span class="ob-pivot-pill ob-pivot-pill--left ms-1" title="This practice is one of the doctor's secondary practices">secondary</span>
                                     @endif
                                 </td>
-                                <td>{{ $doctorEmail !== '' ? $doctorEmail : '—' }}</td>
+                                <td>
+                                    <span class="ob-contact-line">
+                                        <i data-feather="mail"></i>
+                                        @if ($doctorEmail !== '')
+                                            <a href="mailto:{{ $doctorEmail }}"
+                                               title="Email Dr. {{ $d->first_name }} {{ $d->last_name }}">{{ $doctorEmail }}</a>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </span>
+                                </td>
                                 <td>
                                     @if($requestedAt)
                                         {{ \Carbon\Carbon::parse($requestedAt)->diffForHumans() }}
@@ -696,22 +745,27 @@
         });
     });
 
-    // ── Doctor search: client-side filter ────────────────────────────
-    var searchInput = document.getElementById('doctorSearchInput');
-    var emptyRow    = document.getElementById('doctorSearchEmpty');
-    if (searchInput) {
-        searchInput.addEventListener('input', function () {
-            var q = (searchInput.value || '').trim().toLowerCase();
-            var visible = 0;
-            document.querySelectorAll('tr[data-doctor-row]').forEach(function (row) {
-                var hay = row.getAttribute('data-search') || '';
-                var match = q === '' || hay.indexOf(q) !== -1;
-                row.hidden = !match;
-                if (match) visible++;
-            });
-            if (emptyRow) emptyRow.hidden = visible !== 0;
+    // ── Doctor search + relationship filter (client-side) ────────────
+    var searchInput      = document.getElementById('doctorSearchInput');
+    var relationshipSel  = document.getElementById('doctorRelationshipFilter');
+    var emptyRow         = document.getElementById('doctorSearchEmpty');
+    function applyDoctorFilters() {
+        var q    = searchInput ? (searchInput.value || '').trim().toLowerCase() : '';
+        var rel  = relationshipSel ? relationshipSel.value : 'all';
+        var visible = 0;
+        document.querySelectorAll('tr[data-doctor-row]').forEach(function (row) {
+            var hay        = row.getAttribute('data-search') || '';
+            var rowRel     = row.getAttribute('data-relationship') || '';
+            var matchText  = q === '' || hay.indexOf(q) !== -1;
+            var matchRel   = rel === 'all' || rowRel === rel;
+            var match      = matchText && matchRel;
+            row.hidden = !match;
+            if (match) visible++;
         });
+        if (emptyRow) emptyRow.hidden = visible !== 0;
     }
+    if (searchInput)     searchInput.addEventListener('input', applyDoctorFilters);
+    if (relationshipSel) relationshipSel.addEventListener('change', applyDoctorFilters);
 
     // ── Bulk approve / reject all PENDING doctors ────────────────────
     function runBulk(btn, action) {

@@ -121,7 +121,7 @@
 </div>
 
 <div class="d-flex mt-2">
-    <button type="submit" class="btn btn-success me-1">{{ $submitLabel ?? 'Save' }}</button>
+    <button type="submit" class="btn btn-primary me-1">{{ $submitLabel ?? 'Save' }}</button>
     <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary">Cancel</a>
 </div>
 

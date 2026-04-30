@@ -54,7 +54,7 @@
                     $badge     = $statusToBadge[$doctor->approval_status] ?? ['label' => $doctor->approval_status, 'tone' => 'secondary'];
                     $avatarUrl = $doctor->avatarUrl();
                 @endphp
-                <tr>
+                <tr data-row-href="{{ route('admin.doctors.show', $doctor) }}">
                     <td>
                         <div class="ob-doctor-cell">
                             <span class="ob-avatar">

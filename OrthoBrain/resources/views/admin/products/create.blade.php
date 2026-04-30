@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-body">
         <form method="POST" action="{{ route('admin.products.store') }}" class="ob-form-validate" enctype="multipart/form-data" novalidate>
-            @include('admin.products._form', ['submitLabel' => 'Submit'])
+            @include('admin.products._form', ['submitLabel' => 'Save'])
         </form>
     </div>
 </div>

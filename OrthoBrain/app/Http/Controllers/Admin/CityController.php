@@ -70,7 +70,11 @@ class CityController extends Controller
         return view('admin.cities.index', [
             'cities'    => $cities,
             'countries' => Country::where('status', 'ACTIVE')->orderBy('name')->get(),
-            'states'    => State::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name', 'country_id']),
+            'states'    => $request->filled('country_id')
+                ? State::where('status', 'ACTIVE')
+                      ->where('country_id', $request->integer('country_id'))
+                      ->orderBy('name')->get(['id', 'name', 'country_id'])
+                : collect(),
             'stats'     => $stats,
         ]);
     }

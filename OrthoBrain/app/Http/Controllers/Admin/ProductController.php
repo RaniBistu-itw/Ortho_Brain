@@ -45,7 +45,14 @@ class ProductController extends Controller
 
         $query = Product::query()
             ->with(['category', 'subcategory', 'images'])
-            ->select('products.*');
+            ->select([
+                'products.id',
+                'products.name',
+                'products.base_price',
+                'products.category_id',
+                'products.subcategory_id',
+                'products.status',
+            ]);
 
         if (in_array($sortKey, ['category', 'subcategory'], true)) {
             $query->leftJoin($catTable, "{$catTable}.id", '=', 'products.category_id')

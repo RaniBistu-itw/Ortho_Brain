@@ -137,7 +137,7 @@
                 </thead>
                 <tbody id="ziTbody">
                     @forelse ($zipcodes as $z)
-                        <tr data-id="{{ $z->id }}">
+                        <tr data-id="{{ $z->id }}" data-row-href="{{ route('admin.zipcodes.show', $z) }}">
                             <td class="fw-bolder zi-cell-code">{{ $z->code }}</td>
                             <td class="zi-cell-city">{{ $z->city?->name ?? '—' }}</td>
                             <td class="zi-cell-state">{{ $z->city?->state?->name ?? '—' }}</td>
@@ -299,7 +299,7 @@
     function buildRowHtml(zi) {
         const statusClass = zi.status === 'ACTIVE' ? 'zi-status--active' : 'zi-status--inactive';
         return `
-            <tr class="zi-row-new" data-id="${zi.id}">
+            <tr class="zi-row-new" data-id="${zi.id}" data-row-href="${zi.show_url}">
                 <td class="fw-bolder zi-cell-code">${escapeHtml(zi.code)}</td>
                 <td class="zi-cell-city">${escapeHtml(zi.city_name)}</td>
                 <td class="zi-cell-state">${escapeHtml(zi.state_name)}</td>

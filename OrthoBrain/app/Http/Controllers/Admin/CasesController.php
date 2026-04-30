@@ -52,7 +52,14 @@ class CasesController extends Controller
 
         $query = CaseModel::query()
             ->with(['doctor:id,first_name,last_name,practice_id', 'doctor.practice:id,name'])
-            ->select('cases.*');
+            ->select([
+                'cases.id',
+                'cases.case_code',
+                'cases.doctor_id',
+                'cases.status',
+                'cases.created_at',
+                'cases.submitted_at',
+            ]);
 
         if (in_array($sortKey, ['doctor', 'practice'], true)) {
             $query->leftJoin('doctors', 'doctors.id', '=', 'cases.doctor_id')
@@ -72,10 +79,11 @@ class CasesController extends Controller
 
         $cases = $query->paginate(20)->withQueryString();
 
-        $doctors = Doctor::with('practice:id,name')
-            ->select('id', 'first_name', 'last_name', 'practice_id')
-            ->orderBy('last_name')
-            ->get();
+        $selectedDoctor = $doctorFilter
+            ? Doctor::with('practice:id,name')
+                ->select('id', 'first_name', 'last_name', 'practice_id')
+                ->find($doctorFilter)
+            : null;
 
         $statusCounts = CaseModel::query()
             ->selectRaw('status, COUNT(*) as total')
@@ -84,7 +92,7 @@ class CasesController extends Controller
 
         return view('admin.cases.index', [
             'cases' => $cases,
-            'doctors' => $doctors,
+            'selectedDoctor' => $selectedDoctor,
             'statusOptions' => self::STATUS_OPTIONS,
             'statusLabels' => self::STATUS_LABELS,
             'statusFilter' => $statusFilter,

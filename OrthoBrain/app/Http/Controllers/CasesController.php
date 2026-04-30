@@ -43,6 +43,7 @@ class CasesController extends Controller
             ->when($activeStatus === 'ACTIVE', fn ($q) => $q->whereIn('status', self::ACTIVE_STATUSES))
             ->when($activeStatus && $activeStatus !== 'ACTIVE', fn ($q) => $q->where('status', $activeStatus))
             ->when($staleOnly, fn ($q) => $q->where('updated_at', '<', now()->subDays(3)))
+            ->select(['id', 'case_code', 'status', 'created_at', 'submitted_at', 'doctor_id', 'practice_id'])
             ->orderBy($sortCol, $dir)
             ->paginate(20)
             ->withQueryString();

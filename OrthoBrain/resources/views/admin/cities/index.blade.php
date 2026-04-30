@@ -143,7 +143,7 @@
                 <tbody id="ciTbody">
                     @forelse ($cities as $city)
                         @php $hasZips = $city->zipcodes_count > 0; @endphp
-                        <tr data-id="{{ $city->id }}">
+                        <tr data-id="{{ $city->id }}" data-row-href="{{ route('admin.cities.show', $city) }}">
                             <td class="ci-cell-country">{{ $city->state?->country?->name ?? '—' }}</td>
                             <td class="ci-cell-state">{{ $city->state?->name ?? '—' }}</td>
                             <td class="fw-bolder ci-cell-name">{{ $city->name }}</td>
@@ -358,7 +358,7 @@
                </form>`;
 
         return `
-            <tr class="ci-row-new" data-id="${ci.id}">
+            <tr class="ci-row-new" data-id="${ci.id}" data-row-href="${ci.show_url}">
                 <td class="ci-cell-country">${escapeHtml(ci.country_name)}</td>
                 <td class="ci-cell-state">${escapeHtml(ci.state_name)}</td>
                 <td class="fw-bolder ci-cell-name">${escapeHtml(ci.name)}</td>

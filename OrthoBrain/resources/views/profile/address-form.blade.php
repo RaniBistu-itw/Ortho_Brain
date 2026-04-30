@@ -190,55 +190,6 @@
         margin-top: 2rem !important;
     }
 
-    /* Save / Update button (was btn-success) → blue gradient pill */
-    .addr-form-card .addr-form-actions .btn-success {
-        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%);
-        border: none;
-        color: #fff;
-        font-weight: 500;
-        font-size: .92rem;
-        border-radius: 999px;
-        padding: .65rem 1.6rem;
-        box-shadow:
-            0 1px 2px rgba(37, 99, 235, 0.20),
-            0 8px 20px -6px rgba(37, 99, 235, 0.40);
-        transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
-    }
-    .addr-form-card .addr-form-actions .btn-success:hover,
-    .addr-form-card .addr-form-actions .btn-success:focus {
-        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%);
-        transform: translateY(-2px);
-        filter: brightness(1.06);
-        box-shadow:
-            0 2px 4px rgba(37, 99, 235, 0.25),
-            0 14px 28px -8px rgba(37, 99, 235, 0.50);
-        color: #fff;
-    }
-    .addr-form-card .addr-form-actions .btn-success:active {
-        transform: translateY(-1px);
-        filter: brightness(0.98);
-    }
-
-    /* Cancel / Back button (was btn-danger) → outline gray */
-    .addr-form-card .addr-form-actions .btn-danger {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        color: #64748B;
-        font-weight: 500;
-        font-size: .92rem;
-        border-radius: 999px;
-        padding: .65rem 1.6rem;
-        box-shadow: none;
-        transition: background-color .2s ease, border-color .2s ease, color .2s ease, transform .2s ease;
-    }
-    .addr-form-card .addr-form-actions .btn-danger:hover,
-    .addr-form-card .addr-form-actions .btn-danger:focus {
-        background: #f8fafc;
-        border-color: #cbd5e1;
-        color: #1E293B;
-        transform: translateY(-1px);
-    }
-
     /* Mobile */
     @media (max-width: 575.98px) {
         .addr-form-card { border-radius: 16px !important; }
@@ -299,24 +250,12 @@
         color: #60A5FA;
     }
     .dark-layout .addr-form-card .addr-form-actions { border-top-color: #3b4253; }
-    .dark-layout .addr-form-card .addr-form-actions .btn-danger {
-        background: #283046;
-        border-color: #404656;
-        color: #b4b7bd;
-    }
-    .dark-layout .addr-form-card .addr-form-actions .btn-danger:hover {
-        background: #2a3149;
-        border-color: #4d5670;
-        color: #d0d2d6;
-    }
-    /* Save/Update keeps the blue gradient (works in both themes — no override) */
 
     /* Smooth theme cross-fade */
     .addr-form-card,
     .addr-form-card .form-control,
     .addr-form-card .form-select,
-    .addr-form-card .input-group-text,
-    .addr-form-card .addr-form-actions .btn-danger {
+    .addr-form-card .input-group-text {
         transition:
             background-color .25s ease,
             border-color .25s ease,
@@ -455,13 +394,13 @@
 
             <div class="d-flex addr-form-actions mt-2">
                 @if($isView)
-                    <a href="{{ route('doctor.profile.index', ['tab' => $type]) }}" class="btn btn-danger">Back</a>
+                    <a href="{{ route('doctor.profile.index', ['tab' => $type]) }}" class="btn btn-outline-secondary">Back</a>
                 @elseif($isEdit)
-                    <button type="button" onclick="validateAddressForm()" class="btn btn-success me-1">Update</button>
-                    <a href="{{ route('doctor.profile.index', ['tab' => $type]) }}" class="btn btn-danger">Cancel</a>
+                    <button type="button" onclick="validateAddressForm()" class="btn btn-primary me-1">Update</button>
+                    <a href="{{ route('doctor.profile.index', ['tab' => $type]) }}" class="btn btn-outline-secondary">Cancel</a>
                 @else
-                    <button type="button" onclick="validateAddressForm()" class="btn btn-success me-1">Save</button>
-                    <a href="{{ route('doctor.profile.index', ['tab' => $type]) }}" class="btn btn-danger">Cancel</a>
+                    <button type="button" onclick="validateAddressForm()" class="btn btn-primary me-1">Save</button>
+                    <a href="{{ route('doctor.profile.index', ['tab' => $type]) }}" class="btn btn-outline-secondary">Cancel</a>
                 @endif
             </div>
         </form>
