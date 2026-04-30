@@ -22,49 +22,53 @@ class LogSlowRequests
     private const THRESHOLD_QUERY_MS    = 500;
     private const THRESHOLD_REQUEST_MS  = 1500;
 
-    private int $queryCount = 0;
-    private float $queryTimeMs = 0.0;
-    private float $startTime = 0.0;
-
     public function handle(Request $request, Closure $next): Response
     {
         if (! App::environment('local')) {
             return $next($request);
         }
 
-        $this->startTime = microtime(true);
+        $queryCount   = 0;
+        $queryTimeMs  = 0.0;
+        $startTime    = microtime(true);
 
-        DB::listen(function (QueryExecuted $event): void {
-            $this->queryCount++;
-            $this->queryTimeMs += $event->time;
+        // Inline counters captured by reference — must live inside handle()
+        // because Laravel resolves a NEW middleware instance for terminate(),
+        // which would discard any $this->* state set here.
+        DB::listen(function (QueryExecuted $event) use (&$queryCount, &$queryTimeMs): void {
+            $queryCount++;
+            $queryTimeMs += $event->time;
         });
 
-        return $next($request);
+        $response = $next($request);
+
+        $requestMs = (microtime(true) - $startTime) * 1000;
+
+        $exceeds = $queryCount  > self::THRESHOLD_QUERY_COUNT
+                || $queryTimeMs > self::THRESHOLD_QUERY_MS
+                || $requestMs   > self::THRESHOLD_REQUEST_MS;
+
+        if ($exceeds) {
+            $this->log($request, $response, $queryCount, $queryTimeMs, $requestMs);
+        }
+
+        return $response;
     }
 
-    public function terminate(Request $request, Response $response): void
-    {
-        if (! App::environment('local') || $this->startTime === 0.0) {
-            return;
-        }
-
-        $requestMs = (microtime(true) - $this->startTime) * 1000;
-
-        $exceeds = $this->queryCount   > self::THRESHOLD_QUERY_COUNT
-                || $this->queryTimeMs  > self::THRESHOLD_QUERY_MS
-                || $requestMs          > self::THRESHOLD_REQUEST_MS;
-
-        if (! $exceeds) {
-            return;
-        }
-
+    private function log(
+        Request $request,
+        Response $response,
+        int $queryCount,
+        float $queryTimeMs,
+        float $requestMs,
+    ): void {
         $line = sprintf(
-            "%s | %s | %s | %d | %.2f | %.2f\n",
+            "%s | %s %s | queries=%d | query_time=%.2fms | request_time=%.2fms\n",
             now()->toDateTimeString(),
-            $request->fullUrl(),
             $request->method(),
-            $this->queryCount,
-            $this->queryTimeMs,
+            $request->fullUrl(),
+            $queryCount,
+            $queryTimeMs,
             $requestMs,
         );
 
@@ -79,8 +83,8 @@ class LogSlowRequests
             'url'         => $request->fullUrl(),
             'method'      => $request->method(),
             'status'      => $response->getStatusCode(),
-            'query_count' => $this->queryCount,
-            'query_ms'    => round($this->queryTimeMs, 2),
+            'query_count' => $queryCount,
+            'query_ms'    => round($queryTimeMs, 2),
             'request_ms'  => round($requestMs, 2),
         ]);
     }
