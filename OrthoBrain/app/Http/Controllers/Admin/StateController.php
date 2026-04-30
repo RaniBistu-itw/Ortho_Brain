@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StateRequest;
 use App\Models\Country;
 use App\Models\State;
+use App\Support\StatusDependencyChecker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -113,7 +114,16 @@ class StateController extends Controller
     {
         $data = $request->validate([
             'status' => ['required', 'in:ACTIVE,INACTIVE'],
+            'force'  => ['sometimes', 'boolean'],
         ]);
+
+        if ($data['status'] === 'INACTIVE' && empty($data['force'])) {
+            $dependents = StatusDependencyChecker::activeDependents($state);
+            if (!empty($dependents)) {
+                return response()->json(StatusDependencyChecker::buildResponsePayload($state, $dependents));
+            }
+        }
+
         $state->update(['status' => $data['status']]);
         return response()->json([
             'ok'      => true,

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ProductSubcategoryRequest;
 use App\Models\ProductCategory;
 use App\Models\ProductSubcategory;
+use App\Support\StatusDependencyChecker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -114,7 +115,16 @@ class ProductSubcategoryController extends Controller
     {
         $data = $request->validate([
             'status' => ['required', 'in:ACTIVE,INACTIVE'],
+            'force'  => ['sometimes', 'boolean'],
         ]);
+
+        if ($data['status'] === 'INACTIVE' && empty($data['force'])) {
+            $dependents = StatusDependencyChecker::activeDependents($productSubcategory);
+            if (!empty($dependents)) {
+                return response()->json(StatusDependencyChecker::buildResponsePayload($productSubcategory, $dependents));
+            }
+        }
+
         $productSubcategory->update(['status' => $data['status'] === 'ACTIVE']);
         return response()->json([
             'ok'      => true,
