@@ -1166,8 +1166,8 @@
                                                     <span class="reg-toggle-text">Attachments</span>
                                                 </label>
                                                 <div id="attachment-options" class="reg-toggle-panel hidden">
-                                                    <label class="reg-pref-item"><input type="radio" name="attachment_opt" value="step_1" checked onchange="toggleAlignerStepInput(this)"><span>At Aligner Step 1</span></label>
-                                                    <label class="reg-pref-item"><input type="radio" name="attachment_opt" value="step_n" onchange="toggleAlignerStepInput(this)"><span>At Aligner Step</span><input type="number" id="aligner-step-count" name="attachment_step_count" value="1" min="1" max="50" class="reg-aligner-step-input hidden" onclick="event.stopPropagation()"></label>
+                                                    <label class="reg-pref-item"><input type="radio" name="attachment_opt" value="step_1" checked onclick="toggleAlignerStepInput(this)"><span>At Aligner Step 1</span></label>
+                                                    <label class="reg-pref-item"><input type="radio" name="attachment_opt" value="step_n" onclick="toggleAlignerStepInput(this)"><span>At Aligner Step</span><input type="number" id="aligner-step-count" name="attachment_step_count" value="1" min="1" max="50" class="reg-aligner-step-input hidden" onclick="event.stopPropagation()"></label>
                                                 </div>
                                             </div>
 
