@@ -26,15 +26,6 @@
     .sc-portal-btn:hover { background: var(--bs-primary); color: #fff; border-color: var(--bs-primary); }
     .sc-portal-btn svg { width: 13px; height: 13px; }
 
-    .sc-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
-    .sc-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
-    .sc-status--active   { background: rgba(var(--bs-success-rgb), .14); color: var(--bs-success); }
-    .sc-status--inactive { background: rgba(var(--bs-danger-rgb), .14);  color: var(--bs-danger); }
-
-    .sc-action-group { display: inline-flex; gap: .25rem; }
-    .sc-action-group .btn { width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; }
-    .sc-action-group .btn svg { width: 15px; height: 15px; }
-
     .sc-empty { text-align: center; padding: 3rem 1rem; color: #6e6b7b; }
     .sc-empty svg { width: 56px; height: 56px; opacity: .35; margin-bottom: .75rem; }
 
@@ -49,6 +40,7 @@
 @endpush
 
 @section('content')
+@include('admin._partials.inline_status_dropdown')
 <section id="scanners-list">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
@@ -85,6 +77,12 @@
                         <option value="">All statuses</option>
                         <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
                         <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="order" class="form-select" aria-label="Sort order">
+                        <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+                        <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -130,12 +128,18 @@
                                 @endif
                             </td>
                             <td>
-                                <span class="sc-status sc-status--{{ $sc->status === 'ACTIVE' ? 'active' : 'inactive' }}" data-status="{{ $sc->status }}">{{ $sc->status }}</span>
+                                <select class="ob-status-select" data-inline-status
+                                        data-url="{{ route('admin.scanners.status', $sc) }}"
+                                        data-status="{{ $sc->status }}"
+                                        aria-label="Update status for {{ $sc->name }}">
+                                    <option value="ACTIVE"   @selected($sc->status === 'ACTIVE')>Active</option>
+                                    <option value="INACTIVE" @selected($sc->status === 'INACTIVE')>Inactive</option>
+                                </select>
                             </td>
                             <td class="text-end">
-                                <div class="sc-action-group">
-                                    <a href="{{ route('admin.scanners.show', $sc) }}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                                    <button type="button" class="btn btn-outline-primary sc-edit" title="Edit"
+                                <div class="ob-row-actions">
+                                    <a href="{{ route('admin.scanners.show', $sc) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                                    <button type="button" class="ob-icon-btn ob-icon-btn--edit sc-edit" title="Edit"
                                             data-id="{{ $sc->id }}"
                                             data-name="{{ $sc->name }}"
                                             data-description="{{ $sc->description }}"
@@ -147,7 +151,7 @@
                                     </button>
                                     <form method="POST" action="{{ route('admin.scanners.destroy', $sc) }}" class="d-inline js-delete-form" data-confirm="Delete scanner '{{ $sc->name }}'?">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                                        <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                                     </form>
                                 </div>
                             </td>
@@ -274,8 +278,6 @@
     function removeEmptyPlaceholder() { $('#scEmptyRow').remove(); }
 
     function buildRowHtml(sc) {
-        const statusClass = sc.status === 'ACTIVE' ? 'sc-status--active' : 'sc-status--inactive';
-
         const descCell = sc.description
             ? escapeHtml(truncate(sc.description, 60))
             : '<span class="text-muted">—</span>';
@@ -289,11 +291,16 @@
                 <td class="fw-bolder sc-cell-name">${escapeHtml(sc.name)}</td>
                 <td class="sc-cell-description">${descCell}</td>
                 <td class="sc-cell-link">${linkCell}</td>
-                <td><span class="sc-status ${statusClass}" data-status="${sc.status}">${sc.status}</span></td>
+                <td>
+                    <select class="ob-status-select" data-inline-status data-url="${sc.status_url}" data-status="${sc.status}" aria-label="Update status for ${escapeHtml(sc.name)}">
+                        <option value="ACTIVE"${sc.status === 'ACTIVE' ? ' selected' : ''}>Active</option>
+                        <option value="INACTIVE"${sc.status === 'INACTIVE' ? ' selected' : ''}>Inactive</option>
+                    </select>
+                </td>
                 <td class="text-end">
-                    <div class="sc-action-group">
-                        <a href="${sc.show_url}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                        <button type="button" class="btn btn-outline-primary sc-edit" title="Edit"
+                    <div class="ob-row-actions">
+                        <a href="${sc.show_url}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                        <button type="button" class="ob-icon-btn ob-icon-btn--edit sc-edit" title="Edit"
                                 data-id="${sc.id}"
                                 data-name="${escapeHtml(sc.name)}"
                                 data-description="${escapeHtml(sc.description)}"
@@ -304,7 +311,7 @@
                         <form method="POST" action="${sc.destroy_url}" class="d-inline js-delete-form" data-confirm="Delete scanner '${escapeHtml(sc.name)}'?">
                             <input type="hidden" name="_token" value="${CSRF}">
                             <input type="hidden" name="_method" value="DELETE">
-                            <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                            <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                         </form>
                     </div>
                 </td>
@@ -331,11 +338,8 @@
                 : '<span class="text-muted">—</span>'
         );
 
-        const $status = $row.find('.sc-status');
-        $status.text(sc.status)
-            .removeClass('sc-status--active sc-status--inactive')
-            .addClass(sc.status === 'ACTIVE' ? 'sc-status--active' : 'sc-status--inactive')
-            .attr('data-status', sc.status);
+        const $status = $row.find('.ob-status-select');
+        $status.attr('data-status', sc.status).val(sc.status);
 
         const $edit = $row.find('.sc-edit');
         $edit.attr('data-name', sc.name)
@@ -485,8 +489,7 @@
             .done((res) => {
                 if (!res || !res.ok) return;
                 if (isEdit) {
-                    const $prevStatus = $(`#scTbody tr[data-id="${res.scanner.id}"] .sc-status`);
-                    const prev = $prevStatus.data('status');
+                    const prev = $(`#scTbody tr[data-id="${res.scanner.id}"] .ob-status-select`).attr('data-status');
                     if (prev && prev !== res.scanner.status) {
                         bumpStat(prev === 'ACTIVE' ? 'active' : 'inactive', -1);
                         bumpStat(res.scanner.status === 'ACTIVE' ? 'active' : 'inactive', 1);

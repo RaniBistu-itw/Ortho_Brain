@@ -34,9 +34,16 @@ class CasesController extends Controller
             'created_at'   => 'created_at',
             'submitted_at' => 'submitted_at',
         ];
+        $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
         $sortKey = $request->get('sort');
-        $sortCol = $sortable[$sortKey] ?? 'created_at';
-        $dir     = strtolower($request->get('dir', $sortKey ? 'asc' : 'desc')) === 'desc' ? 'desc' : 'asc';
+        if ($sortKey && isset($sortable[$sortKey])) {
+            $sortCol = $sortable[$sortKey];
+            $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        } else {
+            $sortKey = null;
+            $sortCol = 'created_at';
+            $dir     = $order === 'oldest' ? 'asc' : 'desc';
+        }
 
         $cases = CaseModel::where('doctor_id', $doctor->id)
             ->where('practice_id', $practiceId)

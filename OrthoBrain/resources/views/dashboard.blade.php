@@ -1179,24 +1179,22 @@ body #ob-dash .ob-inbox-row-sub         { color: rgba(255,255,255,.55); }
 </script>
 
 {{-- ─── Three.js 3D Dental Model ──────────────────────────────── --}}
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-  }
-}
-</script>
+{{-- jsdelivr's /+esm endpoint rewrites internal bare specifiers (e.g. the
+     OBJLoader / OrbitControls addons internally do `import 'three'`) into
+     absolute URLs, so we don't need an importmap. CDN host is jsdelivr
+     because the app CSP only whitelists cdn.jsdelivr.net (not unpkg). --}}
 <script type="module">
-import * as THREE from 'three';
-import { OBJLoader }     from 'three/addons/loaders/OBJLoader.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/+esm';
+import { OBJLoader }     from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/OBJLoader.js/+esm';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js/+esm';
 
-(function init3DDentalModel () {
+function init3DDentalModel () {
     const stage  = document.getElementById('obMouthStage');
     const canvas = document.getElementById('obMouthCanvas');
     const loader = document.getElementById('obMouthLoader');
     if (!stage || !canvas) return;
+    if (stage.dataset.obInitialized === '1') return;
+    stage.dataset.obInitialized = '1';
 
     const urls = {
         obj:       stage.dataset.obj,
@@ -1335,12 +1333,25 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     const ro = new ResizeObserver(resize);
     ro.observe(stage);
 
+    let raf;
     function animate () {
-        requestAnimationFrame(animate);
+        raf = requestAnimationFrame(animate);
         controls.update();
         renderer.render(scene, camera);
     }
     animate();
-})();
+
+    // Stop the render loop and free GL resources before wire:navigate swaps the body.
+    document.addEventListener('livewire:navigating', function onNav () {
+        document.removeEventListener('livewire:navigating', onNav);
+        if (raf) cancelAnimationFrame(raf);
+        ro.disconnect();
+        controls.dispose();
+        renderer.dispose();
+    });
+}
+
+init3DDentalModel();
+document.addEventListener('livewire:navigated', init3DDentalModel);
 </script>
 @endpush

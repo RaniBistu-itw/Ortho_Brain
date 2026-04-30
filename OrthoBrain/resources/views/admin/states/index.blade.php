@@ -20,14 +20,6 @@
     .st-table .st-row-new { animation: st-row-flash 1.4s ease-out; }
     @keyframes st-row-flash { 0% { background: rgba(var(--bs-success-rgb), .2); } 100% { background: transparent; } }
 
-    .st-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
-    .st-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
-    .st-status--active   { background: rgba(var(--bs-success-rgb), .14); color: var(--bs-success); }
-    .st-status--inactive { background: rgba(var(--bs-danger-rgb), .14);  color: var(--bs-danger); }
-
-    .st-action-group { display: inline-flex; gap: .25rem; }
-    .st-action-group .btn { width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; }
-    .st-action-group .btn svg { width: 15px; height: 15px; }
 
     .st-empty { text-align: center; padding: 3rem 1rem; color: #6e6b7b; }
     .st-empty svg { width: 56px; height: 56px; opacity: .35; margin-bottom: .75rem; }
@@ -35,7 +27,8 @@
     /* Slide-over drawer */
     .st-drawer { width: min(560px, 100vw); display: flex; flex-direction: column; }
     .st-drawer .offcanvas-header { border-bottom: 1px solid rgba(34, 41, 47, .08); }
-    .st-drawer .offcanvas-body { overflow-y: auto; }
+    /* Body hugs its content so the action bar sits right below the form, not pinned at the panel's bottom edge */
+    .st-drawer .offcanvas-body { flex: 0 1 auto; overflow-y: auto; }
     .st-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: #fafafa; }
     .st-drawer .form-label { font-weight: 500; }
     .st-drawer .select2-container--default .select2-selection--single { height: calc(2.4rem + 2px); padding: .3rem .4rem; }
@@ -48,6 +41,7 @@
 @endpush
 
 @section('content')
+@include('admin._partials.inline_status_dropdown')
 <section id="states-list">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
@@ -97,14 +91,20 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <input type="text" name="search" placeholder="Search name or code…" value="{{ request('search') }}" class="form-control">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select name="status" class="form-select">
                         <option value="">All statuses</option>
                         <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
                         <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="order" class="form-select" aria-label="Sort order">
+                        <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+                        <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -143,12 +143,18 @@
                                 @endif
                             </td>
                             <td>
-                                <span class="st-status st-status--{{ $s->status === 'ACTIVE' ? 'active' : 'inactive' }}" data-status="{{ $s->status }}">{{ $s->status }}</span>
+                                <select class="ob-status-select" data-inline-status
+                                        data-url="{{ route('admin.states.status', $s) }}"
+                                        data-status="{{ $s->status }}"
+                                        aria-label="Update status for {{ $s->name }}">
+                                    <option value="ACTIVE"   @selected($s->status === 'ACTIVE')>Active</option>
+                                    <option value="INACTIVE" @selected($s->status === 'INACTIVE')>Inactive</option>
+                                </select>
                             </td>
                             <td class="text-end">
-                                <div class="st-action-group">
-                                    <a href="{{ route('admin.states.show', $s) }}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                                    <button type="button" class="btn btn-outline-primary st-edit" title="Edit"
+                                <div class="ob-row-actions">
+                                    <a href="{{ route('admin.states.show', $s) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                                    <button type="button" class="ob-icon-btn ob-icon-btn--edit st-edit" title="Edit"
                                             data-id="{{ $s->id }}"
                                             data-country-id="{{ $s->country_id }}"
                                             data-name="{{ $s->name }}"
@@ -160,10 +166,10 @@
                                     @if (! $hasCities)
                                         <form method="POST" action="{{ route('admin.states.destroy', $s) }}" class="d-inline js-delete-form" data-confirm="Delete state '{{ $s->name }}'?">
                                             @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                                            <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                                         </form>
                                     @else
-                                        <button type="button" class="btn btn-outline-danger js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '{{ $s->name }}' — it has linked cities. Remove them first.">
+                                        <button type="button" class="ob-icon-btn ob-icon-btn--disabled js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '{{ $s->name }}' — it has linked cities. Remove them first.">
                                             <i data-feather="trash-2"></i>
                                         </button>
                                     @endif
@@ -291,9 +297,15 @@
 
     const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const ROUTES = {
-        store: @json(route('admin.states.ajax.store')),
-        bulk:  @json(route('admin.states.ajax.bulk')),
+        store:        @json(route('admin.states.ajax.store')),
+        bulk:         @json(route('admin.states.ajax.bulk')),
+        checkUnique:  @json(route('admin.states.ajax.check-unique')),
     };
+
+    function debounce(fn, ms) {
+        let t;
+        return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+    }
 
     const $tbody = $('#stTbody');
 
@@ -316,15 +328,14 @@
     function removeEmptyPlaceholder() { $('#stEmptyRow').remove(); }
 
     function buildRowHtml(st) {
-        const statusClass = st.status === 'ACTIVE' ? 'st-status--active' : 'st-status--inactive';
         const hasCities = st.cities_count > 0;
         const citiesCell = hasCities ? String(st.cities_count) : '<span class="text-muted">—</span>';
         const deleteBtn = hasCities
-            ? `<button type="button" class="btn btn-outline-danger js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '${escapeHtml(st.name)}' — it has linked cities. Remove them first."><i data-feather="trash-2"></i></button>`
+            ? `<button type="button" class="ob-icon-btn ob-icon-btn--disabled js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '${escapeHtml(st.name)}' — it has linked cities. Remove them first."><i data-feather="trash-2"></i></button>`
             : `<form method="POST" action="${st.destroy_url}" class="d-inline js-delete-form" data-confirm="Delete state '${escapeHtml(st.name)}'?">
                    <input type="hidden" name="_token" value="${CSRF}">
                    <input type="hidden" name="_method" value="DELETE">
-                   <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                   <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                </form>`;
 
         return `
@@ -333,11 +344,16 @@
                 <td class="fw-bolder st-cell-name">${escapeHtml(st.name)}</td>
                 <td class="st-cell-code">${escapeHtml(st.state_code)}</td>
                 <td class="st-cell-cities">${citiesCell}</td>
-                <td><span class="st-status ${statusClass}" data-status="${st.status}">${st.status}</span></td>
+                <td>
+                    <select class="ob-status-select" data-inline-status data-url="${st.status_url}" data-status="${st.status}" aria-label="Update status for ${escapeHtml(st.name)}">
+                        <option value="ACTIVE"${st.status === 'ACTIVE' ? ' selected' : ''}>Active</option>
+                        <option value="INACTIVE"${st.status === 'INACTIVE' ? ' selected' : ''}>Inactive</option>
+                    </select>
+                </td>
                 <td class="text-end">
-                    <div class="st-action-group">
-                        <a href="${st.show_url}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                        <button type="button" class="btn btn-outline-primary st-edit" title="Edit"
+                    <div class="ob-row-actions">
+                        <a href="${st.show_url}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                        <button type="button" class="ob-icon-btn ob-icon-btn--edit st-edit" title="Edit"
                                 data-id="${st.id}"
                                 data-country-id="${st.country_id}"
                                 data-name="${escapeHtml(st.name)}"
@@ -363,11 +379,8 @@
         $row.find('.st-cell-name').text(st.name);
         $row.find('.st-cell-code').text(st.state_code);
 
-        const $status = $row.find('.st-status');
-        $status.text(st.status)
-            .removeClass('st-status--active st-status--inactive')
-            .addClass(st.status === 'ACTIVE' ? 'st-status--active' : 'st-status--inactive')
-            .attr('data-status', st.status);
+        const $status = $row.find('.ob-status-select');
+        $status.attr('data-status', st.status).val(st.status);
 
         const $edit = $row.find('.st-edit');
         $edit.attr('data-country-id', st.country_id)
@@ -444,6 +457,90 @@
         setTimeout(() => $('#stDrawerName').trigger('focus'), 50);
     });
 
+    // ── Live duplicate check on the single drawer (name + code per country) ─
+    function liveCheckDrawerField(field, $input, $err) {
+        const value      = $input.val().trim();
+        const country_id = $('#stDrawerCountry').val();
+        const ignore_id  = $('#stDrawerId').val() || null;
+        if (!value || !country_id) {
+            $input.removeClass('is-invalid');
+            $err.text('');
+            return;
+        }
+        $.post(ROUTES.checkUnique, { _token: CSRF, field, value, country_id, ignore_id })
+            .done((res) => {
+                if ($input.val().trim() !== value) return;
+                if (res.available) {
+                    $input.removeClass('is-invalid');
+                    $err.text('');
+                } else {
+                    $input.addClass('is-invalid');
+                    $err.text(res.message || 'Already exists.');
+                }
+            });
+    }
+    const liveCheckDrawerName = debounce(() =>
+        liveCheckDrawerField('name', $('#stDrawerName'), $('#stDrawerNameErr')), 350);
+    const liveCheckDrawerCode = debounce(() =>
+        liveCheckDrawerField('state_code', $('#stDrawerCode'), $('#stDrawerCodeErr')), 350);
+    $(document).on('input', '#stDrawerName', liveCheckDrawerName);
+    $(document).on('input', '#stDrawerCode', liveCheckDrawerCode);
+    // Re-check when the parent country changes (uniqueness is scoped per country)
+    $(document).on('change', '#stDrawerCountry', () => { liveCheckDrawerName(); liveCheckDrawerCode(); });
+
+    // ── Live duplicate check on each bulk row (name + code) ───────────────
+    function bulkRowFieldLiveCheck($input, field, dupMsg) {
+        const $row      = $input.closest('.st-bulk-row');
+        const $err      = $row.find('.st-bulk-row__err');
+        const value     = $input.val().trim();
+        const countryId = $('#stBulkCountry').val();
+        const sel       = field === 'state_code' ? '.st-bulk-code' : '.st-bulk-name';
+
+        // Within-batch duplicates first (case-insensitive, scoped to this field)
+        let dupInBatch = false;
+        if (value) {
+            $('#stBulkRows .st-bulk-row').each(function () {
+                if (this === $row[0]) return;
+                const other = $(this).find(sel).val().trim().toLowerCase();
+                if (other && other === value.toLowerCase()) dupInBatch = true;
+            });
+        }
+        if (dupInBatch) {
+            $input.addClass('is-invalid');
+            $err.text(dupMsg);
+            return;
+        }
+
+        if (!value || !countryId) {
+            $input.removeClass('is-invalid');
+            $err.text('');
+            return;
+        }
+        $.post(ROUTES.checkUnique, { _token: CSRF, field, value, country_id: countryId })
+            .done((res) => {
+                if ($input.val().trim() !== value) return;
+                if (res.available) {
+                    $input.removeClass('is-invalid');
+                    $err.text('');
+                } else {
+                    $input.addClass('is-invalid');
+                    $err.text(res.message || 'Already exists.');
+                }
+            });
+    }
+    const bulkRowNameDebounced = debounce(function (el) {
+        bulkRowFieldLiveCheck($(el), 'name', 'Duplicate name in this batch.');
+    }, 350);
+    const bulkRowCodeDebounced = debounce(function (el) {
+        bulkRowFieldLiveCheck($(el), 'state_code', 'Duplicate code in this batch.');
+    }, 350);
+    $(document).on('input', '#stBulkRows .st-bulk-name', function () { bulkRowNameDebounced(this); });
+    $(document).on('input', '#stBulkRows .st-bulk-code', function () { bulkRowCodeDebounced(this); });
+    $(document).on('change', '#stBulkCountry', function () {
+        $('#stBulkRows .st-bulk-name').each(function () { bulkRowFieldLiveCheck($(this), 'name', 'Duplicate name in this batch.'); });
+        $('#stBulkRows .st-bulk-code').each(function () { bulkRowFieldLiveCheck($(this), 'state_code', 'Duplicate code in this batch.'); });
+    });
+
     $('#stDrawerOpen').on('click', openDrawerCreate);
 
     $(document).on('click', '.st-edit', function () {
@@ -498,8 +595,7 @@
             .done((res) => {
                 if (!res || !res.ok) return;
                 if (isEdit) {
-                    const $prevStatus = $(`#stTbody tr[data-id="${res.state.id}"] .st-status`);
-                    const prev = $prevStatus.data('status');
+                    const prev = $(`#stTbody tr[data-id="${res.state.id}"] .ob-status-select`).attr('data-status');
                     if (prev && prev !== res.state.status) {
                         bumpStat(prev === 'ACTIVE' ? 'active' : 'inactive', -1);
                         bumpStat(res.state.status === 'ACTIVE' ? 'active' : 'inactive', 1);

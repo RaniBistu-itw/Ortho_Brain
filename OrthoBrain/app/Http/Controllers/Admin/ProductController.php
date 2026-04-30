@@ -38,10 +38,18 @@ class ProductController extends Controller
             'subcategory' => "{$subTable}.name",
             'name'        => 'products.name',
             'price'       => 'products.price',
+            'created_at'  => 'products.created_at',
         ];
+        $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
         $sortKey = $request->get('sort');
-        $sortCol = $sortable[$sortKey] ?? 'products.name';
-        $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        if ($sortKey && isset($sortable[$sortKey])) {
+            $sortCol = $sortable[$sortKey];
+            $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        } else {
+            $sortKey = null;
+            $sortCol = 'products.created_at';
+            $dir     = $order === 'oldest' ? 'asc' : 'desc';
+        }
 
         $query = Product::query()
             ->with(['category', 'subcategory', 'images'])
@@ -52,6 +60,7 @@ class ProductController extends Controller
                 'products.category_id',
                 'products.subcategory_id',
                 'products.status',
+                'products.created_at',
             ]);
 
         if (in_array($sortKey, ['category', 'subcategory'], true)) {
@@ -158,6 +167,19 @@ class ProductController extends Controller
         });
 
         return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
+    }
+
+    public function updateStatus(Request $request, Product $product)
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+        $product->update(['status' => $data['status']]);
+        return response()->json([
+            'ok'      => true,
+            'status'  => $product->status,
+            'message' => 'Status updated.',
+        ]);
     }
 
     public function destroy(Product $product)

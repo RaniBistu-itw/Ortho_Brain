@@ -34,9 +34,16 @@ class DoctorController extends Controller
             'practice'   => 'practices.name',
             'created_at' => 'doctors.created_at',
         ];
+        $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
         $sortKey = $request->get('sort');
-        $sortCol = $sortable[$sortKey] ?? 'doctors.created_at';
-        $dir     = strtolower($request->get('dir', $sortKey ? 'asc' : 'desc')) === 'desc' ? 'desc' : 'asc';
+        if ($sortKey && isset($sortable[$sortKey])) {
+            $sortCol = $sortable[$sortKey];
+            $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        } else {
+            $sortKey = null;
+            $sortCol = 'doctors.created_at';
+            $dir     = $order === 'oldest' ? 'asc' : 'desc';
+        }
 
         $query = Doctor::query()
             ->with(['practice:id,name'])

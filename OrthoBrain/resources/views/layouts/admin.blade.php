@@ -141,6 +141,18 @@
                     width: '100%',
                     dropdownParent: $s.closest('.modal').length ? $s.closest('.modal') : document.body,
                 }, opts || {}));
+
+                // Auto-focus the search input when the dropdown opens so the user
+                // can type immediately without a second click. Select2 scopes the
+                // search field to its open dropdown via .select2-container--open.
+                $s.on('select2:open.obSearch', function () {
+                    setTimeout(function () {
+                        const field = document.querySelector(
+                            '.select2-container--open .select2-search__field'
+                        );
+                        if (field) field.focus();
+                    }, 0);
+                });
             });
             return $el;
         };

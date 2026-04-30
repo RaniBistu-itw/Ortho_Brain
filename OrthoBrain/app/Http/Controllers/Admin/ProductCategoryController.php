@@ -17,10 +17,17 @@ class ProductCategoryController extends Controller
             'name'                => 'name',
             'subcategories_count' => 'subcategories_count',
             'products_count'      => 'products_count',
+            'created_at'          => 'created_at',
         ];
-        $sort = $request->get('sort');
-        $sort = $sortable[$sort] ?? 'name';
-        $dir  = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
+        $sortKey = $request->get('sort');
+        if ($sortKey && isset($sortable[$sortKey])) {
+            $sort = $sortable[$sortKey];
+            $dir  = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        } else {
+            $sort = 'created_at';
+            $dir  = $order === 'oldest' ? 'asc' : 'desc';
+        }
 
         $categories = ProductCategory::withCount(['subcategories', 'products'])
             ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%' . $request->string('search') . '%'))
@@ -98,6 +105,19 @@ class ProductCategoryController extends Controller
         ]);
     }
 
+    public function updateStatus(Request $request, ProductCategory $productCategory)
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+        $productCategory->update(['status' => $data['status']]);
+        return response()->json([
+            'ok'      => true,
+            'status'  => $productCategory->status,
+            'message' => 'Status updated.',
+        ]);
+    }
+
     public function ajaxBulk(Request $request)
     {
         $payload = $request->input('categories', []);
@@ -107,6 +127,27 @@ class ProductCategoryController extends Controller
             'categories.*.name'   => ['required', 'string', 'max:255'],
             'categories.*.status' => ['required', 'in:ACTIVE,INACTIVE'],
         ]);
+
+        // Name is unique — guard both within-batch dupes and against existing rows.
+        $validator->after(function ($v) use ($payload) {
+            $seen = [];
+            foreach ($payload as $i => $row) {
+                $name = strtolower(trim($row['name'] ?? ''));
+                if ($name === '') continue;
+
+                if (isset($seen[$name])) {
+                    $v->errors()->add("categories.{$i}.name", 'Duplicate category name in this batch.');
+                }
+                $seen[$name] = true;
+
+                $exists = ProductCategory::whereRaw('LOWER(name) = ?', [$name])
+                    ->whereNull('deleted_at')
+                    ->exists();
+                if ($exists) {
+                    $v->errors()->add("categories.{$i}.name", 'A category with this name already exists.');
+                }
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json([
@@ -137,6 +178,28 @@ class ProductCategoryController extends Controller
         ]);
     }
 
+    // Live "is this name taken?" check fired while the user types in the drawer/bulk row.
+    // Returns 200 always (taken state in JSON) so a stale request never lights up a generic toast.
+    public function ajaxCheckUnique(Request $request)
+    {
+        $name     = trim((string) $request->input('name', ''));
+        $ignoreId = $request->integer('ignore_id') ?: null;
+
+        if ($name === '') {
+            return response()->json(['available' => true]);
+        }
+
+        $exists = ProductCategory::whereRaw('LOWER(name) = ?', [strtolower($name)])
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->whereNull('deleted_at')
+            ->exists();
+
+        return response()->json([
+            'available' => ! $exists,
+            'message'   => $exists ? 'A category with this name already exists.' : null,
+        ]);
+    }
+
     private function presentRow(ProductCategory $c): array
     {
         return [
@@ -148,6 +211,7 @@ class ProductCategoryController extends Controller
             'edit_url'            => route('admin.product-categories.ajax.update', $c),
             'destroy_url'         => route('admin.product-categories.destroy', $c),
             'show_url'            => route('admin.product-categories.show', $c),
+            'status_url'          => route('admin.product-categories.status', $c),
         ];
     }
 }

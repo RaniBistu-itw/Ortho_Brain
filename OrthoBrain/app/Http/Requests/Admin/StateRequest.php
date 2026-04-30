@@ -18,7 +18,13 @@ class StateRequest extends FormRequest
 
         return [
             'country_id' => ['required', 'integer', Rule::exists('countries', 'id')->whereNull('deleted_at')],
-            'name'       => ['required', 'string', 'max:100'],
+            'name'       => [
+                'required', 'string', 'max:100',
+                Rule::unique('states', 'name')
+                    ->ignore($stateId)
+                    ->where(fn ($q) => $q->where('country_id', $this->input('country_id')))
+                    ->whereNull('deleted_at'),
+            ],
             'state_code' => [
                 'required', 'string', 'max:100',
                 Rule::unique('states', 'state_code')
@@ -27,6 +33,14 @@ class StateRequest extends FormRequest
                     ->whereNull('deleted_at'),
             ],
             'status'     => ['required', Rule::in(['ACTIVE', 'INACTIVE'])],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'name.unique'       => 'A state with this name already exists for the selected country.',
+            'state_code.unique' => 'A state with this code already exists for the selected country.',
         ];
     }
 }

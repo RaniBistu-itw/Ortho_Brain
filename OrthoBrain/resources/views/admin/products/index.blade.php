@@ -3,12 +3,7 @@
 @section('page_title', 'Products')
 
 @section('content')
-<style>
-    .pd-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
-    .pd-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
-    .pd-status--active   { background: rgba(var(--bs-success-rgb), .14); color: var(--bs-success); }
-    .pd-status--inactive { background: rgba(var(--bs-danger-rgb), .14);  color: var(--bs-danger); }
-</style>
+@include('admin._partials.inline_status_dropdown')
 <section id="products-list">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
@@ -46,13 +41,13 @@
 
         <div class="card-body py-1">
             <form id="productsFilter" method="GET" class="row g-1 py-1">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select id="filter_category_id" name="category_id" data-ob-cascade-parent class="js-searchable form-select">
                         <option value="">All categories</option>
                         @foreach ($categories as $c)<option value="{{ $c->id }}" @selected(request('category_id')==$c->id)>{{ $c->name }}</option>@endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select id="filter_subcategory_id" name="subcategory_id" class="js-searchable form-select">
                         <option value="">All sub categories</option>
                         @foreach ($subcategories as $sub)<option value="{{ $sub->id }}" data-category-id="{{ $sub->category_id }}" @selected(request('subcategory_id')==$sub->id)>{{ $sub->name }}</option>@endforeach
@@ -64,6 +59,12 @@
                         <option value="">All statuses</option>
                         <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
                         <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="order" class="form-select" aria-label="Sort order">
+                        <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+                        <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -117,15 +118,23 @@
                             <td class="fw-bolder">{{ $p->name }}</td>
                             <td>${{ number_format((float) $p->base_price, 2) }}</td>
                             <td>
-                                <span class="pd-status pd-status--{{ $p->status === 'ACTIVE' ? 'active' : 'inactive' }}">{{ $p->status }}</span>
+                                <select class="ob-status-select" data-inline-status
+                                        data-url="{{ route('admin.products.status', $p) }}"
+                                        data-status="{{ $p->status }}"
+                                        aria-label="Update status for {{ $p->name }}">
+                                    <option value="ACTIVE"   @selected($p->status === 'ACTIVE')>Active</option>
+                                    <option value="INACTIVE" @selected($p->status === 'INACTIVE')>Inactive</option>
+                                </select>
                             </td>
                             <td class="text-end">
-                                <a href="{{ route('admin.products.show', $p) }}" class="btn btn-icon btn-sm btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                                <a href="{{ route('admin.products.edit', $p) }}" class="btn btn-icon btn-sm btn-outline-primary" title="Edit"><i data-feather="edit-2"></i></a>
-                                <form method="POST" action="{{ route('admin.products.destroy', $p) }}" class="d-inline js-delete-form" data-confirm="Delete product '{{ $p->name }}'?">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-icon btn-sm btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
-                                </form>
+                                <div class="ob-row-actions">
+                                    <a href="{{ route('admin.products.show', $p) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                                    <a href="{{ route('admin.products.edit', $p) }}" class="ob-icon-btn ob-icon-btn--edit" title="Edit"><i data-feather="edit-2"></i></a>
+                                    <form method="POST" action="{{ route('admin.products.destroy', $p) }}" class="d-inline js-delete-form" data-confirm="Delete product '{{ $p->name }}'?">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty

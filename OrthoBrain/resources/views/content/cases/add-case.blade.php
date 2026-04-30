@@ -209,7 +209,15 @@
     window.ACTIVE_PRACTICE_ADDRESS = @json($activePracticeAddress);
     window.COUNTRY_ENTRIES = @json($countryEntries);
   </script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  {{-- Alpine.js is bundled with @livewireScripts (Livewire 3); loading the
+       standalone CDN here causes "Detected multiple instances of Alpine"
+       which corrupts wire:navigate's hover-prefetch cleanup walker and
+       leaves the navigation pipeline dead — the back button + section rail
+       silently stop working as a result. The x-data factories used by the
+       sections (impressionsSection, prescriptionSection, photographsSection,
+       xraysSection, shippingAddressSection, submitOrderSection) are
+       registered as globals on `window` by their respective JS files, so
+       Livewire's Alpine resolves them exactly the same way. --}}
   {{-- Cropper.js v1 — required by the shared crop modal (Photographs + X-Rays). --}}
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
   {{-- heic2any — HEIC → JPEG conversion for preview on Photograph / X-Ray uploads. --}}

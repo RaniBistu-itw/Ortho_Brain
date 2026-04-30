@@ -12,11 +12,18 @@ class ScannerController extends Controller
     public function index(Request $request)
     {
         $sortable = [
-            'name' => 'name',
+            'name'       => 'name',
+            'created_at' => 'created_at',
         ];
-        $sort = $request->get('sort');
-        $sort = $sortable[$sort] ?? 'name';
-        $dir  = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
+        $sortKey = $request->get('sort');
+        if ($sortKey && isset($sortable[$sortKey])) {
+            $sort = $sortable[$sortKey];
+            $dir  = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        } else {
+            $sort = 'created_at';
+            $dir  = $order === 'oldest' ? 'asc' : 'desc';
+        }
 
         $scanners = Scanner::query()
             ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%' . $request->string('search') . '%'))
@@ -69,6 +76,19 @@ class ScannerController extends Controller
         ]);
     }
 
+    public function updateStatus(Request $request, Scanner $scanner)
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+        $scanner->update(['status' => $data['status']]);
+        return response()->json([
+            'ok'      => true,
+            'status'  => $scanner->status,
+            'message' => 'Status updated.',
+        ]);
+    }
+
     private function presentRow(Scanner $s): array
     {
         return [
@@ -81,6 +101,7 @@ class ScannerController extends Controller
             'update_url'      => route('admin.scanners.ajax.update', $s),
             'destroy_url'     => route('admin.scanners.destroy', $s),
             'show_url'        => route('admin.scanners.show', $s),
+            'status_url'      => route('admin.scanners.status', $s),
         ];
     }
 }

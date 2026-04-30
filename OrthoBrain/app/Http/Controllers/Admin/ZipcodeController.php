@@ -27,14 +27,22 @@ class ZipcodeController extends Controller
         }
 
         $sortable = [
-            'code'    => 'zipcodes.code',
-            'city'    => 'cities.name',
-            'state'   => 'states.name',
-            'country' => 'countries.name',
+            'code'       => 'zipcodes.code',
+            'city'       => 'cities.name',
+            'state'      => 'states.name',
+            'country'    => 'countries.name',
+            'created_at' => 'zipcodes.created_at',
         ];
+        $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
         $sortKey = $request->get('sort');
-        $sortCol = $sortable[$sortKey] ?? 'zipcodes.code';
-        $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        if ($sortKey && isset($sortable[$sortKey])) {
+            $sortCol = $sortable[$sortKey];
+            $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        } else {
+            $sortKey = null;
+            $sortCol = 'zipcodes.created_at';
+            $dir     = $order === 'oldest' ? 'asc' : 'desc';
+        }
 
         $query = Zipcode::query()
             ->with('city.state.country')
@@ -121,6 +129,40 @@ class ZipcodeController extends Controller
         ]);
     }
 
+    public function updateStatus(Request $request, Zipcode $zipcode)
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+        $zipcode->update(['status' => $data['status']]);
+        return response()->json([
+            'ok'      => true,
+            'status'  => $zipcode->status,
+            'message' => 'Status updated.',
+        ]);
+    }
+
+    public function ajaxCheckUnique(Request $request)
+    {
+        $code     = trim((string) $request->input('code', ''));
+        $cityId   = $request->integer('city_id') ?: null;
+        $ignoreId = $request->integer('ignore_id') ?: null;
+
+        if ($code === '' || ! $cityId) {
+            return response()->json(['available' => true]);
+        }
+
+        $exists = Zipcode::where('city_id', $cityId)
+            ->whereRaw('LOWER(code) = ?', [strtolower($code)])
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->exists();
+
+        return response()->json([
+            'available' => ! $exists,
+            'message'   => $exists ? 'A zip code with this value already exists for the selected city.' : null,
+        ]);
+    }
+
     private function presentRow(Zipcode $z): array
     {
         return [
@@ -137,6 +179,7 @@ class ZipcodeController extends Controller
             'update_url'   => route('admin.zipcodes.ajax.update', $z),
             'destroy_url'  => route('admin.zipcodes.destroy', $z),
             'show_url'     => route('admin.zipcodes.show', $z),
+            'status_url'   => route('admin.zipcodes.status', $z),
         ];
     }
 }

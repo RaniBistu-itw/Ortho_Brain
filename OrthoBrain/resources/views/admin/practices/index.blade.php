@@ -325,7 +325,7 @@
         {{-- Toolbar --}}
         <div class="ob-toolbar">
             <form id="practicesFilter" method="GET" class="row g-2 align-items-center">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select name="status" class="form-select">
                         <option value="">All statuses</option>
                         <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
@@ -340,12 +340,18 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="ob-input-icon">
                         <i data-feather="search"></i>
                         <input type="text" name="search" placeholder="Search by name, website, or phone"
                                value="{{ $searchTerm }}" class="form-control">
                     </div>
+                </div>
+                <div class="col-md-2">
+                    <select name="order" class="form-select" aria-label="Sort order">
+                        <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+                        <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
+                    </select>
                 </div>
                 <div class="col-md-2">
                     <a href="{{ route('admin.practices.index') }}" class="ob-btn-clear w-100">
@@ -474,7 +480,7 @@
                             <td class="text-end">
                                 <div class="ob-row-actions">
                                     <a href="{{ route('admin.practices.show', $practice) }}"
-                                       class="ob-icon-btn" title="View details">
+                                       class="ob-icon-btn ob-icon-btn--view" title="View details">
                                         <i data-feather="eye"></i>
                                     </a>
                                 </div>

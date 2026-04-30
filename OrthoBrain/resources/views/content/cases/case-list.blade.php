@@ -72,6 +72,24 @@
             @endif
           </span>
         @endif
+
+        @php
+          $currentOrder = request('order') === 'oldest' ? 'oldest' : 'newest';
+          $orderBase    = [];
+          if ($activeStatus) { $orderBase['status'] = $activeStatus; }
+          if ($staleOnly)    { $orderBase['stale']  = 1; }
+        @endphp
+        <div class="ms-auto d-flex flex-wrap align-items-center gap-50">
+          <span class="text-muted small me-25">Sort:</span>
+          <a href="{{ route('doctor.cases.index', array_merge($orderBase, ['order' => 'newest'])) }}"
+             class="btn btn-sm {{ $currentOrder === 'newest' ? 'btn-primary' : 'btn-outline-secondary' }}">
+            Newest first
+          </a>
+          <a href="{{ route('doctor.cases.index', array_merge($orderBase, ['order' => 'oldest'])) }}"
+             class="btn btn-sm {{ $currentOrder === 'oldest' ? 'btn-primary' : 'btn-outline-secondary' }}">
+            Oldest first
+          </a>
+        </div>
       </div>
     </div>
 
@@ -96,19 +114,21 @@
               <td>{{ $case->created_at?->format('Y-m-d H:i') }}</td>
               <td>{{ $case->submitted_at?->format('Y-m-d H:i') ?? '—' }}</td>
               <td class="text-end">
-                @if($case->status === 'DRAFT')
-                  <a href="{{ route('doctor.cases.edit', $case->id) }}"
-                     class="btn btn-icon btn-sm btn-outline-primary"
-                     title="Continue editing">
-                    <i data-feather="edit-2"></i>
-                  </a>
-                @else
-                  <a href="{{ route('doctor.cases.edit', $case->id) }}"
-                     class="btn btn-icon btn-sm btn-outline-success"
-                     title="View case">
-                    <i data-feather="eye"></i>
-                  </a>
-                @endif
+                <div class="ob-row-actions">
+                  @if($case->status === 'DRAFT')
+                    <a href="{{ route('doctor.cases.edit', $case->id) }}"
+                       class="ob-icon-btn ob-icon-btn--edit"
+                       title="Continue editing">
+                      <i data-feather="edit-2"></i>
+                    </a>
+                  @else
+                    <a href="{{ route('doctor.cases.edit', $case->id) }}"
+                       class="ob-icon-btn ob-icon-btn--view"
+                       title="View case">
+                      <i data-feather="eye"></i>
+                    </a>
+                  @endif
+                </div>
               </td>
             </tr>
           @empty

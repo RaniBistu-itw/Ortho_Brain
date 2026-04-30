@@ -19,21 +19,14 @@
     .pc-table .pc-row-new { animation: pc-row-flash 1.4s ease-out; }
     @keyframes pc-row-flash { 0% { background: rgba(var(--bs-success-rgb), .2); } 100% { background: transparent; } }
 
-    .pc-status { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
-    .pc-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
-    .pc-status--active   { background: rgba(var(--bs-success-rgb), .14); color: var(--bs-success); }
-    .pc-status--inactive { background: rgba(var(--bs-danger-rgb), .14);  color: var(--bs-danger); }
-
-    .pc-action-group { display: inline-flex; gap: .25rem; }
-    .pc-action-group .btn { width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; }
-    .pc-action-group .btn svg { width: 15px; height: 15px; }
-
     .pc-empty { text-align: center; padding: 3rem 1rem; color: #6e6b7b; }
     .pc-empty svg { width: 56px; height: 56px; opacity: .35; margin-bottom: .75rem; }
 
     /* Bulk-add drawer */
     .pc-drawer { width: min(560px, 100vw); }
     .pc-drawer .offcanvas-header { border-bottom: 1px solid rgba(34, 41, 47, .08); }
+    /* Body should hug its content so the action bar sits right below the form, not pinned at the panel's bottom edge */
+    .pc-drawer .offcanvas-body { flex: 0 1 auto; }
     .pc-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: #fafafa; }
     .pc-bulk-row { display: grid; grid-template-columns: 1fr 160px 36px; gap: .5rem; align-items: start; margin-bottom: .5rem; }
     .pc-bulk-row .pc-bulk-remove { width: 36px; height: 38px; padding: 0; display: grid; place-items: center; }
@@ -42,6 +35,7 @@
 @endpush
 
 @section('content')
+@include('admin._partials.inline_status_dropdown')
 <section id="categories-list">
 
     {{-- ── KPI strip ───────────────────────────────────────────── --}}
@@ -82,6 +76,12 @@
                         <option value="">All statuses</option>
                         <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
                         <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="order" class="form-select" aria-label="Sort order">
+                        <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+                        <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -197,10 +197,17 @@
 
     const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const ROUTES = {
-        store:  @json(route('admin.product-categories.ajax.store')),
-        bulk:   @json(route('admin.product-categories.ajax.bulk')),
-        index:  @json(route('admin.product-categories.index')),
+        store:        @json(route('admin.product-categories.ajax.store')),
+        bulk:         @json(route('admin.product-categories.ajax.bulk')),
+        checkUnique:  @json(route('admin.product-categories.ajax.check-unique')),
+        index:        @json(route('admin.product-categories.index')),
     };
+
+    // Tiny debouncer so each keystroke doesn't fire its own request.
+    function debounce(fn, ms) {
+        let t;
+        return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+    }
 
     // ── Auto-submit the filter form (keep existing behavior) ──
     obAutoFilter('#categoriesFilter');
@@ -220,14 +227,13 @@
 
     // Build a row matching the server-rendered partial exactly enough to behave.
     function buildRowHtml(cat) {
-        const statusClass = cat.status === 'ACTIVE' ? 'pc-status--active' : 'pc-status--inactive';
         const hasDeps = cat.subcategories_count > 0 || cat.products_count > 0;
         const deleteBtn = hasDeps
-            ? `<button type="button" class="btn btn-outline-danger js-delete-blocked" title="Cannot delete" data-reason="Cannot delete '${escapeHtml(cat.name)}' — it has linked sub-categories or products. Remove them first."><i data-feather="trash-2"></i></button>`
+            ? `<button type="button" class="ob-icon-btn ob-icon-btn--disabled js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '${escapeHtml(cat.name)}' — it has linked sub-categories or products. Remove them first."><i data-feather="trash-2"></i></button>`
             : `<form method="POST" action="${cat.destroy_url}" class="d-inline js-delete-form" data-confirm="Delete category '${escapeHtml(cat.name)}'?">
                    <input type="hidden" name="_token" value="${CSRF}">
                    <input type="hidden" name="_method" value="DELETE">
-                   <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                   <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                </form>`;
 
         return `
@@ -235,11 +241,16 @@
                 <td class="fw-bolder pc-cell-name">${escapeHtml(cat.name)}</td>
                 <td>${cat.subcategories_count > 0 ? cat.subcategories_count : '<span class="text-muted">—</span>'}</td>
                 <td>${cat.products_count > 0 ? cat.products_count : '<span class="text-muted">—</span>'}</td>
-                <td><span class="pc-status ${statusClass}" data-status="${cat.status}">${cat.status}</span></td>
+                <td>
+                    <select class="ob-status-select" data-inline-status data-url="${cat.status_url}" data-status="${cat.status}" aria-label="Update status for ${escapeHtml(cat.name)}">
+                        <option value="ACTIVE"${cat.status === 'ACTIVE' ? ' selected' : ''}>Active</option>
+                        <option value="INACTIVE"${cat.status === 'INACTIVE' ? ' selected' : ''}>Inactive</option>
+                    </select>
+                </td>
                 <td class="text-end">
-                    <div class="pc-action-group">
-                        <a href="${cat.show_url}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                        <button type="button" class="btn btn-outline-primary pc-edit" title="Edit"
+                    <div class="ob-row-actions">
+                        <a href="${cat.show_url}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                        <button type="button" class="ob-icon-btn ob-icon-btn--edit pc-edit" title="Edit"
                                 data-id="${cat.id}" data-name="${escapeHtml(cat.name)}" data-status="${cat.status}"
                                 data-url="${cat.edit_url}"><i data-feather="edit-2"></i></button>
                         ${deleteBtn}
@@ -264,11 +275,8 @@
         const $row = $(`#pcTbody tr[data-id="${cat.id}"]`);
         if (!$row.length) return;
         $row.find('.pc-cell-name').text(cat.name);
-        const $status = $row.find('.pc-status');
-        $status.text(cat.status)
-            .removeClass('pc-status--active pc-status--inactive')
-            .addClass(cat.status === 'ACTIVE' ? 'pc-status--active' : 'pc-status--inactive')
-            .attr('data-status', cat.status);
+        const $status = $row.find('.ob-status-select');
+        $status.attr('data-status', cat.status).val(cat.status);
         // keep data-* on the edit button fresh
         const $edit = $row.find('.pc-edit');
         $edit.attr('data-name', cat.name).attr('data-status', cat.status);
@@ -303,6 +311,30 @@
         drawer.show();
         setTimeout(() => $('#pcDrawerName').focus(), 250);
     }
+
+    // ── Live duplicate check on the single-drawer name input ─────────────
+    const liveCheckDrawer = debounce(function () {
+        const name = $('#pcDrawerName').val().trim();
+        const id   = $('#pcDrawerId').val();
+        if (!name) {
+            $('#pcDrawerName').removeClass('is-invalid');
+            $('#pcDrawerNameErr').text('');
+            return;
+        }
+        $.post(ROUTES.checkUnique, { _token: CSRF, name, ignore_id: id || null })
+            .done((res) => {
+                // If the user has kept typing past this request, ignore the result.
+                if ($('#pcDrawerName').val().trim() !== name) return;
+                if (res.available) {
+                    $('#pcDrawerName').removeClass('is-invalid');
+                    $('#pcDrawerNameErr').text('');
+                } else {
+                    $('#pcDrawerName').addClass('is-invalid');
+                    $('#pcDrawerNameErr').text(res.message || 'Already exists.');
+                }
+            });
+    }, 350);
+    $(document).on('input', '#pcDrawerName', liveCheckDrawer);
 
     $('#pcDrawerOpen').on('click', openDrawerCreate);
 
@@ -342,8 +374,7 @@
                 if (!res || !res.ok) return;
                 if (isEdit) {
                     // status may have flipped — adjust KPIs
-                    const $old = $(`#pcTbody tr[data-id="${res.category.id}"] .pc-status`);
-                    const prev = $old.data('status');
+                    const prev = $(`#pcTbody tr[data-id="${res.category.id}"] .ob-status-select`).attr('data-status');
                     if (prev && prev !== res.category.status) {
                         bumpStat(prev === 'ACTIVE' ? 'active' : 'inactive', -1);
                         bumpStat(res.category.status === 'ACTIVE' ? 'active' : 'inactive', 1);
@@ -395,6 +426,50 @@
             .append(buildBulkRow()).append(buildBulkRow()).append(buildBulkRow());
         if (window.feather) window.feather.replace();
     }
+
+    // Live check across bulk rows: each input pings the server (debounced) and
+    // we also flag any same-name rows within the batch in pure DOM.
+    function bulkRowLiveCheck($input) {
+        const $row  = $input.closest('.pc-bulk-row');
+        const $err  = $row.find('.pc-bulk-row__err');
+        const name  = $input.val().trim();
+
+        // Within-batch duplicate (case-insensitive)
+        let dupInBatch = false;
+        if (name) {
+            $('#pcBulkRows .pc-bulk-row').each(function () {
+                if (this === $row[0]) return;
+                const other = $(this).find('.pc-bulk-name').val().trim().toLowerCase();
+                if (other && other === name.toLowerCase()) dupInBatch = true;
+            });
+        }
+        if (dupInBatch) {
+            $input.addClass('is-invalid');
+            $err.text('Duplicate name in this batch.');
+            return;
+        }
+
+        if (!name) {
+            $input.removeClass('is-invalid');
+            $err.text('');
+            return;
+        }
+        $.post(ROUTES.checkUnique, { _token: CSRF, name })
+            .done((res) => {
+                if ($input.val().trim() !== name) return; // user kept typing
+                if (res.available) {
+                    $input.removeClass('is-invalid');
+                    $err.text('');
+                } else {
+                    $input.addClass('is-invalid');
+                    $err.text(res.message || 'Already exists.');
+                }
+            });
+    }
+    const bulkRowLiveCheckDebounced = debounce(function (el) { bulkRowLiveCheck($(el)); }, 350);
+    $(document).on('input', '#pcBulkRows .pc-bulk-name', function () {
+        bulkRowLiveCheckDebounced(this);
+    });
 
     $('#pcBulkOpen').on('click', () => { resetBulk(); bulk.show(); });
 

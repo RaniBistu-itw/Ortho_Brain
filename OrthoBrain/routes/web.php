@@ -194,6 +194,8 @@ Route::middleware(['web', 'admin'])
         Route::post('/profile/photo',     [AdminProfileController::class, 'uploadAvatar'])->name('profile.photo');
         Route::delete('/profile/photo',   [AdminProfileController::class, 'deleteAvatar'])->name('profile.photo.delete');
 
+        Route::post('products/{product}/status', [ProductController::class, 'updateStatus'])
+            ->name('products.status');
         Route::resource('products', ProductController::class);
 
         // Product Categories — AJAX endpoints for inline / drawer / bulk flows
@@ -202,8 +204,12 @@ Route::middleware(['web', 'admin'])
             ->name('product-categories.ajax.store');
         Route::post('product-categories/ajax/bulk', [ProductCategoryController::class, 'ajaxBulk'])
             ->name('product-categories.ajax.bulk');
+        Route::post('product-categories/ajax/check-unique', [ProductCategoryController::class, 'ajaxCheckUnique'])
+            ->name('product-categories.ajax.check-unique');
         Route::put('product-categories/ajax/{productCategory}', [ProductCategoryController::class, 'ajaxUpdate'])
             ->name('product-categories.ajax.update');
+        Route::post('product-categories/{productCategory}/status', [ProductCategoryController::class, 'updateStatus'])
+            ->name('product-categories.status');
         Route::resource('product-categories', ProductCategoryController::class);
 
         // Product Subcategories — AJAX endpoints for drawer create / edit flow
@@ -212,8 +218,12 @@ Route::middleware(['web', 'admin'])
             ->name('product-subcategories.ajax.store');
         Route::post('product-subcategories/ajax/bulk', [ProductSubcategoryController::class, 'ajaxBulk'])
             ->name('product-subcategories.ajax.bulk');
+        Route::post('product-subcategories/ajax/check-unique', [ProductSubcategoryController::class, 'ajaxCheckUnique'])
+            ->name('product-subcategories.ajax.check-unique');
         Route::put('product-subcategories/ajax/{product_subcategory}', [ProductSubcategoryController::class, 'ajaxUpdate'])
             ->name('product-subcategories.ajax.update');
+        Route::post('product-subcategories/{product_subcategory}/status', [ProductSubcategoryController::class, 'updateStatus'])
+            ->name('product-subcategories.status');
         Route::resource('product-subcategories', ProductSubcategoryController::class)
             ->only(['index', 'show', 'destroy'])
             ->parameters(['product-subcategories' => 'product_subcategory']);
@@ -223,6 +233,8 @@ Route::middleware(['web', 'admin'])
             ->name('scanners.ajax.store');
         Route::put('scanners/ajax/{scanner}', [ScannerController::class, 'ajaxUpdate'])
             ->name('scanners.ajax.update');
+        Route::post('scanners/{scanner}/status', [ScannerController::class, 'updateStatus'])
+            ->name('scanners.status');
         Route::resource('scanners', ScannerController::class)
             ->only(['index', 'show', 'destroy']);
 
@@ -268,8 +280,12 @@ Route::middleware(['web', 'admin'])
             ->name('countries.ajax.store');
         Route::post('countries/ajax/bulk', [CountryController::class, 'ajaxBulk'])
             ->name('countries.ajax.bulk');
+        Route::post('countries/ajax/check-unique', [CountryController::class, 'ajaxCheckUnique'])
+            ->name('countries.ajax.check-unique');
         Route::put('countries/ajax/{country}', [CountryController::class, 'ajaxUpdate'])
             ->name('countries.ajax.update');
+        Route::post('countries/{country}/status', [CountryController::class, 'updateStatus'])
+            ->name('countries.status');
         Route::resource('countries', CountryController::class)
             ->only(['index', 'show', 'destroy']);
 
@@ -278,8 +294,12 @@ Route::middleware(['web', 'admin'])
             ->name('states.ajax.store');
         Route::post('states/ajax/bulk', [StateController::class, 'ajaxBulk'])
             ->name('states.ajax.bulk');
+        Route::post('states/ajax/check-unique', [StateController::class, 'ajaxCheckUnique'])
+            ->name('states.ajax.check-unique');
         Route::put('states/ajax/{state}', [StateController::class, 'ajaxUpdate'])
             ->name('states.ajax.update');
+        Route::post('states/{state}/status', [StateController::class, 'updateStatus'])
+            ->name('states.status');
         Route::resource('states', StateController::class)
             ->only(['index', 'show', 'destroy']);
 
@@ -288,16 +308,24 @@ Route::middleware(['web', 'admin'])
             ->name('cities.ajax.store');
         Route::post('cities/ajax/bulk', [CityController::class, 'ajaxBulk'])
             ->name('cities.ajax.bulk');
+        Route::post('cities/ajax/check-unique', [CityController::class, 'ajaxCheckUnique'])
+            ->name('cities.ajax.check-unique');
         Route::put('cities/ajax/{city}', [CityController::class, 'ajaxUpdate'])
             ->name('cities.ajax.update');
+        Route::post('cities/{city}/status', [CityController::class, 'updateStatus'])
+            ->name('cities.status');
         Route::resource('cities', CityController::class)
             ->only(['index', 'show', 'destroy']);
 
         // Zipcodes — AJAX drawer endpoints
         Route::post('zipcodes/ajax', [ZipcodeController::class, 'ajaxStore'])
             ->name('zipcodes.ajax.store');
+        Route::post('zipcodes/ajax/check-unique', [ZipcodeController::class, 'ajaxCheckUnique'])
+            ->name('zipcodes.ajax.check-unique');
         Route::put('zipcodes/ajax/{zipcode}', [ZipcodeController::class, 'ajaxUpdate'])
             ->name('zipcodes.ajax.update');
+        Route::post('zipcodes/{zipcode}/status', [ZipcodeController::class, 'updateStatus'])
+            ->name('zipcodes.status');
         Route::resource('zipcodes', ZipcodeController::class)
             ->only(['index', 'show', 'destroy']);
 

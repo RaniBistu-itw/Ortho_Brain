@@ -19,14 +19,18 @@
         @endif
     </td>
     <td>
-        <span class="pc-status {{ $isActive ? 'pc-status--active' : 'pc-status--inactive' }}" data-status="{{ $cat->status }}">
-            {{ $cat->status ?? '—' }}
-        </span>
+        <select class="ob-status-select" data-inline-status
+                data-url="{{ route('admin.product-categories.status', $cat) }}"
+                data-status="{{ $cat->status }}"
+                aria-label="Update status for {{ $cat->name }}">
+            <option value="ACTIVE"   @selected($cat->status === 'ACTIVE')>Active</option>
+            <option value="INACTIVE" @selected($cat->status === 'INACTIVE')>Inactive</option>
+        </select>
     </td>
     <td class="text-end">
-        <div class="pc-action-group">
-            <a href="{{ route('admin.product-categories.show', $cat) }}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-            <button type="button" class="btn btn-outline-primary pc-edit" title="Edit"
+        <div class="ob-row-actions">
+            <a href="{{ route('admin.product-categories.show', $cat) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+            <button type="button" class="ob-icon-btn ob-icon-btn--edit pc-edit" title="Edit"
                     data-id="{{ $cat->id }}"
                     data-name="{{ $cat->name }}"
                     data-status="{{ $cat->status }}"
@@ -36,10 +40,10 @@
             @if (! $hasDeps)
                 <form method="POST" action="{{ route('admin.product-categories.destroy', $cat) }}" class="d-inline js-delete-form" data-confirm="Delete category '{{ $cat->name }}'?">
                     @csrf @method('DELETE')
-                    <button type="submit" class="btn btn-outline-danger" title="Delete"><i data-feather="trash-2"></i></button>
+                    <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
                 </form>
             @else
-                <button type="button" class="btn btn-outline-danger js-delete-blocked" aria-disabled="true" title="Cannot delete"
+                <button type="button" class="ob-icon-btn ob-icon-btn--disabled js-delete-blocked" aria-disabled="true" title="Cannot delete"
                         data-reason="Cannot delete '{{ $cat->name }}' — it has linked sub-categories or products. Remove them first.">
                     <i data-feather="trash-2"></i>
                 </button>

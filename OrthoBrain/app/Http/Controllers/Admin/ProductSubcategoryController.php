@@ -22,10 +22,18 @@ class ProductSubcategoryController extends Controller
             'category'       => "{$catTable}.name",
             'name'           => "{$subTable}.name",
             'products_count' => 'products_count',
+            'created_at'     => "{$subTable}.created_at",
         ];
+        $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
         $sortKey = $request->get('sort');
-        $sortCol = $sortable[$sortKey] ?? "{$subTable}.name";
-        $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        if ($sortKey && isset($sortable[$sortKey])) {
+            $sortCol = $sortable[$sortKey];
+            $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        } else {
+            $sortKey = null;
+            $sortCol = "{$subTable}.created_at";
+            $dir     = $order === 'oldest' ? 'asc' : 'desc';
+        }
 
         $query = ProductSubcategory::query()
             ->select("{$subTable}.*")
@@ -102,6 +110,19 @@ class ProductSubcategoryController extends Controller
         ]);
     }
 
+    public function updateStatus(Request $request, ProductSubcategory $productSubcategory)
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:ACTIVE,INACTIVE'],
+        ]);
+        $productSubcategory->update(['status' => $data['status'] === 'ACTIVE']);
+        return response()->json([
+            'ok'      => true,
+            'status'  => $productSubcategory->status ? 'ACTIVE' : 'INACTIVE',
+            'message' => 'Status updated.',
+        ]);
+    }
+
     public function ajaxBulk(Request $request)
     {
         $payload = $request->input('subcategories', []);
@@ -112,6 +133,30 @@ class ProductSubcategoryController extends Controller
             'subcategories.*.name'        => ['required', 'string', 'max:100'],
             'subcategories.*.status'      => ['required', 'in:ACTIVE,INACTIVE'],
         ]);
+
+        // Sub-category name is unique per category — guard within-batch + against existing rows.
+        $validator->after(function ($v) use ($payload) {
+            $seen = [];
+            foreach ($payload as $i => $row) {
+                $categoryId = $row['category_id'] ?? null;
+                $name       = strtolower(trim($row['name'] ?? ''));
+                if (! $categoryId || $name === '') continue;
+
+                $key = $categoryId . '|' . $name;
+                if (isset($seen[$key])) {
+                    $v->errors()->add("subcategories.{$i}.name", 'Duplicate sub-category name for this category in the batch.');
+                }
+                $seen[$key] = true;
+
+                $exists = ProductSubcategory::where('category_id', $categoryId)
+                    ->whereRaw('LOWER(name) = ?', [$name])
+                    ->whereNull('deleted_at')
+                    ->exists();
+                if ($exists) {
+                    $v->errors()->add("subcategories.{$i}.name", 'A sub-category with this name already exists for the selected category.');
+                }
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json([
@@ -143,6 +188,28 @@ class ProductSubcategoryController extends Controller
         ]);
     }
 
+    public function ajaxCheckUnique(Request $request)
+    {
+        $name       = trim((string) $request->input('name', ''));
+        $categoryId = $request->integer('category_id') ?: null;
+        $ignoreId   = $request->integer('ignore_id') ?: null;
+
+        if ($name === '' || ! $categoryId) {
+            return response()->json(['available' => true]);
+        }
+
+        $exists = ProductSubcategory::where('category_id', $categoryId)
+            ->whereRaw('LOWER(name) = ?', [strtolower($name)])
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->whereNull('deleted_at')
+            ->exists();
+
+        return response()->json([
+            'available' => ! $exists,
+            'message'   => $exists ? 'A sub-category with this name already exists for the selected category.' : null,
+        ]);
+    }
+
     private function presentRow(ProductSubcategory $s): array
     {
         return [
@@ -156,6 +223,7 @@ class ProductSubcategoryController extends Controller
             'update_url'     => route('admin.product-subcategories.ajax.update', $s),
             'destroy_url'    => route('admin.product-subcategories.destroy', $s),
             'show_url'       => route('admin.product-subcategories.show', $s),
+            'status_url'     => route('admin.product-subcategories.status', $s),
         ];
     }
 }

@@ -699,7 +699,7 @@
                                     <div class="col-md-6">
                                         <label for="practice_phone_number" class="form-label">Practice Phone<span class="text-danger">*</span></label>
                                         <div class="input-group">
-                                            <select id="practice_phone_country_code" name="practice_phone_country_code" class="form-select" style="max-width:110px;">
+                                            <select id="practice_phone_country_code" name="practice_phone_country_code" class="form-select js-searchable" style="max-width:110px;">
                                                 <option value="+1"  @selected(old('practice_phone_country_code','+1') === '+1')>+1 (US/CA)</option>
                                                 <option value="+61" @selected(old('practice_phone_country_code') === '+61')>+61 (AU)</option>
                                             </select>

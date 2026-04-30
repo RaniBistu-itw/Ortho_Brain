@@ -129,13 +129,7 @@
         padding: 2rem 1rem;
     }
 
-    .addr-action-group { display: inline-flex; gap: .25rem; }
-    .addr-action-group .btn {
-        width: 32px; height: 32px;
-        padding: 0;
-        display: inline-grid; place-items: center;
-    }
-    .addr-action-group .btn svg { width: 15px; height: 15px; }
+    /* addr-action-group rules removed — uses shared .ob-row-actions / .ob-icon-btn */
 
     .dark-layout .addr-pane .table thead th {
         background: #2a3149;
@@ -255,7 +249,7 @@
                             <label for="in-acc-phone" class="form-label">Phone Number</label>
                             <div class="row g-1">
                                 <div class="col-5 col-sm-4">
-                                    <select name="practice_phone_country_code" class="form-select">
+                                    <select name="practice_phone_country_code" class="form-select js-searchable">
                                         @foreach($phoneCodes as $code)
                                             <option value="{{ $code }}" @selected(old('practice_phone_country_code', $doctor?->practice?->phone_country_code ?? '+1') === $code)>{{ $code }}</option>
                                         @endforeach
@@ -363,7 +357,7 @@
                             <label for="in-prac-phone" class="form-label">Practice Phone Number<span class="text-danger">*</span></label>
                             <div class="row g-1">
                                 <div class="col-5 col-sm-4">
-                                    <select name="practice_phone_country_code" class="form-select">
+                                    <select name="practice_phone_country_code" class="form-select js-searchable">
                                         @foreach($phoneCodes as $code)
                                             <option value="{{ $code }}" @selected(old('practice_phone_country_code', $activePractice?->phone_country_code ?? '+1') === $code)>{{ $code }}</option>
                                         @endforeach
@@ -497,9 +491,9 @@
                                 @endphp
                                 <tr data-searchable="{{ $searchText }}">
                                     <td>
-                                        <div class="addr-action-group">
-                                            <a href="{{ route('doctor.profile.address.show', $addr) }}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                                            <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="btn btn-outline-primary" title="Edit"><i data-feather="edit-2"></i></a>
+                                        <div class="ob-row-actions">
+                                            <a href="{{ route('doctor.profile.address.show', $addr) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                                            <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="ob-icon-btn ob-icon-btn--edit" title="Edit"><i data-feather="edit-2"></i></a>
                                         </div>
                                     </td>
                                     <td>{{ $addr->street_address_1 }}{{ $addr->street_address_2 ? ', ' . $addr->street_address_2 : '' }}</td>
@@ -584,9 +578,9 @@
                                 @endphp
                                 <tr data-searchable="{{ $searchText }}">
                                     <td>
-                                        <div class="addr-action-group">
-                                            <a href="{{ route('doctor.profile.address.show', $addr) }}" class="btn btn-outline-success" title="View"><i data-feather="eye"></i></a>
-                                            <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="btn btn-outline-primary" title="Edit"><i data-feather="edit-2"></i></a>
+                                        <div class="ob-row-actions">
+                                            <a href="{{ route('doctor.profile.address.show', $addr) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                                            <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="ob-icon-btn ob-icon-btn--edit" title="Edit"><i data-feather="edit-2"></i></a>
                                         </div>
                                     </td>
                                     <td>{{ $addr->street_address_1 }}{{ $addr->street_address_2 ? ', ' . $addr->street_address_2 : '' }}</td>
