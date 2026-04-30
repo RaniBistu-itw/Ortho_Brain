@@ -139,7 +139,7 @@ class EmailVerificationController extends Controller
             ['user' => $user->id, 'otp' => $otp],
         );
 
-        Mail::to($user->email)->queue(new EmailVerificationMail($user, $otp, $verifyUrl));
+        Mail::to($user->email)->send(new EmailVerificationMail($user, $otp, $verifyUrl));
     }
 
     private function markVerified(User $user): void

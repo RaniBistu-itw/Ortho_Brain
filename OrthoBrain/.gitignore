@@ -32,3 +32,4 @@ docs/multi-practice-feature.md
 Docs/api.md
 # Backups produced by the /switch-branch skill
 .env.*.backup
+PerformanceTestSeeder.php
