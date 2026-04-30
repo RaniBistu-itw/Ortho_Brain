@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Ajax;
 use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Doctor;
+use App\Models\Patient;
 use App\Models\ProductSubcategory;
 use App\Models\State;
 use Illuminate\Http\JsonResponse;
@@ -49,8 +50,8 @@ class LookupController extends Controller
         $query = Doctor::query()
             ->select(['id', 'first_name', 'last_name', 'practice_id'])
             ->with('practice:id,name')
-            ->orderBy('last_name')
-            ->orderBy('first_name');
+            ->orderBy('first_name')
+            ->orderBy('last_name');
 
         if ($q !== '') {
             $query->where(function ($w) use ($q) {
@@ -64,6 +65,32 @@ class LookupController extends Controller
                 'id'   => $d->id,
                 'text' => trim($d->first_name . ' ' . $d->last_name)
                           . ($d->practice ? ' — ' . $d->practice->name : ''),
+            ])->values()
+        );
+    }
+
+    public function patientSearch(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $query = Patient::query()
+            ->select(['id', 'first_name', 'last_name', 'chart_id'])
+            ->orderBy('first_name')
+            ->orderBy('last_name');
+
+        if ($q !== '') {
+            $query->where(function ($w) use ($q) {
+                $w->where('first_name', 'like', $q . '%')
+                  ->orWhere('last_name',  'like', $q . '%')
+                  ->orWhere('chart_id',   'like', $q . '%');
+            });
+        }
+
+        return response()->json(
+            $query->limit(30)->get()->map(fn (Patient $p) => [
+                'id'   => $p->id,
+                'text' => trim($p->first_name . ' ' . $p->last_name)
+                          . ($p->chart_id ? ' — ' . $p->chart_id : ''),
             ])->values()
         );
     }

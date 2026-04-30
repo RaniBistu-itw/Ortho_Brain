@@ -29,10 +29,10 @@ class CasesController extends Controller
         $staleOnly = $activeStatus === 'DRAFT' && $request->boolean('stale');
 
         $sortable = [
-            'id'           => 'id',
-            'case_code'    => 'case_code',
-            'created_at'   => 'created_at',
-            'submitted_at' => 'submitted_at',
+            'id'           => 'cases.id',
+            'patient'      => 'patients.last_name',
+            'created_at'   => 'cases.created_at',
+            'submitted_at' => 'cases.submitted_at',
         ];
         $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
         $sortKey = $request->get('sort');
@@ -41,19 +41,26 @@ class CasesController extends Controller
             $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
         } else {
             $sortKey = null;
-            $sortCol = 'created_at';
+            $sortCol = 'cases.created_at';
             $dir     = $order === 'oldest' ? 'asc' : 'desc';
         }
 
-        $cases = CaseModel::where('doctor_id', $doctor->id)
-            ->where('practice_id', $practiceId)
-            ->when($activeStatus === 'ACTIVE', fn ($q) => $q->whereIn('status', self::ACTIVE_STATUSES))
-            ->when($activeStatus && $activeStatus !== 'ACTIVE', fn ($q) => $q->where('status', $activeStatus))
-            ->when($staleOnly, fn ($q) => $q->where('updated_at', '<', now()->subDays(3)))
-            ->select(['id', 'case_code', 'status', 'created_at', 'submitted_at', 'doctor_id', 'practice_id'])
-            ->orderBy($sortCol, $dir)
-            ->paginate(20)
-            ->withQueryString();
+        $query = CaseModel::with('patient:id,first_name,last_name')
+            ->where('cases.doctor_id', $doctor->id)
+            ->where('cases.practice_id', $practiceId)
+            ->when($activeStatus === 'ACTIVE', fn ($q) => $q->whereIn('cases.status', self::ACTIVE_STATUSES))
+            ->when($activeStatus && $activeStatus !== 'ACTIVE', fn ($q) => $q->where('cases.status', $activeStatus))
+            ->when($staleOnly, fn ($q) => $q->where('cases.updated_at', '<', now()->subDays(3)))
+            ->select(['cases.id', 'cases.case_code', 'cases.status', 'cases.created_at', 'cases.submitted_at', 'cases.doctor_id', 'cases.practice_id', 'cases.patient_id']);
+
+        if ($sortKey === 'patient') {
+            $query->leftJoin('patients', 'patients.id', '=', 'cases.patient_id')
+                  ->orderBy($sortCol, $dir);
+        } else {
+            $query->orderBy($sortCol, $dir);
+        }
+
+        $cases = $query->paginate(20)->withQueryString();
 
         return view('content.cases.case-list', [
             'cases'        => $cases,

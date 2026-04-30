@@ -98,7 +98,7 @@
         <thead>
           <tr>
             <th>@include('admin._partials.sort_th', ['label' => 'Case ID', 'key' => 'id', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
-            <th>@include('admin._partials.sort_th', ['label' => 'Code', 'key' => 'case_code', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Patient Name', 'key' => 'patient', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
             <th>Status</th>
             <th>@include('admin._partials.sort_th', ['label' => 'Created', 'key' => 'created_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
             <th>@include('admin._partials.sort_th', ['label' => 'Submitted', 'key' => 'submitted_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
@@ -109,7 +109,13 @@
           @forelse($cases as $case)
             <tr>
               <td><span class="fw-bolder">#{{ $case->id }}</span></td>
-              <td>{{ $case->case_code ?? '—' }}</td>
+              <td>
+                @if($case->patient)
+                  {{ trim($case->patient->first_name . ' ' . $case->patient->last_name) ?: '—' }}
+                @else
+                  <span class="text-muted">—</span>
+                @endif
+              </td>
               <td><span class="{{ $statusBadge($case->status) }}">{{ $statusLabel($case->status) }}</span></td>
               <td>{{ $case->created_at?->format('Y-m-d H:i') }}</td>
               <td>{{ $case->submitted_at?->format('Y-m-d H:i') ?? '—' }}</td>

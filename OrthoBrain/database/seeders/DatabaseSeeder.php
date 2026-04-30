@@ -16,10 +16,11 @@ class DatabaseSeeder extends Seeder
             PracticesSeeder::class,
             DoctorSeeder::class,
             CaseDemoSeeder::class,
-            CaseDashboardSeeder::class,
-            // Patient persistence layer (PR #69) + image persistence (PR #64)
-            // need their own demo data so a fresh DB has populated wizards.
+            // PatientsDemoSeeder must run before CaseDashboardSeeder so each
+            // seeded case can be linked to a real patient (drives the
+            // "Patient Name" column on admin + doctor case lists).
             PatientsDemoSeeder::class,
+            CaseDashboardSeeder::class,
             CaseMediaDemoSeeder::class,
             // PerformanceTestSeeder::class, // run on-demand: php artisan db:seed --class=PerformanceTestSeeder
         ]);

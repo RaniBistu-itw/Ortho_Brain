@@ -56,8 +56,26 @@ class DoctorSeeder extends Seeder
             ]
         );
 
-        $practiceIds       = Practice::where('status', 'ACTIVE')->orderBy('id')->limit(3)->pluck('id')->all();
-        $primaryPracticeId = $practiceIds[0] ?? null;
+        $practiceIds = Practice::where('status', 'ACTIVE')->orderBy('id')->limit(3)->pluck('id')->all();
+
+        // Guarantee the test doctor always has at least one APPROVED practice
+        // — when DoctorSeeder runs standalone (or PracticesSeeder bailed
+        // because no zipcodes were seeded), the active-practice list is empty
+        // and the multi-practice attachment block below silently no-ops.
+        if (empty($practiceIds)) {
+            $fallback = Practice::firstOrCreate(
+                ['name' => 'Test Doctor Practice'],
+                [
+                    'phone_country_code' => '+1',
+                    'phone_number'       => '5550000000',
+                    'street_address_1'   => '1 Test Street',
+                    'status'             => 'ACTIVE',
+                ]
+            );
+            $practiceIds = [$fallback->id];
+        }
+
+        $primaryPracticeId = $practiceIds[0];
 
         $doctor = Doctor::updateOrCreate(
             ['user_id' => $user->id],

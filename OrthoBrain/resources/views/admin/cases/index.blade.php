@@ -52,7 +52,7 @@
 
     <div class="card-body py-1">
       <form method="GET" action="{{ route('admin.cases.index') }}" id="adminCasesFilter" class="row g-1 py-1">
-        <div class="col-md-3">
+        <div class="col-md-2">
           <select name="status" class="form-select js-searchable" data-placeholder="All statuses" onchange="this.form.submit()">
             <option value="">All statuses</option>
             @foreach($statusOptions as $s)
@@ -60,12 +60,22 @@
             @endforeach
           </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <select name="doctor_id" id="adminCasesDoctorSelect" class="form-select" data-placeholder="All doctors">
             <option value="">All doctors</option>
             @if($selectedDoctor)
               <option value="{{ $selectedDoctor->id }}" selected>
                 {{ trim($selectedDoctor->first_name . ' ' . $selectedDoctor->last_name) }}@if($selectedDoctor->practice) — {{ $selectedDoctor->practice->name }}@endif
+              </option>
+            @endif
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select name="patient_id" id="adminCasesPatientSelect" class="form-select" data-placeholder="All patients">
+            <option value="">All patients</option>
+            @if($selectedPatient)
+              <option value="{{ $selectedPatient->id }}" selected>
+                {{ trim($selectedPatient->first_name . ' ' . $selectedPatient->last_name) }}@if($selectedPatient->chart_id) — {{ $selectedPatient->chart_id }}@endif
               </option>
             @endif
           </select>
@@ -89,7 +99,7 @@
         <thead>
           <tr>
             <th>@include('admin._partials.sort_th', ['label' => 'Case ID', 'key' => 'id', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
-            <th>@include('admin._partials.sort_th', ['label' => 'Code', 'key' => 'case_code', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Patient Name', 'key' => 'patient', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
             <th>@include('admin._partials.sort_th', ['label' => 'Doctor', 'key' => 'doctor', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
             <th>@include('admin._partials.sort_th', ['label' => 'Practice', 'key' => 'practice', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
             <th>Status</th>
@@ -102,7 +112,13 @@
           @forelse($cases as $case)
             <tr data-row-href="{{ route('admin.cases.edit', $case->id) }}">
               <td><span class="fw-bolder">#{{ $case->id }}</span></td>
-              <td>{{ $case->case_code ?? '—' }}</td>
+              <td>
+                @if($case->patient)
+                  {{ trim($case->patient->first_name . ' ' . $case->patient->last_name) ?: '—' }}
+                @else
+                  <span class="text-muted">—</span>
+                @endif
+              </td>
               <td>
                 @if($case->doctor)
                   {{ trim($case->doctor->first_name . ' ' . $case->doctor->last_name) }}
@@ -156,26 +172,47 @@
 (function () {
     'use strict';
 
-    const $sel = $('#adminCasesDoctorSelect');
-    if (!$sel.length || typeof $.fn.select2 !== 'function') return;
+    if (typeof $.fn.select2 !== 'function') return;
 
-    $sel.select2({
-        placeholder: 'All doctors',
-        allowClear: true,
-        width: '100%',
-        ajax: {
-            url: @json(route('admin.ajax.doctors-search')),
-            dataType: 'json',
-            delay: 200,
-            data: (params) => ({ q: params.term || '' }),
-            processResults: (data) => ({ results: data }),
-            cache: true,
-        },
-    });
+    const $doctor = $('#adminCasesDoctorSelect');
+    if ($doctor.length) {
+        $doctor.select2({
+            placeholder: 'All doctors',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: @json(route('admin.ajax.doctors-search')),
+                dataType: 'json',
+                delay: 200,
+                data: (params) => ({ q: params.term || '' }),
+                processResults: (data) => ({ results: data }),
+                cache: true,
+            },
+        });
+        $doctor.on('change', function () {
+            document.getElementById('adminCasesFilter').submit();
+        });
+    }
 
-    $sel.on('change', function () {
-        document.getElementById('adminCasesFilter').submit();
-    });
+    const $patient = $('#adminCasesPatientSelect');
+    if ($patient.length) {
+        $patient.select2({
+            placeholder: 'All patients',
+            allowClear: true,
+            width: '100%',
+            ajax: {
+                url: @json(route('admin.ajax.patients-search')),
+                dataType: 'json',
+                delay: 200,
+                data: (params) => ({ q: params.term || '' }),
+                processResults: (data) => ({ results: data }),
+                cache: true,
+            },
+        });
+        $patient.on('change', function () {
+            document.getElementById('adminCasesFilter').submit();
+        });
+    }
 })();
 </script>
 @endpush

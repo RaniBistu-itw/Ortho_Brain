@@ -6,6 +6,7 @@ use App\Http\Controllers\CasesController as DoctorCasesController;
 use App\Http\Controllers\Controller;
 use App\Models\CaseModel;
 use App\Models\Doctor;
+use App\Models\Patient;
 use App\Models\Scanner;
 use Illuminate\Http\Request;
 
@@ -35,12 +36,13 @@ class CasesController extends Controller
 
     public function index(Request $request)
     {
-        $statusFilter = $request->query('status');
-        $doctorFilter = $request->query('doctor_id');
+        $statusFilter  = $request->query('status');
+        $doctorFilter  = $request->query('doctor_id');
+        $patientFilter = $request->query('patient_id');
 
         $sortable = [
             'id'           => 'cases.id',
-            'case_code'    => 'cases.case_code',
+            'patient'      => 'patients.last_name',
             'doctor'       => 'doctors.last_name',
             'practice'     => 'practices.name',
             'created_at'   => 'cases.created_at',
@@ -58,11 +60,16 @@ class CasesController extends Controller
         }
 
         $query = CaseModel::query()
-            ->with(['doctor:id,first_name,last_name,practice_id', 'doctor.practice:id,name'])
+            ->with([
+                'doctor:id,first_name,last_name,practice_id',
+                'doctor.practice:id,name',
+                'patient:id,first_name,last_name',
+            ])
             ->select([
                 'cases.id',
                 'cases.case_code',
                 'cases.doctor_id',
+                'cases.patient_id',
                 'cases.status',
                 'cases.created_at',
                 'cases.submitted_at',
@@ -71,6 +78,9 @@ class CasesController extends Controller
         if (in_array($sortKey, ['doctor', 'practice'], true)) {
             $query->leftJoin('doctors', 'doctors.id', '=', 'cases.doctor_id')
                   ->leftJoin('practices', 'practices.id', '=', 'doctors.practice_id')
+                  ->orderBy($sortCol, $dir);
+        } elseif ($sortKey === 'patient') {
+            $query->leftJoin('patients', 'patients.id', '=', 'cases.patient_id')
                   ->orderBy($sortCol, $dir);
         } else {
             $query->orderBy($sortCol, $dir);
@@ -84,12 +94,21 @@ class CasesController extends Controller
             $query->where('cases.doctor_id', $doctorFilter);
         }
 
+        if ($patientFilter) {
+            $query->where('cases.patient_id', $patientFilter);
+        }
+
         $cases = $query->paginate(20)->withQueryString();
 
         $selectedDoctor = $doctorFilter
             ? Doctor::with('practice:id,name')
                 ->select('id', 'first_name', 'last_name', 'practice_id')
                 ->find($doctorFilter)
+            : null;
+
+        $selectedPatient = $patientFilter
+            ? Patient::select('id', 'first_name', 'last_name', 'chart_id')
+                ->find($patientFilter)
             : null;
 
         $statusCounts = CaseModel::query()
@@ -100,10 +119,12 @@ class CasesController extends Controller
         return view('admin.cases.index', [
             'cases' => $cases,
             'selectedDoctor' => $selectedDoctor,
+            'selectedPatient' => $selectedPatient,
             'statusOptions' => self::STATUS_OPTIONS,
             'statusLabels' => self::STATUS_LABELS,
             'statusFilter' => $statusFilter,
             'doctorFilter' => $doctorFilter,
+            'patientFilter' => $patientFilter,
             'statusCounts' => $statusCounts,
             'totalCount'   => (int) $statusCounts->sum(),
         ]);

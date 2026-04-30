@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\CaseModel;
 use App\Models\Doctor;
+use App\Models\Patient;
 use App\Models\Prescription;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -83,19 +84,30 @@ class CaseDashboardSeeder extends Seeder
         $totalCases = 0;
 
         foreach ($doctors as $doctor) {
-            foreach (self::CASE_MIX as [$suffix, $status, $cDays, $uDays, $sDays]) {
+            // Round-robin a real patient onto each case so the Patient Name
+            // column on the case lists isn't all em-dashes. Scoped to the
+            // doctor's own roster so patient_id stays consistent with the
+            // (doctor_id, practice_id) tuple on cases.
+            $patientIds = Patient::where('doctor_id', $doctor->id)
+                ->orderBy('id')
+                ->pluck('id')
+                ->all();
+
+            foreach (self::CASE_MIX as $i => [$suffix, $status, $cDays, $uDays, $sDays]) {
                 // Prefix keeps case_code unique across doctors and idempotent on rerun.
                 $code = sprintf('D%d-%s', $doctor->id, $suffix);
 
                 $createdAt   = $now->copy()->subDays($cDays)->setTime(9, 0);
                 $updatedAt   = $now->copy()->subDays($uDays)->setTime(14, 30);
                 $submittedAt = $sDays !== null ? $now->copy()->subDays($sDays)->setTime(11, 15) : null;
+                $patientId   = $patientIds ? $patientIds[$i % count($patientIds)] : null;
 
                 $case = CaseModel::withTrashed()->updateOrCreate(
                     ['case_code' => $code],
                     [
                         'doctor_id'    => $doctor->id,
-                        'practice_id' => $doctor->practice_id,
+                        'practice_id'  => $doctor->practice_id,
+                        'patient_id'   => $patientId,
                         'status'       => $status,
                         'submitted_at' => $submittedAt,
                         'created_at'   => $createdAt,
