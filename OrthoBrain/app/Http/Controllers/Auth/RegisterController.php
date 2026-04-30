@@ -97,6 +97,18 @@ class RegisterController extends Controller
             'buccal_corridors'      => 'nullable|array',
             'buccal_corridors.*'    => 'integer|exists:buccal_corridor_options,id',
 
+            // Contact information — all optional, but validated if filled
+            'contact_doctor_email'            => 'nullable|email',
+            'contact_doctor_phone'            => 'nullable|digits:10',
+            'contact_doctor_other_emails'     => 'nullable|array',
+            'contact_doctor_other_emails.*'   => 'nullable|email',
+            'contact_emp_name'                => 'nullable|string|max:100',
+            'contact_emp_title'               => 'nullable|string|max:100',
+            'contact_emp_email'               => 'nullable|email',
+            'contact_emp_phone'               => 'nullable|digits:10',
+            'contact_emp_other_emails'        => 'nullable|array',
+            'contact_emp_other_emails.*'      => 'nullable|email',
+
             // Doctor's primary practice address — Step 3 always submitted, regardless of whether
             // the primary practice is existing or new. The address values themselves come from
             // either a chosen practice (auto-filled by JS) or manual entry ("Other" mode).
