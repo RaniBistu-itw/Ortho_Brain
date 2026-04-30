@@ -322,37 +322,29 @@ table tbody tr[data-row-href] {
 }
 .ob-icon-btn svg { width: 15px; height: 15px; }
 
-/* View — green filled tint */
-.ob-icon-btn--view {
-  color: var(--ob-success);
-  border-color: rgba(74, 222, 128, 0.32);
-  background: rgba(74, 222, 128, 0.12);
+/* All row-action variants share the same neutral rest state — clean white
+   card, dark icon, soft gray border — so view/edit/delete read as one set.
+   Semantic color is reserved for the hover state. */
+.ob-icon-btn--view,
+.ob-icon-btn--edit,
+.ob-icon-btn--delete {
+  color: var(--ob-text);
+  border-color: var(--ob-border-strong);
+  background: var(--ob-surface-1);
 }
+
 .ob-icon-btn--view:hover {
   color: #fff;
   border-color: var(--ob-success);
   background: var(--ob-success);
 }
 
-/* Edit — clean look: dark icon at rest, blue fill on hover. Keeps the
-   pencil neutral so it sits comfortably next to coloured view/delete tints. */
-.ob-icon-btn--edit {
-  color: var(--ob-text);
-  border-color: var(--ob-border-strong);
-  background: var(--ob-surface-1);
-}
 .ob-icon-btn--edit:hover {
   color: #fff;
   border-color: var(--ob-primary);
   background: var(--ob-primary);
 }
 
-/* Delete — danger red filled tint */
-.ob-icon-btn--delete {
-  color: var(--ob-danger);
-  border-color: rgba(197, 48, 48, 0.32);
-  background: rgba(197, 48, 48, 0.12);
-}
 .ob-icon-btn--delete:hover {
   color: #fff;
   border-color: var(--ob-danger);
