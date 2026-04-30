@@ -336,7 +336,7 @@
             }
             .reg-phone input::placeholder { color: #9aa4b5; }
 
-            .reg-err { color: #ef4444; font-size: 0.78rem; margin: 0.3rem 0 0; }
+            .reg-err { color: #dc2626; font-size: 0.78rem; font-weight: 600; margin: 0.3rem 0 0; }
             .reg-err.hidden { display: none; }
             .reg-step input, .reg-step select, .reg-step textarea, .reg-step button, .reg-step label { margin: 0; }
 
@@ -984,27 +984,30 @@
                                                     <label class="reg-label">Doctor Email<span class="reg-required">*</span></label>
                                                     <div class="reg-input-group">
                                                         <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
-                                                        <input type="email" name="contact_doctor_email" class="reg-input" placeholder="name@example.com" />
+                                                        <input type="email" name="contact_doctor_email" id="in-contactDoctorEmail" class="reg-input" placeholder="name@example.com" />
                                                     </div>
+                                                    <p id="err-contactDoctorEmail" class="reg-err hidden"></p>
                                                 </div>
                                                 <div>
                                                     <label class="reg-label">Doctor Cell Phone Number</label>
                                                     <div class="reg-input-group">
                                                         <span class="reg-input-icon"><i class="bi bi-telephone"></i></span>
-                                                        <input type="text" name="contact_doctor_phone" class="reg-input" placeholder="XXX-XXX-XXXX" />
+                                                        <input type="text" name="contact_doctor_phone" id="in-contactDoctorPhone" class="reg-input" placeholder="XXX-XXX-XXXX" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)" />
                                                     </div>
+                                                    <p id="err-contactDoctorPhone" class="reg-err hidden"></p>
                                                 </div>
                                             </div>
                                             <div id="doctor-other-emails-list" style="display:flex; flex-direction:column; gap:1rem; margin-bottom:1rem;">
-                                                <div>
+                                                <div data-other-email-row>
                                                     <label class="reg-label">Other Email</label>
                                                     <div class="reg-email-row">
                                                         <div class="reg-input-group">
                                                             <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
                                                             <input type="email" name="contact_doctor_other_emails[]" class="reg-input" placeholder="Enter other email" />
                                                         </div>
-                                                        <button type="button" onclick="this.parentElement.parentElement.remove()" class="reg-btn-delete"><i class="bi bi-trash"></i></button>
+                                                        <button type="button" onclick="this.closest('[data-other-email-row]').remove()" class="reg-btn-delete"><i class="bi bi-trash"></i></button>
                                                     </div>
+                                                    <p class="reg-err hidden"></p>
                                                 </div>
                                             </div>
                                             <button type="button" onclick="addEmailRow('doctor-other-emails-list')" class="reg-btn-add-email">+ Add Other Email</button>
@@ -1030,27 +1033,30 @@
                                                     <label class="reg-label">Office/Employee Email<span class="reg-required">*</span></label>
                                                     <div class="reg-input-group">
                                                         <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
-                                                        <input type="email" name="contact_emp_email" class="reg-input" placeholder="Enter office/employee email" />
+                                                        <input type="email" name="contact_emp_email" id="in-contactEmpEmail" class="reg-input" placeholder="Enter office/employee email" />
                                                     </div>
+                                                    <p id="err-contactEmpEmail" class="reg-err hidden"></p>
                                                 </div>
                                                 <div>
                                                     <label class="reg-label">Office/Employee Cell Phone Number<span class="reg-required">*</span></label>
                                                     <div class="reg-input-group">
                                                         <span class="reg-input-icon"><i class="bi bi-telephone"></i></span>
-                                                        <input type="text" name="contact_emp_phone" class="reg-input" placeholder="XXX-XXX-XXXX" />
+                                                        <input type="text" name="contact_emp_phone" id="in-contactEmpPhone" class="reg-input" placeholder="XXX-XXX-XXXX" maxlength="10" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10)" />
                                                     </div>
+                                                    <p id="err-contactEmpPhone" class="reg-err hidden"></p>
                                                 </div>
                                             </div>
                                             <div id="employee-other-emails-list" style="display:flex; flex-direction:column; gap:1rem; margin-bottom:1rem;">
-                                                <div>
+                                                <div data-other-email-row>
                                                     <label class="reg-label">Other Email</label>
                                                     <div class="reg-email-row">
                                                         <div class="reg-input-group">
                                                             <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
                                                             <input type="email" name="contact_emp_other_emails[]" class="reg-input" placeholder="Enter other email" />
                                                         </div>
-                                                        <button type="button" onclick="this.parentElement.parentElement.remove()" class="reg-btn-delete"><i class="bi bi-trash"></i></button>
+                                                        <button type="button" onclick="this.closest('[data-other-email-row]').remove()" class="reg-btn-delete"><i class="bi bi-trash"></i></button>
                                                     </div>
+                                                    <p class="reg-err hidden"></p>
                                                 </div>
                                             </div>
                                             <button type="button" onclick="addEmailRow('employee-other-emails-list')" class="reg-btn-add-email">+ Add Other Email</button>
@@ -1394,10 +1400,14 @@
                             <span class="reg-input-icon"><i class="bi bi-envelope"></i></span>
                             <input type="email" name="${inputName}" class="reg-input" placeholder="Enter other email" />
                         </div>
-                        <button type="button" onclick="this.parentElement.parentElement.parentElement.remove()" class="reg-btn-delete"><i class="bi bi-trash"></i></button>
+                        <button type="button" onclick="this.closest('[data-other-email-row]').remove()" class="reg-btn-delete"><i class="bi bi-trash"></i></button>
                     </div>
+                    <p class="reg-err hidden"></p>
                 `;
+                row.setAttribute('data-other-email-row', '');
                 container.appendChild(row);
+                const newInput = row.querySelector('input[type="email"]');
+                if (newInput) wireOtherEmailRow(newInput);
             }
 
             // ────────────────────────────────────────────────────────────────
@@ -1609,6 +1619,18 @@
                 address1: v => !v ? 'Street address is required'
                     : v.length < 5 ? 'Please enter a complete street address (min 5 characters)' : '',
                 zip: v => !v ? 'Please select a zip code' : '',
+                contactDoctorEmail: v => !v ? '' : (!emailRe.test(v) ? 'Please enter a valid email address' : ''),
+                contactDoctorPhone: v => {
+                    if (!v) return '';
+                    const d = v.replace(/\D/g, '');
+                    return d.length === 10 ? '' : 'Phone must be exactly 10 digits';
+                },
+                contactEmpEmail: v => !v ? '' : (!emailRe.test(v) ? 'Please enter a valid email address' : ''),
+                contactEmpPhone: v => {
+                    if (!v) return '';
+                    const d = v.replace(/\D/g, '');
+                    return d.length === 10 ? '' : 'Phone must be exactly 10 digits';
+                },
             };
 
             const FIELD_SECTION = {
@@ -1728,6 +1750,46 @@
                         });
                     }
                 });
+
+                // Contact fields — also fire clearError on input (real-time, not just blur)
+                ['contactDoctorEmail','contactDoctorPhone','contactEmpEmail','contactEmpPhone'].forEach(id => {
+                    const el = document.getElementById('in-' + id);
+                    if (el) el.addEventListener('input', () => clearError(id));
+                });
+
+                // Helpers for dynamic "Other Email" rows
+                function validateOtherEmailInput(input) {
+                    const val = input.value.trim();
+                    const errEl = input.closest('.reg-input-group').nextElementSibling;
+                    if (!val) {
+                        input.classList.remove('is-invalid');
+                        if (errEl) { errEl.textContent = ''; errEl.classList.add('hidden'); }
+                        return;
+                    }
+                    if (!emailRe.test(val)) {
+                        input.classList.add('is-invalid');
+                        if (errEl) { errEl.textContent = 'Please enter a valid email address'; errEl.classList.remove('hidden'); }
+                    } else {
+                        input.classList.remove('is-invalid');
+                        if (errEl) { errEl.textContent = ''; errEl.classList.add('hidden'); }
+                    }
+                }
+
+                function wireOtherEmailRow(input) {
+                    let touched = false;
+                    function run() {
+                        if (!touched && !input.value) return;
+                        touched = true;
+                        validateOtherEmailInput(input);
+                    }
+                    input.addEventListener('input', run);
+                    input.addEventListener('blur',  run);
+                }
+
+                // Wire static "Other Email" rows
+                document.querySelectorAll(
+                    '#doctor-other-emails-list input[type="email"], #employee-other-emails-list input[type="email"]'
+                ).forEach(wireOtherEmailRow);
 
                 const terms = document.querySelector('input[name="terms_agreed"]');
                 if (terms) {
