@@ -69,8 +69,16 @@ class ZipcodeController extends Controller
         return view('admin.zipcodes.index', [
             'zipcodes'  => $zipcodes,
             'countries' => Country::where('status', 'ACTIVE')->orderBy('name')->get(),
-            'states'    => State::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name', 'country_id']),
-            'cities'    => City::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name', 'state_id']),
+            'states'    => $request->filled('country_id')
+                ? State::where('status', 'ACTIVE')
+                      ->where('country_id', $request->integer('country_id'))
+                      ->orderBy('name')->get(['id', 'name', 'country_id'])
+                : collect(),
+            'cities'    => $request->filled('state_id')
+                ? City::where('status', 'ACTIVE')
+                      ->where('state_id', $request->integer('state_id'))
+                      ->orderBy('name')->get(['id', 'name', 'state_id'])
+                : collect(),
             'stats'     => $stats,
         ]);
     }
