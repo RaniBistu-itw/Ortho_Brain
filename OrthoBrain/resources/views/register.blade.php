@@ -456,6 +456,18 @@
             .reg-toggle-text { margin-left: 0.75rem; font-size: 0.9rem; color: var(--ob-text); font-weight: 500; }
             .reg-toggle-panel { margin-top: 0.6rem; padding: 0.85rem; background: #f8fafc; border: 1px solid #e6ebf3; border-radius: 10px; display: flex; flex-direction: column; gap: 0.4rem; }
             .reg-toggle-panel.hidden { display: none; }
+            .reg-aligner-step-input {
+                width: 4rem;
+                margin-left: 0.5rem;
+                padding: 0.15rem 0.35rem;
+                border: 1px solid #cdd5e0;
+                border-radius: 6px;
+                font-size: 0.88rem;
+                color: var(--ob-text);
+                accent-color: var(--ob-primary);
+                vertical-align: middle;
+            }
+            .reg-aligner-step-input.hidden { display: none; }
 
             /* Terms */
             .reg-terms-wrap { margin-top: 1.25rem; padding: 1rem 1.1rem; background: #f8fafc; border: 1px solid #e6ebf3; border-radius: 12px; display: flex; flex-direction: column; gap: 0.65rem; }
@@ -1154,8 +1166,8 @@
                                                     <span class="reg-toggle-text">Attachments</span>
                                                 </label>
                                                 <div id="attachment-options" class="reg-toggle-panel hidden">
-                                                    <label class="reg-pref-item"><input type="radio" name="attachment_opt" checked><span>At Aligner Step 1</span></label>
-                                                    <label class="reg-pref-item"><input type="radio" name="attachment_opt"><span>At Aligner Step</span></label>
+                                                    <label class="reg-pref-item"><input type="radio" name="attachment_opt" value="step_1" checked onchange="toggleAlignerStepInput(this)"><span>At Aligner Step 1</span></label>
+                                                    <label class="reg-pref-item"><input type="radio" name="attachment_opt" value="step_n" onchange="toggleAlignerStepInput(this)"><span>At Aligner Step</span><input type="number" id="aligner-step-count" name="attachment_step_count" value="1" min="1" max="50" class="reg-aligner-step-input hidden" onclick="event.stopPropagation()"></label>
                                                 </div>
                                             </div>
 
@@ -1281,6 +1293,17 @@
             };
             const REG_ID_TO_STEP = Object.fromEntries(Object.entries(REG_STEP_TO_ID).map(([k,v]) => [v, Number(k)]));
             let regCurrentStep = 1;
+
+            function toggleAlignerStepInput(radio) {
+                var input = document.getElementById('aligner-step-count');
+                if (radio.value === 'step_n') {
+                    input.classList.remove('hidden');
+                    input.focus();
+                } else {
+                    input.classList.add('hidden');
+                    input.value = 1;
+                }
+            }
 
             function regShowStep(n) {
                 if (n < 1) n = 1;
