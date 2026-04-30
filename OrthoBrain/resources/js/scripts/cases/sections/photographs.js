@@ -75,13 +75,6 @@
       _pendingReplaceTileId: null,
       _cameraModalInstance: null,
       _cameraStream: null,
-      _lastPickerOpenAt: 0,
-      _pickerLockedTile: null,
-      _pickerLockTimer: null,
-      _bulkPickerLocked: false,
-      _bulkPickerLockTimer: null,
-      _lastChangeByTile: {},      // tileId -> ms timestamp of last `change` event
-      _lastBulkChangeAt: 0,
 
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
@@ -353,46 +346,11 @@
       },
 
       _openFilePicker: function (tileId) {
-        // Chrome-on-Linux quirk: after `change` fires on a hidden file input,
-        // Chrome dispatches a phantom event ~10–50ms later that ends up
-        // re-entering _openFilePicker for the same tile, queuing a second OS
-        // file dialog. Firefox does NOT exhibit this — confirmed via test.
-        // Block any re-entry within 800ms of a change event for THIS tile.
-        // removeTile clears _lastChangeByTile so X-then-immediate-re-upload
-        // still works.
-        var lastChange = this._lastChangeByTile && this._lastChangeByTile[tileId];
-        if (lastChange && Date.now() - lastChange < 800) return;
-
-        if (this._pickerLockedTile === tileId) return;
-        var now = Date.now();
-        if (this._lastPickerOpenAt && (now - this._lastPickerOpenAt) < 250) return;
-        this._lastPickerOpenAt = now;
-
         var input = document.getElementById('tile-file-' + tileId);
-        if (!input) return;
-
-        this._pickerLockedTile = tileId;
-        clearTimeout(this._pickerLockTimer);
-        var self = this;
-        this._pickerLockTimer = setTimeout(function () {
-          if (self._pickerLockedTile === tileId) self._pickerLockedTile = null;
-        }, 60000);
-
-        input.click();
+        if (input) input.click();
       },
 
       onFileInputChange: async function (tileId) {
-        // Stamp the change-recency lock for THIS tile. _openFilePicker uses
-        // it to refuse re-entry within 800ms — the window in which Chrome's
-        // phantom post-change event lands.
-        if (!this._lastChangeByTile) this._lastChangeByTile = {};
-        this._lastChangeByTile[tileId] = Date.now();
-
-        if (this._pickerLockedTile === tileId) {
-          this._pickerLockedTile = null;
-          clearTimeout(this._pickerLockTimer);
-        }
-
         var input = document.getElementById('tile-file-' + tileId);
         if (!input || !input.files.length) return;
         var file = input.files[0];
@@ -447,10 +405,6 @@
         this.tiles[id].cropParams = null;
         this._resetTileAi(id);
         this.syncToState();
-
-        // User intentionally removed — clear the change-recency lock so a
-        // quick re-click on the now-empty tile opens the dialog right away.
-        if (this._lastChangeByTile) delete this._lastChangeByTile[id];
 
         if (this._tileModalInstance) this._closeTileModal();
 
@@ -620,25 +574,11 @@
       // ── Bulk upload ─────────────────────────────────────────────────────────
 
       openBulkPicker: function () {
-        // Same Chrome+GTK guard as _openFilePicker.
-        if (this._lastBulkChangeAt && Date.now() - this._lastBulkChangeAt < 800) return;
-        if (this._bulkPickerLocked) return;
         var input = document.getElementById('bulk-upload-photos');
-        if (!input) return;
-        this._bulkPickerLocked = true;
-        clearTimeout(this._bulkPickerLockTimer);
-        var self = this;
-        this._bulkPickerLockTimer = setTimeout(function () {
-          self._bulkPickerLocked = false;
-        }, 60000);
-        input.click();
+        if (input) input.click();
       },
 
       onBulkInputChange: async function () {
-        this._lastBulkChangeAt = Date.now();
-        this._bulkPickerLocked = false;
-        clearTimeout(this._bulkPickerLockTimer);
-
         var input = document.getElementById('bulk-upload-photos');
         if (!input || !input.files.length) return;
 

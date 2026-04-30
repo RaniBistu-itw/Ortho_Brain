@@ -576,6 +576,9 @@
             .reg-substep-head h3 { font-size: 1rem; font-weight: 600; color: var(--ob-text); margin: 0 0 0.2rem; }
             .reg-substep-head p { font-size: 0.85rem; color: var(--ob-text-muted); margin: 0; }
         </style>
+        @if(config('captcha.site_key'))
+            <script src="https://www.google.com/recaptcha/api.js?render={{ config('captcha.site_key') }}"></script>
+        @endif
     </head>
     <body class="reg-body">
         <div class="reg-shell-3col">
@@ -649,6 +652,29 @@
 
                 <form id="registrationForm" action="{{ url('/register') }}" method="POST" novalidate onsubmit="return validateForm(event)">
                     @csrf
+                    <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response-register" value="" />
+                    @if($errors->has('captcha'))
+                        <div class="reg-form-banner reg-form-banner--error" role="alert" style="background:#FEE2E2;border:1px solid #FCA5A5;color:#991B1B;padding:0.6rem 0.85rem;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;">
+                            {{ $errors->first('captcha') }}
+                        </div>
+                    @endif
+
+                    @if (session('throttle_retry_at'))
+                        <div id="throttle-banner"
+                             role="alert"
+                             data-retry-at="{{ session('throttle_retry_at') }}"
+                             style="background:#FEE2E2; border:1px solid #FCA5A5; color:#991B1B; border-radius:10px; padding:14px 16px; margin-bottom:1rem; display:flex; gap:12px; align-items:flex-start;">
+                            <i class="bi bi-shield-lock-fill" style="font-size:1.3rem; line-height:1.2;"></i>
+                            <div style="flex:1;">
+                                <div style="font-weight:600; margin-bottom:4px;">Too many attempts</div>
+                                <div style="font-size:.9rem; line-height:1.45;">
+                                    {{ session('throttle_message', 'You\'ve submitted too many times.') }}
+                                    Try again in
+                                    <span id="throttle-timer" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-weight:700; font-size:1.05rem;">--:--</span>.
+                                </div>
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- preferred_language is fixed (no UI dropdown) — server still requires the field. --}}
                     <input type="hidden" name="preferred_language" value="English">
@@ -819,6 +845,19 @@
                             <input type="hidden" name="city_id"    id="hid-city"    value="{{ old('city_id') }}">
                             <input type="hidden" name="state_id"   id="hid-state"   value="{{ old('state_id') }}">
                             <input type="hidden" name="country_id" id="hid-country" value="{{ old('country_id') }}">
+                            <input type="hidden" name="primary_address_source"       id="hid-addr-source"   value="{{ old('primary_address_source') }}">
+                            <input type="hidden" name="primary_address_practice_ref" id="hid-addr-prac-ref" value="{{ old('primary_address_practice_ref') }}">
+
+                            <div style="margin-bottom:1rem;">
+                                <label class="reg-label" for="addr-source-select">Address source<span class="reg-required">*</span></label>
+                                <select id="addr-source-select" class="reg-select" onchange="onPrimaryAddressSourceChange(this.value)">
+                                    <option value="">Select…</option>
+                                </select>
+                                <p id="err-addr-source" class="reg-err hidden"></p>
+                                <small style="color:var(--ob-text-muted);font-size:0.78rem;">
+                                    Pick one of your practices to use its address, or "Other" to enter manually.
+                                </small>
+                            </div>
 
                             <div class="reg-grid">
                                 <div>
@@ -1354,6 +1393,7 @@
                     unlockPracticeFields();
                     document.getElementById('practice-change-link').style.display = 'none';
                 }
+                refreshPrimaryCache();
                 const q = e.target.value.trim();
                 clearTimeout(practiceSearchTimer);
                 if (q.length < 2) { hidePracticeMenu(); return; }
@@ -1433,26 +1473,12 @@
                 const cc = document.querySelector('select[name="practice_phone_country_code"]');
                 if (cc && p.phone_country_code) cc.value = p.phone_country_code;
 
-                setVal('in-address1', p.street_address_1);
-                setVal('in-address2', p.street_address_2);
-
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel) {
-                    let found = Array.from(zipSel.options).find(o => o.value == p.zip_id);
-                    if (!found && p.zip_id) {
-                        const opt = document.createElement('option');
-                        opt.value = p.zip_id;
-                        opt.textContent = (p.zip_code ?? '') + ' — ' + (p.city ?? '') + (p.state_code ? ', ' + p.state_code : '');
-                        zipSel.appendChild(opt);
-                    }
-                    zipSel.value = p.zip_id;
-                }
-                setVal('in-city',    p.city);
-                setVal('in-state',   p.state);
-                setVal('in-country', p.country);
-                setVal('hid-city',    p.city_id);
-                setVal('hid-state',   p.state_id);
-                setVal('hid-country', p.country_id);
+                // Stash the picked existing primary practice's full address into the
+                // dropdown cache so Step 3 can offer it as a source. We deliberately
+                // DO NOT touch Step 3 fields directly — the Step 3 dropdown is the
+                // single source of truth for the doctor's primary practice address.
+                practiceDataCache.primary = { mode: 'existing', label: p.name, data: p };
+                rebuildPrimaryAddressDropdown();
 
                 lockPracticeFields();
                 document.getElementById('practice-change-link').style.display = 'inline-block';
@@ -1461,36 +1487,30 @@
 
             function clearPracticeSelection() {
                 document.getElementById('hid-practiceId').value = '';
-                ['in-practiceName','in-phone','in-website','in-address1','in-address2',
-                 'in-city','in-state','in-country','hid-city','hid-state','hid-country']
-                    .forEach(id => setVal(id, ''));
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel) zipSel.selectedIndex = 0;
+                ['in-practiceName','in-phone','in-website'].forEach(id => setVal(id, ''));
+
+                practiceDataCache.primary = null;
+                rebuildPrimaryAddressDropdown();
 
                 unlockPracticeFields();
                 document.getElementById('practice-change-link').style.display = 'none';
                 document.getElementById('in-practiceName').focus();
             }
 
+            // Locks/unlocks only the practice-metadata fields (phone, website).
+            // Step 3 address fields are NOT touched here — they're owned by the
+            // Step 3 primary-address dropdown handler.
             function lockPracticeFields() {
                 setReadonly('in-practiceName', false);
                 setLockedGroup('box-phone',     true);
                 setLockedGroup('box-website',   true);
-                setLockedGroup('box-address1',  true);
-                setLockedGroup('box-address2',  true);
-                ['in-phone','in-website','in-address1','in-address2'].forEach(id => setReadonly(id, true));
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel) zipSel.classList.add('is-locked');
+                ['in-phone','in-website'].forEach(id => setReadonly(id, true));
             }
 
             function unlockPracticeFields() {
                 setLockedGroup('box-phone',     false);
                 setLockedGroup('box-website',   false);
-                setLockedGroup('box-address1',  false);
-                setLockedGroup('box-address2',  false);
-                ['in-phone','in-website','in-address1','in-address2'].forEach(id => setReadonly(id, false));
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel) zipSel.classList.remove('is-locked');
+                ['in-phone','in-website'].forEach(id => setReadonly(id, false));
             }
 
             function setLockedGroup(boxId, locked) {
@@ -1710,6 +1730,7 @@
                     practice_name: 'practiceName', practice_phone_number: 'phone',
                     practice_website: 'website',
                     street_address_1: 'address1', zip_id: 'zip', terms_agreed: 'terms',
+                    primary_address_source: 'addr-source', primary_address_practice_ref: 'addr-source',
                 };
                 Object.entries(SERVER_ERRORS).forEach(([key, msgs]) => {
                     const fid = SERVER_FIELD_MAP[key];
@@ -1726,6 +1747,7 @@
                         'practice_name' => 2, 'practice_phone_number' => 2, 'practice_website' => 2,
                         'additional_practices' => 2,
                         'street_address_1' => 3, 'zip_id' => 3, 'city_id' => 3, 'state_id' => 3, 'country_id' => 3,
+                        'primary_address_source' => 3, 'primary_address_practice_ref' => 3,
                         'contact_preference' => 4, 'modalities' => 4, 'specialties' => 4, 'providing_ortho' => 4,
                         'terms_agreed' => 4,
                     ];
@@ -1791,9 +1813,28 @@
 
                 if (isValid) {
                     cleanExtraRows();
-                    document.getElementById('registrationForm').submit();
+                    submitWithRecaptcha();
                 }
                 return isValid;
+            }
+
+            // Fetch a reCAPTCHA v3 token, attach it to the hidden field,
+            // then submit. Falls back to plain submit when captcha isn't
+            // configured or the script failed to load (offline localhost).
+            function submitWithRecaptcha() {
+                const form = document.getElementById('registrationForm');
+                const tokenField = document.getElementById('g-recaptcha-response-register');
+                const siteKey = "{{ config('captcha.site_key') }}";
+
+                if (!siteKey || typeof grecaptcha === 'undefined' || !tokenField) {
+                    form.submit();
+                    return;
+                }
+                grecaptcha.ready(function () {
+                    grecaptcha.execute(siteKey, { action: 'register' })
+                        .then(function (token) { tokenField.value = token; form.submit(); })
+                        .catch(function () { form.submit(); });
+                });
             }
 
             // ────────────────────────────────────────────────────────────────
@@ -1929,14 +1970,30 @@
                 const phoneTpl = document.getElementById('extra-prac-phone-options');
                 if (phoneSel && phoneTpl) phoneSel.innerHTML = phoneTpl.innerHTML;
 
+                // Wire new-mode address inputs to refresh the address-source cache
+                // (so the Step 3 dropdown picks them up + live-syncs when this row
+                // is the chosen source).
+                const newPane = document.getElementById('ep-new-' + idx);
+                if (newPane) {
+                    newPane.querySelectorAll('input[name^="additional_practices"]').forEach(el => {
+                        el.addEventListener('input', () => {
+                            refreshExtraRowCache(idx);
+                            maybeReapplySource('extra-' + idx);
+                        });
+                    });
+                }
+
                 renumberExtraRows();
+                refreshExtraRowCache(idx);
             }
 
             function removeExtraRow(idx) {
                 const row = document.querySelector(`.extra-prac-row[data-idx="${idx}"]`);
                 if (row) row.remove();
                 delete extraRowState[idx];
+                delete practiceDataCache['extra-' + idx];
                 renumberExtraRows();
+                rebuildPrimaryAddressDropdown();
             }
 
             function renumberExtraRows() {
@@ -1952,6 +2009,8 @@
                 const nw = document.getElementById('ep-new-' + idx);
                 if (mode === 'new') { ex.style.display = 'none'; nw.style.display = ''; }
                 else                { ex.style.display = '';     nw.style.display = 'none'; }
+                refreshExtraRowCache(idx);
+                maybeReapplySource('extra-' + idx);
             }
 
             const extraSearchState = {};
@@ -2006,6 +2065,8 @@
 
             function lockExtraRowAsPicked(idx, p) {
                 extraRowState[idx] = { mode: 'existing', picked: p };
+                refreshExtraRowCache(idx);
+                maybeReapplySource('extra-' + idx);
 
                 document.getElementById('ep-id-' + idx).value = p.id;
                 const pane = document.getElementById('ep-existing-' + idx);
@@ -2036,6 +2097,7 @@
                 const pane = document.getElementById('ep-existing-' + idx);
                 if (!pane) return;
                 extraRowState[idx] = { mode: 'existing', picked: null };
+                refreshExtraRowCache(idx);
                 pane.innerHTML = `
                     <div style="position:relative;">
                         <input type="hidden" name="additional_practices[${idx}][practice_id]" id="ep-id-${idx}" value="">
@@ -2063,6 +2125,8 @@
                 document.getElementById('ep-h-state-' + idx).value   = opt.dataset.stateId || '';
                 document.getElementById('ep-h-country-' + idx).value = opt.dataset.countryId || '';
                 epValidateField(idx, 'zip');
+                refreshExtraRowCache(idx);
+                maybeReapplySource('extra-' + idx);
             }
 
             function epValidateField(idx, field) {
@@ -2161,8 +2225,306 @@
                         const search = wrap.querySelector(`#ep-search-${idx}`);
                         if (search) search.placeholder = 'Previously selected — re-pick if you want to change';
                     }
+                    refreshExtraRowCache(idx);
                 });
+                rebuildPrimaryAddressDropdown();
             });
+
+            // ────────────────────────────────────────────────────────────────
+            //  Step 3 primary-practice-address dropdown
+            // ────────────────────────────────────────────────────────────────
+            //
+            // Doctor picks the source of Step 3's address from a dropdown listing
+            // every practice they entered (existing/new) plus "Other".
+            //  - Pick a practice → autofill Step 3 from its address (locked)
+            //  - Pick "Other"    → Step 3 fields blank + editable
+            //
+            // `practiceDataCache` mirrors the form's practice slots; the dropdown
+            // is rebuilt from it whenever Step 2 changes.
+            const practiceDataCache = { primary: null };
+
+            function isPrimaryNew() {
+                return ! document.getElementById('hid-practiceId').value;
+            }
+
+            function readPrimaryNewLabel() {
+                return (document.getElementById('in-practiceName')?.value || '').trim();
+            }
+
+            function refreshPrimaryCache() {
+                const pid = document.getElementById('hid-practiceId').value;
+                if (pid) {
+                    // Existing primary — pickPractice already stored it in cache.
+                    if (practiceDataCache.primary && practiceDataCache.primary.mode === 'existing') {
+                        rebuildPrimaryAddressDropdown();
+                        return;
+                    }
+                }
+                const label = readPrimaryNewLabel();
+                if (label) {
+                    // New primary that has a name. The new primary's address IS Step 3
+                    // (legacy controller behaviour: $data['street_address_1'] populates the
+                    // new Practice). Mark `data: null` so the dropdown handler keeps Step 3
+                    // editable rather than auto-filling.
+                    practiceDataCache.primary = { mode: 'new', label, data: null };
+                } else {
+                    practiceDataCache.primary = null;
+                }
+                rebuildPrimaryAddressDropdown();
+            }
+
+            function refreshExtraRowCache(idx) {
+                const row = document.querySelector(`.extra-prac-row[data-idx="${idx}"]`);
+                if (!row) {
+                    delete practiceDataCache['extra-' + idx];
+                    rebuildPrimaryAddressDropdown();
+                    return;
+                }
+                const mode = row.querySelector(`input[name="additional_practices[${idx}][mode]"]:checked`)?.value || 'existing';
+                if (mode === 'existing') {
+                    const state = extraRowState[idx];
+                    if (state && state.picked) {
+                        practiceDataCache['extra-' + idx] = {
+                            mode: 'existing',
+                            label: state.picked.name,
+                            data: state.picked,
+                        };
+                    } else {
+                        delete practiceDataCache['extra-' + idx];
+                    }
+                } else {
+                    // New mode — read fields directly off the row.
+                    const get = (n) => row.querySelector(`[name="additional_practices[${idx}][${n}]"]`)?.value || '';
+                    const label = get('name').trim();
+                    if (!label) {
+                        delete practiceDataCache['extra-' + idx];
+                    } else {
+                        const zipSel = row.querySelector(`[name="additional_practices[${idx}][zip_id]"]`);
+                        const zipOpt = zipSel?.options[zipSel.selectedIndex];
+                        practiceDataCache['extra-' + idx] = {
+                            mode: 'new',
+                            label,
+                            data: {
+                                street_address_1: get('street_address_1'),
+                                street_address_2: get('street_address_2'),
+                                zip_id:           get('zip_id'),
+                                zip_code:         zipOpt ? (zipOpt.textContent.split(' — ')[0] || '') : '',
+                                city_id:          get('city_id'),
+                                city:             zipOpt?.dataset?.city || '',
+                                state_id:         get('state_id'),
+                                state:            zipOpt?.dataset?.state || '',
+                                state_code:       zipOpt?.dataset?.state || '',
+                                country_id:       get('country_id'),
+                                country:          zipOpt?.dataset?.country || '',
+                            },
+                        };
+                    }
+                }
+                rebuildPrimaryAddressDropdown();
+            }
+
+            function rebuildPrimaryAddressDropdown() {
+                const sel = document.getElementById('addr-source-select');
+                if (!sel) return;
+                // Determine the currently-active selection: visible dropdown value
+                // takes precedence; fall back to hidden inputs (covers initial load).
+                let prevValue = sel.value;
+                if (!prevValue) {
+                    const oldSrc = document.getElementById('hid-addr-source').value;
+                    if (oldSrc === 'OTHER') prevValue = 'OTHER';
+                    else if (oldSrc === 'PRACTICE') prevValue = document.getElementById('hid-addr-prac-ref').value;
+                }
+
+                const opts = ['<option value="">Select…</option>'];
+                Object.keys(practiceDataCache).forEach(key => {
+                    const entry = practiceDataCache[key];
+                    if (!entry || !entry.label) return;
+                    const tag = entry.mode === 'existing' ? 'existing' : 'new';
+                    opts.push(`<option value="${escapeHtml(key)}">${escapeHtml(entry.label)} (${tag})</option>`);
+                });
+                opts.push('<option value="OTHER">Other (enter manually)</option>');
+                sel.innerHTML = opts.join('');
+
+                if (prevValue && Array.from(sel.options).some(o => o.value === prevValue)) {
+                    sel.value = prevValue;
+                } else {
+                    sel.value = '';
+                    document.getElementById('hid-addr-source').value = '';
+                    document.getElementById('hid-addr-prac-ref').value = '';
+                    clearStep3Address();
+                    unlockStep3Address();
+                }
+            }
+
+            function onPrimaryAddressSourceChange(value) {
+                const srcEl = document.getElementById('hid-addr-source');
+                const refEl = document.getElementById('hid-addr-prac-ref');
+                clearError('addr-source');
+
+                if (!value) {
+                    srcEl.value = '';
+                    refEl.value = '';
+                    clearStep3Address();
+                    unlockStep3Address();
+                    return;
+                }
+
+                if (value === 'OTHER') {
+                    srcEl.value = 'OTHER';
+                    refEl.value = '';
+                    clearStep3Address();
+                    unlockStep3Address();
+                    document.getElementById('in-address1')?.focus();
+                    return;
+                }
+
+                srcEl.value = 'PRACTICE';
+                refEl.value = value;
+
+                const entry = practiceDataCache[value];
+                if (!entry || !entry.data) {
+                    // Primary-new — no address data yet; Step 3 IS this practice's
+                    // address. Keep current Step 3 values, leave editable.
+                    unlockStep3Address();
+                    return;
+                }
+                fillStep3FromData(entry.data);
+                lockStep3Address();
+            }
+
+            function fillStep3FromData(p) {
+                setVal('in-address1', p.street_address_1);
+                setVal('in-address2', p.street_address_2);
+
+                const zipSel = document.getElementById('in-zip');
+                if (zipSel && p.zip_id) {
+                    let found = Array.from(zipSel.options).find(o => o.value == p.zip_id);
+                    if (!found) {
+                        const opt = document.createElement('option');
+                        opt.value = p.zip_id;
+                        opt.textContent = (p.zip_code ?? '') + ' — ' + (p.city ?? '') + (p.state_code ? ', ' + p.state_code : '');
+                        zipSel.appendChild(opt);
+                    }
+                    zipSel.value = p.zip_id;
+                }
+                setVal('in-city',    p.city);
+                setVal('in-state',   p.state);
+                setVal('in-country', p.country);
+                setVal('hid-city',    p.city_id);
+                setVal('hid-state',   p.state_id);
+                setVal('hid-country', p.country_id);
+            }
+
+            function clearStep3Address() {
+                ['in-address1','in-address2','in-city','in-state','in-country','hid-city','hid-state','hid-country']
+                    .forEach(id => setVal(id, ''));
+                const zipSel = document.getElementById('in-zip');
+                if (zipSel) zipSel.selectedIndex = 0;
+            }
+
+            function lockStep3Address() {
+                setLockedGroup('box-address1', true);
+                setLockedGroup('box-address2', true);
+                setReadonly('in-address1', true);
+                setReadonly('in-address2', true);
+                const zipSel = document.getElementById('in-zip');
+                if (zipSel) {
+                    zipSel.classList.add('is-locked');
+                    zipSel.style.pointerEvents = 'none';
+                }
+            }
+
+            function unlockStep3Address() {
+                setLockedGroup('box-address1', false);
+                setLockedGroup('box-address2', false);
+                setReadonly('in-address1', false);
+                setReadonly('in-address2', false);
+                const zipSel = document.getElementById('in-zip');
+                if (zipSel) {
+                    zipSel.classList.remove('is-locked');
+                    zipSel.style.pointerEvents = '';
+                }
+            }
+
+            // Live re-sync: if the dropdown's source is `extra-N` (or `primary` in
+            // existing mode) and that source's data changes, re-apply the selection
+            // so Step 3 reflects the latest values.
+            function maybeReapplySource(forKey) {
+                const ref = document.getElementById('hid-addr-prac-ref').value;
+                if (ref && ref === forKey) {
+                    onPrimaryAddressSourceChange(ref);
+                }
+            }
+
+            // Bounce-back rehydration: after server-side validation failure, rebuild
+            // dropdown from current cache state and re-apply the saved selection.
+            document.addEventListener('DOMContentLoaded', () => {
+                refreshPrimaryCache();
+                document.querySelectorAll('.extra-prac-row').forEach(r => refreshExtraRowCache(r.dataset.idx));
+
+                const oldSource = document.getElementById('hid-addr-source').value;
+                const oldRef    = document.getElementById('hid-addr-prac-ref').value;
+                if (oldSource === 'OTHER') {
+                    const sel = document.getElementById('addr-source-select');
+                    if (sel) sel.value = 'OTHER';
+                    onPrimaryAddressSourceChange('OTHER');
+                } else if (oldSource === 'PRACTICE' && oldRef) {
+                    const sel = document.getElementById('addr-source-select');
+                    if (sel && Array.from(sel.options).some(o => o.value === oldRef)) {
+                        sel.value = oldRef;
+                        onPrimaryAddressSourceChange(oldRef);
+                    }
+                }
+            });
+        </script>
+
+        <script>
+            // Throttle countdown for /register. The global exception
+            // handler in bootstrap/app.php flashes `throttle_retry_at`
+            // (ISO 8601) into session whenever ThrottleRequestsException
+            // fires. We render a banner with that timestamp and tick
+            // down locally against the user's clock until the retry
+            // instant. While the banner is present, the registration
+            // form is disabled; when the timer hits 0 we hide the
+            // banner and re-enable inputs in place — no page reload.
+            (function () {
+                const banner = document.getElementById('throttle-banner');
+                if (!banner) return;
+
+                const retryAt = Date.parse(banner.dataset.retryAt);
+                if (!Number.isFinite(retryAt)) return;
+
+                const form    = document.getElementById('registrationForm');
+                const timerEl = document.getElementById('throttle-timer');
+                const fields  = form ? form.querySelectorAll('input, button, select, textarea') : [];
+
+                fields.forEach(el => { el.disabled = true; });
+                if (form) form.setAttribute('aria-busy', 'true');
+
+                const fmt = (ms) => {
+                    const total = Math.max(0, Math.floor(ms / 1000));
+                    const m = String(Math.floor(total / 60)).padStart(2, '0');
+                    const s = String(total % 60).padStart(2, '0');
+                    return `${m}:${s}`;
+                };
+
+                const tick = () => {
+                    const remaining = retryAt - Date.now();
+                    if (remaining <= 0) {
+                        clearInterval(interval);
+                        banner.style.display = 'none';
+                        fields.forEach(el => { el.disabled = false; });
+                        if (form) form.removeAttribute('aria-busy');
+                        const first = document.getElementById('in-email');
+                        if (first) first.focus();
+                        return;
+                    }
+                    timerEl.textContent = fmt(remaining);
+                };
+
+                tick();
+                const interval = setInterval(tick, 1000);
+            })();
         </script>
     </body>
 </html>

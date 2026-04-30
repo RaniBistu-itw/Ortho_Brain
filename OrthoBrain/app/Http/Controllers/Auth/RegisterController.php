@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Mail\RegistrationReceivedMail;
 use App\Models\BuccalCorridorOption;
 use App\Models\Country;
 use App\Models\Doctor;
@@ -13,10 +12,10 @@ use App\Models\Specialty;
 use App\Models\TreatmentModality;
 use App\Models\User;
 use App\Models\Zipcode;
+use App\Rules\NotDisposableEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class RegisterController extends Controller
@@ -61,20 +60,25 @@ class RegisterController extends Controller
         // Allowed phone codes — driven by countries.phone_code (distinct).
         $phoneCodes = $this->activePhoneCodes();
 
-        // Resurrection: if this email belongs to a previously-rejected doctor,
-        // allow re-registration — we'll overwrite the existing user/doctor rows
-        // and reset approval back to PENDING (see DB::transaction below).
+        // Resurrection: allow re-registration if this email belongs to either
+        //  (a) a previously-rejected doctor (existing behaviour), or
+        //  (b) an unverified-stale user whose previous registration was abandoned
+        //      mid-OTP (their Doctor row is currently soft-deleted; admin never
+        //      saw them, so it's safe to wipe and start over).
         $resurrecting = null;
         if ($request->filled('email')) {
             $resurrecting = User::where('email', $request->email)
-                ->whereHas('doctor', fn ($q) => $q->where('approval_status', 'REJECTED'))
+                ->where(function ($q) {
+                    $q->whereHas('doctor', fn ($d) => $d->where('approval_status', 'REJECTED'))
+                      ->orWhereNull('email_verified_at');
+                })
                 ->first();
         }
 
         $rules = [
             'email'                 => $resurrecting
-                ? 'required|email|max:150'
-                : 'required|email|max:150|unique:users,email',
+                ? ['required', 'email', 'max:150', new NotDisposableEmail]
+                : ['required', 'email', 'max:150', 'unique:users,email', new NotDisposableEmail],
             'first_name'            => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
             'last_name'             => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
             'password'              => 'required|string|min:8|confirmed:confirm_password|regex:/[A-Z]/|regex:/[a-z]/|regex:/\d/|regex:/[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\\\\/]/',
@@ -92,6 +96,28 @@ class RegisterController extends Controller
             'treatment_modalities.*' => 'integer|exists:treatment_modalities,id',
             'buccal_corridors'      => 'nullable|array',
             'buccal_corridors.*'    => 'integer|exists:buccal_corridor_options,id',
+
+            // Doctor's primary practice address — Step 3 always submitted, regardless of whether
+            // the primary practice is existing or new. The address values themselves come from
+            // either a chosen practice (auto-filled by JS) or manual entry ("Other" mode).
+            'street_address_1'              => 'required|string|min:5|max:255',
+            'street_address_2'              => 'nullable|string|max:255',
+            'zip_id'                        => 'required|integer|exists:zipcodes,id',
+            'city_id'                       => 'required|integer|exists:cities,id',
+            'state_id'                      => 'required|integer|exists:states,id',
+            'country_id'                    => 'required|integer|exists:countries,id',
+
+            // Step 3 dropdown — what populated the address fields above.
+            //   PRACTICE = address came from one of the doctor's entered practices (ref points to which one)
+            //   OTHER    = doctor entered address manually
+            'primary_address_source'        => 'required|in:PRACTICE,OTHER',
+            'primary_address_practice_ref'  => [
+                'required_if:primary_address_source,PRACTICE',
+                'nullable',
+                'string',
+                'max:30',
+                'regex:/^(primary|extra-\d+)$/',
+            ],
 
             // Other practices the doctor also works at — each row has a mode, then conditional fields.
             'additional_practices'                          => 'nullable|array|max:5',
@@ -117,12 +143,6 @@ class RegisterController extends Controller
                 'practice_phone_country_code' => ['required', Rule::in($phoneCodes)],
                 'practice_phone_number'       => 'required|string|regex:/^\d{10}$/',
                 'practice_website'            => 'required|string|max:500',
-                'street_address_1'            => 'required|string|min:5|max:255',
-                'street_address_2'            => 'nullable|string|max:255',
-                'zip_id'                      => 'required|integer|exists:zipcodes,id',
-                'city_id'                     => 'required|integer|exists:cities,id',
-                'state_id'                    => 'required|integer|exists:states,id',
-                'country_id'                  => 'required|integer|exists:countries,id',
             ]);
         }
 
@@ -163,29 +183,45 @@ class RegisterController extends Controller
 
         // Split additional rows into "pick existing" vs "create new" lists.
         // De-dupe existing IDs and exclude the primary practice if also picked.
+        // Each entry tracks its original form index so we can resolve the
+        // Step 3 dropdown's `primary_address_practice_ref` (e.g. "extra-2") to
+        // a real practice_id after creation.
         $primaryExistingId = $isExisting ? (int) ($data['practice_id'] ?? 0) : 0;
         $existingIds = [];
         $newRows     = [];
         $seenExisting = $primaryExistingId ? [$primaryExistingId] : [];
 
-        foreach (($data['additional_practices'] ?? []) as $row) {
+        foreach (($data['additional_practices'] ?? []) as $i => $row) {
             $mode = $row['mode'] ?? 'existing';
             if ($mode === 'existing') {
                 $pid = (int) ($row['practice_id'] ?? 0);
                 if ($pid && ! in_array($pid, $seenExisting, true)) {
-                    $existingIds[]  = $pid;
+                    $existingIds[]  = ['form_idx' => $i, 'id' => $pid];
                     $seenExisting[] = $pid;
                 }
             } else {
-                $newRows[] = $row;
+                $newRows[] = ['form_idx' => $i, 'data' => $row];
             }
         }
 
         DB::transaction(function () use ($data, $contactMap, $isExisting, $resurrecting, $existingIds, $newRows, &$createdUser, &$createdDoctor) {
             if ($resurrecting) {
+                // Unverified-stale path: the previous registration left a
+                // soft-deleted Doctor row + its pivot rows behind. Hard-delete
+                // them so the Doctor::create() below can run cleanly. (For the
+                // REJECTED-resurrection path the Doctor is not trashed and the
+                // existing fill-in-place logic still kicks in.)
+                $orphan = $resurrecting->doctor()->withTrashed()->first();
+                if ($orphan && $orphan->trashed()) {
+                    $orphan->practices()->detach();
+                    $orphan->forceDelete();
+                    $resurrecting->unsetRelation('doctor');
+                }
+
                 $user = $resurrecting;
-                $user->password_hash = Hash::make($data['password']);
-                $user->is_active     = true;
+                $user->password_hash     = Hash::make($data['password']);
+                $user->is_active         = true;
+                $user->email_verified_at = null;
                 $user->save();
             } else {
                 $user = User::create([
@@ -243,6 +279,17 @@ class RegisterController extends Controller
                 'approved_at'                        => null,
                 'approved_by_admin_id'               => null,
                 'rejection_reason'                   => null,
+                // Step 3 primary practice address — copied from whichever source the doctor
+                // chose in the dropdown (an existing/new practice, or "Other"). Stored as a
+                // snapshot so a single doctor read returns the address without joining.
+                'primary_address_source'             => $data['primary_address_source'],
+                // primary_address_practice_id resolved below once all practices exist.
+                'street_address_1'                   => $data['street_address_1'],
+                'street_address_2'                   => $data['street_address_2'] ?? null,
+                'zip_id'                             => $data['zip_id'],
+                'city_id'                            => $data['city_id'],
+                'state_id'                           => $data['state_id'],
+                'country_id'                         => $data['country_id'],
             ];
 
             if ($resurrecting && $resurrecting->doctor) {
@@ -269,19 +316,26 @@ class RegisterController extends Controller
                 'requested_at'    => now(),
             ]);
 
+            // Build the form-index → practice_id resolution map so we can later
+            // translate the Step 3 dropdown's `primary_address_practice_ref`
+            // (e.g. "primary" or "extra-2") into a real practices.id.
+            $refMap = ['primary' => $practiceId];
+
             // Additional existing-practice claims — all pending.
-            foreach ($existingIds as $aid) {
-                $doctor->practices()->attach($aid, [
+            foreach ($existingIds as $entry) {
+                $doctor->practices()->attach($entry['id'], [
                     'approval_status' => 'PENDING',
                     'is_primary'      => false,
                     'requested_at'    => now(),
                 ]);
+                $refMap['extra-' . $entry['form_idx']] = $entry['id'];
             }
 
             // Additional new-practice creations — create Practice rows owned by
             // this doctor, then attach as PENDING. Admin still has to approve
             // each one (per product decision: every practice needs admin review).
-            foreach ($newRows as $row) {
+            foreach ($newRows as $entry) {
+                $row = $entry['data'];
                 $created = Practice::create([
                     'owner_id'           => $doctor->id,
                     'name'               => $row['name'],
@@ -302,6 +356,15 @@ class RegisterController extends Controller
                     'is_primary'      => false,
                     'requested_at'    => now(),
                 ]);
+                $refMap['extra-' . $entry['form_idx']] = $created->id;
+            }
+
+            // Resolve the Step 3 dropdown ref → real practice_id (PRACTICE source only).
+            if (($data['primary_address_source'] ?? null) === 'PRACTICE') {
+                $ref = $data['primary_address_practice_ref'] ?? null;
+                $doctor->update([
+                    'primary_address_practice_id' => $refMap[$ref] ?? null,
+                ]);
             }
 
             // Per product decision: do NOT create a shipping/billing DoctorAddress here.
@@ -313,12 +376,27 @@ class RegisterController extends Controller
             $doctor->buccalCorridorOptions()->sync($data['buccal_corridors'] ?? []);
         });
 
-        // Send "application received" email only for public registrations.
-        // Admin-created doctors are auto-approved downstream, and will get the
-        // approval email (not this one) via the Doctor observer.
         $isAdminCreating = auth()->check() && auth()->user()->role === 'ADMIN';
+
         if (! $isAdminCreating && $createdUser && $createdDoctor) {
-            Mail::to($createdUser->email)->send(new RegistrationReceivedMail($createdDoctor));
+            // Public registration: hide the Doctor row from admin queries until
+            // the OTP is verified. Soft-delete is automatically respected by
+            // every Doctor::query() in the admin area (and elsewhere) thanks
+            // to the SoftDeletes trait on the Doctor model. The matching
+            // ->restore() lives in EmailVerificationController::markVerified.
+            $createdDoctor->delete();
+
+            EmailVerificationController::sendVerificationEmail($createdUser);
+
+            return redirect()
+                ->route('verify-email.show', ['email' => $createdUser->email])
+                ->with('success', 'Registration submitted. Check your email for a 6-digit verification code.');
+        }
+
+        // Admin-created doctor: skip the OTP step entirely. Mark the user as
+        // verified now so Gate 3 in LoginController doesn't block them later.
+        if ($isAdminCreating && $createdUser && is_null($createdUser->email_verified_at)) {
+            $createdUser->forceFill(['email_verified_at' => now()])->save();
         }
 
         return redirect('/login')->with('success', 'Registration submitted. Your account is pending admin approval — you\'ll receive an email once approved.');

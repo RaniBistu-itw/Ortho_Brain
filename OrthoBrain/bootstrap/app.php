@@ -14,6 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin'           => \App\Http\Middleware\EnsureSuperAdmin::class,
             'active.practice' => \App\Http\Middleware\EnsureActivePractice::class,
+            'recaptcha'       => \App\Http\Middleware\VerifyRecaptcha::class,
+        ]);
+
+        $middleware->web(append: [
+            \App\Http\Middleware\SecurityHeaders::class,
         ]);
 
         $middleware->web(append: [
@@ -21,6 +26,34 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Graceful render for ThrottleRequestsException on browser
+        // submissions: instead of bubbling up to a raw 429 / debug page,
+        // redirect back to the form with input preserved (minus passwords)
+        // and flash the absolute retry-at instant. Pages that opt in
+        // (login, register) read this and render a live countdown banner;
+        // pages that don't at least see their form again with their input.
+        //
+        // JSON / AJAX clients short-circuit (return null) so Laravel's
+        // default 429 JSON response stays the contract for API callers.
+        //
+        // Registered first so the PHP 8.3 var-dumper fallback below never
+        // sees this exception — render callbacks run in registration order
+        // and the first non-null response wins.
+        $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return null;
+            }
+
+            $retryAfter = (int) ($e->getHeaders()['Retry-After'] ?? 60);
+            $retryAt    = now()->addSeconds($retryAfter)->toIso8601String();
+
+            return back()
+                ->withInput($request->except(['password', 'password_confirmation']))
+                ->with('throttle_retry_at', $retryAt)
+                ->with('throttle_message', 'Too many attempts. Please wait '
+                    . max(1, (int) ceil($retryAfter / 60)) . ' minute(s) and try again.');
+        });
+
         // Local PHP 8.3 dev workaround.
         //
         // The team's composer.json pins symfony/var-dumper v8 (Symfony 8),

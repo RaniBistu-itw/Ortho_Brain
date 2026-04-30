@@ -421,6 +421,9 @@
                 .submit-btn::after { display: none; }
             }
         </style>
+        @if(config('captcha.site_key'))
+            <script src="https://www.google.com/recaptcha/api.js?render={{ config('captcha.site_key') }}"></script>
+        @endif
     </head>
     <body>
         <main class="auth-shell">
@@ -461,6 +464,13 @@
                     <h1 class="form-heading">Forgot Password?</h1>
                     <p class="form-sub">Enter your email and we'll send you a link to reset your password.</p>
 
+                    @if($errors->has('captcha'))
+                        <div class="alert-success" role="alert" style="background:#FEE2E2;border-color:#FCA5A5;color:#991B1B;">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>{{ $errors->first('captcha') }}</span>
+                        </div>
+                    @endif
+
                     @if (session('status'))
                         <div class="alert-success" role="status">
                             <i class="bi bi-check-circle-fill"></i>
@@ -468,8 +478,9 @@
                         </div>
                     @endif
 
-                    <form action="{{ url('/forgot-password') }}" method="POST" class="ortho-form" novalidate>
+                    <form id="forgot-form" action="{{ url('/forgot-password') }}" method="POST" class="ortho-form" novalidate>
                         @csrf
+                        <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response-forgot" value="" />
 
                         {{-- Email --}}
                         <div class="field">
@@ -502,5 +513,26 @@
                 </footer>
             </section>
         </main>
+
+        @if(config('captcha.site_key'))
+        <script>
+            (function () {
+                const form = document.getElementById('forgot-form');
+                const tokenField = document.getElementById('g-recaptcha-response-forgot');
+                const siteKey = "{{ config('captcha.site_key') }}";
+                if (!form || !tokenField || !siteKey || typeof grecaptcha === 'undefined') return;
+
+                form.addEventListener('submit', function (e) {
+                    if (tokenField.value) return;
+                    e.preventDefault();
+                    grecaptcha.ready(function () {
+                        grecaptcha.execute(siteKey, { action: 'reset' })
+                            .then(function (token) { tokenField.value = token; form.submit(); })
+                            .catch(function () { form.submit(); });
+                    });
+                });
+            })();
+        </script>
+        @endif
     </body>
 </html>
