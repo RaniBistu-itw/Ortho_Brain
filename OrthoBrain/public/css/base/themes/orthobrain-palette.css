@@ -332,6 +332,9 @@ table tbody tr[data-row-href] {
   border-color: var(--ob-border-strong);
   background: var(--ob-surface-1);
 }
+body:not(.dark-layout) .ob-icon-btn--view,
+body:not(.dark-layout) .ob-icon-btn--edit,
+body:not(.dark-layout) .ob-icon-btn--delete { color: #111; }
 
 .ob-icon-btn--view:hover {
   color: #fff;

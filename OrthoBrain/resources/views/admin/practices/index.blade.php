@@ -151,8 +151,8 @@
     .ob-table { width: 100%; margin: 0; }
     .ob-table thead th {
         background: var(--ob-surface-alt);
-        color: #555668;
-        font-weight: 600;
+        color: #111;
+        font-weight: 700;
         font-size: 0.72rem;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -243,23 +243,9 @@
     .ob-when { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--ob-text); }
     .ob-when svg { width: 13px; height: 13px; color: #9a9aab; }
 
-    .ob-row-actions { display: inline-flex; align-items: center; gap: 0.3rem; justify-content: flex-end; }
-    .ob-icon-btn {
-        width: 34px; height: 34px;
-        display: inline-flex; align-items: center; justify-content: center;
-        border-radius: 0.5rem;
-        border: 1px solid var(--ob-border);
-        background: #fff;
-        color: var(--ob-muted);
-        transition: color 120ms ease, border-color 120ms ease, background 120ms ease, transform 120ms ease;
-    }
-    .ob-icon-btn:hover {
-        color: var(--ob-primary);
-        border-color: var(--ob-primary);
-        background: var(--ob-primary-softer);
-        transform: translateY(-1px);
-    }
-    .ob-icon-btn svg { width: 15px; height: 15px; }
+    /* .ob-row-actions and .ob-icon-btn (incl. --view/--edit/--delete rest +
+       hover states) are defined globally in orthobrain-palette.css so they
+       match every other admin index. Don't redefine them here. */
 
     .ob-empty { padding: 3rem 1.5rem; text-align: center; }
     .ob-empty-icon {
