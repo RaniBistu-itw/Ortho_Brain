@@ -28,6 +28,8 @@ class CasesController extends Controller
         // dashboard "X drafts stale" alert semantics (updated >3 days ago).
         $staleOnly = $activeStatus === 'DRAFT' && $request->boolean('stale');
 
+        $searchTerm = trim((string) $request->query('search', ''));
+
         $sortable = [
             'id'           => 'cases.id',
             'patient'      => 'patients.last_name',
@@ -51,6 +53,19 @@ class CasesController extends Controller
             ->when($activeStatus === 'ACTIVE', fn ($q) => $q->whereIn('cases.status', self::ACTIVE_STATUSES))
             ->when($activeStatus && $activeStatus !== 'ACTIVE', fn ($q) => $q->where('cases.status', $activeStatus))
             ->when($staleOnly, fn ($q) => $q->where('cases.updated_at', '<', now()->subDays(3)))
+            ->when($searchTerm !== '', function ($q) use ($searchTerm) {
+                $like = "%{$searchTerm}%";
+                $q->where(function ($w) use ($searchTerm, $like) {
+                    if (ctype_digit($searchTerm)) {
+                        $w->orWhere('cases.id', (int) $searchTerm);
+                    }
+                    $w->orWhereHas('patient', function ($p) use ($like) {
+                        $p->where('first_name', 'like', $like)
+                          ->orWhere('last_name', 'like', $like)
+                          ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", [$like]);
+                    });
+                });
+            })
             ->select(['cases.id', 'cases.case_code', 'cases.status', 'cases.created_at', 'cases.submitted_at', 'cases.doctor_id', 'cases.practice_id', 'cases.patient_id']);
 
         if ($sortKey === 'patient') {
@@ -67,6 +82,7 @@ class CasesController extends Controller
             'activeStatus' => $activeStatus,
             'statuses'     => self::STATUSES,
             'staleOnly'    => $staleOnly,
+            'searchTerm'   => $searchTerm,
         ]);
     }
 
