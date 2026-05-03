@@ -248,6 +248,12 @@ h1, h2, h3, h4, h5, h6,
   --bs-table-hover-bg:      var(--ob-surface-2);
   --bs-table-hover-color:   var(--ob-text);
 }
+/* Bootstrap's default `border-top: 2px solid currentColor` between thead and
+   tbody renders as a bright bar in dark mode (text color = light). Scope the
+   override to dark mode only so light mode keeps the prominent dark divider. */
+[data-bs-theme="dark"] .table > :not(:first-child) {
+  border-top-color: var(--ob-border-strong);
+}
 
 /* ---------- Shared admin index table chrome -------------------------------
    Apply alongside Bootstrap's `.table` on /admin/* index pages so Doctors,
@@ -335,6 +341,24 @@ table tbody tr[data-row-href] {
 body:not(.dark-layout) .ob-icon-btn--view,
 body:not(.dark-layout) .ob-icon-btn--edit,
 body:not(.dark-layout) .ob-icon-btn--delete { color: #111; }
+
+.dark-layout .ob-icon-btn--view,
+.dark-layout .ob-icon-btn--edit,
+[data-bs-theme="dark"] .ob-icon-btn--view,
+[data-bs-theme="dark"] .ob-icon-btn--edit,
+.dark-layout .ob-icon-btn--view:focus,
+.dark-layout .ob-icon-btn--edit:focus,
+.dark-layout .ob-icon-btn--view:focus-visible,
+.dark-layout .ob-icon-btn--edit:focus-visible,
+[data-bs-theme="dark"] .ob-icon-btn--view:focus,
+[data-bs-theme="dark"] .ob-icon-btn--edit:focus,
+[data-bs-theme="dark"] .ob-icon-btn--view:focus-visible,
+[data-bs-theme="dark"] .ob-icon-btn--edit:focus-visible { color: #fff !important; }
+
+.dark-layout .ob-icon-btn--view svg,
+.dark-layout .ob-icon-btn--edit svg,
+[data-bs-theme="dark"] .ob-icon-btn--view svg,
+[data-bs-theme="dark"] .ob-icon-btn--edit svg { stroke: #fff !important; color: #fff !important; }
 
 .ob-icon-btn--view:hover {
   color: #fff;

@@ -2,6 +2,16 @@
 @section('title', 'Products')
 @section('page_title', 'Products')
 
+@push('styles')
+<style>
+    /* ── Products — table polish (matches cities / categories / subcategories) ── */
+    .prd-table { margin-bottom: 0; }
+    .prd-table thead th { background: #f8f8f8; text-transform: uppercase; font-size: .74rem; letter-spacing: .06em; color: #6e6b7b; font-weight: 600; border-bottom: 1px solid rgba(34, 41, 47, .08); }
+    .prd-table tbody tr { transition: background-color .15s ease; }
+    .prd-table tbody tr:hover { background: rgba(var(--bs-primary-rgb), .04); }
+</style>
+@endpush
+
 @section('content')
 @include('admin._partials.inline_status_dropdown')
 <section id="products-list">
@@ -76,7 +86,7 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover prd-table">
                 <thead>
                     <tr>
                         <th>Image</th>

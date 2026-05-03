@@ -22,7 +22,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
         Doctor::observe(DoctorObserver::class);
-        if (env('TRUSTED_PROXIES')) {
+
+        // Force https when APP_URL is https (e.g. behind ngrok / a reverse
+        // proxy). Toggling APP_URL alone is enough — no other env edits.
+        if (str_starts_with((string) config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
 

@@ -30,7 +30,7 @@
     .ci-drawer .offcanvas-header { border-bottom: 1px solid rgba(34, 41, 47, .08); }
     /* Body hugs its content so the action bar sits right below the form, not pinned at the panel's bottom edge */
     .ci-drawer .offcanvas-body { flex: 0 1 auto; overflow-y: auto; }
-    .ci-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: #fafafa; }
+    .ci-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: transparent; }
     .ci-drawer .form-label { font-weight: 500; }
     .ci-drawer .select2-container--default .select2-selection--single { height: calc(2.4rem + 2px); padding: .3rem .4rem; }
 

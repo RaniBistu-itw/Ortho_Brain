@@ -27,7 +27,7 @@
     .pc-drawer .offcanvas-header { border-bottom: 1px solid rgba(34, 41, 47, .08); }
     /* Body should hug its content so the action bar sits right below the form, not pinned at the panel's bottom edge */
     .pc-drawer .offcanvas-body { flex: 0 1 auto; }
-    .pc-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: #fafafa; }
+    .pc-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: transparent; }
     .pc-bulk-row { display: grid; grid-template-columns: 1fr 160px 36px; gap: .5rem; align-items: start; margin-bottom: .5rem; }
     .pc-bulk-row .pc-bulk-remove { width: 36px; height: 38px; padding: 0; display: grid; place-items: center; }
     .pc-bulk-row__err { grid-column: 1 / -1; font-size: .78rem; color: #ea5455; margin-top: -.25rem; }
