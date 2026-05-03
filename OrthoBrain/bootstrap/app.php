@@ -11,6 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        if ($proxies = env('TRUSTED_PROXIES')) {
+            $middleware->trustProxies(at: $proxies);
+        }
+
         $middleware->alias([
             'admin'           => \App\Http\Middleware\EnsureSuperAdmin::class,
             'active.practice' => \App\Http\Middleware\EnsureActivePractice::class,
