@@ -307,6 +307,8 @@
         return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
     }
 
+    const namePattern = /^[a-zA-Z\s]+$/;
+
     const $tbody = $('#stTbody');
 
     function bumpStat(key, delta) {
@@ -479,14 +481,28 @@
                 }
             });
     }
-    const liveCheckDrawerName = debounce(() =>
-        liveCheckDrawerField('name', $('#stDrawerName'), $('#stDrawerNameErr')), 350);
     const liveCheckDrawerCode = debounce(() =>
         liveCheckDrawerField('state_code', $('#stDrawerCode'), $('#stDrawerCodeErr')), 350);
-    $(document).on('input', '#stDrawerName', liveCheckDrawerName);
-    $(document).on('input', '#stDrawerCode', liveCheckDrawerCode);
+
+    $(document).on('keyup input', '#stDrawerName', function () {
+        const $input = $(this);
+        const $err   = $('#stDrawerNameErr');
+        const val    = $input.val().trim();
+        if (val && !namePattern.test(val)) {
+            $input.addClass('is-invalid');
+            $err.text('The name may only contain letters and spaces.');
+            return;
+        }
+        $input.removeClass('is-invalid');
+        $err.text('');
+        debounce(() => liveCheckDrawerField('name', $input, $err), 350)();
+    });
+    $(document).on('keyup input', '#stDrawerCode', liveCheckDrawerCode);
     // Re-check when the parent country changes (uniqueness is scoped per country)
-    $(document).on('change', '#stDrawerCountry', () => { liveCheckDrawerName(); liveCheckDrawerCode(); });
+    $(document).on('change', '#stDrawerCountry', () => {
+        $('#stDrawerName').trigger('input');
+        liveCheckDrawerCode();
+    });
 
     // ── Live duplicate check on each bulk row (name + code) ───────────────
     function bulkRowFieldLiveCheck($input, field, dupMsg) {
@@ -528,14 +544,27 @@
                 }
             });
     }
-    const bulkRowNameDebounced = debounce(function (el) {
-        bulkRowFieldLiveCheck($(el), 'name', 'Duplicate name in this batch.');
-    }, 350);
-    const bulkRowCodeDebounced = debounce(function (el) {
+const bulkRowCodeDebounced = debounce(function (el) {
         bulkRowFieldLiveCheck($(el), 'state_code', 'Duplicate code in this batch.');
     }, 350);
-    $(document).on('input', '#stBulkRows .st-bulk-name', function () { bulkRowNameDebounced(this); });
-    $(document).on('input', '#stBulkRows .st-bulk-code', function () { bulkRowCodeDebounced(this); });
+
+    $(document).on('keyup input', '#stBulkRows .st-bulk-name', function () {
+        const $input = $(this);
+        const $row   = $input.closest('.st-bulk-row');
+        const $err   = $row.find('.st-bulk-row__err');
+        const val    = $input.val().trim();
+        if (val && !namePattern.test(val)) {
+            $input.addClass('is-invalid');
+            $err.text('The name may only contain letters and spaces.');
+            return;
+        }
+        $input.removeClass('is-invalid');
+        $err.text('');
+        debounce(function (el) {
+            bulkRowFieldLiveCheck($(el), 'name', 'Duplicate name in this batch.');
+        }, 350)(this);
+    });
+    $(document).on('keyup input', '#stBulkRows .st-bulk-code', function () { bulkRowCodeDebounced(this); });
     $(document).on('change', '#stBulkCountry', function () {
         $('#stBulkRows .st-bulk-name').each(function () { bulkRowFieldLiveCheck($(this), 'name', 'Duplicate name in this batch.'); });
         $('#stBulkRows .st-bulk-code').each(function () { bulkRowFieldLiveCheck($(this), 'state_code', 'Duplicate code in this batch.'); });
@@ -560,6 +589,7 @@
         if (!payload.country_id) { setFieldError('country_id', 'Country is required.'); firstInvalid = firstInvalid || FIELDS.country_id.input; }
         if (!payload.name) { setFieldError('name', 'Name is required.'); firstInvalid = firstInvalid || FIELDS.name.input; }
         else if (payload.name.length > 100) { setFieldError('name', 'Name may not be longer than 100 characters.'); firstInvalid = firstInvalid || FIELDS.name.input; }
+        else if (!namePattern.test(payload.name)) { setFieldError('name', 'The name may only contain letters and spaces.'); firstInvalid = firstInvalid || FIELDS.name.input; }
         if (!payload.state_code) { setFieldError('state_code', 'State code is required.'); firstInvalid = firstInvalid || FIELDS.state_code.input; }
         else if (payload.state_code.length > 100) { setFieldError('state_code', 'State code may not be longer than 100 characters.'); firstInvalid = firstInvalid || FIELDS.state_code.input; }
         if (!payload.status) { setFieldError('status', 'Status is required.'); firstInvalid = firstInvalid || FIELDS.status.input; }

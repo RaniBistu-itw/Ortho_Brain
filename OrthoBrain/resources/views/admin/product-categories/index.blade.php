@@ -288,6 +288,10 @@
     const drawerEl  = document.getElementById('pcDrawer');
     const drawer    = new bootstrap.Offcanvas(drawerEl);
 
+    drawerEl.addEventListener('shown.bs.offcanvas', () => {
+        setTimeout(() => $('#pcDrawerName').trigger('focus'), 50);
+    });
+
     function openDrawerCreate() {
         $('#pcDrawerTitle').text('Add Category');
         $('.pc-drawer-label', drawerEl).text('Save');
@@ -297,7 +301,6 @@
         $('#pcDrawerStatus').val('ACTIVE');
         $('#pcDrawerNameErr').text('');
         drawer.show();
-        setTimeout(() => $('#pcDrawerName').focus(), 250);
     }
 
     function openDrawerEdit(data) {
@@ -309,7 +312,6 @@
         $('#pcDrawerStatus').val(data.status);
         $('#pcDrawerNameErr').text('');
         drawer.show();
-        setTimeout(() => $('#pcDrawerName').focus(), 250);
     }
 
     // ── Live duplicate check on the single-drawer name input ─────────────
