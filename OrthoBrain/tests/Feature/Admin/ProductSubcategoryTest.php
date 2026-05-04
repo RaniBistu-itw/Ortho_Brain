@@ -24,12 +24,12 @@ it('creates a subcategory with valid data and stores status as boolean true', fu
     loginAsAdmin();
     $category = ProductCategory::factory()->create();
 
-    $this->post('/admin/product-subcategories', [
+    $this->postJson('/admin/product-subcategories/ajax', [
         'category_id' => $category->id,
         'name'        => 'Premium Sub',
         'description' => 'Premium tier',
         'status'      => 'ACTIVE',
-    ])->assertRedirect('/admin/product-subcategories');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     $sub = ProductSubcategory::where('name', 'Premium Sub')->first();
     expect($sub)->not->toBeNull();
@@ -40,11 +40,11 @@ it('stores status as boolean false when INACTIVE is submitted', function () {
     loginAsAdmin();
     $category = ProductCategory::factory()->create();
 
-    $this->post('/admin/product-subcategories', [
+    $this->postJson('/admin/product-subcategories/ajax', [
         'category_id' => $category->id,
         'name'        => 'Inactive Sub',
         'status'      => 'INACTIVE',
-    ]);
+    ])->assertOk()->assertJson(['ok' => true]);
 
     expect(ProductSubcategory::where('name', 'Inactive Sub')->first()->status)->toBeFalse();
 });
@@ -52,18 +52,18 @@ it('stores status as boolean false when INACTIVE is submitted', function () {
 it('rejects subcategory creation when category_id does not exist', function () {
     loginAsAdmin();
 
-    $this->post('/admin/product-subcategories', [
+    $this->postJson('/admin/product-subcategories/ajax', [
         'category_id' => 9999,
         'name'        => 'Bad Sub',
         'status'      => 'ACTIVE',
-    ])->assertSessionHasErrors('category_id');
+    ])->assertStatus(422)->assertJsonValidationErrors('category_id');
 });
 
 it('rejects subcategory creation when required fields are missing', function () {
     loginAsAdmin();
 
-    $this->post('/admin/product-subcategories', [])
-        ->assertSessionHasErrors(['category_id', 'name', 'status']);
+    $this->postJson('/admin/product-subcategories/ajax', [])
+        ->assertStatus(422)->assertJsonValidationErrors(['category_id', 'name', 'status']);
 });
 
 // ─── Update ─────────────────────────────────────────────────────
@@ -71,11 +71,11 @@ it('updates a subcategory', function () {
     loginAsAdmin();
     $sub = ProductSubcategory::factory()->create(['name' => 'Old']);
 
-    $this->put("/admin/product-subcategories/{$sub->id}", [
+    $this->putJson("/admin/product-subcategories/ajax/{$sub->id}", [
         'category_id' => $sub->category_id,
         'name'        => 'Renamed',
         'status'      => 'ACTIVE',
-    ])->assertRedirect('/admin/product-subcategories');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     expect($sub->fresh()->name)->toBe('Renamed');
 });

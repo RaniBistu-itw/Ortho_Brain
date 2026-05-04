@@ -7,6 +7,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::table('practices')
             ->whereNotNull('phone_country_code')
             ->where('phone_country_code', 'LIKE', '%\_%')

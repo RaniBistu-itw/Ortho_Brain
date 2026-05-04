@@ -32,13 +32,13 @@ it('filters scanners by search', function () {
 it('creates a scanner with valid data', function () {
     loginAsAdmin();
 
-    $this->post('/admin/scanners', [
+    $this->postJson('/admin/scanners/ajax', [
         'name'            => 'TestScanner',
         'portal_link'     => 'https://portal.example.com',
         'portal_password' => 'secret',
         'description'     => 'desc',
         'status'          => 'ACTIVE',
-    ])->assertRedirect('/admin/scanners');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     $this->assertDatabaseHas('scanners', [
         'name'   => 'TestScanner',
@@ -49,18 +49,18 @@ it('creates a scanner with valid data', function () {
 it('rejects scanner creation with missing required fields', function () {
     loginAsAdmin();
 
-    $this->post('/admin/scanners', [])
-        ->assertSessionHasErrors(['name', 'status']);
+    $this->postJson('/admin/scanners/ajax', [])
+        ->assertStatus(422)->assertJsonValidationErrors(['name', 'status']);
 });
 
 it('rejects scanner creation with invalid portal_link (not a URL)', function () {
     loginAsAdmin();
 
-    $this->post('/admin/scanners', [
+    $this->postJson('/admin/scanners/ajax', [
         'name'        => 'Scan',
         'portal_link' => 'not-a-url',
         'status'      => 'ACTIVE',
-    ])->assertSessionHasErrors('portal_link');
+    ])->assertStatus(422)->assertJsonValidationErrors('portal_link');
 });
 
 // ─── Update ─────────────────────────────────────────────────────
@@ -68,10 +68,10 @@ it('updates a scanner', function () {
     loginAsAdmin();
     $scanner = Scanner::factory()->create(['name' => 'Old']);
 
-    $this->put("/admin/scanners/{$scanner->id}", [
+    $this->putJson("/admin/scanners/ajax/{$scanner->id}", [
         'name'   => 'Updated',
         'status' => 'INACTIVE',
-    ])->assertRedirect('/admin/scanners');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     expect($scanner->fresh())
         ->name->toBe('Updated')

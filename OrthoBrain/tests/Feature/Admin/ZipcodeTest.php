@@ -23,12 +23,12 @@ it('creates a zipcode with valid data', function () {
     loginAsAdmin();
     $city = City::factory()->create();
 
-    $this->post('/admin/zipcodes', [
+    $this->postJson('/admin/zipcodes/ajax', [
         'city_id' => $city->id,
         'code'    => '400001',
         'details' => 'Downtown',
         'status'  => 'ACTIVE',
-    ])->assertRedirect('/admin/zipcodes');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     $this->assertDatabaseHas('zipcodes', [
         'code'    => '400001',
@@ -39,18 +39,18 @@ it('creates a zipcode with valid data', function () {
 it('rejects zipcode creation when city_id does not exist', function () {
     loginAsAdmin();
 
-    $this->post('/admin/zipcodes', [
+    $this->postJson('/admin/zipcodes/ajax', [
         'city_id' => 99999,
         'code'    => '000000',
         'status'  => 'ACTIVE',
-    ])->assertSessionHasErrors('city_id');
+    ])->assertStatus(422)->assertJsonValidationErrors('city_id');
 });
 
 it('rejects zipcode creation when required fields are missing', function () {
     loginAsAdmin();
 
-    $this->post('/admin/zipcodes', [])
-        ->assertSessionHasErrors(['city_id', 'code', 'status']);
+    $this->postJson('/admin/zipcodes/ajax', [])
+        ->assertStatus(422)->assertJsonValidationErrors(['city_id', 'code', 'status']);
 });
 
 // ─── Update ─────────────────────────────────────────────────────
@@ -58,11 +58,11 @@ it('updates a zipcode', function () {
     loginAsAdmin();
     $zipcode = Zipcode::factory()->create(['code' => '111111']);
 
-    $this->put("/admin/zipcodes/{$zipcode->id}", [
+    $this->putJson("/admin/zipcodes/ajax/{$zipcode->id}", [
         'city_id' => $zipcode->city_id,
         'code'    => '222222',
         'status'  => 'ACTIVE',
-    ])->assertRedirect('/admin/zipcodes');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     expect($zipcode->fresh()->code)->toBe('222222');
 });

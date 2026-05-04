@@ -38,10 +38,10 @@ it('filters categories by search term', function () {
 it('creates a category with valid data', function () {
     loginAsAdmin();
 
-    $this->post('/admin/product-categories', [
+    $this->postJson('/admin/product-categories/ajax', [
         'name'   => 'New Category',
         'status' => 'ACTIVE',
-    ])->assertRedirect('/admin/product-categories');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     $this->assertDatabaseHas('products_category', [
         'name'   => 'New Category',
@@ -52,17 +52,17 @@ it('creates a category with valid data', function () {
 it('rejects category creation when name is missing', function () {
     loginAsAdmin();
 
-    $this->post('/admin/product-categories', ['status' => 'ACTIVE'])
-        ->assertSessionHasErrors('name');
+    $this->postJson('/admin/product-categories/ajax', ['status' => 'ACTIVE'])
+        ->assertStatus(422)->assertJsonValidationErrors('name');
 });
 
 it('rejects category creation with invalid status', function () {
     loginAsAdmin();
 
-    $this->post('/admin/product-categories', [
+    $this->postJson('/admin/product-categories/ajax', [
         'name'   => 'Test',
         'status' => 'PENDING',
-    ])->assertSessionHasErrors('status');
+    ])->assertStatus(422)->assertJsonValidationErrors('status');
 });
 
 // ─── Update ─────────────────────────────────────────────────────
@@ -70,10 +70,10 @@ it('updates an existing category', function () {
     loginAsAdmin();
     $category = ProductCategory::factory()->create(['name' => 'Old']);
 
-    $this->put("/admin/product-categories/{$category->id}", [
+    $this->putJson("/admin/product-categories/ajax/{$category->id}", [
         'name'   => 'Updated',
         'status' => 'INACTIVE',
-    ])->assertRedirect('/admin/product-categories');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     expect($category->fresh())
         ->name->toBe('Updated')

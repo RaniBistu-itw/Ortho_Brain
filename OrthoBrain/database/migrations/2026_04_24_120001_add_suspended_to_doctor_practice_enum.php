@@ -7,6 +7,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("
             ALTER TABLE doctor_practice
             MODIFY COLUMN approval_status
@@ -17,6 +21,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("
             UPDATE doctor_practice SET approval_status = 'REJECTED'
             WHERE approval_status = 'SUSPENDED'

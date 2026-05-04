@@ -33,12 +33,12 @@ it('filters countries by search', function () {
 it('creates a country with valid data', function () {
     loginAsAdmin();
 
-    $this->post('/admin/countries', [
+    $this->postJson('/admin/countries/ajax', [
         'name'         => 'Testland',
         'country_code' => 'TL',
         'phone_code'   => '+999',
         'status'       => 'ACTIVE',
-    ])->assertRedirect('/admin/countries');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     $this->assertDatabaseHas('countries', [
         'name'         => 'Testland',
@@ -50,19 +50,19 @@ it('rejects country creation with a duplicate country_code', function () {
     loginAsAdmin();
     Country::factory()->create(['country_code' => 'US']);
 
-    $this->post('/admin/countries', [
+    $this->postJson('/admin/countries/ajax', [
         'name'         => 'Another',
         'country_code' => 'US',
         'phone_code'   => '+1',
         'status'       => 'ACTIVE',
-    ])->assertSessionHasErrors('country_code');
+    ])->assertStatus(422)->assertJsonValidationErrors('country_code');
 });
 
 it('rejects country creation when required fields are missing', function () {
     loginAsAdmin();
 
-    $this->post('/admin/countries', [])
-        ->assertSessionHasErrors(['name', 'country_code', 'phone_code', 'status']);
+    $this->postJson('/admin/countries/ajax', [])
+        ->assertStatus(422)->assertJsonValidationErrors(['name', 'country_code', 'phone_code', 'status']);
 });
 
 // ─── Update ─────────────────────────────────────────────────────
@@ -70,12 +70,12 @@ it('allows updating a country with its own country_code (unique ignore)', functi
     loginAsAdmin();
     $country = Country::factory()->create(['country_code' => 'FR']);
 
-    $this->put("/admin/countries/{$country->id}", [
+    $this->putJson("/admin/countries/ajax/{$country->id}", [
         'name'         => 'France Updated',
         'country_code' => 'FR',
         'phone_code'   => '+33',
         'status'       => 'ACTIVE',
-    ])->assertRedirect('/admin/countries');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     expect($country->fresh()->name)->toBe('France Updated');
 });
