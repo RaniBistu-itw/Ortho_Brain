@@ -11,12 +11,19 @@
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         color: #1f2937;
     }
+    .dark-layout .doc-help { color: #d0d2d6; }
+
     .doc-help__hero {
         background: linear-gradient(135deg, #e3f4fa 0%, #eafbe0 100%);
         border-radius: 1rem;
         padding: 1.75rem 1.75rem 1.5rem;
         margin-bottom: 1.5rem;
     }
+    .dark-layout .doc-help__hero {
+        background: #283046;
+        border: 1px solid #3b4253;
+    }
+
     .doc-help__eyebrow {
         font-size: 0.72rem;
         font-weight: 700;
@@ -25,8 +32,13 @@
         color: #5bc0de;
         margin-bottom: 0.35rem;
     }
+    .dark-layout .doc-help__eyebrow { color: #7367f0; }
+
     .doc-help__title { font-size: 1.55rem; font-weight: 700; margin: 0 0 0.35rem; color: #111827; }
+    .dark-layout .doc-help__title { color: #d0d2d6; }
+
     .doc-help__sub   { font-size: 0.95rem; color: #4b5563; margin: 0; max-width: 640px; }
+    .dark-layout .doc-help__sub { color: #a1a5b7; }
 
     .doc-help__grid {
         display: grid;
@@ -41,6 +53,12 @@
         box-shadow: 0 1px 2px rgba(24, 28, 40, 0.04);
         display: flex; flex-direction: column;
     }
+    .dark-layout .doc-help__card {
+        background: #283046;
+        border-color: #3b4253;
+        box-shadow: 0 4px 24px 0 rgba(0,0,0,0.24);
+    }
+
     .doc-help__card-icon {
         width: 40px; height: 40px;
         border-radius: 0.65rem;
@@ -49,12 +67,21 @@
         margin-bottom: 0.9rem;
     }
     .doc-help__card--a .doc-help__card-icon { background: rgba(91, 192, 222, 0.14); color: #1e6c85; }
+    .dark-layout .doc-help__card--a .doc-help__card-icon { color: #5bc0de; }
     .doc-help__card--b .doc-help__card-icon { background: rgba(140, 198, 63, 0.14); color: #5a8f21; }
+    .dark-layout .doc-help__card--b .doc-help__card-icon { color: #8cc63f; }
     .doc-help__card--c .doc-help__card-icon { background: rgba(255, 159, 67, 0.14); color: #b9681a; }
+    .dark-layout .doc-help__card--c .doc-help__card-icon { color: #ff9f43; }
+
     .doc-help__card-title { font-size: 1rem; font-weight: 700; margin: 0 0 0.4rem; color: #111827; }
+    .dark-layout .doc-help__card-title { color: #d0d2d6; }
+
     .doc-help__card p { font-size: 0.9rem; line-height: 1.45; color: #4b5563; margin: 0 0 0.6rem; }
+    .dark-layout .doc-help__card p { color: #b4b7bd; }
+
     .doc-help__card ol { padding-left: 1.15rem; margin: 0 0 0.2rem; }
     .doc-help__card ol li { font-size: 0.9rem; line-height: 1.5; color: #374151; margin-bottom: 0.25rem; }
+    .dark-layout .doc-help__card ol li { color: #b4b7bd; }
 
     .doc-help__contact {
         margin-top: 1.75rem;
@@ -64,7 +91,14 @@
         border-radius: 0.85rem;
         display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
     }
+    .dark-layout .doc-help__contact {
+        background: #283046;
+        border-color: #3b4253;
+    }
+
     .doc-help__contact-text { font-size: 0.9rem; color: #4b5563; margin: 0; }
+    .dark-layout .doc-help__contact-text { color: #b4b7bd; }
+
     .doc-help__contact-link {
         font-size: 0.9rem; font-weight: 600;
         color: #1e6c85; text-decoration: none;
@@ -72,6 +106,8 @@
         background: rgba(91, 192, 222, 0.12);
     }
     .doc-help__contact-link:hover { background: rgba(91, 192, 222, 0.22); }
+    .dark-layout .doc-help__contact-link { background: rgba(91, 192, 222, 0.2); color: #5bc0de; }
+    .dark-layout .doc-help__contact-link:hover { background: rgba(91, 192, 222, 0.3); }
 </style>
 
 <section class="doc-help">
