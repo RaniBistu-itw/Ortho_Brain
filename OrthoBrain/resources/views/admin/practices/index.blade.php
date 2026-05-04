@@ -9,12 +9,6 @@
 
 @push('styles')
 <style>
-    /* ──────────────────────────────────────────────────────────
-       Practices listing — page-local tokens only.
-       Shared brand tokens (--ob-primary, --ob-border, --ob-text,
-       --ob-surface-1/2, --ob-success/warning/danger) come from
-       orthobrain-palette.css and swap with light/dark.
-       ────────────────────────────────────────────────────────── */
     #practices-page {
         --ob-primary-softer: rgba(59, 130, 246, 0.07);
         --ob-accent: #8cc63f;
