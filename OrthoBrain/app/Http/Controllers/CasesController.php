@@ -7,6 +7,7 @@ use App\Models\Doctor;
 use App\Models\Prescription;
 use App\Models\Scanner;
 use App\Http\Requests\Cases\PrescriptionRequest;
+use App\Services\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,6 +15,8 @@ class CasesController extends Controller
 {
     private const STATUSES        = ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
     private const ACTIVE_STATUSES = ['SUBMITTED', 'IN_REVIEW', 'APPROVED'];
+
+    public function __construct(private ImageUploadService $images) {}
 
     public function index(Request $request)
     {
@@ -222,7 +225,7 @@ class CasesController extends Controller
             return [
                 'section'    => $m->section,
                 'tileId'     => $m->tile_id,
-                'url'        => \Illuminate\Support\Facades\Storage::disk($m->disk)->url($m->path),
+                'url'        => $this->images->url($m->path),
                 'mime'       => $m->mime_type,
                 'size'       => $m->size_bytes,
                 'cropParams' => $m->crop_params,

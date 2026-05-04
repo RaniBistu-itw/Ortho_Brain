@@ -104,7 +104,9 @@
           <div class="modal-header">
             <h5 class="modal-title"
                 x-text="tileModal.activeTileId ? getTileLabel(tileModal.activeTileId) : 'X-Ray'"></h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                    @click="_pendingReplaceTileId = null"
+                    aria-label="Close"></button>
           </div>
           <div class="modal-body text-center p-1">
             <img x-show="tileModal.activeTileId && tiles[tileModal.activeTileId] && tiles[tileModal.activeTileId].previewUrl"
@@ -117,7 +119,8 @@
             <button type="button" class="btn btn-outline-primary btn-sm" @click="replaceTile()">Replace</button>
             <button type="button" class="btn btn-outline-danger btn-sm" @click="removeTile()">Remove</button>
             <button type="button" class="btn btn-outline-secondary btn-sm" @click="cropTile()">Crop</button>
-            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
+                    @click="_pendingReplaceTileId = null">Close</button>
           </div>
         </div>
       </div>

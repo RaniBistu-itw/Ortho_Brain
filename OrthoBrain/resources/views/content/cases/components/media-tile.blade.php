@@ -11,7 +11,7 @@
        'media-tile--drag-over': tiles['{{ $tileId }}'].isDragOver
      }"
      :draggable="tiles['{{ $tileId }}'].filled ? 'true' : 'false'"
-     @click="onTileClick('{{ $tileId }}')"
+     @click="onTileClick('{{ $tileId }}', $event)"
      @dragstart="onTileDragStart($event, '{{ $tileId }}')"
      @dragend="dragSourceTileId = null"
      @dragover.prevent="onTileDragOver($event, '{{ $tileId }}')"
