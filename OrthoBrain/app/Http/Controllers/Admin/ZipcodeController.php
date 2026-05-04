@@ -8,6 +8,7 @@ use App\Models\City;
 use App\Models\Country;
 use App\Models\State;
 use App\Models\Zipcode;
+use App\Support\StatusDependencyChecker;
 use Illuminate\Http\Request;
 
 class ZipcodeController extends Controller
@@ -133,7 +134,16 @@ class ZipcodeController extends Controller
     {
         $data = $request->validate([
             'status' => ['required', 'in:ACTIVE,INACTIVE'],
+            'force'  => ['sometimes', 'boolean'],
         ]);
+
+        if ($data['status'] === 'INACTIVE' && empty($data['force'])) {
+            $dependents = StatusDependencyChecker::activeDependents($zipcode);
+            if (!empty($dependents)) {
+                return response()->json(StatusDependencyChecker::buildResponsePayload($zipcode, $dependents));
+            }
+        }
+
         $zipcode->update(['status' => $data['status']]);
         return response()->json([
             'ok'      => true,

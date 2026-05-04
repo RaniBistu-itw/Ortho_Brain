@@ -11,6 +11,7 @@ use App\Notifications\PracticeRequestSuspended;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DoctorPracticeController extends Controller
 {
@@ -79,7 +80,7 @@ class DoctorPracticeController extends Controller
                 'REJECTED'  => new PracticeRequestRejected($practice, $data['reason']),
                 'SUSPENDED' => new PracticeRequestSuspended($practice, $data['reason']),
             };
-            $doctor->user->notify($notification);
+            $this->sendNotificationAfterResponse($doctor->user, $notification);
         }
 
         return response()->json([
@@ -115,7 +116,7 @@ class DoctorPracticeController extends Controller
 
         $practice = Practice::find($row->practice_id);
         if ($practice && $doctor->user) {
-            $doctor->user->notify(new PracticeRequestApproved($practice));
+            $this->sendNotificationAfterResponse($doctor->user, new PracticeRequestApproved($practice));
         }
 
         return back()->with('success', "Approved {$doctor->first_name} {$doctor->last_name} → {$practice?->name}.");
@@ -154,7 +155,7 @@ class DoctorPracticeController extends Controller
 
         $practice = Practice::find($row->practice_id);
         if ($practice && $doctor->user) {
-            $doctor->user->notify(new PracticeRequestRejected($practice, $data['rejection_reason']));
+            $this->sendNotificationAfterResponse($doctor->user, new PracticeRequestRejected($practice, $data['rejection_reason']));
         }
 
         return back()->with('success', 'Practice request rejected.');
@@ -163,5 +164,20 @@ class DoctorPracticeController extends Controller
     private function currentAdminId(): ?int
     {
         return Auth::user()?->admin?->id;
+    }
+
+    private function sendNotificationAfterResponse($notifiable, $notification): void
+    {
+        dispatch(function () use ($notifiable, $notification) {
+            try {
+                $notifiable->notify($notification);
+            } catch (\Throwable $e) {
+                Log::error('Practice status notification failed', [
+                    'notifiable_id' => $notifiable->getKey(),
+                    'notification'  => get_class($notification),
+                    'error'         => $e->getMessage(),
+                ]);
+            }
+        })->afterResponse();
     }
 }

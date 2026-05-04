@@ -28,7 +28,28 @@
   };
 @endphp
 
+@push('styles')
+<style>
+  #cases-list .ob-input-icon { position: relative; }
+  #cases-list .ob-input-icon > svg {
+    position: absolute;
+    left: 0.75rem; top: 50%; transform: translateY(-50%);
+    width: 16px; height: 16px;
+    color: #9a9aab;
+    pointer-events: none;
+  }
+  #cases-list .ob-input-icon .form-control { padding-left: 2.35rem; border-radius: 0.5rem; }
+  #cases-list .ob-input-icon .form-control:focus {
+    border-color: var(--ob-primary, #00bad1);
+    box-shadow: 0 0 0 3px var(--ob-primary-softer, rgba(0, 186, 209, 0.18));
+  }
+</style>
+@endpush
+
 @section('content')
+@php
+  $statusBase = $searchTerm !== '' ? ['search' => $searchTerm] : [];
+@endphp
 <section id="cases-list">
   <div class="card">
     <div class="card-header border-bottom">
@@ -39,23 +60,56 @@
     </div>
 
     <div class="card-body border-bottom py-1">
+      <form method="GET" action="{{ route('doctor.cases.index') }}" id="casesSearchForm" class="row g-2 align-items-center">
+        @if($activeStatus)
+          <input type="hidden" name="status" value="{{ $activeStatus }}">
+        @endif
+        @if($staleOnly)
+          <input type="hidden" name="stale" value="1">
+        @endif
+        @if(request('order'))
+          <input type="hidden" name="order" value="{{ request('order') }}">
+        @endif
+        @if(request('sort'))
+          <input type="hidden" name="sort" value="{{ request('sort') }}">
+          <input type="hidden" name="dir" value="{{ request('dir', 'asc') }}">
+        @endif
+        <div class="col-md-4">
+          <div class="ob-input-icon">
+            <i data-feather="search"></i>
+            <input type="text" name="search" placeholder="Search by Case ID or Patient Name"
+                   value="{{ $searchTerm }}" class="form-control" autocomplete="off">
+          </div>
+        </div>
+        @if($searchTerm !== '')
+          <div class="col-md-2">
+            <a href="{{ request()->fullUrlWithQuery(['search' => null, 'page' => null]) }}"
+               class="ob-btn-clear w-100">
+              <i data-feather="x"></i> Clear
+            </a>
+          </div>
+        @endif
+      </form>
+    </div>
+
+    <div class="card-body border-bottom py-1">
       <div class="d-flex flex-wrap align-items-center gap-50">
-        <a href="{{ route('doctor.cases.index') }}"
+        <a href="{{ route('doctor.cases.index', $statusBase) }}"
            class="btn btn-sm {{ $activeStatus === null ? 'btn-primary' : 'btn-outline-secondary' }}">
           All
         </a>
-        <a href="{{ route('doctor.cases.index', ['status' => 'ACTIVE']) }}"
+        <a href="{{ route('doctor.cases.index', array_merge($statusBase, ['status' => 'ACTIVE'])) }}"
            class="btn btn-sm {{ $activeStatus === 'ACTIVE' ? 'btn-primary' : 'btn-outline-secondary' }}">
           Active
         </a>
         @foreach($statuses as $s)
-          <a href="{{ route('doctor.cases.index', ['status' => $s]) }}"
+          <a href="{{ route('doctor.cases.index', array_merge($statusBase, ['status' => $s])) }}"
              class="btn btn-sm {{ $activeStatus === $s && ! $staleOnly ? 'btn-primary' : 'btn-outline-secondary' }}">
             {{ $statusLabel($s) }}
           </a>
         @endforeach
         @if($staleOnly)
-          <a href="{{ route('doctor.cases.index', ['status' => 'DRAFT', 'stale' => 1]) }}"
+          <a href="{{ route('doctor.cases.index', array_merge($statusBase, ['status' => 'DRAFT', 'stale' => 1])) }}"
              class="btn btn-sm btn-warning">
             Stale drafts only
           </a>
@@ -68,14 +122,14 @@
             </strong>
             ({{ $cases->total() }})
             @if($staleOnly)
-              · <a href="{{ route('doctor.cases.index', ['status' => 'DRAFT']) }}">show all drafts</a>
+              · <a href="{{ route('doctor.cases.index', array_merge($statusBase, ['status' => 'DRAFT'])) }}">show all drafts</a>
             @endif
           </span>
         @endif
 
         @php
           $currentOrder = request('order') === 'oldest' ? 'oldest' : 'newest';
-          $orderBase    = [];
+          $orderBase    = $statusBase;
           if ($activeStatus) { $orderBase['status'] = $activeStatus; }
           if ($staleOnly)    { $orderBase['stale']  = 1; }
         @endphp
@@ -98,7 +152,7 @@
         <thead>
           <tr>
             <th>@include('admin._partials.sort_th', ['label' => 'Case ID', 'key' => 'id', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
-            <th>@include('admin._partials.sort_th', ['label' => 'Code', 'key' => 'case_code', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
+            <th>@include('admin._partials.sort_th', ['label' => 'Patient Name', 'key' => 'patient', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
             <th>Status</th>
             <th>@include('admin._partials.sort_th', ['label' => 'Created', 'key' => 'created_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
             <th>@include('admin._partials.sort_th', ['label' => 'Submitted', 'key' => 'submitted_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
@@ -109,7 +163,13 @@
           @forelse($cases as $case)
             <tr>
               <td><span class="fw-bolder">#{{ $case->id }}</span></td>
-              <td>{{ $case->case_code ?? '—' }}</td>
+              <td>
+                @if($case->patient)
+                  {{ trim($case->patient->first_name . ' ' . $case->patient->last_name) ?: '—' }}
+                @else
+                  <span class="text-muted">—</span>
+                @endif
+              </td>
               <td><span class="{{ $statusBadge($case->status) }}">{{ $statusLabel($case->status) }}</span></td>
               <td>{{ $case->created_at?->format('Y-m-d H:i') }}</td>
               <td>{{ $case->submitted_at?->format('Y-m-d H:i') ?? '—' }}</td>
@@ -134,7 +194,10 @@
           @empty
             <tr>
               <td colspan="6" class="text-center text-muted py-2">
-                @if($staleOnly)
+                @if($searchTerm !== '')
+                  No cases match <strong>"{{ $searchTerm }}"</strong>.
+                  <a href="{{ route('doctor.cases.index') }}">Clear filters</a>.
+                @elseif($staleOnly)
                   No stale drafts. <a href="{{ route('doctor.cases.index') }}">Clear filter</a>.
                 @elseif($activeStatus)
                   No cases with status <strong>{{ $statusLabel($activeStatus) }}</strong>.
@@ -158,6 +221,26 @@
 
 @push('scripts')
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+  var form = document.getElementById('casesSearchForm')
+  if (form) {
+    var input = form.querySelector('input[name="search"]')
+    if (input) {
+      var timer
+      input.addEventListener('input', function () {
+        clearTimeout(timer)
+        timer = setTimeout(function () { form.submit() }, 450)
+      })
+      // Place cursor at end so the search keeps feeling sticky after reload.
+      if (input.value) {
+        var len = input.value.length
+        input.focus()
+        try { input.setSelectionRange(len, len) } catch (e) {}
+      }
+    }
+  }
+})
+
 document.addEventListener('DOMContentLoaded', function () {
   var flashRaw = sessionStorage.getItem('caseSubmittedFlash')
   if (!flashRaw) return

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CountryRequest;
 use App\Models\Country;
+use App\Support\StatusDependencyChecker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -94,7 +95,16 @@ class CountryController extends Controller
     {
         $data = $request->validate([
             'status' => ['required', 'in:ACTIVE,INACTIVE'],
+            'force'  => ['sometimes', 'boolean'],
         ]);
+
+        if ($data['status'] === 'INACTIVE' && empty($data['force'])) {
+            $dependents = StatusDependencyChecker::activeDependents($country);
+            if (!empty($dependents)) {
+                return response()->json(StatusDependencyChecker::buildResponsePayload($country, $dependents));
+            }
+        }
+
         $country->update(['status' => $data['status']]);
         return response()->json([
             'ok'      => true,

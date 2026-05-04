@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ProductCategoryRequest;
 use App\Models\ProductCategory;
+use App\Support\StatusDependencyChecker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -109,7 +110,16 @@ class ProductCategoryController extends Controller
     {
         $data = $request->validate([
             'status' => ['required', 'in:ACTIVE,INACTIVE'],
+            'force'  => ['sometimes', 'boolean'],
         ]);
+
+        if ($data['status'] === 'INACTIVE' && empty($data['force'])) {
+            $dependents = StatusDependencyChecker::activeDependents($productCategory);
+            if (!empty($dependents)) {
+                return response()->json(StatusDependencyChecker::buildResponsePayload($productCategory, $dependents));
+            }
+        }
+
         $productCategory->update(['status' => $data['status']]);
         return response()->json([
             'ok'      => true,

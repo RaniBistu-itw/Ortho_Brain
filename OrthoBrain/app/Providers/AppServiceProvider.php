@@ -8,6 +8,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +22,12 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
         Doctor::observe(DoctorObserver::class);
+
+        // Force https when APP_URL is https (e.g. behind ngrok / a reverse
+        // proxy). Toggling APP_URL alone is enough — no other env edits.
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
 
         $this->configureRateLimiters();
     }

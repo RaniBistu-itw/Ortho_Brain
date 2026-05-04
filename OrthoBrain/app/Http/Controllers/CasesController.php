@@ -31,11 +31,13 @@ class CasesController extends Controller
         // dashboard "X drafts stale" alert semantics (updated >3 days ago).
         $staleOnly = $activeStatus === 'DRAFT' && $request->boolean('stale');
 
+        $searchTerm = trim((string) $request->query('search', ''));
+
         $sortable = [
-            'id'           => 'id',
-            'case_code'    => 'case_code',
-            'created_at'   => 'created_at',
-            'submitted_at' => 'submitted_at',
+            'id'           => 'cases.id',
+            'patient'      => 'patients.last_name',
+            'created_at'   => 'cases.created_at',
+            'submitted_at' => 'cases.submitted_at',
         ];
         $order   = $request->query('order') === 'oldest' ? 'oldest' : 'newest';
         $sortKey = $request->get('sort');
@@ -44,25 +46,46 @@ class CasesController extends Controller
             $dir     = strtolower($request->get('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
         } else {
             $sortKey = null;
-            $sortCol = 'created_at';
+            $sortCol = 'cases.created_at';
             $dir     = $order === 'oldest' ? 'asc' : 'desc';
         }
 
-        $cases = CaseModel::where('doctor_id', $doctor->id)
-            ->where('practice_id', $practiceId)
-            ->when($activeStatus === 'ACTIVE', fn ($q) => $q->whereIn('status', self::ACTIVE_STATUSES))
-            ->when($activeStatus && $activeStatus !== 'ACTIVE', fn ($q) => $q->where('status', $activeStatus))
-            ->when($staleOnly, fn ($q) => $q->where('updated_at', '<', now()->subDays(3)))
-            ->select(['id', 'case_code', 'status', 'created_at', 'submitted_at', 'doctor_id', 'practice_id'])
-            ->orderBy($sortCol, $dir)
-            ->paginate(20)
-            ->withQueryString();
+        $query = CaseModel::with('patient:id,first_name,last_name')
+            ->where('cases.doctor_id', $doctor->id)
+            ->where('cases.practice_id', $practiceId)
+            ->when($activeStatus === 'ACTIVE', fn ($q) => $q->whereIn('cases.status', self::ACTIVE_STATUSES))
+            ->when($activeStatus && $activeStatus !== 'ACTIVE', fn ($q) => $q->where('cases.status', $activeStatus))
+            ->when($staleOnly, fn ($q) => $q->where('cases.updated_at', '<', now()->subDays(3)))
+            ->when($searchTerm !== '', function ($q) use ($searchTerm) {
+                $like = "%{$searchTerm}%";
+                $q->where(function ($w) use ($searchTerm, $like) {
+                    if (ctype_digit($searchTerm)) {
+                        $w->orWhere('cases.id', (int) $searchTerm);
+                    }
+                    $w->orWhereHas('patient', function ($p) use ($like) {
+                        $p->where('first_name', 'like', $like)
+                          ->orWhere('last_name', 'like', $like)
+                          ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", [$like]);
+                    });
+                });
+            })
+            ->select(['cases.id', 'cases.case_code', 'cases.status', 'cases.created_at', 'cases.submitted_at', 'cases.doctor_id', 'cases.practice_id', 'cases.patient_id']);
+
+        if ($sortKey === 'patient') {
+            $query->leftJoin('patients', 'patients.id', '=', 'cases.patient_id')
+                  ->orderBy($sortCol, $dir);
+        } else {
+            $query->orderBy($sortCol, $dir);
+        }
+
+        $cases = $query->paginate(20)->withQueryString();
 
         return view('content.cases.case-list', [
             'cases'        => $cases,
             'activeStatus' => $activeStatus,
             'statuses'     => self::STATUSES,
             'staleOnly'    => $staleOnly,
+            'searchTerm'   => $searchTerm,
         ]);
     }
 

@@ -55,6 +55,58 @@
         font-weight: 500;
         letter-spacing: 0;
     }
+
+    /* Deactivation-confirmation modal body */
+    .ob-dep-popup .swal2-title { font-size: 1.25rem; padding: .25rem 0 .5rem; }
+    .ob-dep-popup .swal2-html-container { margin: .5rem 1.25rem 1rem; font-size: .9rem; }
+    .ob-dep-popup .swal2-icon { margin: 1rem auto .5rem; transform: scale(.85); }
+    .ob-dep-popup .swal2-actions { margin-top: .25rem; gap: 1.5rem; }
+    .ob-dep-modal { text-align: left; }
+    .ob-dep-lede {
+        margin: 0 0 .85rem;
+        color: #4b4b4b;
+        font-size: .95rem;
+        line-height: 1.45;
+    }
+    .ob-dep-list {
+        list-style: none;
+        margin: 0 0 .9rem;
+        padding: .55rem .75rem;
+        background: rgba(var(--bs-warning-rgb), .08);
+        border: 1px solid rgba(var(--bs-warning-rgb), .25);
+        border-radius: .5rem;
+    }
+    .ob-dep-row {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        padding: .25rem 0;
+    }
+    .ob-dep-row + .ob-dep-row {
+        border-top: 1px dashed rgba(var(--bs-warning-rgb), .25);
+    }
+    .ob-dep-count {
+        flex: 0 0 auto;
+        min-width: 2rem;
+        padding: .15rem .55rem;
+        border-radius: 999px;
+        background: var(--bs-warning, #ff9f43);
+        color: #fff;
+        font-weight: 700;
+        font-size: .82rem;
+        text-align: center;
+        line-height: 1.3;
+    }
+    .ob-dep-label {
+        color: #2a2c2f;
+        font-size: .92rem;
+    }
+    .ob-dep-note {
+        margin: 0;
+        font-size: .8rem;
+        color: #8a8a8a;
+        line-height: 1.4;
+    }
 </style>
 @endpush
 
@@ -84,6 +136,68 @@
         }
     }
 
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c];
+        });
+    }
+
+    function buildDependentsHtml(payload) {
+        var d = payload && payload.dependents ? payload.dependents : {};
+        var rows = '';
+        Object.keys(d).forEach(function (label) {
+            rows += '<li class="ob-dep-row">'
+                  +   '<span class="ob-dep-count">' + escapeHtml(d[label]) + '</span>'
+                  +   '<span class="ob-dep-label">active ' + escapeHtml(label) + '</span>'
+                  + '</li>';
+        });
+        var name = escapeHtml(payload.subject || 'this record');
+        return '<div class="ob-dep-modal">'
+             + '<p class="ob-dep-lede">"<strong>' + name + '</strong>" still has active dependents:</p>'
+             + '<ul class="ob-dep-list">' + rows + '</ul>'
+             + '<p class="ob-dep-note">Deactivating will leave them attached to an inactive parent.</p>'
+             + '</div>';
+    }
+
+    function postStatus(url, status, force) {
+        var body = new URLSearchParams();
+        body.set('_token', CSRF);
+        body.set('status', status);
+        if (force) body.set('force', '1');
+
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: body.toString(),
+            credentials: 'same-origin'
+        }).then(function (res) {
+            return res.json().then(function (json) { return { ok: res.ok, body: json }; });
+        });
+    }
+
+    function applySuccess(sel, previous, body, fallbackNext) {
+        var newStatus = body.status || fallbackNext;
+        sel.setAttribute('data-status', newStatus);
+        sel.value = newStatus;
+
+        if (previous !== newStatus) {
+            if (previous === 'ACTIVE')   bumpStat('active',   -1);
+            if (previous === 'INACTIVE') bumpStat('inactive', -1);
+            if (newStatus === 'ACTIVE')   bumpStat('active',   +1);
+            if (newStatus === 'INACTIVE') bumpStat('inactive', +1);
+        }
+        notify('success', body.message || 'Status updated.');
+    }
+
+    function revert(sel, previous) {
+        sel.value = previous;
+        sel.setAttribute('data-status', previous);
+    }
+
     document.addEventListener('change', function (e) {
         var sel = e.target;
         if (!sel || !sel.matches || !sel.matches('.ob-status-select[data-inline-status]')) return;
@@ -98,49 +212,59 @@
         sel.disabled = true;
         sel.setAttribute('aria-busy', 'true');
 
-        var body = new URLSearchParams();
-        body.set('_token', CSRF);
-        body.set('status', next);
-
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: body.toString(),
-            credentials: 'same-origin'
-        })
-        .then(function (res) {
-            return res.json().then(function (json) { return { ok: res.ok, body: json }; });
-        })
-        .then(function (r) {
-            if (!r.ok || !r.body || r.body.ok === false) {
-                throw new Error((r.body && r.body.message) || 'Could not update status.');
-            }
-            var newStatus = r.body.status || next;
-            sel.setAttribute('data-status', newStatus);
-            sel.value = newStatus;
-
-            if (previous !== newStatus) {
-                if (previous === 'ACTIVE')   bumpStat('active',   -1);
-                if (previous === 'INACTIVE') bumpStat('inactive', -1);
-                if (newStatus === 'ACTIVE')   bumpStat('active',   +1);
-                if (newStatus === 'INACTIVE') bumpStat('inactive', +1);
-            }
-
-            notify('success', r.body.message || 'Status updated.');
-        })
-        .catch(function (err) {
-            sel.value = previous;
-            sel.setAttribute('data-status', previous);
-            notify('error', (err && err.message) || 'Could not update status.');
-        })
-        .then(function () {
+        var release = function () {
             sel.disabled = false;
             sel.removeAttribute('aria-busy');
-        });
+        };
+
+        postStatus(url, next, false)
+            .then(function (r) {
+                if (r.body && r.body.requires_confirmation) {
+                    if (!window.Swal || typeof Swal.fire !== 'function') {
+                        revert(sel, previous);
+                        notify('error', 'Cannot deactivate: this record has active dependents.');
+                        return;
+                    }
+                    return Swal.fire({
+                        title: 'Confirm deactivation',
+                        html: buildDependentsHtml(r.body),
+                        icon: 'warning',
+                        width: 440,
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, deactivate',
+                        cancelButtonText: 'Cancel',
+                        reverseButtons: true,
+                        focusCancel: true,
+                        customClass: {
+                            popup: 'ob-dep-popup',
+                            confirmButton: 'btn btn-danger',
+                            cancelButton: 'btn btn-outline-secondary'
+                        },
+                        buttonsStyling: false
+                    }).then(function (result) {
+                        if (!result.isConfirmed) {
+                            revert(sel, previous);
+                            return;
+                        }
+                        return postStatus(url, next, true).then(function (r2) {
+                            if (!r2.ok || !r2.body || r2.body.ok === false) {
+                                throw new Error((r2.body && r2.body.message) || 'Could not update status.');
+                            }
+                            applySuccess(sel, previous, r2.body, next);
+                        });
+                    });
+                }
+
+                if (!r.ok || !r.body || r.body.ok === false) {
+                    throw new Error((r.body && r.body.message) || 'Could not update status.');
+                }
+                applySuccess(sel, previous, r.body, next);
+            })
+            .catch(function (err) {
+                revert(sel, previous);
+                notify('error', (err && err.message) || 'Could not update status.');
+            })
+            .then(release, release);
     });
 })();
 </script>

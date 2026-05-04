@@ -32,8 +32,9 @@
     /* Slide-over drawer */
     .sc-drawer { width: min(560px, 100vw); display: flex; flex-direction: column; }
     .sc-drawer .offcanvas-header { border-bottom: 1px solid rgba(34, 41, 47, .08); }
-    .sc-drawer .offcanvas-body { overflow-y: auto; }
-    .sc-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: #fafafa; }
+    /* Body hugs its content so the action bar sits right below the form, not pinned at the panel's bottom edge */
+    .sc-drawer .offcanvas-body { flex: 0 1 auto; overflow-y: auto; }
+    .sc-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: transparent; }
     .sc-drawer .form-label { font-weight: 500; }
     .sc-drawer .sc-pw-toggle { cursor: pointer; user-select: none; }
 </style>

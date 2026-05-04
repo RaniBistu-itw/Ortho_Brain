@@ -526,6 +526,52 @@
             window.open(href, '_blank', 'noopener');
         });
 
+        // ─── Double-submit guard for create/edit forms ───
+        // jQuery Validate's direct submit handler runs before this delegated
+        // one, so a failed validation arrives here with isDefaultPrevented()
+        // already true — we bail out and the user can fix errors and resubmit.
+        // On a valid submit we arm a per-form lock; any subsequent submit
+        // (rapid second click, Enter pressed twice, programmatic re-trigger)
+        // is short-circuited until the page navigates away.
+        $(document).on('submit', 'form.ob-form-validate', function (e) {
+            if (e.isDefaultPrevented()) return;
+            const $form = $(this);
+            if ($form.data('ob-submitting')) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return false;
+            }
+            $form.data('ob-submitting', true);
+            $form.find('button[type="submit"], input[type="submit"]').each(function () {
+                const $b = $(this);
+                if ($b.prop('disabled')) return;
+                $b.data('ob-prev-html', $b.html());
+                $b.prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm me-50" role="status" aria-hidden="true"></span>Saving…'
+                );
+            });
+        });
+
+        // Safari/Firefox bfcache restores the DOM with the lock still set;
+        // release it so the user can resubmit without a hard refresh.
+        window.addEventListener('pageshow', function (e) {
+            if (!e.persisted) return;
+            $('form.ob-form-validate').each(function () {
+                const $form = $(this);
+                if (!$form.data('ob-submitting')) return;
+                $form.removeData('ob-submitting');
+                $form.find('button[type="submit"], input[type="submit"]').each(function () {
+                    const $b = $(this);
+                    const prev = $b.data('ob-prev-html');
+                    if (prev !== undefined) {
+                        $b.html(prev);
+                        $b.removeData('ob-prev-html');
+                    }
+                    $b.prop('disabled', false);
+                });
+            });
+        });
+
         // ─── Delete confirmation (Vuexy SweetAlert2) ───
         $(document).on('submit', 'form.js-delete-form', function (e) {
             const $form = $(this);

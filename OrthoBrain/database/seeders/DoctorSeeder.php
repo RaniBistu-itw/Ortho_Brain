@@ -6,6 +6,7 @@ use App\Models\Doctor;
 use App\Models\Practice;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -21,24 +22,32 @@ use Illuminate\Support\Str;
  */
 class DoctorSeeder extends Seeder
 {
-    private const DEMO_FIRST_NAMES = [
-        'Devansh', 'Kamlesh', 'Rani', 'Manish', 'Mukesh',
-        'Prashant', 'Ruth', 'Rodriguez', 'Yasmine', 'Claudia', 'Jacob',
-    ];
-
-    private const DEMO_LAST_NAME_POOL = [
-        'Sharma', 'Patel', 'Khan', 'Verma', 'Singh', 'Mehta',
-        'Cohen', 'Levy', 'Goldberg',
-        'Garcia', 'Lopez', 'Martinez', 'Hernandez',
-        'Smith', 'Johnson', 'Wilson', 'Roberts', 'Cooper',
-        'Hassan', 'Karimi', 'Rahman',
-        'Nakamura', 'Tanaka',
+    // Deterministic first-name → last-name pairing.
+    // Was previously a random pick from a pool, which broke idempotency:
+    // re-running the seeder generated new emails (firstName.randomLastName@...),
+    // so User::updateOrCreate couldn't match prior demo users and created
+    // duplicates — leaving the old doctors with practice_id set but no
+    // doctor_practice pivot row, which is exactly the "doctor shows practice
+    // but practice doesn't show doctor" inconsistency.
+    private const DEMO_DOCTORS = [
+        ['first' => 'Devansh',   'last' => 'Sharma'],
+        ['first' => 'Kamlesh',   'last' => 'Patel'],
+        ['first' => 'Rani',      'last' => 'Khan'],
+        ['first' => 'Manish',    'last' => 'Verma'],
+        ['first' => 'Mukesh',    'last' => 'Singh'],
+        ['first' => 'Prashant',  'last' => 'Mehta'],
+        ['first' => 'Ruth',      'last' => 'Cohen'],
+        ['first' => 'Rodriguez', 'last' => 'Garcia'],
+        ['first' => 'Yasmine',   'last' => 'Hassan'],
+        ['first' => 'Claudia',   'last' => 'Martinez'],
+        ['first' => 'Jacob',     'last' => 'Smith'],
     ];
 
     public function run(): void
     {
         $this->seedPrimaryTestDoctor();
         $this->seedDemoDoctors();
+        $this->backfillMissingPracticeLinks();
     }
 
     private function seedPrimaryTestDoctor(): void
@@ -56,8 +65,26 @@ class DoctorSeeder extends Seeder
             ]
         );
 
-        $practiceIds       = Practice::where('status', 'ACTIVE')->orderBy('id')->limit(3)->pluck('id')->all();
-        $primaryPracticeId = $practiceIds[0] ?? null;
+        $practiceIds = Practice::where('status', 'ACTIVE')->orderBy('id')->limit(3)->pluck('id')->all();
+
+        // Guarantee the test doctor always has at least one APPROVED practice
+        // — when DoctorSeeder runs standalone (or PracticesSeeder bailed
+        // because no zipcodes were seeded), the active-practice list is empty
+        // and the multi-practice attachment block below silently no-ops.
+        if (empty($practiceIds)) {
+            $fallback = Practice::firstOrCreate(
+                ['name' => 'Test Doctor Practice'],
+                [
+                    'phone_country_code' => '+1',
+                    'phone_number'       => '5550000000',
+                    'street_address_1'   => '1 Test Street',
+                    'status'             => 'ACTIVE',
+                ]
+            );
+            $practiceIds = [$fallback->id];
+        }
+
+        $primaryPracticeId = $practiceIds[0];
 
         $doctor = Doctor::updateOrCreate(
             ['user_id' => $user->id],
@@ -113,14 +140,11 @@ class DoctorSeeder extends Seeder
     private function seedDemoDoctors(): void
     {
         $practiceId = Practice::where('status', 'ACTIVE')->orderBy('id')->value('id');
-        $usedLastNames = [];
         $rows = [];
 
-        foreach (self::DEMO_FIRST_NAMES as $i => $firstName) {
-            do {
-                $lastName = self::DEMO_LAST_NAME_POOL[array_rand(self::DEMO_LAST_NAME_POOL)];
-            } while (in_array($lastName, $usedLastNames, true) && count($usedLastNames) < count(self::DEMO_LAST_NAME_POOL));
-            $usedLastNames[] = $lastName;
+        foreach (self::DEMO_DOCTORS as $i => $person) {
+            $firstName = $person['first'];
+            $lastName  = $person['last'];
 
             $email = strtolower($firstName . '.' . $lastName) . '@orthobrain.local';
 
@@ -180,6 +204,51 @@ class DoctorSeeder extends Seeder
             $this->command?->line($line);
         }
         $this->command?->info("\nAll use password: Password@1");
+    }
+
+    /**
+     * Self-heal: every doctor with a legacy practice_id MUST have a matching
+     * doctor_practice pivot row, otherwise the practice's "Doctors" panel
+     * appears empty even though the doctor profile still shows the practice
+     * (the doctor profile reads the legacy belongsTo, the practice reads the
+     * pivot). This pass adds an APPROVED+primary pivot row for any doctor
+     * that's missing one — covers orphan rows left behind by earlier
+     * non-idempotent seeder runs.
+     */
+    private function backfillMissingPracticeLinks(): void
+    {
+        $linkedDoctorIds = DB::table('doctor_practice')
+            ->select('doctor_id')
+            ->groupBy('doctor_id')
+            ->pluck('doctor_id')
+            ->all();
+
+        $missing = Doctor::query()
+            ->whereNotNull('practice_id')
+            ->when(! empty($linkedDoctorIds), fn ($q) => $q->whereNotIn('id', $linkedDoctorIds))
+            ->get(['id', 'practice_id', 'approval_status', 'approved_at', 'approved_by_admin_id', 'created_at']);
+
+        if ($missing->isEmpty()) {
+            return;
+        }
+
+        foreach ($missing as $doctor) {
+            $linkStatus = match ($doctor->approval_status) {
+                'APPROVED', 'SUSPENDED' => 'APPROVED',
+                'REJECTED'              => 'REJECTED',
+                default                 => 'PENDING',
+            };
+
+            $doctor->practices()->attach($doctor->practice_id, [
+                'approval_status'      => $linkStatus,
+                'is_primary'           => true,
+                'requested_at'         => $doctor->created_at ?? now(),
+                'approved_at'          => $linkStatus === 'APPROVED' ? ($doctor->approved_at ?? now()) : null,
+                'approved_by_admin_id' => $linkStatus === 'APPROVED' ? $doctor->approved_by_admin_id : null,
+            ]);
+        }
+
+        $this->command?->info("\nBackfilled missing doctor_practice pivots for " . $missing->count() . " doctor(s).");
     }
 
     private function fetchAvatar(string $firstName, string $lastName, int $pravatarIndex): ?string

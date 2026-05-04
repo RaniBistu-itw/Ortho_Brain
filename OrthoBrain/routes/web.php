@@ -334,5 +334,6 @@ Route::middleware(['web', 'admin'])
             Route::get('cities',         [LookupController::class, 'citiesByState'])->name('cities');
             Route::get('subcategories',  [LookupController::class, 'subcategoriesByCategory'])->name('subcategories');
             Route::get('doctors/search', [LookupController::class, 'doctorSearch'])->name('doctors-search');
+            Route::get('patients/search', [LookupController::class, 'patientSearch'])->name('patients-search');
         });
     });

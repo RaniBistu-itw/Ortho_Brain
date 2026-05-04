@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\CityRequest;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\State;
+use App\Support\StatusDependencyChecker;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -132,7 +133,16 @@ class CityController extends Controller
     {
         $data = $request->validate([
             'status' => ['required', 'in:ACTIVE,INACTIVE'],
+            'force'  => ['sometimes', 'boolean'],
         ]);
+
+        if ($data['status'] === 'INACTIVE' && empty($data['force'])) {
+            $dependents = StatusDependencyChecker::activeDependents($city);
+            if (!empty($dependents)) {
+                return response()->json(StatusDependencyChecker::buildResponsePayload($city, $dependents));
+            }
+        }
+
         $city->update(['status' => $data['status']]);
         return response()->json([
             'ok'      => true,

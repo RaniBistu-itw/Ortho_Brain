@@ -10,31 +10,25 @@
 @push('styles')
 <style>
     /* ──────────────────────────────────────────────────────────
-       Practices listing — aligned with orthobrain brand palette
-       (cyan #5bc0de primary, green #8cc63f accent)
+       Practices listing — page-local tokens only.
+       Shared brand tokens (--ob-primary, --ob-border, --ob-text,
+       --ob-surface-1/2, --ob-success/warning/danger) come from
+       orthobrain-palette.css and swap with light/dark.
        ────────────────────────────────────────────────────────── */
     #practices-page {
-        --ob-primary: #5bc0de;
-        --ob-primary-hover: #3fb1d4;
-        --ob-primary-soft: rgba(91, 192, 222, 0.14);
-        --ob-primary-softer: rgba(91, 192, 222, 0.07);
+        --ob-primary-softer: rgba(59, 130, 246, 0.07);
         --ob-accent: #8cc63f;
         --ob-accent-soft: rgba(140, 198, 63, 0.14);
-        --ob-warning: #ff9f43;
         --ob-warning-soft: rgba(255, 159, 67, 0.12);
-        --ob-danger: #ea5455;
         --ob-danger-soft: rgba(234, 84, 85, 0.12);
-        --ob-muted: #6e6b7b;
-        --ob-border: #ebe9f1;
-        --ob-surface: #ffffff;
-        --ob-surface-alt: #f8f8fb;
-        --ob-text: #1f1f1f;
+        --ob-muted: var(--ob-text-muted);
+        --ob-surface-alt: var(--ob-surface-2);
         --ob-shadow-sm: 0 1px 2px rgba(24, 28, 40, 0.04);
         --ob-shadow-md: 0 4px 20px rgba(24, 28, 40, 0.06);
     }
 
     .ob-list-card {
-        background: var(--ob-surface);
+        background: var(--ob-surface-1);
         border: 1px solid var(--ob-border);
         border-radius: 0.85rem;
         box-shadow: var(--ob-shadow-sm);
@@ -50,7 +44,7 @@
         border-bottom: 1px solid var(--ob-border);
         flex-wrap: wrap;
     }
-    .ob-card-head-title { font-size: 1.05rem; font-weight: 700; color: #111; margin: 0; }
+    .ob-card-head-title { font-size: 1.05rem; font-weight: 700; color: var(--ob-text); margin: 0; }
     .ob-card-head-meta { color: var(--ob-muted); font-size: 0.82rem; font-weight: 500; }
 
     .ob-tabs {
@@ -89,8 +83,8 @@
         padding: 0 0.45rem;
         font-size: 0.7rem;
         font-weight: 700;
-        background: #f3f2f7;
-        color: var(--ob-muted);
+        background: var(--ob-surface-2);
+        color: var(--ob-text-muted);
         border-radius: 999px;
     }
     .ob-tabs .ob-tab.is-active .ob-tab-count { background: var(--ob-primary-soft); color: var(--ob-primary); }
@@ -105,16 +99,14 @@
         position: absolute;
         left: 0.75rem; top: 50%; transform: translateY(-50%);
         width: 16px; height: 16px;
-        color: #9a9aab;
+        color: var(--ob-text-muted);
         pointer-events: none;
     }
     .ob-input-icon .form-control {
         padding-left: 2.35rem;
-        background: #fff;
     }
     .ob-toolbar .form-control, .ob-toolbar .form-select {
         border-radius: 0.5rem;
-        border-color: #e2e0ea;
     }
     .ob-toolbar .form-control:focus, .ob-toolbar .form-select:focus {
         border-color: var(--ob-primary);
@@ -129,30 +121,30 @@
     .ob-chip {
         display: inline-flex; align-items: center; gap: 0.35rem;
         padding: 0.25rem 0.55rem 0.25rem 0.7rem;
-        background: #fff;
-        border: 1px solid #e2e0ea;
+        background: var(--ob-surface-1);
+        border: 1px solid var(--ob-border);
         border-radius: 999px;
         font-size: 0.76rem;
         font-weight: 600;
         color: var(--ob-text);
     }
-    .ob-chip .ob-chip-label { color: var(--ob-muted); font-weight: 500; margin-right: 0.15rem; }
+    .ob-chip .ob-chip-label { color: var(--ob-text-muted); font-weight: 500; margin-right: 0.15rem; }
     .ob-chip a {
         display: inline-flex; align-items: center; justify-content: center;
         width: 16px; height: 16px;
         border-radius: 50%;
-        background: #f3f2f7;
-        color: var(--ob-muted);
+        background: var(--ob-surface-2);
+        color: var(--ob-text-muted);
         transition: background 120ms ease, color 120ms ease;
     }
     .ob-chip a:hover { background: var(--ob-danger); color: #fff; }
     .ob-chip a svg { width: 10px; height: 10px; }
 
-    .ob-table { width: 100%; margin: 0; }
+    .ob-table { width: 100%; margin: 0; color: var(--ob-text); }
     .ob-table thead th {
         background: var(--ob-surface-alt);
-        color: #555668;
-        font-weight: 600;
+        color: var(--ob-text);
+        font-weight: 700;
         font-size: 0.72rem;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -163,7 +155,7 @@
     }
     .ob-table tbody td {
         padding: 0.9rem 1.25rem;
-        border-top: 1px solid #f3f2f7;
+        border-top: 1px solid var(--ob-border);
         vertical-align: middle;
         font-size: 0.88rem;
     }
@@ -172,7 +164,7 @@
 
     .ob-practice-cell { display: flex; align-items: center; gap: 0.75rem; min-width: 240px; }
     .ob-practice-cell .ob-practice-name {
-        font-weight: 700; color: #111; line-height: 1.2;
+        font-weight: 700; color: var(--ob-text); line-height: 1.2;
         display: block;
     }
     .ob-practice-cell .ob-practice-sub {
@@ -189,7 +181,7 @@
         font-size: 0.8rem;
         flex: 0 0 auto;
         overflow: hidden;
-        box-shadow: 0 0 0 2px #fff, 0 0 0 3px #ebe9f1;
+        box-shadow: 0 0 0 2px var(--ob-surface-1), 0 0 0 3px var(--ob-border);
     }
     .ob-logo img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -198,7 +190,7 @@
         color: var(--ob-text);
     }
     .ob-contact-line + .ob-contact-line { margin-top: 0.2rem; }
-    .ob-contact-line svg { width: 13px; height: 13px; color: #9a9aab; flex: 0 0 auto; }
+    .ob-contact-line svg { width: 13px; height: 13px; color: var(--ob-text-muted); flex: 0 0 auto; }
     .ob-contact-line.is-sub { color: var(--ob-muted); font-size: 0.76rem; }
     .ob-contact-line a { color: var(--ob-text); text-decoration: none; }
     .ob-contact-line a:hover { color: var(--ob-primary); text-decoration: underline; }
@@ -241,25 +233,11 @@
     .ob-pending-pill:hover { background: rgba(255, 159, 67, 0.22); color: #9c560e; }
 
     .ob-when { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--ob-text); }
-    .ob-when svg { width: 13px; height: 13px; color: #9a9aab; }
+    .ob-when svg { width: 13px; height: 13px; color: var(--ob-text-muted); }
 
-    .ob-row-actions { display: inline-flex; align-items: center; gap: 0.3rem; justify-content: flex-end; }
-    .ob-icon-btn {
-        width: 34px; height: 34px;
-        display: inline-flex; align-items: center; justify-content: center;
-        border-radius: 0.5rem;
-        border: 1px solid var(--ob-border);
-        background: #fff;
-        color: var(--ob-muted);
-        transition: color 120ms ease, border-color 120ms ease, background 120ms ease, transform 120ms ease;
-    }
-    .ob-icon-btn:hover {
-        color: var(--ob-primary);
-        border-color: var(--ob-primary);
-        background: var(--ob-primary-softer);
-        transform: translateY(-1px);
-    }
-    .ob-icon-btn svg { width: 15px; height: 15px; }
+    /* .ob-row-actions and .ob-icon-btn (incl. --view/--edit/--delete rest +
+       hover states) are defined globally in orthobrain-palette.css so they
+       match every other admin index. Don't redefine them here. */
 
     .ob-empty { padding: 3rem 1.5rem; text-align: center; }
     .ob-empty-icon {
@@ -271,7 +249,7 @@
         display: inline-flex; align-items: center; justify-content: center;
     }
     .ob-empty-icon svg { width: 26px; height: 26px; }
-    .ob-empty-title { font-weight: 700; color: #111; margin-bottom: 0.25rem; }
+    .ob-empty-title { font-weight: 700; color: var(--ob-text); margin-bottom: 0.25rem; }
     .ob-empty-sub { color: var(--ob-muted); font-size: 0.86rem; }
     .ob-empty-sub a { color: var(--ob-primary); font-weight: 600; text-decoration: none; }
     .ob-empty-sub a:hover { text-decoration: underline; }
@@ -380,7 +358,7 @@
 
         {{-- Table --}}
         <div class="table-responsive">
-            <table class="ob-table">
+            <table class="table ob-table">
                 <thead>
                     <tr>
                         <th>@include('admin._partials.sort_th', ['label' => 'Practice', 'key' => 'practice', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
