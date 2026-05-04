@@ -119,6 +119,9 @@ Route::middleware(['web', 'auth'])
             Route::post('/cases',                   [CasesController::class, 'store'])->name('cases.store');
             Route::get('/cases/{case}/edit',        [CasesController::class, 'edit'])->name('cases.edit');
             Route::post('/cases/{case}/submit',     [CasesController::class, 'submit'])->name('cases.submit');
+            Route::post('/cases/{case}/shipping',   [CasesController::class, 'saveShipping'])->name('cases.shipping.save');
+            Route::post('/cases/{case}/impressions',[CasesController::class, 'saveImpressions'])->name('cases.impressions.save');
+            Route::post('/cases/{case}/additional', [CasesController::class, 'saveAdditionalInfo'])->name('cases.additional.save');
             Route::post('/cases/{case}/prescription',[PrescriptionController::class, 'update'])->name('cases.prescription.update');
             Route::post('/cases/{case}/patient',     [PatientController::class, 'upsert'])->name('cases.patient.upsert');
             Route::match(['get', 'post'], '/cases/{case}/export.pdf', [CasePdfController::class, 'export'])->name('cases.export.pdf');

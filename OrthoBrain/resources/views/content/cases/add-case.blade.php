@@ -204,6 +204,9 @@
     window.__addCasePrefill = @json($prescriptionPrefill ?? null);
     window.__caseMediaPrefill = @json($caseMedia ?? []);
     window.__patientPrefill = @json($patientPrefill ?? null);
+    window.__additionalInfoPrefill = @json($additionalInfoPrefill ?? null);
+    window.__shippingAddressPrefill = @json($shippingAddressPrefill ?? null);
+    window.__impressionsPrefill = @json($impressionsPrefill ?? null);
     window.CASE_API_BASE = @json($apiBase);
     window.CASE_ADMIN_MODE = @json((bool) $adminMode);
     window.ACTIVE_PRACTICE_ADDRESS = @json($activePracticeAddress);

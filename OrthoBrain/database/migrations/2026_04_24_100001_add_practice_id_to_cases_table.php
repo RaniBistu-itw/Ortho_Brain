@@ -18,12 +18,14 @@ return new class extends Migration
             $table->index(['doctor_id', 'practice_id']);
         });
 
-        DB::statement("
-            UPDATE cases c
-            JOIN doctors d ON c.doctor_id = d.id
-            SET c.practice_id = d.practice_id
-            WHERE c.practice_id IS NULL
-        ");
+        DB::table('cases')
+            ->whereNull('practice_id')
+            ->update([
+                'practice_id' => DB::table('doctors')
+                    ->whereColumn('doctors.id', 'cases.doctor_id')
+                    ->select('practice_id')
+                    ->limit(1)
+            ]);
     }
 
     public function down(): void

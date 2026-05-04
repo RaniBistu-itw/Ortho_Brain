@@ -6,7 +6,9 @@ use App\Models\CaseModel;
 use App\Models\Doctor;
 use App\Models\Prescription;
 use App\Models\Scanner;
-use App\Http\Requests\Cases\PrescriptionRequest;
+use App\Models\CaseAdditionalInfo;
+use App\Models\CaseShippingAddress;
+use App\Http\Requests\Cases\AdditionalInformationRequest;
 use App\Services\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -126,7 +128,7 @@ class CasesController extends Controller
         $doctor->loadMissing('practice:id,name');
         $practiceId = currentPractice()->id;
 
-        $case = CaseModel::with(['prescription.toothRestrictions', 'media', 'patient'])
+        $case = CaseModel::with(['prescription.toothRestrictions', 'media', 'patient', 'additionalInfo', 'shippingAddress'])
             ->where('doctor_id', $doctor->id)
             ->where('practice_id', $practiceId)
             ->findOrFail($id);
@@ -138,7 +140,58 @@ class CasesController extends Controller
             'scanners' => $this->activeScanners(),
             'caseMedia' => $this->serializeMedia($case->media),
             'patientPrefill' => $this->serializePatient($case->patient),
+            'additionalInfoPrefill' => $case->additionalInfo?->data,
+            'shippingAddressPrefill' => $this->serializeShipping($case->shippingAddress),
+            'impressionsPrefill' => [
+                'impressionMethod' => $case->impression_method ? strtolower($case->impression_method) : null,
+                'scannerId' => $case->scanner_id,
+            ],
         ]);
+    }
+
+    public function saveShipping(Request $request, int $id)
+    {
+        $case = CaseModel::where('doctor_id', Auth::id())->findOrFail($id);
+
+        $case->shippingAddress()->updateOrCreate(
+            ['case_id' => $case->id],
+            [
+                'practice_name'    => $request->input('practice'),
+                'doctor_name'      => $request->input('doctorName'),
+                'street_address_1' => $request->input('streetAddress'),
+                'street_address_2' => $request->input('streetAddress2'),
+                'zip_id'           => $request->input('zipId'),
+                'city_id'          => $request->input('cityId'),
+                'state_id'         => $request->input('stateId'),
+                'country_id'       => $request->input('countryId'),
+            ]
+        );
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function saveImpressions(Request $request, int $id)
+    {
+        $case = CaseModel::where('doctor_id', Auth::id())->findOrFail($id);
+
+        $case->update([
+            'impression_method' => strtoupper($request->input('impressionMethod')),
+            'scanner_id'        => $request->input('scannerId'),
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function saveAdditionalInfo(AdditionalInformationRequest $request, int $id)
+    {
+        $case = CaseModel::where('doctor_id', Auth::id())->findOrFail($id);
+
+        $case->additionalInfo()->updateOrCreate(
+            ['case_id' => $case->id],
+            ['data' => $request->validated()]
+        );
+
+        return response()->json(['ok' => true]);
     }
 
     public function submit(int $id)
@@ -308,5 +361,20 @@ class CasesController extends Controller
             'SPECIFIC_STEP' => 'specific-step',
             default => null,
         };
+    }
+
+    private function serializeShipping(?CaseShippingAddress $addr): ?array
+    {
+        if (! $addr) return null;
+        return [
+            'practice'       => $addr->practice_name,
+            'doctorName'     => $addr->doctor_name,
+            'streetAddress'  => $addr->street_address_1,
+            'streetAddress2' => $addr->street_address_2,
+            'zipId'          => $addr->zip_id,
+            'cityId'         => $addr->city_id,
+            'stateId'        => $addr->state_id,
+            'countryId'      => $addr->country_id,
+        ];
     }
 }
