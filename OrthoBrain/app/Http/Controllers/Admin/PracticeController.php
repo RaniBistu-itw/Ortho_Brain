@@ -161,7 +161,15 @@ class PracticeController extends Controller
             ->all();
 
         $data = $request->validate([
-            'name'               => 'required|string|max:200',
+            'name'               => [
+                'required',
+                'string',
+                'max:200',
+                Rule::unique('practices')
+                    ->where('city_id', $request->city_id)
+                    ->whereNull('deleted_at')
+                    ->ignore($practice->id),
+            ],
             'website'            => 'nullable|string|max:500',
             'phone_country_code' => ['required', Rule::in($phoneCodes)],
             'phone_number'       => 'required|string|regex:/^\d{10}$/',
@@ -172,6 +180,7 @@ class PracticeController extends Controller
             'state_id'           => 'required|integer|exists:states,id',
             'country_id'         => 'required|integer|exists:countries,id',
         ], [
+            'name.unique'        => 'A practice with this name already exists in this city.',
             'phone_number.regex' => 'Phone must be exactly 10 digits.',
         ]);
 
