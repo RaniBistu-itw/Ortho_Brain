@@ -272,6 +272,8 @@
         return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
     }
 
+    const namePattern = /^[a-zA-Z\s]+$/;
+
     const $tbody = $('#coTbody');
 
     function bumpStat(key, delta) {
@@ -433,10 +435,22 @@
                 }
             });
     }
-    const liveCheckName = debounce(() => liveCheckDrawerField('name', $('#coDrawerName'), $('#coDrawerNameErr')), 350);
-    const liveCheckCode = debounce(() => liveCheckDrawerField('country_code', $('#coDrawerCode'), $('#coDrawerCodeErr')), 350);
-    $(document).on('input', '#coDrawerName', liveCheckName);
-    $(document).on('input', '#coDrawerCode', liveCheckCode);
+    $(document).on('keyup input', '#coDrawerName', function () {
+    const $input = $(this);
+    const $err   = $('#coDrawerNameErr');
+    const val    = $input.val().trim();
+    if (val && !namePattern.test(val)) {
+        $input.addClass('is-invalid');
+        $err.text('The name may only contain letters and spaces.');
+        return;
+    }
+    $input.removeClass('is-invalid');
+    $err.text('');
+    debounce(() => liveCheckDrawerField('name', $input, $err), 350)();
+});
+$(document).on('keyup input', '#coDrawerCode', debounce(function () {
+    liveCheckDrawerField('country_code', $('#coDrawerCode'), $('#coDrawerCodeErr'));
+}, 350));
 
     // ── Live duplicate check on each bulk row (name + code) ──────────────
     function bulkRowFieldLiveCheck($input, field, sel, dupMsg) {
@@ -475,14 +489,26 @@
                 }
             });
     }
-    const bulkNameDebounced = debounce(function (el) {
-        bulkRowFieldLiveCheck($(el), 'name', '.co-bulk-name', 'Duplicate name in this batch.');
-    }, 350);
     const bulkCodeDebounced = debounce(function (el) {
-        bulkRowFieldLiveCheck($(el), 'country_code', '.co-bulk-code', 'Duplicate code in this batch.');
-    }, 350);
-    $(document).on('input', '#coBulkRows .co-bulk-name', function () { bulkNameDebounced(this); });
-    $(document).on('input', '#coBulkRows .co-bulk-code', function () { bulkCodeDebounced(this); });
+    bulkRowFieldLiveCheck($(el), 'country_code', '.co-bulk-code', 'Duplicate code in this batch.');
+}, 350);
+$(document).on('keyup input', '#coBulkRows .co-bulk-name', function () {
+    const $input = $(this);
+    const $row   = $input.closest('.co-bulk-row');
+    const $err   = $row.find('.co-bulk-row__err');
+    const val    = $input.val().trim();
+    if (val && !namePattern.test(val)) {
+        $input.addClass('is-invalid');
+        $err.text('The name may only contain letters and spaces.');
+        return;
+    }
+    $input.removeClass('is-invalid');
+    $err.text('');
+    debounce(function (el) {
+        bulkRowFieldLiveCheck($(el), 'name', '.co-bulk-name', 'Duplicate name in this batch.');
+    }, 350)(this);
+});
+$(document).on('keyup input', '#coBulkRows .co-bulk-code', function () { bulkCodeDebounced(this); });
 
     $('#coDrawerOpen').on('click', openDrawerCreate);
 
@@ -501,7 +527,8 @@
         clearErrors();
         let firstInvalid = null;
         if (!payload.name) { setFieldError('name', 'Name is required.'); firstInvalid = firstInvalid || FIELDS.name.input; }
-        else if (payload.name.length > 100) { setFieldError('name', 'Name may not be longer than 100 characters.'); firstInvalid = firstInvalid || FIELDS.name.input; }
+else if (payload.name.length > 100) { setFieldError('name', 'Name may not be longer than 100 characters.'); firstInvalid = firstInvalid || FIELDS.name.input; }
+else if (!namePattern.test(payload.name)) { setFieldError('name', 'The name may only contain letters and spaces.'); firstInvalid = firstInvalid || FIELDS.name.input; }
         if (!payload.country_code) { setFieldError('country_code', 'Country code is required.'); firstInvalid = firstInvalid || FIELDS.country_code.input; }
         else if (payload.country_code.length > 10) { setFieldError('country_code', 'Country code may not be longer than 10 characters.'); firstInvalid = firstInvalid || FIELDS.country_code.input; }
         if (!payload.phone_code) { setFieldError('phone_code', 'Phone code is required.'); firstInvalid = firstInvalid || FIELDS.phone_code.input; }
