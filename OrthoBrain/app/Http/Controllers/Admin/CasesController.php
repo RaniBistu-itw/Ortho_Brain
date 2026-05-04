@@ -144,7 +144,7 @@ class CasesController extends Controller
         // Reuse the doctor CasesController's serializers so the prefill
         // shapes (prescription / media / patient) match exactly what the
         // Alpine components expect.
-        $doctorController = new DoctorCasesController();
+        $doctorController = app(DoctorCasesController::class);
 
         $reflection = new \ReflectionMethod($doctorController, 'serializePrescription');
         $reflection->setAccessible(true);

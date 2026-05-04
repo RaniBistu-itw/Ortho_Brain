@@ -24,12 +24,12 @@ it('creates a state with valid data', function () {
     loginAsAdmin();
     $country = Country::factory()->create();
 
-    $this->post('/admin/states', [
+    $this->postJson('/admin/states/ajax', [
         'country_id' => $country->id,
         'name'       => 'Bavaria',
         'state_code' => 'BY',
         'status'     => 'ACTIVE',
-    ])->assertRedirect('/admin/states');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     $this->assertDatabaseHas('states', [
         'name'       => 'Bavaria',
@@ -41,12 +41,12 @@ it('creates a state with valid data', function () {
 it('rejects state creation when country_id does not exist', function () {
     loginAsAdmin();
 
-    $this->post('/admin/states', [
+    $this->postJson('/admin/states/ajax', [
         'country_id' => 99999,
         'name'       => 'Nowhere',
         'state_code' => 'NW',
         'status'     => 'ACTIVE',
-    ])->assertSessionHasErrors('country_id');
+    ])->assertStatus(422)->assertJsonValidationErrors('country_id');
 });
 
 it('rejects duplicate state_code within the same country', function () {
@@ -54,12 +54,12 @@ it('rejects duplicate state_code within the same country', function () {
     $country = Country::factory()->create();
     State::factory()->create(['country_id' => $country->id, 'state_code' => 'DUP']);
 
-    $this->post('/admin/states', [
+    $this->postJson('/admin/states/ajax', [
         'country_id' => $country->id,
         'name'       => 'Second',
         'state_code' => 'DUP',
         'status'     => 'ACTIVE',
-    ])->assertSessionHasErrors('state_code');
+    ])->assertStatus(422)->assertJsonValidationErrors('state_code');
 });
 
 it('allows the same state_code in a different country', function () {
@@ -68,12 +68,12 @@ it('allows the same state_code in a different country', function () {
     $countryB = Country::factory()->create();
     State::factory()->create(['country_id' => $countryA->id, 'state_code' => 'SHARED']);
 
-    $this->post('/admin/states', [
+    $this->postJson('/admin/states/ajax', [
         'country_id' => $countryB->id,
         'name'       => 'Shared Code State',
         'state_code' => 'SHARED',
         'status'     => 'ACTIVE',
-    ])->assertRedirect('/admin/states');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     $this->assertDatabaseHas('states', [
         'country_id' => $countryB->id,
@@ -84,8 +84,8 @@ it('allows the same state_code in a different country', function () {
 it('rejects state creation when required fields are missing', function () {
     loginAsAdmin();
 
-    $this->post('/admin/states', [])
-        ->assertSessionHasErrors(['country_id', 'name', 'state_code', 'status']);
+    $this->postJson('/admin/states/ajax', [])
+        ->assertStatus(422)->assertJsonValidationErrors(['country_id', 'name', 'state_code', 'status']);
 });
 
 // ─── Update ─────────────────────────────────────────────────────
@@ -93,12 +93,12 @@ it('updates a state', function () {
     loginAsAdmin();
     $state = State::factory()->create(['name' => 'Old']);
 
-    $this->put("/admin/states/{$state->id}", [
+    $this->putJson("/admin/states/ajax/{$state->id}", [
         'country_id' => $state->country_id,
         'name'       => 'Renamed',
         'state_code' => $state->state_code,
         'status'     => 'ACTIVE',
-    ])->assertRedirect('/admin/states');
+    ])->assertOk()->assertJson(['ok' => true]);
 
     expect($state->fresh()->name)->toBe('Renamed');
 });

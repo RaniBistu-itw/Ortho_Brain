@@ -337,6 +337,8 @@
         return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
     }
 
+    const namePattern = /^[a-zA-Z\s]+$/;
+
     const $tbody = $('#ciTbody');
 
     function bumpStat(key, delta) {
@@ -545,7 +547,20 @@
                 }
             });
     }, 350);
-    $(document).on('input', '#ciDrawerName', liveCheckDrawer);
+
+    $(document).on('keyup input', '#ciDrawerName', function () {
+        const $input = $(this);
+        const $err   = $('#ciDrawerNameErr');
+        const val    = $input.val().trim();
+        if (val && !namePattern.test(val)) {
+            $input.addClass('is-invalid');
+            $err.text('The name may only contain letters and spaces.');
+            return;
+        }
+        $input.removeClass('is-invalid');
+        $err.text('');
+        liveCheckDrawer();
+    });
     $(document).on('change', '#ciDrawerState', liveCheckDrawer);
 
     // ── Live duplicate check on each bulk row (name per state) ────────────
@@ -587,7 +602,19 @@
             });
     }
     const bulkRowLiveCheckDebounced = debounce(function (el) { bulkRowLiveCheck($(el)); }, 350);
-    $(document).on('input', '#ciBulkRows .ci-bulk-name', function () {
+
+    $(document).on('keyup input', '#ciBulkRows .ci-bulk-name', function () {
+        const $input = $(this);
+        const $row   = $input.closest('.ci-bulk-row');
+        const $err   = $row.find('.ci-bulk-row__err');
+        const val    = $input.val().trim();
+        if (val && !namePattern.test(val)) {
+            $input.addClass('is-invalid');
+            $err.text('The name may only contain letters and spaces.');
+            return;
+        }
+        $input.removeClass('is-invalid');
+        $err.text('');
         bulkRowLiveCheckDebounced(this);
     });
     $(document).on('change', '#ciBulkState', function () {
@@ -614,6 +641,7 @@
         if (!payload.state_id) { setFieldError('state_id', 'State is required.'); firstInvalid = firstInvalid || FIELDS.state_id.input; }
         if (!payload.name) { setFieldError('name', 'Name is required.'); firstInvalid = firstInvalid || FIELDS.name.input; }
         else if (payload.name.length > 100) { setFieldError('name', 'Name may not be longer than 100 characters.'); firstInvalid = firstInvalid || FIELDS.name.input; }
+        else if (!namePattern.test(payload.name)) { setFieldError('name', 'The name may only contain letters and spaces.'); firstInvalid = firstInvalid || FIELDS.name.input; }
         if (!payload.status) { setFieldError('status', 'Status is required.'); firstInvalid = firstInvalid || FIELDS.status.input; }
         if (firstInvalid) $(firstInvalid).trigger('focus');
         return !firstInvalid;
