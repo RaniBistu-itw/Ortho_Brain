@@ -208,7 +208,13 @@
 
       // ── Tile click ──────────────────────────────────────────────────────────
 
-      onTileClick: function (tileId) {
+      onTileClick: function (tileId, evt) {
+        // See photographs.js for the full rationale — short version: ignore
+        // synthetic click events (isTrusted === false) so the bubble from
+        // input.click() can't re-enter this handler and open the modal +
+        // a second file dialog at once.
+        if (evt && evt.isTrusted === false) return;
+
         if (this.tiles[tileId].filled) {
           this._openTileModal(tileId);
         } else {
@@ -247,6 +253,10 @@
       replaceTile: function () {
         var tileId = this.tileModal.activeTileId;
         if (!tileId) return;
+        // Bypass the post-change recency guard from PR #78 — user explicitly
+        // asked to replace, and the guard would otherwise silently no-op a
+        // Replace clicked within 800ms of an upload.
+        if (this._lastChangeByTile) delete this._lastChangeByTile[tileId];
         this._pendingReplaceTileId = tileId;
         this._closeTileModal();
       },
