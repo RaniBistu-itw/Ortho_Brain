@@ -17,9 +17,34 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class RegisterController extends Controller
 {
+    /**
+     * Check if a practice with the same name+city already exists (case-insensitive).
+     * If found, throw a validation exception with appropriate message.
+     */
+    private function checkPracticeDuplicate(string $name, int $cityId): void
+    {
+        $duplicate = Practice::whereRaw('LOWER(name) = ?', [strtolower($name)])
+            ->where('city_id', $cityId)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($duplicate) {
+            if ($duplicate->status === 'ACTIVE') {
+                throw ValidationException::withMessages([
+                    'practice_name' => 'A practice with this name already exists in this city. Please search for it using the search bar and select it.',
+                ]);
+            } else {
+                throw ValidationException::withMessages([
+                    'practice_name' => 'A practice with this name is already pending approval in this city. Please wait for it to be approved, then join it.',
+                ]);
+            }
+        }
+    }
+
     public function show()
     {
         return view('register', [
@@ -250,6 +275,8 @@ class RegisterController extends Controller
             if ($isExisting) {
                 $practiceId = (int) $data['practice_id'];
             } else {
+                $this->checkPracticeDuplicate($data['practice_name'], $data['city_id']);
+
                 $newPractice = Practice::create([
                     'owner_id'           => null,
                     'name'               => $data['practice_name'],
@@ -348,6 +375,8 @@ class RegisterController extends Controller
             // each one (per product decision: every practice needs admin review).
             foreach ($newRows as $entry) {
                 $row = $entry['data'];
+                $this->checkPracticeDuplicate($row['name'], $row['city_id']);
+
                 $created = Practice::create([
                     'owner_id'           => $doctor->id,
                     'name'               => $row['name'],

@@ -646,16 +646,31 @@
                     <li data-step="4" onclick="regGoToStep(4)"><span class="num">4</span><span class="lbl">Additional Doctor Information</span></li>
                 </ol>
 
+                {{-- Map server error keys to wizard steps. Used both in banner rendering and in JS step filtering. --}}
+                @php
+                    $errStepMap = [
+                        'email' => 1, 'first_name' => 1, 'last_name' => 1, 'password' => 1, 'confirm_password' => 1,
+                        'practice_name' => 2, 'practice_phone_number' => 2, 'practice_website' => 2,
+                        'additional_practices' => 2,
+                        'street_address_1' => 3, 'zip_id' => 3, 'city_id' => 3, 'state_id' => 3, 'country_id' => 3,
+                        'primary_address_source' => 3, 'primary_address_practice_ref' => 3,
+                        'contact_preference' => 4, 'modalities' => 4, 'specialties' => 4, 'providing_ortho' => 4,
+                        'terms_agreed' => 4,
+                    ];
+                @endphp
+
                 {{-- Surface server-side validation errors so silent bounce-backs are impossible.
-                     Each <li> carries data-server-field-key so JS can remove it as the user
-                     edits the corresponding field (see dismissServerBannerFor below). --}}
+                     Each <li> carries data-server-field-key and data-step so JS can:
+                     (1) Remove it as the user edits the corresponding field (dismissServerBannerFor)
+                     (2) Hide/show it based on the current wizard step (regShowStep) --}}
                 @if($errors->any())
                     <div class="reg-error-banner" id="reg-server-banner">
                         <strong>Please fix the following before continuing:</strong>
                         <ul>
                             @foreach($errors->keys() as $key)
                                 @foreach($errors->get($key) as $msg)
-                                    <li data-server-field-key="{{ $key }}">{{ $msg }}</li>
+                                    @php $bare = explode('.', $key)[0]; @endphp
+                                    <li data-server-field-key="{{ $key }}" data-step="{{ $errStepMap[$bare] ?? 1 }}">{{ $msg }}</li>
                                 @endforeach
                             @endforeach
                         </ul>
@@ -1325,6 +1340,18 @@
                     li.classList.toggle('completed', s < n);
                 });
 
+                // Hide banner items that don't belong to the current step; show those that do.
+                const banner = document.getElementById('reg-server-banner');
+                if (banner) {
+                    let anyVisible = false;
+                    banner.querySelectorAll('li[data-step]').forEach(li => {
+                        const show = Number(li.dataset.step) === n;
+                        li.style.display = show ? '' : 'none';
+                        if (show) anyVisible = true;
+                    });
+                    banner.style.display = anyVisible ? '' : 'none';
+                }
+
                 const backLogin = document.getElementById('reg-back-login');
                 const backBtn   = document.getElementById('reg-back-btn');
                 const nextBtn   = document.getElementById('reg-next-btn');
@@ -1827,15 +1854,6 @@
 
                 @if($errors->any())
                 @php
-                    $errStepMap = [
-                        'email' => 1, 'first_name' => 1, 'last_name' => 1, 'password' => 1, 'confirm_password' => 1,
-                        'practice_name' => 2, 'practice_phone_number' => 2, 'practice_website' => 2,
-                        'additional_practices' => 2,
-                        'street_address_1' => 3, 'zip_id' => 3, 'city_id' => 3, 'state_id' => 3, 'country_id' => 3,
-                        'primary_address_source' => 3, 'primary_address_practice_ref' => 3,
-                        'contact_preference' => 4, 'modalities' => 4, 'specialties' => 4, 'providing_ortho' => 4,
-                        'terms_agreed' => 4,
-                    ];
                     $firstErrStep = 1;
                     foreach ($errors->keys() as $key) {
                         $bare = explode('.', $key)[0];

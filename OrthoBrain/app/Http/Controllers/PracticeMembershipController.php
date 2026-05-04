@@ -9,9 +9,34 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PracticeMembershipController extends Controller
 {
+    /**
+     * Check if a practice with the same name+city already exists (case-insensitive).
+     * If found, throw a validation exception with appropriate message.
+     */
+    private function checkPracticeDuplicate(string $name, int $cityId): void
+    {
+        $duplicate = Practice::whereRaw('LOWER(name) = ?', [strtolower($name)])
+            ->where('city_id', $cityId)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($duplicate) {
+            if ($duplicate->status === 'ACTIVE') {
+                throw ValidationException::withMessages([
+                    'practice_name' => 'A practice with this name already exists in this city. Please search for it using the search bar and select it.',
+                ]);
+            } else {
+                throw ValidationException::withMessages([
+                    'practice_name' => 'A practice with this name is already pending approval in this city. Please wait for it to be approved, then join it.',
+                ]);
+            }
+        }
+    }
+
     /**
      * Doctor switches the active practice for this session.
      * Only practices they have an APPROVED link to are valid targets.
@@ -134,6 +159,8 @@ class PracticeMembershipController extends Controller
                     ]);
                     $created++;
                 } else {
+                    $this->checkPracticeDuplicate($row['name'], $row['city_id']);
+
                     $practice = Practice::create([
                         'owner_id'           => $doctor->id,
                         'name'               => $row['name'],
