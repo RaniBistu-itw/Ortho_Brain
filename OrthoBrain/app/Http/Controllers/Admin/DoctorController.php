@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RejectDoctorRequest;
 use App\Http\Requests\Admin\UpdateDoctorSectionRequest;
 use App\Models\BuccalCorridorOption;
+use App\Models\Country;
 use App\Models\Doctor;
 use App\Models\Modality;
 use App\Models\Practice;
@@ -126,6 +127,14 @@ class DoctorController extends Controller
             'specialtiesList' => Specialty::orderBy('id')->get(),
             'treatmentModalitiesList' => TreatmentModality::orderBy('id')->get(),
             'buccalCorridorsList' => BuccalCorridorOption::orderBy('id')->get(),
+            // Drives the practice phone country-code dropdown. Must mirror RegisterController's
+            // Rule::in($phoneCodes) check, otherwise a hardcoded option could fail validation.
+            'phoneCodes' => Country::where('status', 'ACTIVE')
+                ->select('phone_code')
+                ->distinct()
+                ->orderBy('phone_code')
+                ->pluck('phone_code')
+                ->all(),
         ]);
     }
 

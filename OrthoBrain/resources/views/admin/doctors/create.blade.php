@@ -277,32 +277,108 @@
     #obw .obw-pw-toggle { cursor: pointer; color: var(--obw-mute); transition: color .15s; }
     #obw .obw-pw-toggle:hover { color: var(--obw-accent); }
 
-    /* ── Practice picker chip ────────────────────────────── */
-    #obw .obw-practice-chip {
-        display: flex; gap: .85rem; align-items: center;
-        padding: .9rem 1rem;
-        background: var(--obw-accent-soft);
+    /* ── Practice mode picker (segmented control) ────────── */
+    #obw .obw-mode-picker {
+        display: inline-flex; padding: 4px; gap: 4px;
+        background: var(--obw-line-2);
+        border: 1px solid var(--obw-line);
+        border-radius: 999px;
+        margin-bottom: 1.25rem;
+    }
+    #obw .obw-mode-tab {
+        appearance: none; background: transparent; border: 0;
+        padding: .5rem 1.05rem;
+        border-radius: 999px;
+        font-size: .8125rem; font-weight: 600;
+        color: var(--obw-ink-2);
+        display: inline-flex; align-items: center; gap: .45rem;
+        cursor: pointer;
+        transition: background .15s, color .15s, box-shadow .15s;
+    }
+    #obw .obw-mode-tab:hover { color: var(--obw-ink); }
+    #obw .obw-mode-tab[aria-selected="true"] {
+        background: var(--obw-surface);
+        color: var(--obw-accent-600);
+        box-shadow: 0 1px 3px rgba(34,41,47,.1);
+    }
+    #obw .obw-mode-tab i { width: 14px; height: 14px; }
+    #obw .obw-mode-pane[hidden] { display: none !important; }
+
+    /* ── Picked-practice rich card ───────────────────────── */
+    #obw .obw-picked {
         border: 1px solid var(--obw-accent-line);
         border-radius: var(--obw-radius);
+        background: var(--obw-surface);
+        overflow: hidden;
+        box-shadow: var(--obw-shadow);
     }
-    #obw .obw-practice-chip .obw-chip-icon {
-        width: 42px; height: 42px; border-radius: var(--obw-radius-sm);
-        background: #fff; color: var(--obw-accent);
-        display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-        box-shadow: 0 1px 3px rgba(91,192,222,.2);
+    #obw .obw-picked-head {
+        display: flex; align-items: center; gap: .9rem;
+        padding: 1rem 1.15rem;
+        background: linear-gradient(180deg, var(--obw-accent-soft) 0%, transparent 100%);
+        border-bottom: 1px solid var(--obw-accent-line);
     }
-    #obw .obw-practice-chip .obw-chip-body { flex: 1; min-width: 0; }
-    #obw .obw-practice-chip .obw-chip-title { font-weight: 600; color: var(--obw-ink); font-size: .9375rem; }
-    #obw .obw-practice-chip .obw-chip-meta  { font-size: .75rem; color: var(--obw-ink-2); margin-top: 2px; }
-
-    /* Practice mode link — slightly more button-y */
-    #obw .obw-practice-mode-link {
-        color: var(--obw-accent-600); font-weight: 500; font-size: .78rem;
-        text-decoration: none; padding: .25rem .55rem;
-        border-radius: 999px; background: var(--obw-accent-soft);
-        transition: background .15s;
+    #obw .obw-picked-icon {
+        width: 44px; height: 44px; flex-shrink: 0;
+        border-radius: var(--obw-radius-sm);
+        background: var(--obw-surface);
+        color: var(--obw-accent);
+        display: inline-flex; align-items: center; justify-content: center;
+        box-shadow: 0 1px 4px rgba(91,192,222,.25);
     }
-    #obw .obw-practice-mode-link:hover { background: var(--obw-accent-line); color: var(--obw-accent-600); }
+    #obw .obw-picked-icon i { width: 22px; height: 22px; }
+    #obw .obw-picked-info { flex: 1; min-width: 0; }
+    #obw .obw-picked-name {
+        font-size: 1rem; font-weight: 700; color: var(--obw-ink);
+        line-height: 1.2;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #obw .obw-picked-status {
+        font-size: .7rem; color: var(--obw-ink-2);
+        text-transform: uppercase; letter-spacing: .06em;
+        margin-top: 4px; font-weight: 600;
+        display: inline-flex; align-items: center; gap: .4rem;
+    }
+    #obw .obw-picked-status::before {
+        content: ""; width: 6px; height: 6px; border-radius: 50%;
+        background: var(--obw-success); flex-shrink: 0;
+    }
+    #obw .obw-picked-change {
+        appearance: none; border: 1px solid var(--obw-line);
+        background: var(--obw-surface); color: var(--obw-ink-2);
+        padding: .42rem .85rem;
+        border-radius: var(--obw-radius-sm);
+        font-size: .78rem; font-weight: 600;
+        display: inline-flex; align-items: center; gap: .4rem;
+        cursor: pointer; transition: border-color .15s, color .15s;
+        flex-shrink: 0;
+    }
+    #obw .obw-picked-change:hover { border-color: var(--obw-accent); color: var(--obw-accent-600); }
+    #obw .obw-picked-change i { width: 13px; height: 13px; }
+    #obw .obw-picked-details {
+        margin: 0; padding: 1.1rem 1.15rem;
+        display: grid; gap: 1rem;
+    }
+    @media (min-width: 768px) {
+        #obw .obw-picked-details { grid-template-columns: 1.6fr 1fr 1fr; }
+    }
+    #obw .obw-picked-row { margin: 0; min-width: 0; }
+    #obw .obw-picked-row dt {
+        display: flex; align-items: center; gap: .4rem;
+        font-size: .67rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .07em;
+        color: var(--obw-mute);
+        margin: 0 0 .3rem;
+    }
+    #obw .obw-picked-row dt i { width: 12px; height: 12px; }
+    #obw .obw-picked-row dd {
+        margin: 0; font-size: .85rem; color: var(--obw-ink);
+        line-height: 1.45;
+        word-break: break-word;
+    }
+    #obw .obw-picked-row dd a { color: var(--obw-accent-600); text-decoration: none; }
+    #obw .obw-picked-row dd a:hover { text-decoration: underline; }
+    #obw .obw-picked-row dd.is-empty { color: var(--obw-mute); font-style: italic; }
 
     /* ── Location chips (zip auto-fill) ──────────────────── */
     #obw .obw-location-chips {
@@ -415,6 +491,54 @@
     #obw .form-check-input:checked { background-color: var(--obw-accent); border-color: var(--obw-accent); }
     #obw .form-check-input:focus   { border-color: var(--obw-accent); box-shadow: 0 0 0 .2rem var(--obw-accent-soft); }
 
+    /* ── Unified phone field (icon | dial code | number) ── */
+    #obw .obw-phone {
+        display: flex; align-items: stretch;
+        height: calc(1.5em + .857rem * 2 + 2px); /* matches Bootstrap form-control height */
+        background: var(--obw-surface);
+        border: 1px solid var(--obw-line);
+        border-radius: var(--obw-radius-sm);
+        overflow: hidden;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    #obw .obw-phone:focus-within {
+        border-color: var(--obw-accent);
+        box-shadow: 0 0 0 .2rem var(--obw-accent-soft);
+    }
+    #obw .obw-phone.is-invalid { border-color: var(--obw-danger); }
+    #obw .obw-phone-icon {
+        display: flex; align-items: center; justify-content: center;
+        padding: 0 .8rem;
+        background: var(--obw-line-2);
+        color: var(--obw-mute);
+        border-right: 1px solid var(--obw-line);
+    }
+    #obw .obw-phone-cc {
+        appearance: none; -webkit-appearance: none;
+        border: 0; outline: none;
+        padding: 0 1.6rem 0 .75rem;
+        background: transparent;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 16 16' fill='%236e6b7b'><path d='M3.204 5h9.592L8 10.481zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659z'/></svg>");
+        background-repeat: no-repeat;
+        background-position: right .65rem center;
+        font-size: .92rem;
+        color: var(--obw-ink-2);
+        border-right: 1px solid var(--obw-line);
+        cursor: pointer;
+    }
+    #obw .obw-phone-cc:focus { outline: none; }
+    #obw .obw-phone-num {
+        flex: 1; min-width: 0;
+        border: 0; outline: none;
+        padding: 0 .9rem;
+        background: transparent;
+        font-size: .92rem;
+        color: var(--obw-ink);
+        font-family: inherit;
+        letter-spacing: .01em;
+    }
+    #obw .obw-phone-num::placeholder { color: var(--obw-mute); letter-spacing: .08em; }
+
     /* ── Smooth conditional reveals ───────────────────────── */
     #obw .obw-reveal { overflow: hidden; transition: max-height .25s ease, opacity .2s ease, margin .2s ease; }
     #obw .obw-reveal[hidden] {
@@ -446,21 +570,142 @@
     }
     #obw .obw-actionbar-hint i { color: var(--obw-success); }
 
-    /* ── Dark-mode parity (token override) ────────────────── */
-    [data-theme="dark"] #obw {
-        --obw-surface:     #283046;
-        --obw-surface-alt: #242b3d;
-        --obw-bg-soft:     #1e2440;
-        --obw-ink:         #d0d2d6;
-        --obw-ink-2:       #b4b7bd;
-        --obw-mute:        #676d7d;
-        --obw-line:        #3b4253;
-        --obw-line-2:      #323a50;
-        --obw-shadow:      0 2px 14px rgba(0,0,0,.22);
+    /* ── Dark-mode parity (token override) ─────────────────
+       Vuexy applies dark mode via `body.dark-layout` (and sets
+       data-bs-theme="dark"). Both selectors are listed so the
+       overrides activate regardless of which one fires first. */
+    .dark-layout #obw,
+    [data-bs-theme="dark"] #obw {
+        --obw-accent-soft:  rgba(91,192,222,.16);
+        --obw-accent-line:  rgba(91,192,222,.40);
+        --obw-success-soft: rgba(40,199,111,.18);
+        --obw-danger-soft:  rgba(234,84,85,.16);
+
+        --obw-ink:          #d0d2d6;
+        --obw-ink-2:        #b4b7bd;
+        --obw-mute:         #7a8194;
+        --obw-line:         #3b4253;
+        --obw-line-2:       #2f3651;
+        --obw-surface:      #283046;
+        --obw-surface-alt:  #242b3d;
+        --obw-bg-soft:      #1e2440;
+        --obw-shadow:       0 2px 14px rgba(0,0,0,.28);
+        --obw-shadow-lg:    0 8px 28px rgba(0,0,0,.32);
     }
-    [data-theme="dark"] #obw .obw-admin-banner .obw-admin-banner-icon,
-    [data-theme="dark"] #obw .obw-practice-chip .obw-chip-icon { background: #1e2440; }
-    [data-theme="dark"] #obw .obw-actionbar { background: rgba(40,48,70,.96); }
+    /* Lift cards/rails so they read clearly against the page background */
+    .dark-layout #obw .obw-rail,
+    [data-bs-theme="dark"] #obw .obw-rail,
+    .dark-layout #obw .obw-section > .card,
+    [data-bs-theme="dark"] #obw .obw-section > .card,
+    .dark-layout #obw .obw-picked,
+    [data-bs-theme="dark"] #obw .obw-picked {
+        background: var(--obw-surface);
+        border-color: var(--obw-line);
+    }
+    .dark-layout #obw .obw-section .card-header,
+    [data-bs-theme="dark"] #obw .obw-section .card-header { background: var(--obw-surface); }
+    .dark-layout #obw .obw-pref-card,
+    [data-bs-theme="dark"] #obw .obw-pref-card,
+    .dark-layout #obw .obw-toggle-group,
+    [data-bs-theme="dark"] #obw .obw-toggle-group,
+    .dark-layout #obw .obw-toggle-row,
+    [data-bs-theme="dark"] #obw .obw-toggle-row { background: var(--obw-surface); }
+    .dark-layout #obw .obw-toggle-body,
+    [data-bs-theme="dark"] #obw .obw-toggle-body { background: var(--obw-bg-soft); }
+
+    /* Banner/picked icon chips need a subtle dark surface, not pure white */
+    .dark-layout #obw .obw-admin-banner .obw-admin-banner-icon,
+    [data-bs-theme="dark"] #obw .obw-admin-banner .obw-admin-banner-icon,
+    .dark-layout #obw .obw-picked-icon,
+    [data-bs-theme="dark"] #obw .obw-picked-icon {
+        background: var(--obw-bg-soft);
+        box-shadow: 0 1px 4px rgba(0,0,0,.35);
+    }
+
+    /* Form controls — Bootstrap defaults look washed out on the dark surface */
+    .dark-layout #obw .form-control,
+    [data-bs-theme="dark"] #obw .form-control,
+    .dark-layout #obw .form-select,
+    [data-bs-theme="dark"] #obw .form-select {
+        background-color: var(--obw-surface-alt);
+        border-color: var(--obw-line);
+        color: var(--obw-ink);
+    }
+    .dark-layout #obw .form-control::placeholder,
+    [data-bs-theme="dark"] #obw .form-control::placeholder { color: var(--obw-mute); }
+    .dark-layout #obw .input-group-text,
+    [data-bs-theme="dark"] #obw .input-group-text {
+        background: var(--obw-bg-soft);
+        border-color: var(--obw-line);
+        color: var(--obw-ink-2);
+    }
+    .dark-layout #obw .obw-phone,
+    [data-bs-theme="dark"] #obw .obw-phone {
+        background: var(--obw-surface-alt);
+        border-color: var(--obw-line);
+    }
+    .dark-layout #obw .obw-phone-icon,
+    [data-bs-theme="dark"] #obw .obw-phone-icon {
+        background: var(--obw-bg-soft);
+        border-color: var(--obw-line);
+        color: var(--obw-ink-2);
+    }
+    .dark-layout #obw .obw-phone-cc,
+    [data-bs-theme="dark"] #obw .obw-phone-cc {
+        color: var(--obw-ink);
+        border-color: var(--obw-line);
+        /* Re-tint the dropdown caret SVG so it's visible on dark */
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 16 16' fill='%23b4b7bd'><path d='M3.204 5h9.592L8 10.481zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659z'/></svg>");
+    }
+    .dark-layout #obw .obw-phone-num,
+    [data-bs-theme="dark"] #obw .obw-phone-num { color: var(--obw-ink); }
+
+    /* Mode picker (segmented control) — selected pill needs a darker shadow */
+    .dark-layout #obw .obw-mode-picker,
+    [data-bs-theme="dark"] #obw .obw-mode-picker { background: var(--obw-bg-soft); }
+    .dark-layout #obw .obw-mode-tab[aria-selected="true"],
+    [data-bs-theme="dark"] #obw .obw-mode-tab[aria-selected="true"] {
+        background: var(--obw-surface);
+        box-shadow: 0 1px 3px rgba(0,0,0,.35);
+    }
+
+    /* Picked-practice "Change" button + dt icons */
+    .dark-layout #obw .obw-picked-change,
+    [data-bs-theme="dark"] #obw .obw-picked-change {
+        background: var(--obw-surface-alt);
+        border-color: var(--obw-line);
+        color: var(--obw-ink-2);
+    }
+    .dark-layout #obw .obw-picked-change:hover,
+    [data-bs-theme="dark"] #obw .obw-picked-change:hover { color: var(--obw-accent); }
+
+    /* Location chips */
+    .dark-layout #obw .obw-location-chip,
+    [data-bs-theme="dark"] #obw .obw-location-chip {
+        background: var(--obw-surface-alt);
+        border-color: var(--obw-line);
+        color: var(--obw-ink);
+    }
+
+    /* Sticky action bar — translucent dark surface instead of white */
+    .dark-layout #obw .obw-actionbar,
+    [data-bs-theme="dark"] #obw .obw-actionbar {
+        background: rgba(40,48,70,.92);
+        border-top-color: var(--obw-line);
+        box-shadow: 0 -4px 20px rgba(0,0,0,.35);
+    }
+
+    /* Select2 (used for practice search + zip) — match the dark form-control */
+    .dark-layout #obw .select2-container--default .select2-selection--single,
+    [data-bs-theme="dark"] #obw .select2-container--default .select2-selection--single {
+        background-color: var(--obw-surface-alt);
+        border-color: var(--obw-line);
+        color: var(--obw-ink);
+    }
+    .dark-layout #obw .select2-container--default .select2-selection--single .select2-selection__rendered,
+    [data-bs-theme="dark"] #obw .select2-container--default .select2-selection--single .select2-selection__rendered { color: var(--obw-ink); }
+    .dark-layout #obw .select2-container--default .select2-selection--single .select2-selection__placeholder,
+    [data-bs-theme="dark"] #obw .select2-container--default .select2-selection--single .select2-selection__placeholder { color: var(--obw-mute); }
 </style>
 @endpush
 
@@ -476,6 +721,11 @@
           novalidate
           autocomplete="off">
         @csrf
+
+        {{-- Admin form only supports a single primary practice (no extras / manual "Other" mode),
+             so the address always comes from that practice. RegisterController requires both. --}}
+        <input type="hidden" name="primary_address_source"       value="PRACTICE">
+        <input type="hidden" name="primary_address_practice_ref" value="primary">
 
         <div class="obw-layout">
 
@@ -641,18 +891,36 @@
                         <div class="card-header d-flex">
                             <div>
                                 <h2 class="obw-section-title">Practice &amp; Address</h2>
-                                <p class="obw-section-sub">Search for an existing practice or enter details for a new one. Address auto-fills from zip.</p>
+                                <p class="obw-section-sub">Pick a verified practice from the directory, or add a new one. Address details come from the practice you select.</p>
                             </div>
                             <span class="obw-section-counter" data-counter-step="2">0 / 6</span>
                         </div>
                         <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label d-flex justify-content-between align-items-center">
-                                        <span>Practice<span class="text-danger">*</span></span>
-                                        <a href="#" class="obw-practice-mode-link" id="obw-toggle-practice-mode">Practice not listed? Create new &rarr;</a>
-                                    </label>
-                                    <input type="hidden" id="practice_id" name="practice_id" value="{{ old('practice_id') }}">
+
+                            {{-- Always present so RegisterController receives them whichever mode is active. --}}
+                            <input type="hidden" id="practice_id" name="practice_id" value="{{ old('practice_id') }}">
+                            <input type="hidden" name="city_id"    id="city_id"    value="{{ old('city_id') }}">
+                            <input type="hidden" name="state_id"   id="state_id"   value="{{ old('state_id') }}">
+                            <input type="hidden" name="country_id" id="country_id" value="{{ old('country_id') }}">
+
+                            {{-- Mode picker (segmented control) --}}
+                            <div class="obw-mode-picker" role="tablist" aria-label="Practice selection mode">
+                                <button type="button" class="obw-mode-tab" id="obw-mode-existing" role="tab"
+                                        aria-selected="true" aria-controls="obw-pane-existing" data-mode="existing">
+                                    <i data-feather="search"></i><span>Pick from directory</span>
+                                </button>
+                                <button type="button" class="obw-mode-tab" id="obw-mode-new" role="tab"
+                                        aria-selected="false" aria-controls="obw-pane-new" data-mode="new">
+                                    <i data-feather="plus-circle"></i><span>Add new practice</span>
+                                </button>
+                            </div>
+
+                            {{-- ─── Existing-practice mode ─── --}}
+                            <div id="obw-pane-existing" class="obw-mode-pane" role="tabpanel" aria-labelledby="obw-mode-existing">
+
+                                {{-- Search picker (hidden once a practice is picked) --}}
+                                <div id="obw-existing-picker">
+                                    <label for="obw-practice-search" class="form-label">Practice<span class="text-danger">*</span></label>
                                     <select id="obw-practice-search"
                                             class="form-select"
                                             data-placeholder="Search by practice name…"
@@ -662,27 +930,41 @@
                                             <option value="{{ old('practice_id') }}" selected>{{ old('practice_name') }}</option>
                                         @endif
                                     </select>
-                                    <div class="obw-hint">Typing 2+ characters searches the practice directory.</div>
+                                    <div class="obw-hint">Type 2+ characters to search the verified practice directory.</div>
                                 </div>
 
-                                {{-- Picked-practice chip --}}
-                                <div class="col-12 obw-reveal" id="obw-practice-chip-wrap" hidden>
-                                    <div class="obw-practice-chip mt-1">
-                                        <span class="obw-chip-icon"><i data-feather="briefcase"></i></span>
-                                        <div class="obw-chip-body">
-                                            <div class="obw-chip-title" id="obw-chip-name">—</div>
-                                            <div class="obw-chip-meta" id="obw-chip-meta">—</div>
+                                {{-- Selected-practice rich card (hidden until a practice is picked) --}}
+                                <div id="obw-picked" class="obw-picked" hidden>
+                                    <div class="obw-picked-head">
+                                        <div class="obw-picked-icon"><i data-feather="briefcase"></i></div>
+                                        <div class="obw-picked-info">
+                                            <div class="obw-picked-name" id="obw-picked-name">—</div>
+                                            <div class="obw-picked-status">Verified practice</div>
                                         </div>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="obw-change-practice">
-                                            <i data-feather="edit-2" class="me-25"></i>Change
+                                        <button type="button" class="obw-picked-change" id="obw-change-practice">
+                                            <i data-feather="refresh-cw"></i><span>Change</span>
                                         </button>
                                     </div>
+                                    <dl class="obw-picked-details">
+                                        <div class="obw-picked-row">
+                                            <dt><i data-feather="map-pin"></i>Address</dt>
+                                            <dd id="obw-picked-address" class="is-empty">—</dd>
+                                        </div>
+                                        <div class="obw-picked-row">
+                                            <dt><i data-feather="phone"></i>Phone</dt>
+                                            <dd id="obw-picked-phone" class="is-empty">—</dd>
+                                        </div>
+                                        <div class="obw-picked-row">
+                                            <dt><i data-feather="globe"></i>Website</dt>
+                                            <dd id="obw-picked-website" class="is-empty">—</dd>
+                                        </div>
+                                    </dl>
                                 </div>
                             </div>
 
-                            {{-- New-practice fields (hidden when an existing practice is picked) --}}
-                            <div class="obw-reveal" id="obw-new-practice">
-                                <hr class="my-3" style="border-color: var(--obw-line); opacity:1;">
+                            {{-- ─── New-practice mode ─── --}}
+                            <div id="obw-pane-new" class="obw-mode-pane" role="tabpanel" aria-labelledby="obw-mode-new" hidden>
+
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label for="practice_name" class="form-label">Practice Name<span class="text-danger">*</span></label>
@@ -698,21 +980,23 @@
 
                                     <div class="col-md-6">
                                         <label for="practice_phone_number" class="form-label">Practice Phone<span class="text-danger">*</span></label>
-                                        <div class="input-group">
-                                            <select id="practice_phone_country_code" name="practice_phone_country_code" class="form-select js-searchable" style="max-width:110px;">
-                                                <option value="+1"  @selected(old('practice_phone_country_code','+1') === '+1')>+1 (US/CA)</option>
-                                                <option value="+61" @selected(old('practice_phone_country_code') === '+61')>+61 (AU)</option>
+                                        <div class="obw-phone @error('practice_phone_number') is-invalid @enderror">
+                                            <span class="obw-phone-icon"><i data-feather="phone"></i></span>
+                                            <select id="practice_phone_country_code" name="practice_phone_country_code" class="obw-phone-cc" aria-label="Country dialing code">
+                                                @foreach(($phoneCodes ?? []) as $code)
+                                                    <option value="{{ $code }}" @selected(old('practice_phone_country_code', $phoneCodes[0] ?? '') === $code)>{{ $code }}</option>
+                                                @endforeach
                                             </select>
                                             <input id="practice_phone_number" name="practice_phone_number" type="tel"
                                                    value="{{ old('practice_phone_number') }}"
                                                    maxlength="10" inputmode="numeric"
-                                                   placeholder="10-digit phone"
-                                                   class="form-control @error('practice_phone_number') is-invalid @enderror">
+                                                   placeholder="XXX-XXX-XXXX"
+                                                   class="obw-phone-num">
                                         </div>
                                         <div id="practice_phone_number-err" class="invalid-feedback d-block" data-err-for="practice_phone_number">@error('practice_phone_number'){{ $message }}@enderror</div>
                                     </div>
 
-                                    <div class="col-md-6">
+                                    <div class="col-12">
                                         <label for="practice_website" class="form-label">Practice Website<span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text"><i data-feather="globe"></i></span>
@@ -727,10 +1011,6 @@
 
                                 <hr class="my-4" style="border-color: var(--obw-line); opacity:1;">
                                 <span class="obw-eyebrow">Practice Address</span>
-
-                                <input type="hidden" name="city_id"    id="city_id"    value="{{ old('city_id') }}">
-                                <input type="hidden" name="state_id"   id="state_id"   value="{{ old('state_id') }}">
-                                <input type="hidden" name="country_id" id="country_id" value="{{ old('country_id') }}">
 
                                 <div class="row g-3">
                                     <div class="col-md-8">
@@ -1106,7 +1386,7 @@
                             <div class="form-check mb-50">
                                 <input class="form-check-input" type="checkbox" name="terms_agreed" id="terms_agreed" @checked(old('terms_agreed'))>
                                 <label class="form-check-label" for="terms_agreed">
-                                    The doctor has agreed to the <a href="#" target="_blank" class="obw-practice-mode-link" style="padding:0;background:transparent;">Terms and Conditions</a>.<span class="text-danger">*</span>
+                                    The doctor has agreed to the <a href="#" target="_blank" style="color:var(--obw-accent-600);font-weight:600;text-decoration:none;">Terms and Conditions</a>.<span class="text-danger">*</span>
                                 </label>
                                 <div id="terms_agreed-err" class="invalid-feedback d-block" data-err-for="terms_agreed">@error('terms_agreed'){{ $message }}@enderror</div>
                             </div>
@@ -1340,7 +1620,7 @@ $(function () {
         if (window.feather) window.feather.replace({ width: 14, height: 14 });
     });
 
-    // ─── Practice picker (Select2 AJAX) ─────────────────────
+    // ─── Practice picker: Select2 + mode switching + rich card ─
     const $practiceSearch = $('#obw-practice-search');
     $practiceSearch.select2({
         width: '100%',
@@ -1360,11 +1640,53 @@ $(function () {
         }
     });
 
+    // Auto-focus the search input when the dropdown opens (mirrors obSearchable in the
+    // admin layout). Without this the user has to click twice to start typing.
+    $practiceSearch.on('select2:open', function () {
+        setTimeout(function () {
+            const field = document.querySelector('.select2-container--open .select2-search__field');
+            if (field) field.focus();
+        }, 0);
+    });
+
+    // ── Mode switching (segmented control) ──
+    function setMode(mode) {
+        const isExisting = mode === 'existing';
+        $('#obw-mode-existing').attr('aria-selected', isExisting ? 'true' : 'false');
+        $('#obw-mode-new').attr('aria-selected', isExisting ? 'false' : 'true');
+        $('#obw-pane-existing').attr('hidden', isExisting ? null : true);
+        $('#obw-pane-new').attr('hidden', isExisting ? true : null);
+
+        if (isExisting) {
+            // Wipe new-practice inputs so a stale name/phone/etc. can't be submitted.
+            // Address inputs are also cleared — picking a practice will repopulate them.
+            $('#practice_name,#practice_phone_number,#practice_website').val('');
+            if (!$('#practice_id').val()) {
+                $('#street_address_1,#street_address_2').val('');
+                $('#zip_id').val('').trigger('change');
+                $('#city_id,#state_id,#country_id').val('');
+            }
+        } else {
+            // Switching to "Add new" wipes any previously-picked existing practice.
+            $('#practice_id').val('');
+            $('#obw-picked').attr('hidden', true);
+            $('#obw-existing-picker').removeAttr('hidden');
+            $practiceSearch.val(null).trigger('change');
+            $('#street_address_1,#street_address_2').val('');
+            $('#zip_id').val('').trigger('change');
+            $('#city_id,#state_id,#country_id').val('');
+        }
+        refreshCounters();
+    }
+    $('.obw-mode-tab').on('click', function () { setMode($(this).data('mode')); });
+
+    // ── Practice selected from search ──
     $practiceSearch.on('select2:select', function (e) {
         const p = e.params.data;
         $('#practice_id').val(p.id);
-        renderPracticeChip(p);
-        lockNewPractice(true);
+
+        // Populate hidden + new-pane inputs so the form submits a complete payload regardless
+        // of which mode is active. RegisterController validates address fields unconditionally.
         $('#practice_name').val(p.name || '');
         $('#practice_phone_number').val(p.phone_number || '');
         $('#practice_website').val(p.website || '');
@@ -1380,21 +1702,18 @@ $(function () {
         $('#city_id').val(p.city_id || '');
         $('#state_id').val(p.state_id || '');
         $('#country_id').val(p.country_id || '');
+
+        renderPickedCard(p);
         refreshCounters();
     });
 
-    $practiceSearch.on('select2:clear', clearPractice);
-    $('#obw-change-practice').on('click', clearPractice);
-    $('#obw-toggle-practice-mode').on('click', function (e) {
-        e.preventDefault();
-        clearPractice();
-        $('#practice_name').trigger('focus');
-    });
+    $practiceSearch.on('select2:clear', clearPicked);
+    $('#obw-change-practice').on('click', clearPicked);
 
-    function clearPractice() {
+    function clearPicked() {
         $('#practice_id').val('');
-        $('#obw-practice-chip-wrap').attr('hidden', true);
-        lockNewPractice(false);
+        $('#obw-picked').attr('hidden', true);
+        $('#obw-existing-picker').removeAttr('hidden');
         $('#practice_name,#practice_phone_number,#practice_website').val('');
         $('#street_address_1,#street_address_2').val('');
         $('#zip_id').val('').trigger('change');
@@ -1403,17 +1722,68 @@ $(function () {
         refreshCounters();
     }
 
-    function renderPracticeChip(p) {
-        const addressLine = [p.street_address_1, p.city, p.state_code].filter(Boolean).join(', ');
-        $('#obw-chip-name').text(p.name || p.label || 'Practice');
-        $('#obw-chip-meta').text(addressLine || 'Existing practice selected');
-        $('#obw-practice-chip-wrap').removeAttr('hidden');
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function setPickedRow($el, text, html) {
+        if (text || html) {
+            if (html) $el.html(html); else $el.text(text);
+            $el.removeClass('is-empty');
+        } else {
+            $el.text('—').addClass('is-empty');
+        }
+    }
+
+    function renderPickedCard(p) {
+        $('#obw-picked-name').text(p.name || p.label || 'Practice');
+
+        // Address: street line + city/state/zip line, joined with a comma if both exist.
+        const street = [p.street_address_1, p.street_address_2].filter(Boolean).join(', ');
+        const region = [p.city, p.state_code || p.state, p.zip_code].filter(Boolean).join(', ');
+        const address = [street, region].filter(Boolean).join(' · ');
+        setPickedRow($('#obw-picked-address'), address, null);
+
+        const phone = ((p.phone_country_code || '') + ' ' + (p.phone_number || '')).trim();
+        setPickedRow($('#obw-picked-phone'), phone, null);
+
+        if (p.website) {
+            const safe = escapeHtml(p.website);
+            const href = /^https?:\/\//i.test(p.website) ? p.website : 'https://' + p.website;
+            setPickedRow($('#obw-picked-website'), null, '<a href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' + safe + '</a>');
+        } else {
+            setPickedRow($('#obw-picked-website'), '', null);
+        }
+
+        $('#obw-existing-picker').attr('hidden', true);
+        $('#obw-picked').removeAttr('hidden');
         if (window.feather) window.feather.replace({ width: 14, height: 14 });
     }
 
-    function lockNewPractice(locked) {
-        $('#obw-new-practice').attr('hidden', locked ? true : null);
-    }
+    // ── Initial state (handles server-validation re-render) ──
+    (function initPracticeMode() {
+        if ($('#practice_id').val()) {
+            // Existing practice was picked before — restore the picked card from
+            // whatever values old() repopulated into the inputs.
+            setMode('existing');
+            renderPickedCard({
+                name:               ($('#obw-practice-search option:selected').text() || '').trim(),
+                phone_country_code: $('#practice_phone_country_code').val(),
+                phone_number:       $('#practice_phone_number').val(),
+                website:            $('#practice_website').val(),
+                street_address_1:   $('#street_address_1').val(),
+                street_address_2:   $('#street_address_2').val(),
+                city:   $('#zip_id option:checked').data('city')    || '',
+                state_code: ($('#zip_id option:checked').data('state') || '').toString().slice(0, 3).toUpperCase() || '',
+                zip_code:   ($('#zip_id option:checked').text() || '').split('—')[0].trim(),
+            });
+        } else if ($('#practice_name').val()) {
+            // Form was previously submitted in "Add new" mode — restore that pane.
+            setMode('new');
+        } else {
+            setMode('existing');
+        }
+    })();
 
     // ─── Zip → auto-fill chips ──────────────────────────────
     function syncZipChips() {
