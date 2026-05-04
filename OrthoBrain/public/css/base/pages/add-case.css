@@ -964,14 +964,39 @@
      browsers (notably older Chromium) honour only one.
    ─────────────────────────────────────────────────────────────────────────── */
 .case-date-group {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
   max-width: 260px;
+  overflow: hidden !important;
+  border: 1px solid #d8d6de;
+  border-radius: 0.357rem;
+  background-color: #fff;
 }
-.case-date-input.form-control {
-  /* Strip the native dropdown affordance entirely; .case-date-trigger handles
-     the affordance instead. */
-  -webkit-appearance: none;
-     -moz-appearance: none;
-          appearance: none;
+
+/* Dark Mode Support */
+.dark-layout .case-date-group {
+  border-color: #404656;
+  background-color: #283046;
+}
+.case-date-input {
+  flex: 1 1 auto !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  padding-left: 0.5rem !important;
+  text-transform: uppercase !important;
+  border: none !important;
+  background: transparent !important;
+  color: inherit !important; /* Respect theme text color */
+}
+
+/* Chrome-specific uppercase for date segments */
+.case-date-input::-webkit-datetime-edit-month-field,
+.case-date-input::-webkit-datetime-edit-day-field,
+.case-date-input::-webkit-datetime-edit-year-field,
+.case-date-input::-webkit-datetime-edit-text {
+  text-transform: uppercase !important;
 }
 .case-date-input::-webkit-calendar-picker-indicator {
   display: none !important;
@@ -992,29 +1017,37 @@
   -webkit-appearance: none;
 }
 
-/* Firefox-specific: Firefox renders the calendar picker as part of the
-   native widget chrome and does NOT expose a pseudo-element to hide it.
-   `appearance: none` removes most of the chrome on Firefox 113+ but the
-   icon often stays. Detect Firefox via @-moz-document and hide our
-   feather wrapper there so the user only sees the native icon — single
-   icon, native affordance. Chromium/Safari keep the custom feather. */
+/* Firefox-specific: Push the native icon out of view */
 @-moz-document url-prefix() {
   .case-date-trigger {
-    display: none;
+    display: flex !important;
   }
-  .case-date-group {
-    /* Without the trigger span, give the input the input-group's full width
-       so it doesn't render with an awkward leading rounded corner. */
-    display: block;
-  }
-  .case-date-input.form-control {
-    border-radius: 0.357rem;
+  .case-date-input {
+    /* Use negative margin to push the native calendar icon outside the clipped container */
+    min-width: calc(100% + 50px) !important;
+    margin-right: -50px !important;
+    padding-right: 50px !important;
   }
 }
 
 .case-date-trigger {
   cursor: pointer;
   user-select: none;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  border-right: 1px solid #d8d6de !important;
+  background-color: #f8f8f8;
+  color: #6e6b7b;
+}
+
+/* Dark Mode Support for Trigger */
+.dark-layout .case-date-trigger {
+  border-right-color: #404656 !important;
+  background-color: #343d55;
+  color: #b4b7bd;
 }
 .case-date-trigger:hover {
   background-color: rgba(89, 192, 212, 0.08);
