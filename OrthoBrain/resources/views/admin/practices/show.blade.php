@@ -13,6 +13,20 @@
         --ob-surface: #ffffff;
         --ob-surface-alt: #f8f8fb;
         --ob-text: #1f1f1f;
+        --ob-heading: #111111;
+        --ob-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M1 3l4 4 4-4' stroke='%236e6b7b' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    }
+
+    .dark-layout #practice-show {
+        --ob-surface: #283046;
+        --ob-surface-alt: #161d31;
+        --ob-border: #3b4253;
+        --ob-text: #b4b7bd;
+        --ob-muted: #676d7d;
+        --ob-heading: #d0d2d6;
+        --ob-primary-softer: rgba(91, 192, 222, 0.15);
+        --ob-accent-soft: rgba(140, 198, 63, 0.2);
+        --ob-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M1 3l4 4 4-4' stroke='%23b4b7bd' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     }
     #practice-show .ob-card {
         background: var(--ob-surface);
@@ -28,7 +42,7 @@
         border-bottom: 1px solid var(--ob-border);
         gap: 0.75rem; flex-wrap: wrap;
     }
-    #practice-show .ob-card-title { font-weight: 700; color: #111; margin: 0; font-size: 1rem; }
+    #practice-show .ob-card-title { font-weight: 700; color: var(--ob-heading); margin: 0; font-size: 1rem; }
     #practice-show .ob-card-body { padding: 1rem 1.25rem; }
 
     #practice-show .ob-back {
@@ -53,11 +67,14 @@
         display: inline-flex; align-items: center; justify-content: center;
         font-weight: 700; font-size: 1.3rem;
         overflow: hidden;
-        box-shadow: 0 0 0 2px #fff, 0 0 0 3px #ebe9f1;
+        box-shadow: 0 0 0 2px var(--ob-surface), 0 0 0 3px var(--ob-border);
         flex: 0 0 auto;
     }
+    .dark-layout #practice-show .ob-logo-lg {
+        background: linear-gradient(135deg, #1e3a45 0%, #162d36 100%);
+    }
     #practice-show .ob-logo-lg img { width: 100%; height: 100%; object-fit: cover; }
-    #practice-show .ob-hero-name { font-size: 1.2rem; font-weight: 700; color: #111; margin: 0; }
+    #practice-show .ob-hero-name { font-size: 1.2rem; font-weight: 700; color: var(--ob-heading); margin: 0; }
     #practice-show .ob-hero-sub { color: var(--ob-muted); font-size: 0.88rem; margin-top: 0.15rem; }
 
     #practice-show .ob-status {
@@ -73,7 +90,8 @@
         border-radius: 50%; background: currentColor; display: inline-block;
     }
     #practice-show .ob-status--success   { background: var(--ob-accent-soft); color: #5a8f21; border-color: rgba(140, 198, 63, 0.28); }
-    #practice-show .ob-status--secondary { background: #eef0f4; color: #6c7283; border-color: #e2e4eb; }
+    .dark-layout #practice-show .ob-status--success { color: #ade65f; }
+    #practice-show .ob-status--secondary { background: var(--ob-surface-alt); color: var(--ob-muted); border-color: var(--ob-border); }
 
     #practice-show .ob-grid {
         display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -93,12 +111,12 @@
     #practice-show .ob-members-list { width: 100%; }
     #practice-show .ob-members-list th, #practice-show .ob-members-list td {
         padding: 0.65rem 1.25rem;
-        border-top: 1px solid #f3f2f7;
+        border-top: 1px solid var(--ob-border);
         font-size: 0.88rem;
     }
     #practice-show .ob-members-list thead th {
         background: var(--ob-surface-alt);
-        color: #555668;
+        color: var(--ob-muted);
         font-weight: 600;
         font-size: 0.72rem;
         letter-spacing: 0.06em;
@@ -117,12 +135,13 @@
         border-radius: 999px;
         border: 1px solid transparent;
     }
-    #practice-show .ob-pivot-pill--pending   { background: #fff5e5; color: #b9681a; border-color: #ffdcaf; }
-    #practice-show .ob-pivot-pill--approved  { background: var(--ob-accent-soft); color: #5a8f21; border-color: rgba(140, 198, 63, 0.28); }
-    #practice-show .ob-pivot-pill--rejected  { background: #fde7e7; color: #b13233; border-color: #f5caca; }
+    #practice-show .ob-pivot-pill--pending   { background: rgba(255, 159, 67, 0.12); color: #ff9f43; border-color: rgba(255, 159, 67, 0.2); }
+    #practice-show .ob-pivot-pill--approved  { background: var(--ob-accent-soft); color: #8cc63f; border-color: rgba(140, 198, 63, 0.28); }
+    .dark-layout #practice-show .ob-pivot-pill--approved { color: #ade65f; }
+    #practice-show .ob-pivot-pill--rejected  { background: rgba(234, 84, 85, 0.12); color: #ea5455; border-color: rgba(234, 84, 85, 0.2); }
     #practice-show .ob-pivot-pill--cancelled,
-    #practice-show .ob-pivot-pill--left      { background: #eef0f4; color: #6c7283; border-color: #e2e4eb; }
-    #practice-show .ob-pivot-pill--onhold    { background: #fff5e5; color: #b9681a; border-color: #ffdcaf; }
+    #practice-show .ob-pivot-pill--left      { background: var(--ob-surface-alt); color: var(--ob-muted); border-color: var(--ob-border); }
+    #practice-show .ob-pivot-pill--onhold    { background: rgba(255, 159, 67, 0.12); color: #ff9f43; border-color: rgba(255, 159, 67, 0.2); }
 
     #practice-show .ob-inline-btn {
         display: inline-flex; align-items: center; gap: 0.3rem;
@@ -136,8 +155,8 @@
     #practice-show .ob-inline-btn + .ob-inline-btn { margin-left: 0.3rem; }
     #practice-show .ob-inline-btn--approve  { background: #2eb85c; color: #fff; }
     #practice-show .ob-inline-btn--approve:hover { background: #289c4f; }
-    #practice-show .ob-inline-btn--reject   { background: #fff; color: #c53030; border-color: #f5caca; }
-    #practice-show .ob-inline-btn--reject:hover { background: #fde7e7; }
+    #practice-show .ob-inline-btn--reject   { background: var(--ob-surface); color: #ea5455; border-color: rgba(234, 84, 85, 0.4); }
+    #practice-show .ob-inline-btn--reject:hover { background: rgba(234, 84, 85, 0.12); }
     #practice-show .ob-inline-btn svg { width: 12px; height: 12px; }
 
     /* Hero practice-status select */
@@ -164,11 +183,12 @@
         background-repeat: no-repeat;
         background-position: right 0.6rem center;
         background-size: 10px 10px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M1 3l4 4 4-4' stroke='%236e6b7b' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-image: var(--ob-select-arrow);
     }
     #practice-show .ob-status-select:focus { outline: 2px solid rgba(91, 192, 222, 0.3); outline-offset: 1px; }
     #practice-show .ob-status-select--success   { background-color: var(--ob-accent-soft); color: #5a8f21; border-color: rgba(140, 198, 63, 0.28); }
-    #practice-show .ob-status-select--secondary { background-color: #eef0f4; color: #6c7283; border-color: #e2e4eb; }
+    .dark-layout #practice-show .ob-status-select--success { color: #ade65f; }
+    #practice-show .ob-status-select--secondary { background-color: var(--ob-surface-alt); color: var(--ob-muted); border-color: var(--ob-border); }
     #practice-show .ob-status-select[disabled]  { opacity: .6; cursor: wait; }
 
     /* Per-doctor state dropdown */
@@ -185,13 +205,14 @@
         background-repeat: no-repeat;
         background-position: right 0.55rem center;
         background-size: 10px 10px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M1 3l4 4 4-4' stroke='%236e6b7b' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-image: var(--ob-select-arrow);
         min-width: 140px;
     }
-    #practice-show .ob-doctor-state--pending   { background-color: #fff5e5; color: #b9681a; border-color: #ffdcaf; }
-    #practice-show .ob-doctor-state--approved  { background-color: var(--ob-accent-soft); color: #5a8f21; border-color: rgba(140, 198, 63, 0.28); }
-    #practice-show .ob-doctor-state--rejected  { background-color: #fde7e7; color: #b13233; border-color: #f5caca; }
-    #practice-show .ob-doctor-state--suspended { background-color: #eef0f4; color: #555668; border-color: #d5d8e0; }
+    #practice-show .ob-doctor-state--pending   { background-color: rgba(255, 159, 67, 0.12); color: #ff9f43; border-color: rgba(255, 159, 67, 0.2); }
+    #practice-show .ob-doctor-state--approved  { background-color: var(--ob-accent-soft); color: #8cc63f; border-color: rgba(140, 198, 63, 0.28); }
+    .dark-layout #practice-show .ob-doctor-state--approved { color: #ade65f; }
+    #practice-show .ob-doctor-state--rejected  { background-color: rgba(234, 84, 85, 0.12); color: #ea5455; border-color: rgba(234, 84, 85, 0.2); }
+    #practice-show .ob-doctor-state--suspended { background-color: var(--ob-surface-alt); color: var(--ob-muted); border-color: var(--ob-border); }
     #practice-show .ob-doctor-state[disabled]  { opacity: .6; cursor: wait; }
 
     /* Doctor card toolbar (search + bulk actions) */
@@ -216,9 +237,9 @@
     #practice-show .ob-doctors-search input {
         width: 100%;
         padding: .45rem .75rem .45rem 2.3rem;
-        border: 1px solid #e2e0ea;
+        border: 1px solid var(--ob-border);
         border-radius: .5rem;
-        background: #fff;
+        background: var(--ob-surface);
         font-size: .85rem;
         color: var(--ob-text);
     }
@@ -234,16 +255,16 @@
     #practice-show .ob-doctors-filter select {
         appearance: none;
         padding: .45rem 2rem .45rem .75rem;
-        border: 1px solid #e2e0ea;
+        border: 1px solid var(--ob-border);
         border-radius: .5rem;
-        background: #fff;
+        background: var(--ob-surface);
         font-size: .85rem;
         color: var(--ob-text);
         cursor: pointer;
         background-repeat: no-repeat;
         background-position: right .6rem center;
         background-size: 10px 10px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M1 3l4 4 4-4' stroke='%236e6b7b' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-image: var(--ob-select-arrow);
     }
     #practice-show .ob-doctors-filter select:focus {
         outline: none;
@@ -269,7 +290,9 @@
         border: 1px solid transparent;
         cursor: pointer;
         transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
-        background: #fff;
+        background: var(--ob-surface);
+        color: var(--ob-text);
+        border-color: var(--ob-border);
     }
     #practice-show .ob-bulk-btn svg { width: 14px; height: 14px; }
     #practice-show .ob-bulk-btn--approve {
@@ -283,9 +306,9 @@
         transform: translateY(-1px);
     }
     #practice-show .ob-bulk-btn--reject {
-        background: #fff;
-        color: #c53030;
-        border-color: #f5caca;
+        background: var(--ob-surface);
+        color: #ea5455;
+        border-color: rgba(234, 84, 85, 0.4);
     }
     #practice-show .ob-bulk-btn--reject:hover:not(:disabled) {
         background: #fde7e7;
