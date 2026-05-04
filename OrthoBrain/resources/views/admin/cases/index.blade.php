@@ -189,6 +189,12 @@
                 cache: true,
             },
         });
+        $doctor.on('select2:open', function () {
+            setTimeout(function () {
+                const field = document.querySelector('.select2-container--open .select2-search__field');
+                if (field) field.focus();
+            }, 0);
+        });
         $doctor.on('change', function () {
             document.getElementById('adminCasesFilter').submit();
         });
@@ -208,6 +214,12 @@
                 processResults: (data) => ({ results: data }),
                 cache: true,
             },
+        });
+        $patient.on('select2:open', function () {
+            setTimeout(function () {
+                const field = document.querySelector('.select2-container--open .select2-search__field');
+                if (field) field.focus();
+            }, 0);
         });
         $patient.on('change', function () {
             document.getElementById('adminCasesFilter').submit();
