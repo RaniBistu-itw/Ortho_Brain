@@ -374,15 +374,23 @@ class CasesController extends Controller
     private function serializeShipping(?CaseShippingAddress $addr): ?array
     {
         if (! $addr) return null;
+        // loadMissing() ensures sub-relations are loaded for text resolution.
+        // The caller loads shippingAddress but not its sub-relations.
+        // No-op if already eager-loaded.
+        $addr->loadMissing(['zip', 'city', 'state', 'country']);
         return [
             'practice'       => $addr->practice_name,
             'doctorName'     => $addr->doctor_name,
             'streetAddress'  => $addr->street_address_1,
             'streetAddress2' => $addr->street_address_2,
             'zipId'          => $addr->zip_id,
+            'zipCode'        => $addr->zip?->code,
             'cityId'         => $addr->city_id,
+            'city'           => $addr->city?->name,
             'stateId'        => $addr->state_id,
+            'state'          => $addr->state?->name,
             'countryId'      => $addr->country_id,
+            'country'        => $addr->country?->name,
         ];
     }
 }
