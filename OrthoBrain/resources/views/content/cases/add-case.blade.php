@@ -290,7 +290,8 @@
             })
             .catch(function (err) {
               console.error('Status update failed', err);
-              alert('Failed to update status.');
+              var msg = (err && err.data && err.data.error) || 'Failed to update status.';
+              alert(msg);
             })
             .finally(function () { btnAdminStatus.disabled = false; });
         });
