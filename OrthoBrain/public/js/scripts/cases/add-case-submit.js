@@ -169,7 +169,8 @@ window.AddCaseSubmit = {
         throw new Error('Case has not been persisted yet — cannot submit.')
       }
 
-      const res = await window.CaseApi.submitCase(effectiveId)
+      const initials = (state && state.submitOrder && state.submitOrder.submitterInitials) || ''
+      const res = await window.CaseApi.submitCase(effectiveId, { submitter_initials: initials })
 
       localStorage.removeItem(`addCaseDraft:${effectiveId}`)
       localStorage.removeItem(`addCaseDraft:new`)
@@ -183,9 +184,25 @@ window.AddCaseSubmit = {
       window.location.href = res.redirect || '/dev/cases'
     } catch (err) {
       console.error('[AddCaseSubmit] submit failed', err)
-      const msg = (err && err.data && err.data.errors && err.data.errors.prescription)
+      // submit() returns two error shapes: the older nested
+      // { errors: { prescription: '...' } } and the newer top-level
+      // { error: '...', message: '...' } used by the patient_id and
+      // initials_required guards. Read message first so all three guards
+      // surface their specific copy. (Side effect: the patient_required
+      // 422 from PR #96 was previously falling through to the generic
+      // alert — this fixes that too.)
+      const data = (err && err.data) || {}
+      const msg = data.message
+        || (data.errors && data.errors.prescription)
         || 'Submit failed. Check the form and try again.'
       alert(msg)
+
+      if (data.error === 'initials_required') {
+        const sec = document.getElementById('submit-order')
+        if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        const input = document.getElementById('so-initials')
+        if (input) setTimeout(() => input.focus(), 400)
+      }
     }
   },
 }

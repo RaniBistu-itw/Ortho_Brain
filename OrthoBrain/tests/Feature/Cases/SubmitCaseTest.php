@@ -55,7 +55,7 @@ it('allows submit when both prescription and patient are present', function () {
     DB::table('prescriptions')->insert(['case_id' => $caseId]);
 
     $this->withSession([ActivePractice::SESSION_KEY => $pid])
-        ->postJson("/dev/cases/{$caseId}/submit")
+        ->postJson("/dev/cases/{$caseId}/submit", ['submitter_initials' => 'JS'])
         ->assertStatus(200)
         ->assertJson(['ok' => true]);
 

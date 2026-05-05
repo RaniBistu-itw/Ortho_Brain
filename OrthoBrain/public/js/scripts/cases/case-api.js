@@ -100,8 +100,10 @@
       return request('GET', url, undefined);
     },
 
-    submitCase: function (caseId) {
-      return request('POST', '/dev/cases/' + encodeURIComponent(caseId) + '/submit', {});
+    // payload: object passed to submit endpoint. Currently { submitter_initials }.
+    // Future fields go here without changing the function signature.
+    submitCase: function (caseId, payload) {
+      return request('POST', '/dev/cases/' + encodeURIComponent(caseId) + '/submit', payload || {});
     },
 
     updateStatus: function (caseId, status) {

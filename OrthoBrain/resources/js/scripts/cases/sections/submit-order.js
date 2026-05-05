@@ -18,9 +18,15 @@
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
       init: function () {
-        var draft = window.AddCaseState && window.AddCaseState.submitOrder;
-        if (draft) {
-          this._hydrate(draft);
+        // Server-side prefill (edit mode) wins. Falls back to the
+        // localStorage draft for new-case in-progress state.
+        if (window.__submitOrderPrefill) {
+          this._hydrateFromPrefill(window.__submitOrderPrefill);
+        } else {
+          var draft = window.AddCaseState && window.AddCaseState.submitOrder;
+          if (draft) {
+            this._hydrate(draft);
+          }
         }
 
         var self = this;
@@ -37,6 +43,17 @@
       _hydrate: function (d) {
         this.submitterInitials = d.submitterInitials || '';
         this.termsAgreed       = !!d.termsAgreed;
+      },
+
+      _hydrateFromPrefill: function (p) {
+        if (!p) return;
+        // Plain text input — no $nextTick needed (Entry 6 only applies to
+        // <select> options rendered via x-for).
+        this.submitterInitials = p.submitterInitials || '';
+        // termsAgreed is a per-submission attestation, never prefilled
+        // from the server — the admin viewing a submitted case still
+        // sees an unchecked box (the historical agreement is implied by
+        // the case being SUBMITTED, not by re-displaying the checkbox).
       },
 
       // ── Handlers ────────────────────────────────────────────────────────────
