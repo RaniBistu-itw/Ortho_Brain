@@ -56,8 +56,9 @@ Route::post('/verify-email/resend',          [EmailVerificationController::class
     ->middleware('throttle:resend-verification')
     ->name('verify-email.resend');
 
-Route::get('/contact-support',  [\App\Http\Controllers\SupportController::class, 'show'])->name('support.show');
-Route::post('/contact-support', [\App\Http\Controllers\SupportController::class, 'store'])->name('support.send');
+Route::get('/contact-support',         [\App\Http\Controllers\SupportController::class, 'show'])->name('support.show');
+Route::post('/contact-support',        [\App\Http\Controllers\SupportController::class, 'store'])->name('support.send');
+Route::get('/contact-support/thanks',  [\App\Http\Controllers\SupportController::class, 'thanks'])->name('support.thanks');
 
 Route::redirect('/admin/login', '/login');
 
