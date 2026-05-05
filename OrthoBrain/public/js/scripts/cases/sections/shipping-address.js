@@ -224,6 +224,14 @@
         this.errors.state   = null;
         this.errors.country = null;
         this.syncToState();
+        // Re-affirm the country <select> value next tick. The first sync
+        // assignment above keeps `country` correct for syncToState, but the
+        // x-for / x-model render cycle can still clobber the visible
+        // <select> back to the placeholder — see _hydrateFromPrefill for
+        // the same race. The re-set after $nextTick forces the DOM to
+        // settle on the right option once x-for has reconciled.
+        var self = this;
+        this.$nextTick(function () { self.country = entry.country; });
       },
 
       onZipBlur: function () {
