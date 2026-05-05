@@ -41,7 +41,9 @@ function makeGeoChain(): array
         'zipId'       => $zipId,       'zipCode'     => '12345',
         'cityId'      => $cityId,      'cityName'    => 'Test City',
         'stateId'     => $stateId,     'stateName'   => 'Test State',
-        'countryId'   => $countryId,   'countryName' => 'Testland',
+        // The shipping prefill exposes the country ISO code (matches the
+        // <select> options + zip-cascade payload), not the display name.
+        'countryId'   => $countryId,   'countryCode' => 'TL',
     ];
 }
 
@@ -81,7 +83,7 @@ it('exposes resolved shipping text fields in the doctor edit prefill', function 
         'stateId'        => $geo['stateId'],
         'state'          => $geo['stateName'],
         'countryId'      => $geo['countryId'],
-        'country'        => $geo['countryName'],
+        'country'        => $geo['countryCode'],
     ]);
 });
 
@@ -144,7 +146,7 @@ it('exposes the same shipping text fields on the admin edit prefill', function (
     expect($prefill['zipCode'])->toBe($geo['zipCode']);
     expect($prefill['city'])->toBe($geo['cityName']);
     expect($prefill['state'])->toBe($geo['stateName']);
-    expect($prefill['country'])->toBe($geo['countryName']);
+    expect($prefill['country'])->toBe($geo['countryCode']);
 });
 
 /**

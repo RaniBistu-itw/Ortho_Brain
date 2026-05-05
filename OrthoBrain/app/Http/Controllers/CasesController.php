@@ -390,7 +390,10 @@ class CasesController extends Controller
             'stateId'        => $addr->state_id,
             'state'          => $addr->state?->name,
             'countryId'      => $addr->country_id,
-            'country'        => $addr->country?->name,
+            // country holds the ISO code (e.g. "US"), not the display name —
+            // matches the ZipcodeSearchController cascade payload and the
+            // <select> options keyed by Country.country_code.
+            'country'        => $addr->country?->country_code,
         ];
     }
 }
