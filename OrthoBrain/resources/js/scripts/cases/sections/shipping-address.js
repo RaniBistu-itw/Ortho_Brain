@@ -73,17 +73,28 @@
         this.doctorName     = c.doctorName     || '';
         this.streetAddress  = c.streetAddress  || '';
         this.streetAddress2 = c.streetAddress2 || '';
-        this.zipId          = c.zipId          || null;
-        this.cityId         = c.cityId         || null;
-        this.stateId        = c.stateId        || null;
-        this.countryId      = c.countryId      || null;
 
-        // If a raw zip code came through (real data, no MOCK_ZIP_ENTRIES match),
-        // use it as the display label so the user sees something familiar.
-        if (c.zipCode && !this.zipQuery) {
+        // Only accept a genuine integer FK for zipId. Mock data and legacy sources
+        // use string slugs like 'us-43015' — not valid zipcodes.id values — which
+        // cause a FK constraint 500 on the server. Reject slugs here; leave zipId
+        // null so the user picks from the search dropdown before submitting.
+        var rawZipId  = c.zipId;
+        var isInteger = typeof rawZipId === 'number' ||
+          (typeof rawZipId === 'string' && /^\d+$/.test(rawZipId));
+        this.zipId     = isInteger ? parseInt(rawZipId, 10) : null;
+        this.cityId    = c.cityId    || null;
+        this.stateId   = c.stateId   || null;
+        this.countryId = c.countryId || null;
+
+        // Display hint: explicit zipCode field wins; integer ID resolves via API;
+        // slug falls back to its numeric segment ('us-43015' → '43015' as hint).
+        if (c.zipCode) {
           this.zipQuery = c.zipCode;
-        } else {
-          this._resolveZipQuery(c.zipId);
+        } else if (isInteger) {
+          this._resolveZipQuery(this.zipId);
+        } else if (typeof rawZipId === 'string' && rawZipId) {
+          var parts = rawZipId.split('-');
+          this.zipQuery = parts[parts.length - 1] || '';
         }
         this.city    = c.city    || '';
         this.state   = c.state   || '';
