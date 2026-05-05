@@ -21,6 +21,7 @@ class CaseModel extends Model
         'case_code',
         'status',
         'submitted_at',
+        'submitter_initials',
     ];
 
     protected $casts = [
