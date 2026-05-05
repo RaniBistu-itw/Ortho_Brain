@@ -29,10 +29,12 @@
     } catch (e) { /* ignore corrupt drafts */ }
   })();
 
-  // Server-rendered Prescription prefill (edit mode) wins over localStorage for that slice.
-  if (window.__addCasePrefill) {
-    state.prescription = window.__addCasePrefill;
-  }
+  // Server-rendered prefill (edit mode) wins over localStorage for those slices.
+  if (window.__addCasePrefill) state.prescription = window.__addCasePrefill;
+  if (window.__patientPrefill) state.patientInformation = window.__patientPrefill;
+  if (window.__additionalInfoPrefill) state.additionalInformation = window.__additionalInfoPrefill;
+  if (window.__shippingAddressPrefill) state.shippingAddress = window.__shippingAddressPrefill;
+  if (window.__impressionsPrefill) state.impressions = window.__impressionsPrefill;
 
   // ─── Autosave indicator ───────────────────────────────────────────────────
 
@@ -83,6 +85,26 @@
   function persistPrescription() {
     if (!window.CaseApi || !state.prescription || caseId === 'new') return Promise.resolve();
     return window.CaseApi.savePrescription(caseId, state.prescription);
+  }
+
+  function persistShipping() {
+    if (!window.CaseApi || !state.shippingAddress || caseId === 'new') return Promise.resolve();
+    return window.CaseApi.saveShipping(caseId, state.shippingAddress);
+  }
+
+  function persistImpressions() {
+    if (!window.CaseApi || !state.impressions || caseId === 'new') return Promise.resolve();
+    var imp = state.impressions;
+    var payload = {
+      impressionMethod: imp.impressionMethodId === 'pvs' ? 'physical' : 'digital',
+      scannerId: imp.impressionMethodId === 'pvs' ? null : (parseInt(imp.impressionMethodId) || null)
+    };
+    return window.CaseApi.saveImpressions(caseId, payload);
+  }
+
+  function persistAdditionalInfo() {
+    if (!window.CaseApi || !state.additionalInformation || caseId === 'new') return Promise.resolve();
+    return window.CaseApi.saveAdditionalInfo(caseId, state.additionalInformation);
   }
 
   // Persist patient identity (firstName, lastName, DOB, gender, chartId,
@@ -148,8 +170,10 @@
     return ensureShellCreated()
       .then(persistPrescription)
       .then(persistPatient)
+      .then(persistShipping)
+      .then(persistImpressions)
+      .then(persistAdditionalInfo)
       .then(function () {
-        // TODO: teammate-owned sections — replace with real endpoints as each lands.
         try { localStorage.setItem(draftKey, JSON.stringify(state)); } catch (e) { /* ignore quota */ }
         state.lastSavedAt = new Date().toISOString();
         state.isSaving = false;
@@ -298,6 +322,10 @@
     scheduleAutosave: scheduleAutosave,
     saveDraft: saveDraft,
     markDirty: scheduleAutosave,
+    markSaved: function () {
+      state.lastSavedAt = new Date().toISOString();
+      updateAutosaveIndicator();
+    },
     currentCaseId: function () { return caseId; },
   };
 

@@ -16,9 +16,15 @@
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
       init: function () {
-        var draft = window.AddCaseState && window.AddCaseState.impressions;
-        if (draft && draft.impressionMethodId) {
-          this._hydrate(draft);
+        // Hydrate from server-side prefill (if editing existing case)
+        if (window.__impressionsPrefill) {
+          this._hydrateFromPrefill(window.__impressionsPrefill);
+        } else {
+          // Fallback to localStorage if draft exists
+          var draft = window.AddCaseState && window.AddCaseState.impressions;
+          if (draft && draft.impressionMethodId) {
+            this._hydrate(draft);
+          }
         }
 
         var self = this;
@@ -36,6 +42,15 @@
         this.impressionMethodId = d.impressionMethodId || '';
       },
 
+      _hydrateFromPrefill: function (p) {
+        if (!p) return;
+        if (p.impressionMethod === 'physical') {
+          this.impressionMethodId = 'pvs';
+        } else if (p.scannerId) {
+          this.impressionMethodId = p.scannerId;
+        }
+      },
+
       // ── Handlers ────────────────────────────────────────────────────────────
 
       onMethodChange: function () {
@@ -47,10 +62,35 @@
 
       syncToState: function () {
         if (!window.AddCaseState) return;
-        window.AddCaseState.impressions = {
-          impressionMethodId: this.impressionMethodId,
+        
+        var methodId = this.impressionMethodId;
+        var payload = {
+          impressionMethod: methodId === 'pvs' ? 'physical' : 'digital',
+          scannerId: methodId === 'pvs' ? null : (parseInt(methodId) || null)
         };
+
+        window.AddCaseState.impressions = {
+          impressionMethodId: methodId,
+        };
+
         if (window.AddCaseSave) window.AddCaseSave.markDirty();
+
+        // Server-side persistence if case exists
+        if (window.CASE_ID && window.CASE_ID !== 'new') {
+          this._persistToServer(payload);
+        }
+      },
+
+      _persistTimeout: null,
+      _persistToServer: function (payload) {
+        clearTimeout(this._persistTimeout);
+        this._persistTimeout = setTimeout(function () {
+          window.CaseApi.saveImpressions(window.CASE_ID, payload)
+            .then(function () {
+              if (window.AddCaseSave) window.AddCaseSave.markSaved();
+            })
+            .catch(function (err) { console.error('[Impressions] Save failed', err); });
+        }, 1000);
       },
 
       // ── Per-field validation ─────────────────────────────────────────────────
