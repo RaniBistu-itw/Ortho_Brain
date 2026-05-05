@@ -179,6 +179,9 @@
         clearTimeout(this._persistTimeout);
         this._persistTimeout = setTimeout(function () {
           window.CaseApi.saveAdditionalInfo(window.CASE_ID, payload)
+            .then(function () {
+              if (window.AddCaseSave) window.AddCaseSave.markSaved();
+            })
             .catch(function (err) { console.error('[AdditionalInfo] Save failed', err); });
         }, 1000); // 1s debounce
       },

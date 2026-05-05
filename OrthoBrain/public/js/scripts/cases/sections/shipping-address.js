@@ -15,8 +15,11 @@
       zipQuery:       '',      // display text for the ZIP combobox input
       zipDropdownOpen: false,
       city:           '',
+      cityId:         null,
       state:          '',
+      stateId:        null,
       country:        '',
+      countryId:      null,
 
       // ZIP combobox cache. zipResults backs the visible dropdown (refreshed
       // by debounced server search); zipCache memoises individual entries
@@ -37,11 +40,17 @@
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
       init: function () {
-        var draft = window.AddCaseState && window.AddCaseState.shippingAddress;
-        if (draft && (draft.streetAddress || draft.zipId)) {
-          this._hydrate(draft);
+        // Hydrate from server-side prefill (if editing existing case)
+        if (window.__shippingAddressPrefill) {
+          this._hydrateFromPrefill(window.__shippingAddressPrefill);
         } else {
-          this._prefillFromClinic();
+          // Fallback to localStorage draft
+          var draft = window.AddCaseState && window.AddCaseState.shippingAddress;
+          if (draft && (draft.streetAddress || draft.zipId)) {
+            this._hydrate(draft);
+          } else {
+            this._prefillFromClinic();
+          }
         }
 
         var self = this;
@@ -64,13 +73,28 @@
         this.doctorName     = c.doctorName     || '';
         this.streetAddress  = c.streetAddress  || '';
         this.streetAddress2 = c.streetAddress2 || '';
-        this.zipId          = c.zipId          || null;
-        // If a raw zip code came through (real data, no MOCK_ZIP_ENTRIES match),
-        // use it as the display label so the user sees something familiar.
-        if (c.zipCode && !this.zipQuery) {
+
+        // Only accept a genuine integer FK for zipId. Mock data and legacy sources
+        // use string slugs like 'us-43015' — not valid zipcodes.id values — which
+        // cause a FK constraint 500 on the server. Reject slugs here; leave zipId
+        // null so the user picks from the search dropdown before submitting.
+        var rawZipId  = c.zipId;
+        var isInteger = typeof rawZipId === 'number' ||
+          (typeof rawZipId === 'string' && /^\d+$/.test(rawZipId));
+        this.zipId     = isInteger ? parseInt(rawZipId, 10) : null;
+        this.cityId    = c.cityId    || null;
+        this.stateId   = c.stateId   || null;
+        this.countryId = c.countryId || null;
+
+        // Display hint: explicit zipCode field wins; integer ID resolves via API;
+        // slug falls back to its numeric segment ('us-43015' → '43015' as hint).
+        if (c.zipCode) {
           this.zipQuery = c.zipCode;
-        } else {
-          this._resolveZipQuery(c.zipId);
+        } else if (isInteger) {
+          this._resolveZipQuery(this.zipId);
+        } else if (typeof rawZipId === 'string' && rawZipId) {
+          var parts = rawZipId.split('-');
+          this.zipQuery = parts[parts.length - 1] || '';
         }
         this.city    = c.city    || '';
         this.state   = c.state   || '';
@@ -84,10 +108,26 @@
         this.streetAddress  = d.streetAddress  || '';
         this.streetAddress2 = d.streetAddress2 || '';
         this.zipId          = d.zipId          || null;
+        this.cityId         = d.cityId         || null;
+        this.stateId        = d.stateId        || null;
+        this.countryId      = d.countryId      || null;
         this._resolveZipQuery(d.zipId);
         this.city    = d.city    || '';
         this.state   = d.state   || '';
         this.country = d.country || '';
+      },
+
+      _hydrateFromPrefill: function (p) {
+        if (!p) return;
+        this.practice       = p.practice       || '';
+        this.doctorName     = p.doctorName     || '';
+        this.streetAddress  = p.streetAddress  || '';
+        this.streetAddress2 = p.streetAddress2 || '';
+        this.zipId          = p.zipId          || null;
+        this.cityId         = p.cityId         || null;
+        this.stateId        = p.stateId        || null;
+        this.countryId      = p.countryId      || null;
+        this._resolveZipQuery(p.zipId);
       },
 
       // Set zipQuery to the display label matching the given zipId. If the
@@ -160,9 +200,12 @@
         // Memoise so a later _resolveZipQuery() doesn't re-fetch this id.
         this.zipCache[entry.id] = entry;
         // CASCADE: auto-fill city, state, country
-        this.city    = entry.city;
-        this.state   = entry.state;
-        this.country = entry.country;
+        this.city      = entry.city;
+        this.cityId    = entry.cityId;
+        this.state     = entry.state;
+        this.stateId   = entry.stateId;
+        this.country   = entry.country;
+        this.countryId = entry.countryId;
         // Clear related errors
         this.errors.zipId   = null;
         this.errors.city    = null;
@@ -222,7 +265,7 @@
 
       syncToState: function () {
         if (!window.AddCaseState) return;
-        window.AddCaseState.shippingAddress = {
+        var payload = {
           savedAddressId: this.savedAddressId,
           practice:       this.practice,
           doctorName:     this.doctorName,
@@ -230,10 +273,33 @@
           streetAddress2: this.streetAddress2,
           zipId:          this.zipId,
           city:           this.city,
+          cityId:         this.cityId,
           state:          this.state,
+          stateId:        this.stateId,
           country:        this.country,
+          countryId:      this.countryId,
         };
+
+        window.AddCaseState.shippingAddress = JSON.parse(JSON.stringify(payload));
+        
         if (window.AddCaseSave) window.AddCaseSave.markDirty();
+
+        // Server-side persistence if case exists
+        if (window.CASE_ID && window.CASE_ID !== 'new') {
+          this._persistToServer(payload);
+        }
+      },
+
+      _persistTimeout: null,
+      _persistToServer: function (payload) {
+        clearTimeout(this._persistTimeout);
+        this._persistTimeout = setTimeout(function () {
+          window.CaseApi.saveShipping(window.CASE_ID, payload)
+            .then(function () {
+              if (window.AddCaseSave) window.AddCaseSave.markSaved();
+            })
+            .catch(function (err) { console.error('[Shipping] Save failed', err); });
+        }, 1000);
       },
 
       // ── Per-field validation ─────────────────────────────────────────────────

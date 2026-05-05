@@ -151,7 +151,7 @@ class CasesController extends Controller
 
     public function saveShipping(Request $request, int $id)
     {
-        $case = CaseModel::where('doctor_id', Auth::id())->findOrFail($id);
+        $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
 
         $case->shippingAddress()->updateOrCreate(
             ['case_id' => $case->id],
@@ -172,7 +172,7 @@ class CasesController extends Controller
 
     public function saveImpressions(Request $request, int $id)
     {
-        $case = CaseModel::where('doctor_id', Auth::id())->findOrFail($id);
+        $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
 
         $case->update([
             'impression_method' => strtoupper($request->input('impressionMethod')),
@@ -184,7 +184,7 @@ class CasesController extends Controller
 
     public function saveAdditionalInfo(AdditionalInformationRequest $request, int $id)
     {
-        $case = CaseModel::where('doctor_id', Auth::id())->findOrFail($id);
+        $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
 
         $case->additionalInfo()->updateOrCreate(
             ['case_id' => $case->id],
@@ -208,6 +208,14 @@ class CasesController extends Controller
             return response()->json([
                 'ok' => false,
                 'errors' => ['prescription' => 'Prescription section must be completed before submit.'],
+            ], 422);
+        }
+
+        if (! $case->patient_id) {
+            return response()->json([
+                'ok'      => false,
+                'error'   => 'patient_required',
+                'message' => 'Cannot submit case: no patient linked. Save patient information first.',
             ], 422);
         }
 

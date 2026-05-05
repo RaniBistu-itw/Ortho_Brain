@@ -137,5 +137,17 @@
       fd.append('photo', frontalSmileBlob, 'frontal-smile.bin');
       return multipart(base() + '/' + encodeURIComponent(caseId) + '/smile-preview/generate', fd, signal);
     },
+
+    saveShipping: function (caseId, payload) {
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/shipping', payload);
+    },
+
+    saveImpressions: function (caseId, payload) {
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/impressions', payload);
+    },
+
+    saveAdditionalInfo: function (caseId, payload) {
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/additional', payload);
+    },
   };
 })();

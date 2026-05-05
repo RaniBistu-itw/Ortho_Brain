@@ -29,10 +29,12 @@
     } catch (e) { /* ignore corrupt drafts */ }
   })();
 
-  // Server-rendered Prescription prefill (edit mode) wins over localStorage for that slice.
-  if (window.__addCasePrefill) {
-    state.prescription = window.__addCasePrefill;
-  }
+  // Server-rendered prefill (edit mode) wins over localStorage for those slices.
+  if (window.__addCasePrefill) state.prescription = window.__addCasePrefill;
+  if (window.__patientPrefill) state.patientInformation = window.__patientPrefill;
+  if (window.__additionalInfoPrefill) state.additionalInformation = window.__additionalInfoPrefill;
+  if (window.__shippingAddressPrefill) state.shippingAddress = window.__shippingAddressPrefill;
+  if (window.__impressionsPrefill) state.impressions = window.__impressionsPrefill;
 
   // ─── Autosave indicator ───────────────────────────────────────────────────
 
@@ -83,6 +85,26 @@
   function persistPrescription() {
     if (!window.CaseApi || !state.prescription || caseId === 'new') return Promise.resolve();
     return window.CaseApi.savePrescription(caseId, state.prescription);
+  }
+
+  function persistShipping() {
+    if (!window.CaseApi || !state.shippingAddress || caseId === 'new') return Promise.resolve();
+    return window.CaseApi.saveShipping(caseId, state.shippingAddress);
+  }
+
+  function persistImpressions() {
+    if (!window.CaseApi || !state.impressions || caseId === 'new') return Promise.resolve();
+    var imp = state.impressions;
+    var payload = {
+      impressionMethod: imp.impressionMethodId === 'pvs' ? 'physical' : 'digital',
+      scannerId: imp.impressionMethodId === 'pvs' ? null : (parseInt(imp.impressionMethodId) || null)
+    };
+    return window.CaseApi.saveImpressions(caseId, payload);
+  }
+
+  function persistAdditionalInfo() {
+    if (!window.CaseApi || !state.additionalInformation || caseId === 'new') return Promise.resolve();
+    return window.CaseApi.saveAdditionalInfo(caseId, state.additionalInformation);
   }
 
   // Persist patient identity (firstName, lastName, DOB, gender, chartId,
@@ -145,21 +167,55 @@
     state.isDirty = false;
     updateAutosaveIndicator();
 
+    var failures = [];
+
+    // Wraps a persist fn so its rejection is recorded but never propagates \u2014
+    // each step runs regardless of what the previous one did.
+    function shield(key, fn) {
+      return function () {
+        return fn().catch(function (err) {
+          console.error('[saveDraft] ' + key + ' failed', err);
+          failures.push(key);
+        });
+      };
+    }
+
+    var LABELS = {
+      prescription: 'Prescription',
+      patient:      'Patient',
+      shipping:     'Shipping',
+      impressions:  'Impressions',
+      additionalInfo: 'Additional Info',
+    };
+
     return ensureShellCreated()
-      .then(persistPrescription)
-      .then(persistPatient)
+      .then(shield('prescription',   persistPrescription))
+      .then(shield('patient',        persistPatient))
+      .then(shield('shipping',       persistShipping))
+      .then(shield('impressions',    persistImpressions))
+      .then(shield('additionalInfo', persistAdditionalInfo))
       .then(function () {
-        // TODO: teammate-owned sections — replace with real endpoints as each lands.
         try { localStorage.setItem(draftKey, JSON.stringify(state)); } catch (e) { /* ignore quota */ }
         state.lastSavedAt = new Date().toISOString();
         state.isSaving = false;
         updateAutosaveIndicator();
         if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
-          window.MediaTileHelpers.showToast('Saved \u2713', 2000);
+          if (failures.length > 0) {
+            var saved    = Object.keys(LABELS).length - failures.length;
+            var failList = failures.map(function (k) { return LABELS[k] || k; }).join(', ');
+            window.MediaTileHelpers.showToast(
+              'Saved ' + saved + ' of ' + Object.keys(LABELS).length +
+              ' \u2014 ' + failList + ' failed. Other sections persisted.',
+              4000
+            );
+          } else {
+            window.MediaTileHelpers.showToast('Saved \u2713', 2000);
+          }
         }
       })
       .catch(function (err) {
-        console.error('Autosave failed', err);
+        // Only fires if ensureShellCreated() itself rejects.
+        console.error('Autosave failed (shell creation)', err);
         state.isDirty = true;
         state.isSaving = false;
         updateAutosaveIndicator();
@@ -298,6 +354,10 @@
     scheduleAutosave: scheduleAutosave,
     saveDraft: saveDraft,
     markDirty: scheduleAutosave,
+    markSaved: function () {
+      state.lastSavedAt = new Date().toISOString();
+      updateAutosaveIndicator();
+    },
     currentCaseId: function () { return caseId; },
   };
 

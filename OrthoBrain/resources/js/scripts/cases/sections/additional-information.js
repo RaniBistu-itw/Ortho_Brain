@@ -91,8 +91,14 @@
       // ── Alpine lifecycle ────────────────────────────────────────────────────
 
       init: function () {
-        var draft = window.AddCaseState && window.AddCaseState.additionalInformation;
-        if (draft) this._hydrate(draft);
+        // Hydrate from server-side prefill (if editing existing case)
+        if (window.__additionalInfoPrefill) {
+          this._hydrate(window.__additionalInfoPrefill);
+        } else {
+          // Fallback to localStorage if draft exists
+          var draft = window.AddCaseState && window.AddCaseState.additionalInformation;
+          if (draft) this._hydrate(draft);
+        }
 
         var self = this;
         window.AdditionalInformationSection = {
@@ -141,7 +147,7 @@
 
       syncToState: function () {
         if (!window.AddCaseState) return;
-        window.AddCaseState.additionalInformation = JSON.parse(JSON.stringify({
+        var payload = {
           sectionExpanded:        this.sectionExpanded,
           diagnosis:              this.diagnosis,
           medicalHistory:         this.medicalHistory,
@@ -156,8 +162,28 @@
           midlineCorrection:      this.midlineCorrection,
           overjetOverbite:        this.overjetOverbite,
           crossbite:              this.crossbite,
-        }));
+        };
+
+        window.AddCaseState.additionalInformation = JSON.parse(JSON.stringify(payload));
+        
         if (window.AddCaseSave) window.AddCaseSave.markDirty();
+
+        // Server-side persistence if case exists
+        if (window.CASE_ID && window.CASE_ID !== 'new') {
+          this._persistToServer(payload);
+        }
+      },
+
+      _persistTimeout: null,
+      _persistToServer: function (payload) {
+        clearTimeout(this._persistTimeout);
+        this._persistTimeout = setTimeout(function () {
+          window.CaseApi.saveAdditionalInfo(window.CASE_ID, payload)
+            .then(function () {
+              if (window.AddCaseSave) window.AddCaseSave.markSaved();
+            })
+            .catch(function (err) { console.error('[AdditionalInfo] Save failed', err); });
+        }, 1000); // 1s debounce
       },
 
       // ── Pattern B: Exclusivity ──────────────────────────────────────────────

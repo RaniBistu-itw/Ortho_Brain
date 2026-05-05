@@ -167,23 +167,55 @@
     state.isDirty = false;
     updateAutosaveIndicator();
 
+    var failures = [];
+
+    // Wraps a persist fn so its rejection is recorded but never propagates \u2014
+    // each step runs regardless of what the previous one did.
+    function shield(key, fn) {
+      return function () {
+        return fn().catch(function (err) {
+          console.error('[saveDraft] ' + key + ' failed', err);
+          failures.push(key);
+        });
+      };
+    }
+
+    var LABELS = {
+      prescription: 'Prescription',
+      patient:      'Patient',
+      shipping:     'Shipping',
+      impressions:  'Impressions',
+      additionalInfo: 'Additional Info',
+    };
+
     return ensureShellCreated()
-      .then(persistPrescription)
-      .then(persistPatient)
-      .then(persistShipping)
-      .then(persistImpressions)
-      .then(persistAdditionalInfo)
+      .then(shield('prescription',   persistPrescription))
+      .then(shield('patient',        persistPatient))
+      .then(shield('shipping',       persistShipping))
+      .then(shield('impressions',    persistImpressions))
+      .then(shield('additionalInfo', persistAdditionalInfo))
       .then(function () {
         try { localStorage.setItem(draftKey, JSON.stringify(state)); } catch (e) { /* ignore quota */ }
         state.lastSavedAt = new Date().toISOString();
         state.isSaving = false;
         updateAutosaveIndicator();
         if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
-          window.MediaTileHelpers.showToast('Saved \u2713', 2000);
+          if (failures.length > 0) {
+            var saved    = Object.keys(LABELS).length - failures.length;
+            var failList = failures.map(function (k) { return LABELS[k] || k; }).join(', ');
+            window.MediaTileHelpers.showToast(
+              'Saved ' + saved + ' of ' + Object.keys(LABELS).length +
+              ' \u2014 ' + failList + ' failed. Other sections persisted.',
+              4000
+            );
+          } else {
+            window.MediaTileHelpers.showToast('Saved \u2713', 2000);
+          }
         }
       })
       .catch(function (err) {
-        console.error('Autosave failed', err);
+        // Only fires if ensureShellCreated() itself rejects.
+        console.error('Autosave failed (shell creation)', err);
         state.isDirty = true;
         state.isSaving = false;
         updateAutosaveIndicator();
@@ -322,6 +354,10 @@
     scheduleAutosave: scheduleAutosave,
     saveDraft: saveDraft,
     markDirty: scheduleAutosave,
+    markSaved: function () {
+      state.lastSavedAt = new Date().toISOString();
+      updateAutosaveIndicator();
+    },
     currentCaseId: function () { return caseId; },
   };
 
