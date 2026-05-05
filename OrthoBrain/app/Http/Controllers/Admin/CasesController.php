@@ -171,6 +171,7 @@ class CasesController extends Controller
             'caseDoctor' => $case->doctor,
             'statusOptions' => self::STATUS_OPTIONS,
             'statusLabels' => self::STATUS_LABELS,
+            'allowedTransitions' => self::ALLOWED_TRANSITIONS[$case->status] ?? [],
             'scanners' => Scanner::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
             'caseMedia' => $caseMedia,
             'patientPrefill' => $patientPrefill,
