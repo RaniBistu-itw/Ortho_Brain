@@ -216,3 +216,108 @@ diagnostic concluded with a server restart fixing the symptom — the
 running binary simply hadn't picked up PR #98's hydration fix. The
 querySelector trap above masked the fix's effect across two diagnostic
 rounds even after the server was restarted.
+
+## Quality gates
+
+### Entry 8 — Database round-trip discipline
+
+**Rule:** Every change that adds or modifies a database column must
+explicitly verify the full round trip: write path, all read paths,
+serialization, and prefill hydration. (See Entry 4 for the same
+four-layer pattern viewed from form-field down — this entry covers
+the column-up direction with the multi-read-path and null-handling
+clauses below.)
+
+**Reason:** Adding a column without auditing all read paths produces
+silent gaps. The column may be written correctly but invisible in
+the case list, the PDF, the admin view, or the activity log. Each
+read path is a separate consumer with its own potential to break or
+omit the new field.
+
+**Discipline:** For every column-touching PR, audit at minimum:
+- Migration adds the column
+- Model includes it in `$fillable` and any `$casts`
+- Write paths persist it (controller `update()` calls, service
+  layer methods)
+- All read paths consume it: edit endpoint serialization, list
+  endpoint, admin parity endpoint (Entry 2), PDF template, any export
+- Frontend hydration reads it from prefill (with appropriate default
+  for null/empty)
+- Existing rows handle null gracefully (no crashes, no literal
+  "null" displayed in UI)
+
+If any read path is intentionally excluded from the new column (e.g.,
+"this is internal data, list view doesn't need it"), document the
+reason in the PR description so future readers know it was a choice
+not an oversight.
+
+**Reference:** PR #103 (submitter initials). The case list read-path
+audit was raised mid-PR and added to scope before merge.
+
+### Entry 9 — Manual smoke test discipline
+
+**Rule:** Every PR that touches user-facing flows ships with a
+manual smoke test documented in the PR description, executed by the
+human author before ready-for-merge.
+
+**Reason:** OB has feature-level Pest tests but no automated
+end-to-end smoke tests. Pest verifies endpoints; it doesn't verify
+the user can navigate the full flow. Bugs that pass unit tests but
+break the real flow (Alpine init order, prefill hydration timing,
+form submission cascades) only surface in a real browser.
+
+**Discipline:** PR description must include a smoke test section:
+
+```
+## Smoke test
+- [x] Login as [role]
+- [x] Navigate to [feature entry point]
+- [x] Perform [primary action]
+- [x] Verify [primary expected outcome]
+- [x] Reload page → verify state persists
+- [x] [Other parity / regression checks specific to PR]
+```
+
+Each ticked box means the human author manually executed and
+confirmed the step. Unchecked boxes block merge.
+
+Future: Automated smoke tests (Laravel Dusk or equivalent) are
+backlog-tracked. Until they exist, manual smoke tests are the gate.
+
+**Reference:** PR #103. Smoke test discipline was added explicitly
+to PR scope mid-implementation.
+
+### Entry 10 — Validation feedback consistency
+
+**Rule:** For every new validated field, document and verify the
+user-facing feedback at each rejection mode.
+
+**Reason:** Backend 422 responses are necessary but not sufficient.
+The user needs to see why their input was rejected, where on the page
+the error appears, and what to do next. Different validation sources
+produce different feedback shapes:
+
+- Client-side regex / pattern attribute → browser-native message
+- Client-side Alpine validation → inline error display
+- Server-side 422 → catch handler surfaces via toast / alert
+- HTML `maxlength` attribute → silently caps input (no error needed)
+
+These four sources coexist for any single field. The PR must verify
+user-facing outcome at each rejection mode, not just that the backend
+rejects correctly.
+
+**Discipline:** For each validation rule on a new field, document in
+the PR description:
+- The rejection mode (e.g., "empty field on submit")
+- Where validation fires (client / server / both)
+- What the user sees (specific message text, location on page)
+- Whether focus moves to the offending field
+
+If client and server validations could disagree (different regex,
+different length limits, different format expectations), reconcile
+before merging. Entry 5 (field semantics across consumers) applies —
+symmetry matters across all four validation sources.
+
+**Reference:** PR #103. Initial scope had server `max:10` paired
+with client `maxlength:5` — a silent contract mismatch caught in
+pre-flight reading. The reconciliation became this entry's example.
