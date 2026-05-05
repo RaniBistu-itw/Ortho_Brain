@@ -322,6 +322,10 @@
     scheduleAutosave: scheduleAutosave,
     saveDraft: saveDraft,
     markDirty: scheduleAutosave,
+    markSaved: function () {
+      state.lastSavedAt = new Date().toISOString();
+      updateAutosaveIndicator();
+    },
     currentCaseId: function () { return caseId; },
   };
 
