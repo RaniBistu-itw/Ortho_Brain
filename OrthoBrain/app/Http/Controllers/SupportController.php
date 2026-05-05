@@ -23,7 +23,11 @@ class SupportController extends Controller
             'name.regex' => 'Name may only contain letters, spaces and hyphens.',
         ]);
 
-        return redirect()->route('support.show')
-            ->with('success', "Message sent successfully — we'll be in touch within a business day.");
+        return redirect()->route('support.thanks');
+    }
+
+    public function thanks()
+    {
+        return view('support-thanks');
     }
 }
