@@ -16,7 +16,6 @@ class CaseModel extends Model
         'doctor_id',
         'practice_id',
         'patient_id',
-        'practice_id',
         'scanner_id',
         'impression_method',
         'case_code',

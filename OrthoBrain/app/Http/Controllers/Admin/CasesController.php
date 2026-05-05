@@ -138,12 +138,13 @@ class CasesController extends Controller
                 'prescription.toothRestrictions',
                 'media',
                 'patient',
+                'additionalInfo',
+                'shippingAddress',
             ])
             ->findOrFail($id);
 
         // Reuse the doctor CasesController's serializers so the prefill
-        // shapes (prescription / media / patient) match exactly what the
-        // Alpine components expect.
+        // shapes match exactly what the Alpine components expect.
         $doctorController = app(DoctorCasesController::class);
 
         $reflection = new \ReflectionMethod($doctorController, 'serializePrescription');
@@ -158,6 +159,10 @@ class CasesController extends Controller
         $serializePatient->setAccessible(true);
         $patientPrefill = $serializePatient->invoke($doctorController, $case->patient);
 
+        $serializeShipping = new \ReflectionMethod($doctorController, 'serializeShipping');
+        $serializeShipping->setAccessible(true);
+        $shippingAddressPrefill = $serializeShipping->invoke($doctorController, $case->shippingAddress);
+
         return view('content.cases.add-case', [
             'id' => $case->id,
             'prescriptionPrefill' => $prescriptionPrefill,
@@ -169,6 +174,12 @@ class CasesController extends Controller
             'scanners' => Scanner::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
             'caseMedia' => $caseMedia,
             'patientPrefill' => $patientPrefill,
+            'additionalInfoPrefill' => $case->additionalInfo?->data,
+            'shippingAddressPrefill' => $shippingAddressPrefill,
+            'impressionsPrefill' => [
+                'impressionMethod' => $case->impression_method ? strtolower($case->impression_method) : null,
+                'scannerId' => $case->scanner_id,
+            ],
         ]);
     }
 
