@@ -128,6 +128,11 @@
         this.stateId        = p.stateId        || null;
         this.countryId      = p.countryId      || null;
         this._resolveZipQuery(p.zipId);
+        // Text fields the controller now resolves from the FKs. Without these
+        // assignments the city/state/country inputs render blank on reload.
+        this.city    = p.city    || '';
+        this.state   = p.state   || '';
+        this.country = p.country || '';
       },
 
       // Set zipQuery to the display label matching the given zipId. If the
