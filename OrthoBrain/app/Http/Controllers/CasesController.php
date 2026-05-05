@@ -146,6 +146,7 @@ class CasesController extends Controller
                 'impressionMethod' => $case->impression_method ? strtolower($case->impression_method) : null,
                 'scannerId' => $case->scanner_id,
             ],
+            'submitOrderPrefill' => $this->serializeSubmitOrder($case),
         ]);
     }
 
@@ -194,7 +195,7 @@ class CasesController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function submit(int $id)
+    public function submit(Request $request, int $id)
     {
         $doctor = $this->currentDoctor();
         $practiceId = currentPractice()->id;
@@ -219,9 +220,23 @@ class CasesController extends Controller
             ], 422);
         }
 
+        // Submitter initials are an attestation: 2-5 letters, mixed case
+        // explicitly allowed (help text says "ABcd" is valid). Stored as
+        // typed — uppercasing here would silently rewrite the user's input
+        // and violate the stated UI contract.
+        $initials = trim((string) $request->input('submitter_initials', ''));
+        if (! preg_match('/^[A-Za-z]{2,5}$/', $initials)) {
+            return response()->json([
+                'ok'      => false,
+                'error'   => 'initials_required',
+                'message' => 'Submitter initials are required (2-5 letters).',
+            ], 422);
+        }
+
         $case->update([
             'status' => 'SUBMITTED',
             'submitted_at' => now(),
+            'submitter_initials' => $initials,
         ]);
 
         return response()->json([
@@ -369,6 +384,14 @@ class CasesController extends Controller
             'SPECIFIC_STEP' => 'specific-step',
             default => null,
         };
+    }
+
+    private function serializeSubmitOrder(?CaseModel $case): ?array
+    {
+        if (! $case) return null;
+        return [
+            'submitterInitials' => $case->submitter_initials,
+        ];
     }
 
     private function serializeShipping(?CaseShippingAddress $addr): ?array
