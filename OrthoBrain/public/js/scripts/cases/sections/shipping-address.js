@@ -128,6 +128,18 @@
         this.stateId        = p.stateId        || null;
         this.countryId      = p.countryId      || null;
         this._resolveZipQuery(p.zipId);
+        // Text fields the controller now resolves from the FKs. Without these
+        // assignments the city/state/country inputs render blank on reload.
+        this.city    = p.city    || '';
+        this.state   = p.state   || '';
+        // Country is a <select> whose <option>s are produced by an Alpine
+        // x-for over window.COUNTRY_ENTRIES. If we set `country` synchronously
+        // here, the select's x-model evaluates before x-for has rendered the
+        // matching <option>, so the DOM falls back to the placeholder and
+        // 2-way-binds an empty string back into our state. Defer to the next
+        // tick so the options exist when the assignment lands.
+        var self = this;
+        this.$nextTick(function () { self.country = p.country || ''; });
       },
 
       // Set zipQuery to the display label matching the given zipId. If the
@@ -212,6 +224,14 @@
         this.errors.state   = null;
         this.errors.country = null;
         this.syncToState();
+        // Re-affirm the country <select> value next tick. The first sync
+        // assignment above keeps `country` correct for syncToState, but the
+        // x-for / x-model render cycle can still clobber the visible
+        // <select> back to the placeholder — see _hydrateFromPrefill for
+        // the same race. The re-set after $nextTick forces the DOM to
+        // settle on the right option once x-for has reconciled.
+        var self = this;
+        this.$nextTick(function () { self.country = entry.country; });
       },
 
       onZipBlur: function () {
