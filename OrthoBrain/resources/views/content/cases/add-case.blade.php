@@ -68,9 +68,19 @@
       <span class="add-case-topbar__autosave text-muted font-small-2" id="autosave-indicator"></span>
 
       @if($adminMode && $caseRow)
+        @php
+          // Show only the current status + the legal next-states the
+          // controller's transition machine accepts. Current status is
+          // prepended so the dropdown reflects where the case is now;
+          // a "transition to self" submit is a no-op handled server-side.
+          $dropdownStatuses = array_values(array_unique(array_merge(
+              [$caseRow->status],
+              $allowedTransitions ?? []
+          )));
+        @endphp
         <div class="d-flex align-items-center gap-50 add-case-topbar__group">
           <select class="form-select form-select-sm" id="admin-status-select" style="width:auto;" aria-label="Case status">
-            @foreach($statusOptions as $s)
+            @foreach($dropdownStatuses as $s)
               <option value="{{ $s }}" @selected($caseRow->status === $s)>{{ $statusLabels[$s] ?? $s }}</option>
             @endforeach
           </select>
