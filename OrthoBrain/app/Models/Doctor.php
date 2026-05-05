@@ -1,0 +1,161 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Doctor extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'user_id',
+        'practice_id',
+        'first_name',
+        'last_name',
+        'profile_photo_s3_key',
+        'preferred_language',
+        'currently_providing_ortho_services',
+        'preferred_contact_mode',
+        'doctor_contact_email',
+        'doctor_cell_phone',
+        'other_email',
+        'preferred_tooth_numbering_system',
+        'smile_arc_pref',
+        'small_lateral_incisors_pref',
+        'mixed_dentition_pref',
+        'orthodontic_extractions_pref',
+        'ipr_protocol_pref',
+        'ipr_protocol_other_note',
+        'elastics_bonded_buttons_pref',
+        'extractions_if_suggested_pref',
+        'attachment_stage_pref',
+        'approval_status',
+        'approved_at',
+        'approved_by_admin_id',
+        'rejection_reason',
+        'primary_address_source',
+        'primary_address_practice_id',
+        'street_address_1',
+        'street_address_2',
+        'zip_id',
+        'city_id',
+        'state_id',
+        'country_id',
+    ];
+
+    protected $casts = [
+        'currently_providing_ortho_services' => 'boolean',
+        'approved_at' => 'datetime',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function avatarUrl(): ?string
+    {
+        // Root-relative so it works regardless of APP_URL (localhost vs 127.0.0.1 etc.)
+        return $this->profile_photo_s3_key ? '/storage/' . ltrim($this->profile_photo_s3_key, '/') : null;
+    }
+
+    public function practice()
+    {
+        return $this->belongsTo(Practice::class, 'practice_id');
+    }
+
+    public function ownedPractices()
+    {
+        return $this->hasMany(Practice::class, 'owner_id');
+    }
+
+    public function practices()
+    {
+        return $this->belongsToMany(Practice::class, 'doctor_practice')
+            ->withPivot([
+                'id',
+                'approval_status',
+                'is_primary',
+                'requested_at',
+                'approved_at',
+                'approved_by_admin_id',
+                'rejected_at',
+                'rejection_reason',
+                'left_at',
+            ])
+            ->withTimestamps();
+    }
+
+    public function activePractices()
+    {
+        return $this->practices()
+            ->where('practices.status', 'ACTIVE')
+            ->wherePivot('approval_status', 'APPROVED');
+    }
+
+    public function pendingPractices()
+    {
+        return $this->practices()->wherePivot('approval_status', 'PENDING');
+    }
+
+    public function rejectedPractices()
+    {
+        return $this->practices()->wherePivot('approval_status', 'REJECTED');
+    }
+
+    public function primaryPractice()
+    {
+        return $this->practices()
+            ->where('practices.status', 'ACTIVE')
+            ->wherePivot('approval_status', 'APPROVED')
+            ->wherePivot('is_primary', true);
+    }
+
+    public function approverAdmin()
+    {
+        return $this->belongsTo(Admin::class, 'approved_by_admin_id');
+    }
+
+    public function addresses()
+    {
+        return $this->hasMany(DoctorAddress::class);
+    }
+
+    public function shippingAddresses()
+    {
+        return $this->hasMany(DoctorAddress::class)->where('type', 'shipping');
+    }
+
+    public function billingAddresses()
+    {
+        return $this->hasMany(DoctorAddress::class)->where('type', 'billing');
+    }
+
+    public function modalities()
+    {
+        return $this->belongsToMany(Modality::class, 'doctor_modalities');
+    }
+
+    public function buccalCorridorOptions()
+    {
+        return $this->belongsToMany(BuccalCorridorOption::class, 'doctor_buccal_corridors');
+    }
+
+    public function treatmentModalities()
+    {
+        return $this->belongsToMany(TreatmentModality::class, 'doctor_treatment_modalities');
+    }
+
+    public function specialties()
+    {
+        return $this->belongsToMany(Specialty::class, 'doctor_specialties');
+    }
+
+    public function cases()
+    {
+        return $this->hasMany(CaseModel::class);
+    }
+}

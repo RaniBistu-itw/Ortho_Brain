@@ -5,6 +5,7 @@
 .env.production
 .phpactor.json
 .phpunit.result.cache
+/.claude/
 /.cursor/
 /.idea
 /.nova
@@ -23,3 +24,12 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+.DS_Store
+CLAUDE_WORK_LOG.md
+docs/practice-name-autofill.md
+docs/perfect-smile-plan.md
+docs/multi-practice-feature.md
+Docs/api.md
+# Backups produced by the /switch-branch skill
+.env.*.backup
+PerformanceTestSeeder.php

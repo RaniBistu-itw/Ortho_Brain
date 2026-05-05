@@ -1,0 +1,1445 @@
+.add-case-topbar {
+  position: sticky;
+  /* Clears the Vuexy floating navbar (~4.45rem tall + 1rem top margin) so the
+     two bars stack instead of overlapping. */
+  top: 5.75rem;
+  /* Below the navbar's z-index (~12) so the avatar dropdown renders OVER this
+     bar; still above scrolled page content (which has no z-index). */
+  z-index: 1;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  border-bottom: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: sticky;
+}
+/* Brand accent strip along the top edge — uses --ob-gradient-accent so the
+   colour automatically follows the palette tokens. */
+.add-case-topbar::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: var(--ob-gradient-accent, linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%));
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+.add-case-topbar .add-case-topbar__back {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.add-case-topbar .add-case-topbar__autosave {
+  font-size: 0.78rem;
+  min-width: 90px;
+  text-align: right;
+}
+
+.add-case-layout {
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding-top: 1.5rem;
+}
+
+.add-case-rail {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  /* Sits immediately below .add-case-topbar (5.75rem nav offset + ~4rem bar). */
+  top: 10rem;
+  max-height: calc(100vh - 11rem);
+  overflow-y: auto;
+}
+.add-case-rail::-webkit-scrollbar {
+  width: 4px;
+}
+.add-case-rail::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+.add-case-rail__list {
+  padding: 0;
+}
+.add-case-rail__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.add-case-rail__item:hover {
+  background-color: rgba(89, 192, 212, 0.06);
+}
+.add-case-rail__item--placeholder {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.add-case-rail__item--active {
+  background-color: rgba(89, 192, 212, 0.08);
+}
+.add-case-rail__item--active .add-case-rail__label {
+  font-weight: 600;
+  color: #59c0d4;
+}
+.add-case-rail__item--active .add-case-rail__icon-tile {
+  background-color: #59c0d4;
+  color: #fff;
+}
+.add-case-rail__item--active .add-case-rail__icon-tile svg {
+  stroke: #fff;
+}
+.add-case-rail__icon-tile {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background-color: rgba(130, 134, 139, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+.add-case-rail__error-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #ea5455;
+  border: 2px solid #fff;
+  pointer-events: none;
+}
+.add-case-rail__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.add-case-rail__label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.add-case-rail__subtitle {
+  font-size: 0.75rem;
+  color: #6e6b7b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.add-case-tab-nav {
+  padding: 0 0.5rem;
+}
+
+.add-case-form-pane {
+  min-width: 0;
+}
+
+.case-section {
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #ebe9f1;
+  box-shadow: 0 4px 24px 0 rgba(34, 41, 47, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  scroll-margin-top: 72px;
+}
+.case-section__header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #ebe9f1;
+}
+.case-section__title {
+  margin-bottom: 0.15rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #5e5873;
+}
+.case-section__subtitle {
+  font-size: 0.8rem;
+  margin-bottom: 0;
+  color: #b9b9c3;
+}
+.case-section--placeholder {
+  opacity: 0.45;
+  background-color: #f6f6f6;
+}
+
+.pi-search-wrapper .pi-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #ebe9f1;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  background: #fff;
+}
+.pi-search-wrapper .pi-search-dropdown .pi-search-option {
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+.pi-search-wrapper .pi-search-dropdown .pi-search-option:hover {
+  background-color: rgba(89, 192, 212, 0.06);
+}
+
+.pi-existence-alert {
+  font-size: 0.85rem;
+}
+
+.pi-field-error {
+  min-height: 1.1rem;
+  display: none;
+}
+
+.rx-pref-list {
+  border: 1px solid #ebe9f1;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.rx-pref-row {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid #ebe9f1;
+}
+.rx-pref-row:last-child {
+  border-bottom: none;
+}
+
+.rx-pref-inner {
+  padding-left: 2.6rem;
+  padding-top: 0.4rem;
+}
+
+.rx-step-input {
+  width: 68px;
+  display: inline-block;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.85rem;
+  height: auto;
+  vertical-align: middle;
+}
+
+.rx-restriction-block {
+  padding: 0.5rem 0;
+}
+
+.tooth-picker {
+  border: 1px solid #ebe9f1;
+  border-radius: 6px;
+  padding: 0.75rem 0.5rem;
+  background: #f9f9f9;
+  overflow-x: auto;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+}
+.tooth-picker__arch-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.tooth-picker__row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.tooth-picker__row + .tooth-picker__row {
+  margin-top: 2px;
+}
+.tooth-picker__row--primary {
+  padding: 0 36px;
+}
+.tooth-picker__tooth {
+  width: 30px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid #ebe9f1;
+  background: #fff;
+  color: #6e6b7b;
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.1s, color 0.1s, border-color 0.1s;
+}
+.tooth-picker__tooth:hover:not(.tooth-picker__tooth--selected) {
+  border-color: #59c0d4;
+  color: #59c0d4;
+}
+.tooth-picker__tooth--selected {
+  background-color: #59c0d4 !important;
+  border-color: #59c0d4 !important;
+  color: #fff !important;
+}
+.tooth-picker__midline {
+  width: 10px;
+  flex-shrink: 0;
+  align-self: stretch;
+  border-left: 1px dotted #cfcadd;
+  margin: 0 3px;
+}
+.tooth-picker__arch-divider {
+  border-top: 1px dotted #cfcadd;
+  margin: 0.25rem 0;
+}
+
+.ai-collapse-btn {
+  min-width: 32px;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.2rem 0.5rem;
+}
+
+.ai-subsection {
+  padding: 0.65rem 0;
+}
+.ai-subsection:first-child {
+  padding-top: 0;
+}
+
+.ai-subsection__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #5e5873;
+  margin-bottom: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ai-wnl-check {
+  /* Flex row so the checkbox sits visibly INSIDE the tinted box, not in the
+     Bootstrap .form-check absolute-positioned slot that landed it just
+     outside the border. .form-check class intentionally not applied on the
+     wrapper for the same reason. */
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(89, 192, 212, 0.06);
+  border: 1px solid rgba(89, 192, 212, 0.28);
+  border-radius: 4px;
+  padding: 0.5rem 0.85rem;
+  margin-bottom: 0.75rem;
+}
+.ai-wnl-check .form-check-input {
+  /* Reset Bootstrap's float / negative margin so flex layout drives position. */
+  float: none;
+  margin: 0;
+  flex-shrink: 0;
+  /* Slightly tighter than Bootstrap default 1em to read as a compact accent
+     control rather than a primary form input. */
+  width: 1.05em;
+  height: 1.05em;
+}
+.ai-wnl-check .form-check-label {
+  margin: 0;
+  cursor: pointer;
+  flex: 1;
+}
+
+.ai-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+}
+
+.ai-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ai-follow-up {
+  margin-top: 0.5rem;
+  margin-left: 2.5rem;
+}
+
+.ai-specify-input {
+  margin-top: 0.35rem;
+  margin-left: 2.5rem;
+  max-width: 400px;
+}
+
+.ai-tooltip-icon {
+  cursor: help;
+  color: #59c0d4;
+  font-size: 0.8rem;
+  margin-left: 0.25rem;
+  vertical-align: middle;
+}
+
+.form-check-input:disabled ~ .form-check-label {
+  opacity: 0.5;
+}
+
+.imp-method-label {
+  font-weight: 600;
+}
+
+.sa-readonly-label {
+  font-size: 0.875rem;
+  color: #b9b9c3;
+  margin-bottom: 0.25rem;
+}
+
+.sa-readonly-value {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.sa-zip-combobox {
+  position: relative;
+}
+
+.sa-zip-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: #fff;
+  border: 1px solid #ebe9f1;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.sa-zip-option {
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.sa-zip-option:hover {
+  background-color: rgba(89, 192, 212, 0.08);
+  color: #59c0d4;
+}
+
+.so-initials-input {
+  max-width: 180px;
+}
+
+.so-terms-label {
+  line-height: 1.55;
+}
+.so-terms-label a {
+  color: #59c0d4;
+  text-decoration: underline;
+}
+.so-terms-label a:hover {
+  text-decoration: none;
+}
+
+.media-tile {
+  position: relative;
+  border: 2px dashed #ebe9f1;
+  border-radius: 8px;
+  aspect-ratio: 1;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  background-color: #fdfdfd;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+}
+.media-tile:hover, .media-tile:focus {
+  border-color: #59c0d4;
+  border-style: solid;
+  outline: none;
+}
+.media-tile--filled {
+  border-style: solid;
+  border-color: #ebe9f1;
+}
+.media-tile--filled:hover, .media-tile--filled:focus {
+  border-color: #59c0d4;
+}
+.media-tile--drag-over {
+  border-color: #59c0d4;
+  border-style: solid;
+  background-color: rgba(89, 192, 212, 0.06);
+}
+.media-tile__placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+  opacity: 0.35;
+}
+.media-tile__preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+}
+.media-tile__label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.52);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-align: center;
+  padding: 0.25rem 0.3rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 1;
+}
+/* Visually-hidden but interactive. Used on every hidden <input type="file">
+   in the case wizard. Previously `display: none !important;` which causes
+   programmatic .click() on file inputs to silently fail on the first user
+   gesture in some Chromium builds — the user reported having to click a
+   tile twice before the file dialog opened. The 1px-off-screen pattern
+   keeps the input in the layout/event tree so .click() fires reliably the
+   first time. */
+.media-tile__file-input,
+.media-bulk-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  opacity: 0;
+}
+.media-tile__camera-btn {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid rgba(89, 192, 212, 0.45);
+  background: #fff;
+  color: #59c0d4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  opacity: 0.85;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+.media-tile__camera-btn:hover, .media-tile__camera-btn:focus {
+  background: #59c0d4;
+  color: #fff;
+  opacity: 1;
+  outline: none;
+  transform: scale(1.05);
+}
+.media-tile__camera-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.media-tile__ai-badge {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.4rem;
+  max-width: calc(100% - 2.8rem);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  background: rgba(89, 192, 212, 0.92);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 3;
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.media-tile__ai-badge--checking {
+  background: rgba(110, 110, 120, 0.9);
+}
+.media-tile__ai-badge--warn {
+  background: rgba(234, 84, 85, 0.95);
+}
+.media-tile__ai-badge-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.media-tile__ai-badge-text svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+.photo-camera__video {
+  display: block;
+  max-height: 60vh;
+  background: #000;
+  -o-object-fit: contain;
+     object-fit: contain;
+}
+.photo-camera__video--mirrored {
+  transform: scaleX(-1);
+}
+
+.media-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+.media-grid--3col {
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 575px) {
+  .media-grid--3col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.media-grid--3tile {
+  grid-template-columns: repeat(3, minmax(0, 220px));
+}
+@media (max-width: 767px) {
+  .media-grid--3tile {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .media-grid--3tile {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*!
+ * Cropper.js v1.6.2
+ * https://fengyuanchen.github.io/cropperjs
+ *
+ * Copyright 2015-present Chen Fengyuan
+ * Released under the MIT license
+ *
+ * Date: 2024-04-21T07:43:02.731Z
+ */
+.cropper-container {
+  direction: ltr;
+  font-size: 0;
+  line-height: 0;
+  position: relative;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+.cropper-container img {
+  backface-visibility: hidden;
+  display: block;
+  height: 100%;
+  image-orientation: 0deg;
+  max-height: none !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  width: 100%;
+}
+
+.cropper-wrap-box,
+.cropper-canvas,
+.cropper-drag-box,
+.cropper-crop-box,
+.cropper-modal {
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.cropper-wrap-box,
+.cropper-canvas {
+  overflow: hidden;
+}
+
+.cropper-drag-box {
+  background-color: #fff;
+  opacity: 0;
+}
+
+.cropper-modal {
+  background-color: #000;
+  opacity: 0.5;
+}
+
+.cropper-view-box {
+  display: block;
+  height: 100%;
+  outline: 1px solid #39f;
+  outline-color: rgba(51, 153, 255, 0.75);
+  overflow: hidden;
+  width: 100%;
+}
+
+.cropper-dashed {
+  border: 0 dashed #eee;
+  display: block;
+  opacity: 0.5;
+  position: absolute;
+}
+
+.cropper-dashed.dashed-h {
+  border-bottom-width: 1px;
+  border-top-width: 1px;
+  height: calc(100% / 3);
+  left: 0;
+  top: calc(100% / 3);
+  width: 100%;
+}
+
+.cropper-dashed.dashed-v {
+  border-left-width: 1px;
+  border-right-width: 1px;
+  height: 100%;
+  left: calc(100% / 3);
+  top: 0;
+  width: calc(100% / 3);
+}
+
+.cropper-center {
+  display: block;
+  height: 0;
+  left: 50%;
+  opacity: 0.75;
+  position: absolute;
+  top: 50%;
+  width: 0;
+}
+
+.cropper-center::before,
+.cropper-center::after {
+  background-color: #eee;
+  content: " ";
+  display: block;
+  position: absolute;
+}
+
+.cropper-center::before {
+  height: 1px;
+  left: -3px;
+  top: 0;
+  width: 7px;
+}
+
+.cropper-center::after {
+  height: 7px;
+  left: 0;
+  top: -3px;
+  width: 1px;
+}
+
+.cropper-face,
+.cropper-line,
+.cropper-point {
+  display: block;
+  height: 100%;
+  opacity: 0.1;
+  position: absolute;
+  width: 100%;
+}
+
+.cropper-face {
+  background-color: #fff;
+  left: 0;
+  top: 0;
+}
+
+.cropper-line {
+  background-color: #39f;
+}
+
+.cropper-line.line-e {
+  cursor: ew-resize;
+  right: -3px;
+  top: 0;
+  width: 5px;
+}
+
+.cropper-line.line-n {
+  cursor: ns-resize;
+  height: 5px;
+  left: 0;
+  top: -3px;
+}
+
+.cropper-line.line-w {
+  cursor: ew-resize;
+  left: -3px;
+  top: 0;
+  width: 5px;
+}
+
+.cropper-line.line-s {
+  bottom: -3px;
+  cursor: ns-resize;
+  height: 5px;
+  left: 0;
+}
+
+.cropper-point {
+  background-color: #39f;
+  height: 5px;
+  opacity: 0.75;
+  width: 5px;
+}
+
+.cropper-point.point-e {
+  cursor: ew-resize;
+  margin-top: -3px;
+  right: -3px;
+  top: 50%;
+}
+
+.cropper-point.point-n {
+  cursor: ns-resize;
+  left: 50%;
+  margin-left: -3px;
+  top: -3px;
+}
+
+.cropper-point.point-w {
+  cursor: ew-resize;
+  left: -3px;
+  margin-top: -3px;
+  top: 50%;
+}
+
+.cropper-point.point-s {
+  bottom: -3px;
+  cursor: s-resize;
+  left: 50%;
+  margin-left: -3px;
+}
+
+.cropper-point.point-ne {
+  cursor: nesw-resize;
+  right: -3px;
+  top: -3px;
+}
+
+.cropper-point.point-nw {
+  cursor: nwse-resize;
+  left: -3px;
+  top: -3px;
+}
+
+.cropper-point.point-sw {
+  bottom: -3px;
+  cursor: nesw-resize;
+  left: -3px;
+}
+
+.cropper-point.point-se {
+  bottom: -3px;
+  cursor: nwse-resize;
+  height: 20px;
+  opacity: 1;
+  right: -3px;
+  width: 20px;
+}
+
+@media (min-width: 768px) {
+  .cropper-point.point-se {
+    height: 15px;
+    width: 15px;
+  }
+}
+@media (min-width: 992px) {
+  .cropper-point.point-se {
+    height: 10px;
+    width: 10px;
+  }
+}
+@media (min-width: 1200px) {
+  .cropper-point.point-se {
+    height: 5px;
+    opacity: 0.75;
+    width: 5px;
+  }
+}
+.cropper-point.point-se::before {
+  background-color: #39f;
+  bottom: -50%;
+  content: " ";
+  display: block;
+  height: 200%;
+  opacity: 0;
+  position: absolute;
+  right: -50%;
+  width: 200%;
+}
+
+.cropper-invisible {
+  opacity: 0;
+}
+
+.cropper-bg {
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0iAAAAA3NCSVQICAjb4U/gAAAABlBMVEXMzMz////TjRV2AAAACXBIWXMAAArrAAAK6wGCiw1aAAAAHHRFWHRTb2Z0d2FyZQBBZG9iZSBGaXJld29ya3MgQ1M26LyyjAAAABFJREFUCJlj+M/AgBVhF/0PAH6/D/HkDxOGAAAAAElFTkSuQmCC");
+}
+
+.cropper-hide {
+  display: block;
+  height: 0;
+  position: absolute;
+  width: 0;
+}
+
+.cropper-hidden {
+  display: none !important;
+}
+
+.cropper-move {
+  cursor: move;
+}
+
+.cropper-crop {
+  cursor: crosshair;
+}
+
+.cropper-disabled .cropper-drag-box,
+.cropper-disabled .cropper-face,
+.cropper-disabled .cropper-line,
+.cropper-disabled .cropper-point {
+  cursor: not-allowed;
+}
+
+.crop-modal__image-container {
+  max-height: 60vh;
+  overflow: hidden;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.crop-modal__image-container img {
+  display: block;
+  max-width: 100%;
+}
+
+.crop-modal__controls .btn {
+  font-size: 0.8rem;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Unified date pickers (Patient Info DOB, Photographs date, X-Rays date)
+   - Hide the browser-native calendar indicator so we only show the feather
+     icon in the .input-group, avoiding the dual-icon problem.
+   - The feather icon span (.case-date-trigger) and the input itself both
+     trigger input.showPicker() via add-case.js so click anywhere opens it.
+   - Multiple hide strategies layered for cross-browser robustness; some
+     browsers (notably older Chromium) honour only one.
+   ─────────────────────────────────────────────────────────────────────────── */
+.case-date-group {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  max-width: 260px;
+  overflow: hidden !important;
+  border: 1px solid #d8d6de;
+  border-radius: 0.357rem;
+  background-color: #fff;
+}
+
+/* Dark Mode Support */
+.dark-layout .case-date-group {
+  border-color: #404656;
+  background-color: #283046;
+}
+.case-date-input {
+  flex: 1 1 auto !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  padding-left: 0.5rem !important;
+  text-transform: uppercase !important;
+  border: none !important;
+  background: transparent !important;
+  color: inherit !important; /* Respect theme text color */
+}
+
+/* Chrome-specific uppercase for date segments */
+.case-date-input::-webkit-datetime-edit-month-field,
+.case-date-input::-webkit-datetime-edit-day-field,
+.case-date-input::-webkit-datetime-edit-year-field,
+.case-date-input::-webkit-datetime-edit-text {
+  text-transform: uppercase !important;
+}
+.case-date-input::-webkit-calendar-picker-indicator {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  padding: 0;
+  margin: 0;
+}
+/* WebKit also exposes inner-spin and clear buttons on date inputs in some
+   builds — hide them too so the field renders as a plain text-style box. */
+.case-date-input::-webkit-inner-spin-button,
+.case-date-input::-webkit-clear-button {
+  display: none;
+  -webkit-appearance: none;
+}
+
+/* Firefox-specific: Push the native icon out of view */
+@-moz-document url-prefix() {
+  .case-date-trigger {
+    display: flex !important;
+  }
+  .case-date-input {
+    /* Use negative margin to push the native calendar icon outside the clipped container */
+    min-width: calc(100% + 50px) !important;
+    margin-right: -50px !important;
+    padding-right: 50px !important;
+  }
+}
+
+.case-date-trigger {
+  cursor: pointer;
+  user-select: none;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  border-right: 1px solid #d8d6de !important;
+  background-color: #f8f8f8;
+  color: #6e6b7b;
+}
+
+/* Dark Mode Support for Trigger */
+.dark-layout .case-date-trigger {
+  border-right-color: #404656 !important;
+  background-color: #343d55;
+  color: #b4b7bd;
+}
+.case-date-trigger:hover {
+  background-color: rgba(89, 192, 212, 0.08);
+}
+.photographs-date-group,
+.xrays-date-group {
+  max-width: 240px;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Voice-to-text mic (floats over any textarea[maxlength="5000"])
+   ─────────────────────────────────────────────────────────────────────────── */
+.voice-input-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+.voice-input-wrapper > textarea {
+  padding-right: 2.25rem;
+}
+.voice-input-mic--disabled {
+  opacity: 0.5;
+}
+.voice-input-toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1090;
+  background: #5e5873;
+  color: #fff;
+  font-size: 0.82rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+.voice-input-toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.voice-input-mic {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.375rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid #d8d6de;
+  background: #fff;
+  color: #6e6b7b;
+  border-radius: 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+  z-index: 3;
+}
+.voice-input-mic:hover {
+  background: #f6f6f6;
+  color: #59c0d4;
+  border-color: #59c0d4;
+}
+.voice-input-mic--active {
+  background: #ea5455;
+  border-color: #ea5455;
+  color: #fff;
+  animation: voice-input-pulse 1.2s ease-in-out infinite;
+}
+.voice-input-mic--active:hover {
+  background: #ea5455;
+  color: #fff;
+}
+@keyframes voice-input-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(234, 84, 85, 0.45); }
+  50%      { box-shadow: 0 0 0 5px rgba(234, 84, 85, 0); }
+}
+
+/* Crop modal: small visual separator between the zoom group and rotate group */
+.crop-modal__sep {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background-color: #ebe9f1;
+  margin: 0 0.25rem;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Add Case top bar — visual grouping + small divider between admin status
+   controls and the Save Draft / Submit cluster.
+   ─────────────────────────────────────────────────────────────────────────── */
+.add-case-topbar__group {
+  padding: 0.15rem 0.4rem;
+  background-color: rgba(89, 192, 212, 0.06);
+  border-radius: 6px;
+}
+.add-case-topbar__divider {
+  display: inline-block;
+  width: 1px;
+  height: 22px;
+  background-color: #ebe9f1;
+  margin: 0 0.25rem;
+}
+
+.perfect-smile-plan__preview-card {
+  position: relative;
+  background: #f8f8f8;
+  border: 1px solid #ebe9f1;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.perfect-smile-plan__preview-label {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  border-radius: 999px;
+  z-index: 2;
+}
+.perfect-smile-plan__preview-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.perfect-smile-plan__preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.perfect-smile-plan__preview-watermark {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.35rem 0.5rem;
+  background: rgba(234, 84, 85, 0.92);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.02em;
+  z-index: 2;
+}
+.perfect-smile-plan__preview-skeleton {
+  width: 85%;
+  height: 70%;
+}
+.perfect-smile-plan__preview-skeleton .placeholder {
+  height: 100%;
+  border-radius: 6px;
+}
+
+/* ============================================================================
+   DARK MODE OVERRIDES — reuses tokens from orthobrain-palette.css.
+   Targets both `.dark-layout` (Vuexy) and `[data-bs-theme="dark"]` (Bootstrap).
+   Lives at the end of the file so it cleanly overrides the light-mode rules
+   above without touching them.
+   ============================================================================ */
+.dark-layout .add-case-topbar,
+[data-bs-theme="dark"] .add-case-topbar {
+  background-color: var(--ob-surface-1);
+  box-shadow: var(--ob-shadow);
+  border-color: var(--ob-border) !important;
+}
+.dark-layout .add-case-rail__item:hover,
+[data-bs-theme="dark"] .add-case-rail__item:hover {
+  background-color: rgba(96, 165, 250, 0.08);
+}
+.dark-layout .add-case-rail__item--active,
+[data-bs-theme="dark"] .add-case-rail__item--active {
+  background-color: rgba(96, 165, 250, 0.12);
+}
+.dark-layout .add-case-rail__item--active .add-case-rail__label,
+[data-bs-theme="dark"] .add-case-rail__item--active .add-case-rail__label {
+  color: var(--ob-info);
+}
+.dark-layout .add-case-rail__item--active .add-case-rail__icon-tile,
+[data-bs-theme="dark"] .add-case-rail__item--active .add-case-rail__icon-tile {
+  background-color: var(--ob-info);
+}
+.dark-layout .add-case-rail__icon-tile,
+[data-bs-theme="dark"] .add-case-rail__icon-tile {
+  background-color: rgba(148, 163, 184, 0.1);
+}
+.dark-layout .add-case-rail__error-dot,
+[data-bs-theme="dark"] .add-case-rail__error-dot {
+  border-color: var(--ob-surface-1);
+}
+.dark-layout .add-case-rail__subtitle,
+[data-bs-theme="dark"] .add-case-rail__subtitle {
+  color: var(--ob-text-muted);
+}
+
+.dark-layout .case-section,
+[data-bs-theme="dark"] .case-section {
+  background-color: var(--ob-surface-1);
+  border-color: var(--ob-border);
+  box-shadow: var(--ob-shadow);
+}
+.dark-layout .case-section__header,
+[data-bs-theme="dark"] .case-section__header {
+  border-bottom-color: var(--ob-border);
+}
+.dark-layout .case-section__title,
+[data-bs-theme="dark"] .case-section__title {
+  color: var(--ob-text);
+}
+.dark-layout .case-section__subtitle,
+[data-bs-theme="dark"] .case-section__subtitle {
+  color: var(--ob-text-muted);
+}
+.dark-layout .case-section--placeholder,
+[data-bs-theme="dark"] .case-section--placeholder {
+  background-color: var(--ob-surface-2);
+}
+
+.dark-layout .pi-search-wrapper .pi-search-dropdown,
+[data-bs-theme="dark"] .pi-search-wrapper .pi-search-dropdown {
+  background-color: var(--ob-surface-2);
+  border-color: var(--ob-border);
+}
+.dark-layout .pi-search-wrapper .pi-search-dropdown .pi-search-option:hover,
+[data-bs-theme="dark"] .pi-search-wrapper .pi-search-dropdown .pi-search-option:hover {
+  background-color: rgba(96, 165, 250, 0.12);
+}
+
+.dark-layout .rx-pref-list,
+[data-bs-theme="dark"] .rx-pref-list,
+.dark-layout .rx-pref-row,
+[data-bs-theme="dark"] .rx-pref-row {
+  border-color: var(--ob-border) !important;
+}
+
+.dark-layout .tooth-picker,
+[data-bs-theme="dark"] .tooth-picker {
+  background-color: var(--ob-surface-2);
+  border-color: var(--ob-border);
+}
+.dark-layout .tooth-picker__tooth,
+[data-bs-theme="dark"] .tooth-picker__tooth {
+  background-color: var(--ob-surface-1);
+  border-color: var(--ob-border);
+  color: var(--ob-text-muted);
+}
+.dark-layout .tooth-picker__tooth:hover:not(.tooth-picker__tooth--selected),
+[data-bs-theme="dark"] .tooth-picker__tooth:hover:not(.tooth-picker__tooth--selected) {
+  border-color: var(--ob-info);
+  color: var(--ob-info);
+}
+.dark-layout .tooth-picker__tooth--selected,
+[data-bs-theme="dark"] .tooth-picker__tooth--selected {
+  background-color: var(--ob-info) !important;
+  border-color: var(--ob-info) !important;
+  color: #fff !important;
+}
+.dark-layout .tooth-picker__arch-divider,
+[data-bs-theme="dark"] .tooth-picker__arch-divider,
+.dark-layout .tooth-picker__midline,
+[data-bs-theme="dark"] .tooth-picker__midline {
+  border-color: var(--ob-border-strong);
+}
+
+.dark-layout .ai-subsection__title,
+[data-bs-theme="dark"] .ai-subsection__title {
+  color: var(--ob-text);
+}
+.dark-layout .ai-wnl-check,
+[data-bs-theme="dark"] .ai-wnl-check {
+  background-color: rgba(96, 165, 250, 0.08);
+  border-color: rgba(96, 165, 250, 0.18);
+}
+.dark-layout .ai-tooltip-icon,
+[data-bs-theme="dark"] .ai-tooltip-icon {
+  color: var(--ob-info);
+}
+
+.dark-layout .media-tile,
+[data-bs-theme="dark"] .media-tile {
+  background-color: var(--ob-surface-2);
+  border-color: var(--ob-border);
+}
+.dark-layout .media-tile__camera-btn,
+[data-bs-theme="dark"] .media-tile__camera-btn {
+  background-color: var(--ob-surface-1);
+  border-color: rgba(96, 165, 250, 0.4);
+  color: var(--ob-info);
+}
+.dark-layout .media-tile__camera-btn:hover,
+[data-bs-theme="dark"] .media-tile__camera-btn:hover {
+  background-color: var(--ob-info);
+  color: #fff;
+}
+
+.dark-layout .perfect-smile-plan__preview-card,
+[data-bs-theme="dark"] .perfect-smile-plan__preview-card {
+  background-color: var(--ob-surface-2);
+  border-color: var(--ob-border);
+}
+
+/* ── Hover-to-remove overlay on filled media tiles ─────────────────────── */
+.media-tile__remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 4;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--ob-danger, #EA5455);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.85);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+.media-tile__remove-btn svg,
+.media-tile__remove-btn i {
+  width: 16px;
+  height: 16px;
+  stroke-width: 3;
+}
+.media-tile:hover .media-tile__remove-btn,
+.media-tile:focus-within .media-tile__remove-btn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+.media-tile__remove-btn:hover,
+.media-tile__remove-btn:focus {
+  filter: brightness(0.92);
+  outline: none;
+}
+
+/* ── Shared undo-toast for tile removal ────────────────────────────────── */
+.media-undo-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1090;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem 0.6rem 1rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #fff;
+  font-size: 0.85rem;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.media-undo-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.media-undo-toast__label {
+  white-space: nowrap;
+}
+.media-undo-toast__undo {
+  background: transparent;
+  border: none;
+  color: var(--ob-primary, #3B82F6);
+  font-weight: 600;
+  padding: 0.15rem 0.35rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 0.8rem;
+}
+.media-undo-toast__undo:hover,
+.media-undo-toast__undo:focus {
+  text-decoration: underline;
+  outline: none;
+}

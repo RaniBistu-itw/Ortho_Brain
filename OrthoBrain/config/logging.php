@@ -127,6 +127,13 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'ai' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/ai.log'),
+            'level' => env('AI_LOG_LEVEL', 'info'),
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

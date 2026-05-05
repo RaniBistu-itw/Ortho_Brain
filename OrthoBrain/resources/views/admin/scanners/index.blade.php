@@ -1,0 +1,534 @@
+@extends('layouts.admin')
+@section('title', 'Scanners')
+@section('page_title', 'Scanners')
+
+@push('styles')
+<style>
+    /* ── Scanners — drawer + table polish ───────────────────────────── */
+    .sc-card { border: 1px solid rgba(34, 41, 47, .05); box-shadow: 0 2px 10px rgba(34, 41, 47, .05); }
+    .sc-toolbar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid rgba(34, 41, 47, .06); }
+    .sc-toolbar__search { flex: 1 1 260px; max-width: 380px; }
+    .sc-toolbar__status { flex: 0 0 180px; }
+    .sc-toolbar__spacer { flex: 1; }
+    .sc-toolbar__actions { display: flex; gap: .5rem; }
+
+    .sc-table { margin-bottom: 0; }
+    .sc-table thead th { background: #f8f8f8; text-transform: uppercase; font-size: .74rem; letter-spacing: .06em; color: #6e6b7b; font-weight: 600; border-bottom: 1px solid rgba(34, 41, 47, .08); }
+    .sc-table tbody tr { transition: background-color .15s ease; }
+    .sc-table tbody tr:hover { background: rgba(var(--bs-primary-rgb), .04); }
+    .sc-table .sc-row-new { animation: sc-row-flash 1.4s ease-out; }
+    @keyframes sc-row-flash { 0% { background: rgba(var(--bs-success-rgb), .2); } 100% { background: transparent; } }
+    .sc-cell-link a { max-width: 240px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+    .sc-portal-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .65rem; border-radius: 999px;
+                     font-size: .76rem; font-weight: 500; line-height: 1; text-decoration: none;
+                     background: rgba(var(--bs-primary-rgb), .1); color: var(--bs-primary);
+                     border: 1px solid rgba(var(--bs-primary-rgb), .18); transition: background .15s ease, color .15s ease, border-color .15s ease; }
+    .sc-portal-btn:hover { background: var(--bs-primary); color: #fff; border-color: var(--bs-primary); }
+    .sc-portal-btn svg { width: 13px; height: 13px; }
+
+    .sc-empty { text-align: center; padding: 3rem 1rem; color: #6e6b7b; }
+    .sc-empty svg { width: 56px; height: 56px; opacity: .35; margin-bottom: .75rem; }
+
+    /* Slide-over drawer */
+    .sc-drawer { width: min(560px, 100vw); display: flex; flex-direction: column; }
+    .sc-drawer .offcanvas-header { border-bottom: 1px solid rgba(34, 41, 47, .08); }
+    /* Body hugs its content so the action bar sits right below the form, not pinned at the panel's bottom edge */
+    .sc-drawer .offcanvas-body { flex: 0 1 auto; overflow-y: auto; }
+    .sc-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: transparent; }
+    .sc-drawer .form-label { font-weight: 500; }
+    .sc-drawer .sc-pw-toggle { cursor: pointer; user-select: none; }
+</style>
+@endpush
+
+@section('content')
+@include('admin._partials.inline_status_dropdown')
+<section id="scanners-list">
+
+    {{-- ── KPI strip ───────────────────────────────────────────── --}}
+    @include('admin._partials.stat_cards', [
+        'cards' => [
+            ['label' => 'Total',    'value' => $stats['total'],    'icon' => 'cpu',          'tone' => 'primary', 'stat_key' => 'total'],
+            ['label' => 'Active',   'value' => $stats['active'],   'icon' => 'check-circle', 'tone' => 'success', 'stat_key' => 'active'],
+            ['label' => 'Inactive', 'value' => $stats['inactive'], 'icon' => 'slash',        'tone' => 'danger',  'stat_key' => 'inactive'],
+        ],
+    ])
+
+    <div class="card sc-card">
+
+        @php
+            $selectedStatus = request('status');
+            $statusLabel    = $selectedStatus ? ucfirst(strtolower($selectedStatus)) : null;
+            $headerTitle    = $statusLabel ? 'All ' . $statusLabel . ' Scanners' : 'All Scanners';
+        @endphp
+
+        <div class="card-header border-bottom">
+            <h4 class="card-title mb-0">{{ $headerTitle }}</h4>
+            <button type="button" class="btn btn-primary" id="scDrawerOpen">
+                <i data-feather="plus" class="me-25"></i> Add Scanner
+            </button>
+        </div>
+
+        <div class="card-body py-1">
+            <form id="scannersFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-5">
+                    <input type="text" name="search" placeholder="Search scanners…" value="{{ request('search') }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status') === 'ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="order" class="form-select" aria-label="Sort order">
+                        <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+                        <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('admin.scanners.index') }}" class="ob-btn-clear w-100">
+                        <i data-feather="x"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        {{-- ── Table ───────────────────────────────────────────── --}}
+        <div class="table-responsive">
+            <table class="table table-hover sc-table" id="scTable">
+                <thead>
+                    <tr>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Scanner', 'key' => 'name', 'default' => 'name'])</th>
+                        <th>Description</th>
+                        <th>Portal Link</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="scTbody">
+                    @forelse ($scanners as $sc)
+                        <tr data-id="{{ $sc->id }}" data-row-href="{{ route('admin.scanners.show', $sc) }}">
+                            <td class="fw-bolder sc-cell-name">{{ $sc->name }}</td>
+                            <td class="sc-cell-description">
+                                @if ($sc->description)
+                                    {{ \Illuminate\Support\Str::limit($sc->description, 60) }}
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td class="sc-cell-link">
+                                @if ($sc->portal_link)
+                                    <a href="{{ $sc->portal_link }}" target="_blank" rel="noopener"
+                                       class="sc-portal-btn" title="{{ $sc->portal_link }}">
+                                        <i data-feather="external-link"></i>
+                                        Open portal
+                                    </a>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
+                            <td>
+                                <select class="ob-status-select" data-inline-status
+                                        data-url="{{ route('admin.scanners.status', $sc) }}"
+                                        data-status="{{ $sc->status }}"
+                                        aria-label="Update status for {{ $sc->name }}">
+                                    <option value="ACTIVE"   @selected($sc->status === 'ACTIVE')>Active</option>
+                                    <option value="INACTIVE" @selected($sc->status === 'INACTIVE')>Inactive</option>
+                                </select>
+                            </td>
+                            <td class="text-end">
+                                <div class="ob-row-actions">
+                                    <a href="{{ route('admin.scanners.show', $sc) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                                    <button type="button" class="ob-icon-btn ob-icon-btn--edit sc-edit" title="Edit"
+                                            data-id="{{ $sc->id }}"
+                                            data-name="{{ $sc->name }}"
+                                            data-description="{{ $sc->description }}"
+                                            data-portal-link="{{ $sc->portal_link }}"
+                                            data-portal-password="{{ $sc->portal_password }}"
+                                            data-status="{{ $sc->status }}"
+                                            data-url="{{ route('admin.scanners.ajax.update', $sc) }}">
+                                        <i data-feather="edit-2"></i>
+                                    </button>
+                                    <form method="POST" action="{{ route('admin.scanners.destroy', $sc) }}" class="d-inline js-delete-form" data-confirm="Delete scanner '{{ $sc->name }}'?">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr id="scEmptyRow">
+                            <td colspan="5">
+                                <div class="sc-empty">
+                                    <i data-feather="inbox"></i>
+                                    <div class="fw-bolder text-body">No scanners yet</div>
+                                    <div class="small">Click <em>Add Scanner</em> to create one.</div>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if ($scanners->hasPages())
+            <div class="card-body border-top">{{ $scanners->links() }}</div>
+        @endif
+    </div>
+</section>
+
+{{-- ── Slide-over drawer (create / edit) ─────────────────────── --}}
+<div class="offcanvas offcanvas-end sc-drawer" tabindex="-1" id="scDrawer" aria-labelledby="scDrawerTitle">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="scDrawerTitle">Add Scanner</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form id="scDrawerForm" novalidate autocomplete="off">
+            <input type="hidden" id="scDrawerId" value="">
+
+            <div class="mb-1">
+                <label class="form-label" for="scDrawerName">Scanner Name<span class="text-danger">*</span></label>
+                <input type="text" id="scDrawerName" class="form-control" maxlength="255" placeholder="Enter scanner name" required>
+                <div class="invalid-feedback d-block" id="scDrawerNameErr"></div>
+            </div>
+
+            <div class="mb-1">
+                <label class="form-label" for="scDrawerPortalLink">Scanner Portal Link</label>
+                <input type="url" id="scDrawerPortalLink" class="form-control" maxlength="255" placeholder="https://www.example.com">
+                <div class="invalid-feedback d-block" id="scDrawerPortalLinkErr"></div>
+            </div>
+
+            <div class="mb-1">
+                <label class="form-label" for="scDrawerPortalPassword">Portal Password</label>
+                <div class="input-group input-group-merge">
+                    <input type="password" id="scDrawerPortalPassword" class="form-control" maxlength="255" placeholder="••••••••" autocomplete="new-password">
+                    <span class="input-group-text sc-pw-toggle" id="scDrawerPwToggle" title="Show / hide password">
+                        <i data-feather="eye" id="scDrawerPwIcon"></i>
+                    </span>
+                </div>
+                <div class="invalid-feedback d-block" id="scDrawerPortalPasswordErr"></div>
+            </div>
+
+            <div class="mb-1">
+                <label class="form-label" for="scDrawerStatus">Status<span class="text-danger">*</span></label>
+                <select id="scDrawerStatus" class="form-select">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <div class="invalid-feedback d-block" id="scDrawerStatusErr"></div>
+            </div>
+
+            <div class="mb-1">
+                <label class="form-label" for="scDrawerDescription">Description</label>
+                <textarea id="scDrawerDescription" class="form-control" rows="4" maxlength="255" placeholder="Description goes here"></textarea>
+                <div class="invalid-feedback d-block" id="scDrawerDescriptionErr"></div>
+            </div>
+        </form>
+    </div>
+    <div class="offcanvas-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Cancel</button>
+        <button type="button" class="btn btn-primary" id="scDrawerSubmit">
+            <span class="sc-drawer-label">Save</span>
+            <span class="spinner-border spinner-border-sm d-none ms-25" role="status"></span>
+        </button>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+(function () {
+    'use strict';
+
+    obAutoFilter('#scannersFilter');
+
+    const toast = (icon, title) => Swal.fire({
+        toast: true, position: 'top-end', icon, title,
+        showConfirmButton: false, timer: 2200, timerProgressBar: true
+    });
+
+    const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const ROUTES = {
+        store: @json(route('admin.scanners.ajax.store')),
+    };
+
+    const $tbody = $('#scTbody');
+
+    function bumpStat(key, delta) {
+        const el = document.querySelector(`[data-stat="${key}"]`);
+        if (!el) return;
+        el.textContent = (parseInt(el.textContent, 10) || 0) + delta;
+    }
+    function incrementStatsFor(status) {
+        bumpStat('total', 1);
+        bumpStat(status === 'ACTIVE' ? 'active' : 'inactive', 1);
+    }
+
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[c]);
+    }
+
+    function truncate(s, n) {
+        s = String(s ?? '');
+        return s.length > n ? s.slice(0, n) + '…' : s;
+    }
+
+    function removeEmptyPlaceholder() { $('#scEmptyRow').remove(); }
+
+    function buildRowHtml(sc) {
+        const descCell = sc.description
+            ? escapeHtml(truncate(sc.description, 60))
+            : '<span class="text-muted">—</span>';
+
+        const linkCell = sc.portal_link
+            ? `<a href="${escapeHtml(sc.portal_link)}" target="_blank" rel="noopener" class="sc-portal-btn" title="${escapeHtml(sc.portal_link)}"><i data-feather="external-link"></i> Open portal</a>`
+            : '<span class="text-muted">—</span>';
+
+        return `
+            <tr class="sc-row-new" data-id="${sc.id}" data-row-href="${sc.show_url}">
+                <td class="fw-bolder sc-cell-name">${escapeHtml(sc.name)}</td>
+                <td class="sc-cell-description">${descCell}</td>
+                <td class="sc-cell-link">${linkCell}</td>
+                <td>
+                    <select class="ob-status-select" data-inline-status data-url="${sc.status_url}" data-status="${sc.status}" aria-label="Update status for ${escapeHtml(sc.name)}">
+                        <option value="ACTIVE"${sc.status === 'ACTIVE' ? ' selected' : ''}>Active</option>
+                        <option value="INACTIVE"${sc.status === 'INACTIVE' ? ' selected' : ''}>Inactive</option>
+                    </select>
+                </td>
+                <td class="text-end">
+                    <div class="ob-row-actions">
+                        <a href="${sc.show_url}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                        <button type="button" class="ob-icon-btn ob-icon-btn--edit sc-edit" title="Edit"
+                                data-id="${sc.id}"
+                                data-name="${escapeHtml(sc.name)}"
+                                data-description="${escapeHtml(sc.description)}"
+                                data-portal-link="${escapeHtml(sc.portal_link)}"
+                                data-portal-password="${escapeHtml(sc.portal_password)}"
+                                data-status="${sc.status}"
+                                data-url="${sc.update_url}"><i data-feather="edit-2"></i></button>
+                        <form method="POST" action="${sc.destroy_url}" class="d-inline js-delete-form" data-confirm="Delete scanner '${escapeHtml(sc.name)}'?">
+                            <input type="hidden" name="_token" value="${CSRF}">
+                            <input type="hidden" name="_method" value="DELETE">
+                            <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
+                        </form>
+                    </div>
+                </td>
+            </tr>`;
+    }
+
+    function insertRow(sc) {
+        removeEmptyPlaceholder();
+        $tbody.prepend(buildRowHtml(sc));
+        if (window.feather) window.feather.replace();
+    }
+
+    function updateRow(sc) {
+        const $row = $(`#scTbody tr[data-id="${sc.id}"]`);
+        if (!$row.length) return;
+
+        $row.find('.sc-cell-name').text(sc.name);
+        $row.find('.sc-cell-description').html(
+            sc.description ? escapeHtml(truncate(sc.description, 60)) : '<span class="text-muted">—</span>'
+        );
+        $row.find('.sc-cell-link').html(
+            sc.portal_link
+                ? `<a href="${escapeHtml(sc.portal_link)}" target="_blank" rel="noopener" class="sc-portal-btn" title="${escapeHtml(sc.portal_link)}"><i data-feather="external-link"></i> Open portal</a>`
+                : '<span class="text-muted">—</span>'
+        );
+
+        const $status = $row.find('.ob-status-select');
+        $status.attr('data-status', sc.status).val(sc.status);
+
+        const $edit = $row.find('.sc-edit');
+        $edit.attr('data-name', sc.name)
+             .attr('data-description', sc.description)
+             .attr('data-portal-link', sc.portal_link)
+             .attr('data-portal-password', sc.portal_password)
+             .attr('data-status', sc.status)
+             .attr('data-url', sc.update_url);
+
+        $row.find('.js-delete-form').attr('data-confirm', `Delete scanner '${sc.name}'?`);
+
+        if (window.feather) window.feather.replace();
+
+        // flash highlight
+        $row.removeClass('sc-row-new'); void $row[0].offsetWidth; $row.addClass('sc-row-new');
+    }
+
+    // ── Drawer setup ──────────────────────────────────────────
+    const drawerEl = document.getElementById('scDrawer');
+    const drawer   = new bootstrap.Offcanvas(drawerEl);
+
+    const FIELDS = {
+        name:            { input: '#scDrawerName',           err: '#scDrawerNameErr' },
+        portal_link:     { input: '#scDrawerPortalLink',     err: '#scDrawerPortalLinkErr' },
+        portal_password: { input: '#scDrawerPortalPassword', err: '#scDrawerPortalPasswordErr' },
+        status:          { input: '#scDrawerStatus',         err: '#scDrawerStatusErr' },
+        description:     { input: '#scDrawerDescription',    err: '#scDrawerDescriptionErr' },
+    };
+
+    function clearErrors() {
+        Object.values(FIELDS).forEach(({ input, err }) => {
+            $(input).removeClass('is-invalid');
+            $(err).text('');
+        });
+    }
+
+    function setFieldError(field, message) {
+        const target = FIELDS[field];
+        if (!target) return;
+        $(target.input).addClass('is-invalid');
+        $(target.err).text(message);
+    }
+
+    function resetPwToggle() {
+        $('#scDrawerPortalPassword').attr('type', 'password');
+        $('#scDrawerPwIcon').attr('data-feather', 'eye');
+        if (window.feather) window.feather.replace();
+    }
+
+    function openDrawerCreate() {
+        $('#scDrawerTitle').text('Add Scanner');
+        $('.sc-drawer-label', drawerEl).text('Save');
+        $('#scDrawerForm').removeAttr('data-url');
+        $('#scDrawerId').val('');
+        $('#scDrawerName').val('');
+        $('#scDrawerPortalLink').val('');
+        $('#scDrawerPortalPassword').val('');
+        $('#scDrawerStatus').val('ACTIVE');
+        $('#scDrawerDescription').val('');
+        clearErrors();
+        resetPwToggle();
+        drawer.show();
+    }
+
+    function openDrawerEdit(data) {
+        $('#scDrawerTitle').text('Edit Scanner');
+        $('.sc-drawer-label', drawerEl).text('Update');
+        $('#scDrawerForm').attr('data-url', data.url);
+        $('#scDrawerId').val(data.id);
+        $('#scDrawerName').val(data.name || '');
+        $('#scDrawerPortalLink').val(data.portalLink || '');
+        $('#scDrawerPortalPassword').val(data.portalPassword || '');
+        $('#scDrawerStatus').val(data.status || 'ACTIVE');
+        $('#scDrawerDescription').val(data.description || '');
+        clearErrors();
+        resetPwToggle();
+        drawer.show();
+    }
+
+    drawerEl.addEventListener('shown.bs.offcanvas', () => {
+        setTimeout(() => $('#scDrawerName').trigger('focus'), 50);
+    });
+
+    // Password show / hide toggle
+    $('#scDrawerPwToggle').on('click', function () {
+        const $i = $('#scDrawerPortalPassword');
+        const showing = $i.attr('type') === 'text';
+        $i.attr('type', showing ? 'password' : 'text');
+        $('#scDrawerPwIcon').attr('data-feather', showing ? 'eye' : 'eye-off');
+        if (window.feather) window.feather.replace();
+    });
+
+    $('#scDrawerOpen').on('click', openDrawerCreate);
+
+    $(document).on('click', '.sc-edit', function () {
+        openDrawerEdit({
+            id:             $(this).data('id'),
+            name:           $(this).attr('data-name') || '',
+            description:    $(this).attr('data-description') || '',
+            portalLink:     $(this).attr('data-portal-link') || '',
+            portalPassword: $(this).attr('data-portal-password') || '',
+            status:         $(this).data('status'),
+            url:            $(this).data('url'),
+        });
+    });
+
+    function validateLocal(payload) {
+        clearErrors();
+        let firstInvalid = null;
+        if (!payload.name) { setFieldError('name', 'Name is required.'); firstInvalid = firstInvalid || FIELDS.name.input; }
+        else if (payload.name.length > 255) { setFieldError('name', 'Name may not be longer than 255 characters.'); firstInvalid = firstInvalid || FIELDS.name.input; }
+        if (payload.portal_link && payload.portal_link.length > 255) { setFieldError('portal_link', 'Link may not be longer than 255 characters.'); firstInvalid = firstInvalid || FIELDS.portal_link.input; }
+        if (payload.portal_password && payload.portal_password.length > 255) { setFieldError('portal_password', 'Password may not be longer than 255 characters.'); firstInvalid = firstInvalid || FIELDS.portal_password.input; }
+        if (payload.description && payload.description.length > 255) { setFieldError('description', 'Description may not be longer than 255 characters.'); firstInvalid = firstInvalid || FIELDS.description.input; }
+        if (!payload.status) { setFieldError('status', 'Status is required.'); firstInvalid = firstInvalid || FIELDS.status.input; }
+        if (firstInvalid) $(firstInvalid).trigger('focus');
+        return !firstInvalid;
+    }
+
+    // Submit on Enter in single-line inputs (skip textarea)
+    $('#scDrawerForm').on('keydown', 'input, select', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); $('#scDrawerSubmit').trigger('click'); }
+    });
+
+    $('#scDrawerSubmit').on('click', function () {
+        const id = $('#scDrawerId').val();
+        const payload = {
+            name:            $('#scDrawerName').val().trim(),
+            portal_link:     $('#scDrawerPortalLink').val().trim(),
+            portal_password: $('#scDrawerPortalPassword').val(),
+            status:          $('#scDrawerStatus').val(),
+            description:     $('#scDrawerDescription').val(),
+        };
+
+        if (!validateLocal(payload)) return;
+
+        const isEdit = !!id;
+        const url    = isEdit ? $('#scDrawerForm').attr('data-url') : ROUTES.store;
+        const data   = isEdit
+            ? Object.assign({ _token: CSRF, _method: 'PUT' }, payload)
+            : Object.assign({ _token: CSRF }, payload);
+
+        const $btn = $('#scDrawerSubmit').prop('disabled', true);
+        $btn.find('.spinner-border').removeClass('d-none');
+
+        $.ajax({ url, method: 'POST', data, dataType: 'json' })
+            .done((res) => {
+                if (!res || !res.ok) return;
+                if (isEdit) {
+                    const prev = $(`#scTbody tr[data-id="${res.scanner.id}"] .ob-status-select`).attr('data-status');
+                    if (prev && prev !== res.scanner.status) {
+                        bumpStat(prev === 'ACTIVE' ? 'active' : 'inactive', -1);
+                        bumpStat(res.scanner.status === 'ACTIVE' ? 'active' : 'inactive', 1);
+                    }
+                    updateRow(res.scanner);
+                } else {
+                    insertRow(res.scanner);
+                    incrementStatsFor(res.scanner.status);
+                }
+                toast('success', res.message);
+                drawer.hide();
+            })
+            .fail((xhr) => {
+                const errs = xhr.responseJSON?.errors;
+                if (errs && typeof errs === 'object') {
+                    Object.keys(errs).forEach((field) => setFieldError(field, errs[field][0]));
+                    const firstKey = Object.keys(errs)[0];
+                    if (FIELDS[firstKey]) $(FIELDS[firstKey].input).trigger('focus');
+                } else {
+                    toast('error', xhr.responseJSON?.message || 'Could not save.');
+                }
+            })
+            .always(() => {
+                $btn.prop('disabled', false);
+                $btn.find('.spinner-border').addClass('d-none');
+            });
+    });
+
+    if (window.feather) window.feather.replace();
+
+    // Auto-open the edit drawer when navigated from the show page with ?edit=<id>
+    @if ($editId = request('edit'))
+        (function () {
+            const $btn = $(`#scTbody tr[data-id="{{ (int) $editId }}"] .sc-edit`);
+            if ($btn.length) $btn.trigger('click');
+        })();
+    @endif
+})();
+</script>
+@endpush
+@endsection

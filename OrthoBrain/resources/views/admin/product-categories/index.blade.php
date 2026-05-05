@@ -1,0 +1,555 @@
+@extends('layouts.admin')
+@section('title', 'Categories')
+@section('page_title', 'Product Categories')
+
+@push('styles')
+<style>
+    /* ── Product Categories — modernized surface ─────────────────────── */
+    .pc-card { border: 1px solid rgba(34, 41, 47, .05); box-shadow: 0 2px 10px rgba(34, 41, 47, .05); }
+    .pc-toolbar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid rgba(34, 41, 47, .06); }
+    .pc-toolbar__search { flex: 1 1 260px; max-width: 380px; }
+    .pc-toolbar__status { flex: 0 0 180px; }
+    .pc-toolbar__spacer { flex: 1; }
+    .pc-toolbar__actions { display: flex; gap: .5rem; }
+
+    .pc-table { margin-bottom: 0; }
+    .pc-table thead th { background: #f8f8f8; text-transform: uppercase; font-size: .74rem; letter-spacing: .06em; color: #6e6b7b; font-weight: 600; border-bottom: 1px solid rgba(34, 41, 47, .08); }
+    .pc-table tbody tr { transition: background-color .15s ease; }
+    .pc-table tbody tr:hover { background: rgba(var(--bs-primary-rgb), .04); }
+    .pc-table .pc-row-new { animation: pc-row-flash 1.4s ease-out; }
+    @keyframes pc-row-flash { 0% { background: rgba(var(--bs-success-rgb), .2); } 100% { background: transparent; } }
+
+    .pc-empty { text-align: center; padding: 3rem 1rem; color: #6e6b7b; }
+    .pc-empty svg { width: 56px; height: 56px; opacity: .35; margin-bottom: .75rem; }
+
+    /* Bulk-add drawer */
+    .pc-drawer { width: min(560px, 100vw); }
+    .pc-drawer .offcanvas-header { border-bottom: 1px solid rgba(34, 41, 47, .08); }
+    /* Body should hug its content so the action bar sits right below the form, not pinned at the panel's bottom edge */
+    .pc-drawer .offcanvas-body { flex: 0 1 auto; }
+    .pc-drawer .offcanvas-footer { border-top: 1px solid rgba(34, 41, 47, .08); padding: 1rem 1.25rem; display: flex; gap: .5rem; justify-content: flex-end; background: transparent; }
+    .pc-bulk-row { display: grid; grid-template-columns: 1fr 160px 36px; gap: .5rem; align-items: start; margin-bottom: .5rem; }
+    .pc-bulk-row .pc-bulk-remove { width: 36px; height: 38px; padding: 0; display: grid; place-items: center; }
+    .pc-bulk-row__err { grid-column: 1 / -1; font-size: .78rem; color: #ea5455; margin-top: -.25rem; }
+</style>
+@endpush
+
+@section('content')
+@include('admin._partials.inline_status_dropdown')
+<section id="categories-list">
+
+    {{-- ── KPI strip ───────────────────────────────────────────── --}}
+    @include('admin._partials.stat_cards', [
+        'cards' => [
+            ['label' => 'Total',    'value' => $stats['total'],    'icon' => 'tag',          'tone' => 'primary', 'stat_key' => 'total'],
+            ['label' => 'Active',   'value' => $stats['active'],   'icon' => 'check-circle', 'tone' => 'success', 'stat_key' => 'active'],
+            ['label' => 'Inactive', 'value' => $stats['inactive'], 'icon' => 'slash',        'tone' => 'danger',  'stat_key' => 'inactive'],
+        ],
+    ])
+
+    <div class="card pc-card">
+        @php
+            $selectedStatus = request('status');
+            $statusLabel    = $selectedStatus ? ucfirst(strtolower($selectedStatus)) : null;
+            $headerTitle    = $statusLabel ? 'All ' . $statusLabel . ' Categories' : 'All Categories';
+        @endphp
+
+        <div class="card-header border-bottom">
+            <h4 class="card-title mb-0">{{ $headerTitle }}</h4>
+            <div class="d-flex gap-1">
+                <button type="button" class="btn btn-outline-primary" id="pcBulkOpen">
+                    <i data-feather="layers" class="me-25"></i> Bulk add
+                </button>
+                <button type="button" class="btn btn-primary" id="pcDrawerOpen" data-mode="create">
+                    <i data-feather="plus" class="me-25"></i> Add Category
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body py-1">
+            <form id="categoriesFilter" method="GET" class="row g-1 py-1">
+                <div class="col-md-5">
+                    <input type="text" name="search" placeholder="Search categories…" value="{{ request('search') }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">All statuses</option>
+                        <option value="ACTIVE"   @selected(request('status')==='ACTIVE')>Active</option>
+                        <option value="INACTIVE" @selected(request('status')==='INACTIVE')>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="order" class="form-select" aria-label="Sort order">
+                        <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
+                        <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ route('admin.product-categories.index') }}" class="ob-btn-clear w-100">
+                        <i data-feather="x"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        {{-- ── Table ───────────────────────────────────────────── --}}
+        <div class="table-responsive">
+            <table class="table table-hover pc-table" id="pcTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">@include('admin._partials.sort_th', ['label' => 'Category', 'key' => 'name', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Sub-categories', 'key' => 'subcategories_count', 'default' => 'name'])</th>
+                        <th>@include('admin._partials.sort_th', ['label' => 'Products', 'key' => 'products_count', 'default' => 'name'])</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pcTbody">
+                    @forelse ($categories as $cat)
+                        @include('admin.product-categories._row', ['cat' => $cat])
+                    @empty
+                        <tr id="pcEmptyRow">
+                            <td colspan="5">
+                                <div class="pc-empty">
+                                    <i data-feather="inbox"></i>
+                                    <div class="fw-bolder text-body">No categories yet</div>
+                                    <div class="small">Click <em>Add Category</em> to create one, or <em>Bulk add</em> to create several.</div>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if ($categories->hasPages())
+            <div class="card-body border-top">{{ $categories->links() }}</div>
+        @endif
+    </div>
+</section>
+
+{{-- ── Single-record drawer (create / edit) ───────────────────── --}}
+<div class="offcanvas offcanvas-end pc-drawer" tabindex="-1" id="pcDrawer" aria-labelledby="pcDrawerTitle">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="pcDrawerTitle">Add Category</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form id="pcDrawerForm" novalidate>
+            <input type="hidden" id="pcDrawerId" value="">
+            <div class="mb-1">
+                <label class="form-label" for="pcDrawerName">Category Name<span class="text-danger">*</span></label>
+                <input type="text" id="pcDrawerName" class="form-control" maxlength="255" required>
+                <div class="invalid-feedback d-block" id="pcDrawerNameErr"></div>
+            </div>
+            <div class="mb-1">
+                <label class="form-label" for="pcDrawerStatus">Status<span class="text-danger">*</span></label>
+                <select id="pcDrawerStatus" class="form-select">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+            </div>
+        </form>
+    </div>
+    <div class="offcanvas-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Cancel</button>
+        <button type="button" class="btn btn-primary" id="pcDrawerSubmit">
+            <span class="pc-drawer-label">Save</span>
+            <span class="spinner-border spinner-border-sm d-none ms-25" role="status"></span>
+        </button>
+    </div>
+</div>
+
+{{-- ── Bulk-add drawer ────────────────────────────────────────── --}}
+<div class="offcanvas offcanvas-end pc-drawer" tabindex="-1" id="pcBulkDrawer" aria-labelledby="pcBulkTitle">
+    <div class="offcanvas-header">
+        <div>
+            <h5 class="offcanvas-title mb-0" id="pcBulkTitle">Bulk add categories</h5>
+            <small class="text-muted">Add up to 50 categories in a single save.</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div id="pcBulkRows"></div>
+        <button type="button" class="btn btn-outline-primary btn-sm mt-1" id="pcBulkAddRow">
+            <i data-feather="plus" style="width:14px;height:14px;"></i> Add another row
+        </button>
+    </div>
+    <div class="offcanvas-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">Cancel</button>
+        <button type="button" class="btn btn-primary" id="pcBulkSubmit">
+            <span class="pc-bulk-label">Save all</span>
+            <span class="spinner-border spinner-border-sm d-none ms-25" role="status"></span>
+        </button>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+(function () {
+    'use strict';
+
+    // ── Toast helper (SweetAlert2 mini-toast) ─────────────────
+    const toast = (icon, title) => Swal.fire({
+        toast: true, position: 'top-end', icon, title,
+        showConfirmButton: false, timer: 2200, timerProgressBar: true
+    });
+
+    const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const ROUTES = {
+        store:        @json(route('admin.product-categories.ajax.store')),
+        bulk:         @json(route('admin.product-categories.ajax.bulk')),
+        checkUnique:  @json(route('admin.product-categories.ajax.check-unique')),
+        index:        @json(route('admin.product-categories.index')),
+    };
+
+    // Tiny debouncer so each keystroke doesn't fire its own request.
+    function debounce(fn, ms) {
+        let t;
+        return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+    }
+
+    // ── Auto-submit the filter form (keep existing behavior) ──
+    obAutoFilter('#categoriesFilter');
+
+    // ── Helpers: DOM / stats ───────────────────────────────────
+    const $tbody = $('#pcTbody');
+    function removeEmptyPlaceholder() { $('#pcEmptyRow').remove(); }
+    function bumpStat(key, delta) {
+        const el = document.querySelector(`[data-stat="${key}"]`);
+        if (!el) return;
+        el.textContent = (parseInt(el.textContent, 10) || 0) + delta;
+    }
+    function incrementStatsFor(status) {
+        bumpStat('total', 1);
+        bumpStat(status === 'ACTIVE' ? 'active' : 'inactive', 1);
+    }
+
+    // Build a row matching the server-rendered partial exactly enough to behave.
+    function buildRowHtml(cat) {
+        const hasDeps = cat.subcategories_count > 0 || cat.products_count > 0;
+        const deleteBtn = hasDeps
+            ? `<button type="button" class="ob-icon-btn ob-icon-btn--disabled js-delete-blocked" aria-disabled="true" title="Cannot delete" data-reason="Cannot delete '${escapeHtml(cat.name)}' — it has linked sub-categories or products. Remove them first."><i data-feather="trash-2"></i></button>`
+            : `<form method="POST" action="${cat.destroy_url}" class="d-inline js-delete-form" data-confirm="Delete category '${escapeHtml(cat.name)}'?">
+                   <input type="hidden" name="_token" value="${CSRF}">
+                   <input type="hidden" name="_method" value="DELETE">
+                   <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
+               </form>`;
+
+        return `
+            <tr class="pc-row-new" data-id="${cat.id}" data-row-href="${cat.show_url}">
+                <td class="fw-bolder pc-cell-name">${escapeHtml(cat.name)}</td>
+                <td>${cat.subcategories_count > 0 ? cat.subcategories_count : '<span class="text-muted">—</span>'}</td>
+                <td>${cat.products_count > 0 ? cat.products_count : '<span class="text-muted">—</span>'}</td>
+                <td>
+                    <select class="ob-status-select" data-inline-status data-url="${cat.status_url}" data-status="${cat.status}" aria-label="Update status for ${escapeHtml(cat.name)}">
+                        <option value="ACTIVE"${cat.status === 'ACTIVE' ? ' selected' : ''}>Active</option>
+                        <option value="INACTIVE"${cat.status === 'INACTIVE' ? ' selected' : ''}>Inactive</option>
+                    </select>
+                </td>
+                <td class="text-end">
+                    <div class="ob-row-actions">
+                        <a href="${cat.show_url}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                        <button type="button" class="ob-icon-btn ob-icon-btn--edit pc-edit" title="Edit"
+                                data-id="${cat.id}" data-name="${escapeHtml(cat.name)}" data-status="${cat.status}"
+                                data-url="${cat.edit_url}"><i data-feather="edit-2"></i></button>
+                        ${deleteBtn}
+                    </div>
+                </td>
+            </tr>`;
+    }
+
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[c]);
+    }
+
+    function insertRow(cat) {
+        removeEmptyPlaceholder();
+        $tbody.prepend(buildRowHtml(cat));
+        if (window.feather) window.feather.replace();
+    }
+
+    function updateRow(cat) {
+        const $row = $(`#pcTbody tr[data-id="${cat.id}"]`);
+        if (!$row.length) return;
+        $row.find('.pc-cell-name').text(cat.name);
+        const $status = $row.find('.ob-status-select');
+        $status.attr('data-status', cat.status).val(cat.status);
+        // keep data-* on the edit button fresh
+        const $edit = $row.find('.pc-edit');
+        $edit.attr('data-name', cat.name).attr('data-status', cat.status);
+        // flash highlight
+        $row.removeClass('pc-row-new'); void $row[0].offsetWidth; $row.addClass('pc-row-new');
+    }
+
+    // ── Single-record drawer (create / edit) ───────────────────
+    const drawerEl  = document.getElementById('pcDrawer');
+    const drawer    = new bootstrap.Offcanvas(drawerEl);
+
+    drawerEl.addEventListener('shown.bs.offcanvas', () => {
+        setTimeout(() => $('#pcDrawerName').trigger('focus'), 50);
+    });
+
+    function openDrawerCreate() {
+        $('#pcDrawerTitle').text('Add Category');
+        $('.pc-drawer-label', drawerEl).text('Save');
+        $('#pcDrawerForm').removeAttr('data-url');
+        $('#pcDrawerId').val('');
+        $('#pcDrawerName').val('').removeClass('is-invalid');
+        $('#pcDrawerStatus').val('ACTIVE');
+        $('#pcDrawerNameErr').text('');
+        drawer.show();
+    }
+
+    function openDrawerEdit(data) {
+        $('#pcDrawerTitle').text('Edit Category');
+        $('.pc-drawer-label', drawerEl).text('Update');
+        $('#pcDrawerForm').attr('data-url', data.url);
+        $('#pcDrawerId').val(data.id);
+        $('#pcDrawerName').val(data.name).removeClass('is-invalid');
+        $('#pcDrawerStatus').val(data.status);
+        $('#pcDrawerNameErr').text('');
+        drawer.show();
+    }
+
+    // ── Live duplicate check on the single-drawer name input ─────────────
+    const liveCheckDrawer = debounce(function () {
+        const name = $('#pcDrawerName').val().trim();
+        const id   = $('#pcDrawerId').val();
+        if (!name) {
+            $('#pcDrawerName').removeClass('is-invalid');
+            $('#pcDrawerNameErr').text('');
+            return;
+        }
+        $.post(ROUTES.checkUnique, { _token: CSRF, name, ignore_id: id || null })
+            .done((res) => {
+                // If the user has kept typing past this request, ignore the result.
+                if ($('#pcDrawerName').val().trim() !== name) return;
+                if (res.available) {
+                    $('#pcDrawerName').removeClass('is-invalid');
+                    $('#pcDrawerNameErr').text('');
+                } else {
+                    $('#pcDrawerName').addClass('is-invalid');
+                    $('#pcDrawerNameErr').text(res.message || 'Already exists.');
+                }
+            });
+    }, 350);
+    $(document).on('input', '#pcDrawerName', liveCheckDrawer);
+
+    $('#pcDrawerOpen').on('click', openDrawerCreate);
+
+    $(document).on('click', '.pc-edit', function () {
+        openDrawerEdit({
+            id:     $(this).data('id'),
+            name:   $(this).data('name'),
+            status: $(this).data('status'),
+            url:    $(this).data('url'),
+        });
+    });
+
+    $('#pcDrawerSubmit').on('click', function () {
+        const id     = $('#pcDrawerId').val();
+        const name   = $('#pcDrawerName').val().trim();
+        const status = $('#pcDrawerStatus').val();
+
+        $('#pcDrawerName').removeClass('is-invalid');
+        $('#pcDrawerNameErr').text('');
+        if (!name) {
+            $('#pcDrawerName').addClass('is-invalid').focus();
+            $('#pcDrawerNameErr').text('Name is required.');
+            return;
+        }
+
+        const isEdit = !!id;
+        const url    = isEdit ? $('#pcDrawerForm').attr('data-url') : ROUTES.store;
+        const data   = isEdit
+            ? { _token: CSRF, _method: 'PUT', name, status }
+            : { _token: CSRF, name, status };
+
+        const $btn = $('#pcDrawerSubmit').prop('disabled', true);
+        $btn.find('.spinner-border').removeClass('d-none');
+
+        $.ajax({ url, method: 'POST', data, dataType: 'json' })
+            .done((res) => {
+                if (!res || !res.ok) return;
+                if (isEdit) {
+                    // status may have flipped — adjust KPIs
+                    const prev = $(`#pcTbody tr[data-id="${res.category.id}"] .ob-status-select`).attr('data-status');
+                    if (prev && prev !== res.category.status) {
+                        bumpStat(prev === 'ACTIVE' ? 'active' : 'inactive', -1);
+                        bumpStat(res.category.status === 'ACTIVE' ? 'active' : 'inactive', 1);
+                    }
+                    updateRow(res.category);
+                } else {
+                    insertRow(res.category);
+                    incrementStatsFor(res.category.status);
+                }
+                toast('success', res.message);
+                drawer.hide();
+            })
+            .fail((xhr) => {
+                const msg = xhr.responseJSON?.errors?.name?.[0] || xhr.responseJSON?.message || 'Could not save.';
+                $('#pcDrawerName').addClass('is-invalid');
+                $('#pcDrawerNameErr').text(msg);
+            })
+            .always(() => {
+                $btn.prop('disabled', false);
+                $btn.find('.spinner-border').addClass('d-none');
+            });
+    });
+
+    // ── Bulk-add drawer ────────────────────────────────────────
+    const bulkEl = document.getElementById('pcBulkDrawer');
+    const bulk   = new bootstrap.Offcanvas(bulkEl);
+
+    function buildBulkRow(name = '', status = 'ACTIVE') {
+        const $row = $(`
+            <div class="pc-bulk-row">
+                <input type="text" class="form-control pc-bulk-name" placeholder="Category name" maxlength="255">
+                <select class="form-select pc-bulk-status">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <button type="button" class="btn btn-outline-danger pc-bulk-remove" title="Remove row">
+                    <i data-feather="x" style="width:14px;height:14px;"></i>
+                </button>
+                <div class="pc-bulk-row__err"></div>
+            </div>
+        `);
+        $row.find('.pc-bulk-name').val(name);
+        $row.find('.pc-bulk-status').val(status);
+        return $row;
+    }
+
+    function resetBulk() {
+        $('#pcBulkRows').empty()
+            .append(buildBulkRow()).append(buildBulkRow()).append(buildBulkRow());
+        if (window.feather) window.feather.replace();
+    }
+
+    // Live check across bulk rows: each input pings the server (debounced) and
+    // we also flag any same-name rows within the batch in pure DOM.
+    function bulkRowLiveCheck($input) {
+        const $row  = $input.closest('.pc-bulk-row');
+        const $err  = $row.find('.pc-bulk-row__err');
+        const name  = $input.val().trim();
+
+        // Within-batch duplicate (case-insensitive)
+        let dupInBatch = false;
+        if (name) {
+            $('#pcBulkRows .pc-bulk-row').each(function () {
+                if (this === $row[0]) return;
+                const other = $(this).find('.pc-bulk-name').val().trim().toLowerCase();
+                if (other && other === name.toLowerCase()) dupInBatch = true;
+            });
+        }
+        if (dupInBatch) {
+            $input.addClass('is-invalid');
+            $err.text('Duplicate name in this batch.');
+            return;
+        }
+
+        if (!name) {
+            $input.removeClass('is-invalid');
+            $err.text('');
+            return;
+        }
+        $.post(ROUTES.checkUnique, { _token: CSRF, name })
+            .done((res) => {
+                if ($input.val().trim() !== name) return; // user kept typing
+                if (res.available) {
+                    $input.removeClass('is-invalid');
+                    $err.text('');
+                } else {
+                    $input.addClass('is-invalid');
+                    $err.text(res.message || 'Already exists.');
+                }
+            });
+    }
+    const bulkRowLiveCheckDebounced = debounce(function (el) { bulkRowLiveCheck($(el)); }, 350);
+    $(document).on('input', '#pcBulkRows .pc-bulk-name', function () {
+        bulkRowLiveCheckDebounced(this);
+    });
+
+    $('#pcBulkOpen').on('click', () => { resetBulk(); bulk.show(); });
+
+    $('#pcBulkAddRow').on('click', () => {
+        const $r = buildBulkRow();
+        $('#pcBulkRows').append($r);
+        if (window.feather) window.feather.replace();
+        $r.find('.pc-bulk-name').focus();
+    });
+
+    $(document).on('click', '.pc-bulk-remove', function () {
+        const $rows = $('#pcBulkRows .pc-bulk-row');
+        if ($rows.length <= 1) {
+            $(this).closest('.pc-bulk-row').find('.pc-bulk-name').val('');
+            return;
+        }
+        $(this).closest('.pc-bulk-row').remove();
+    });
+
+    $('#pcBulkSubmit').on('click', function () {
+        const rows = [];
+        const $rowEls = $('#pcBulkRows .pc-bulk-row');
+        $rowEls.find('.pc-bulk-row__err').text('');
+        $rowEls.find('.pc-bulk-name').removeClass('is-invalid');
+
+        let firstInvalid = null;
+        $rowEls.each(function (i) {
+            const name   = $(this).find('.pc-bulk-name').val().trim();
+            const status = $(this).find('.pc-bulk-status').val();
+            if (name) {
+                rows.push({ name, status });
+            } else if (i === 0) {
+                if (!firstInvalid) firstInvalid = $(this);
+                $(this).find('.pc-bulk-name').addClass('is-invalid');
+                $(this).find('.pc-bulk-row__err').text('Name is required.');
+            }
+        });
+
+        if (firstInvalid) { firstInvalid.find('.pc-bulk-name').focus(); return; }
+        if (rows.length === 0) { toast('info', 'Add at least one category.'); return; }
+
+        const $btn = $('#pcBulkSubmit').prop('disabled', true);
+        $btn.find('.spinner-border').removeClass('d-none');
+
+        $.ajax({
+            url: ROUTES.bulk,
+            method: 'POST',
+            data: { _token: CSRF, categories: rows },
+            dataType: 'json'
+        })
+        .done((res) => {
+            if (!res || !res.ok) return;
+            res.categories.forEach((c) => { insertRow(c); incrementStatsFor(c.status); });
+            toast('success', res.message);
+            bulk.hide();
+        })
+        .fail((xhr) => {
+            const errs = xhr.responseJSON?.errors || {};
+            // Map errors like `categories.0.name` back to the corresponding row.
+            Object.keys(errs).forEach((key) => {
+                const m = key.match(/^categories\.(\d+)\.(name|status)$/);
+                if (!m) return;
+                const $row = $('#pcBulkRows .pc-bulk-row').eq(parseInt(m[1], 10));
+                if (!$row.length) return;
+                $row.find('.pc-bulk-name').addClass('is-invalid');
+                $row.find('.pc-bulk-row__err').text(errs[key][0]);
+            });
+            toast('error', 'Please fix the highlighted rows.');
+        })
+        .always(() => {
+            $btn.prop('disabled', false);
+            $btn.find('.spinner-border').addClass('d-none');
+        });
+    });
+
+    // Replace feather icons once on load for dynamically added bits
+    if (window.feather) window.feather.replace();
+})();
+</script>
+@endpush
+@endsection

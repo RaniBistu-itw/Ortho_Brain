@@ -1,0 +1,826 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   OrthoBrain overrides on top of Vuexy.
+   Keep this file small and purpose-driven; palette changes live in Vuexy SCSS.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Action column: keep View / Edit / Delete on one row, tighten gaps */
+.table td .btn-icon.btn-sm,
+.table td .btn-icon.btn-xs {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.table td .btn-icon + .btn-icon,
+.table td form.d-inline,
+.table td form.d-inline .btn-icon {
+    margin-left: 0.25rem;
+}
+.table th.text-end,
+.table td.text-end {
+    white-space: nowrap;
+    min-width: 140px;
+}
+
+/* Status / in-use label in the actions cell should not wrap weirdly */
+.table td .text-muted.small {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Brand text in sidebar header — ortho (cyan) + brain (green) + ™ */
+.navbar-brand .brand-text .brand-ortho { color: #5bc0de; }
+.navbar-brand .brand-text .brand-brain { color: #8cc63f; }
+.navbar-brand .brand-text .brand-tm    { color: #8cc63f; font-size: 0.6em; vertical-align: super; }
+.navbar-brand .brand-tagline {
+    display: block;
+    font-size: 0.65rem;
+    font-style: italic;
+    color: #6e6b7b;
+    margin-top: 2px;
+    line-height: 1;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+}
+.navbar-brand .brand-text {
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+}
+
+/* Sidebar: remove the "modern-nav-toggle" disc button entirely */
+.main-menu .navbar-header .nav-item.nav-toggle { display: none !important; }
+.main-menu .navbar-header .nav-item.me-auto { margin-right: 0 !important; width: 100%; }
+.main-menu .navbar-header .navbar-brand {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    padding-top: 0.5rem;
+}
+
+/* Let the navbar-header grow so the brand tagline isn't clipped, and push
+   the nav list down so Dashboard doesn't butt up against the logo. */
+.main-menu .navbar-header { height: auto !important; min-height: 5.25rem; padding-bottom: 0.75rem; }
+.main-menu .main-menu-content { padding-bottom: 0 !important; }
+
+/* Collapsible section headers (Manage Types, Locations) — clickable with
+   a chevron that rotates when the section is collapsed. Chevron sits
+   right next to the label rather than pushed to the far edge. */
+.main-menu .navigation-header.ob-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.4rem;
+    cursor: pointer;
+    user-select: none;
+}
+.main-menu .navigation-header.ob-section-head .ob-chevron {
+    width: 14px;
+    height: 14px;
+    opacity: 0.6;
+    transition: transform 0.2s ease;
+}
+.main-menu .navigation-header.ob-section-head.ob-section-collapsed .ob-chevron {
+    transform: rotate(-90deg);
+}
+.main-menu .navigation-header.ob-section-head > i[data-feather="more-horizontal"] {
+    display: none !important;
+}
+
+/* Pagination: make sure Vuexy pill styling matches brand cyan */
+.pagination .page-item.active .page-link {
+    background-color: #5bc0de;
+    border-color: #5bc0de;
+    color: #fff;
+}
+.pagination .page-item .page-link {
+    color: #5bc0de;
+}
+.pagination .page-item.disabled .page-link {
+    color: #b9b9c3;
+}
+
+/* Tables: align header/body vertically on multi-line rows */
+.table > :not(caption) > * > * { vertical-align: middle; }
+
+/* ────────────────────────────────────────────────────────────
+   Text contrast: Vuexy defaults to a muted #6e6b7b body color,
+   which reads as low-contrast against white cards. Darken the
+   body and bump weight on labels/headings/tables so the whole
+   project feels crisper and more readable.
+   ──────────────────────────────────────────────────────────── */
+/* LIGHT-MODE-ONLY text-darkening overrides.
+   The `body:not(.dark-layout)` guards keep these from firing in dark mode,
+   where orthobrain-palette.css takes over and provides the navy/slate palette. */
+body:not(.dark-layout) {
+    color: #1f1f1f;
+    font-weight: 500;
+}
+
+/* Headings & titles — stronger, nearly-black (light mode only) */
+body:not(.dark-layout) h1,
+body:not(.dark-layout) h2,
+body:not(.dark-layout) h3,
+body:not(.dark-layout) h4,
+body:not(.dark-layout) h5,
+body:not(.dark-layout) h6,
+body:not(.dark-layout) .card-title,
+body:not(.dark-layout) .page-title,
+body:not(.dark-layout) .content-header-title,
+body:not(.dark-layout) .navbar-brand .brand-text {
+    color: #111 !important;
+    font-weight: 600;
+}
+
+/* Form labels (light mode only) */
+body:not(.dark-layout) .form-label {
+    color: #1a1a1a !important;
+    font-weight: 600;
+}
+
+/* Inputs: typed text darker and a touch bolder; placeholders stay muted (light mode only) */
+body:not(.dark-layout) .form-control,
+body:not(.dark-layout) .form-select,
+body:not(.dark-layout) .input-group-text {
+    color: #1f1f1f;
+    font-weight: 500;
+}
+body:not(.dark-layout) .form-control::placeholder { color: #9a9a9a; opacity: 1; }
+
+/* Tables (light mode only) */
+body:not(.dark-layout) .table { color: #1f1f1f; }
+body:not(.dark-layout) .table thead th {
+    color: #111;
+    font-weight: 700;
+}
+body:not(.dark-layout) .table td { font-weight: 500; }
+
+/* Body copy helpers (light mode only) */
+body:not(.dark-layout) p,
+body:not(.dark-layout) label,
+body:not(.dark-layout) .card-text { color: #1f1f1f; }
+
+/* Sidebar / nav links (light mode only — dark mode gets Vuexy's dark-layout rules) */
+body:not(.dark-layout) .main-menu .navigation > li > a,
+body:not(.dark-layout) .nav-link,
+body:not(.dark-layout) .dropdown-item {
+    color: #1f1f1f;
+}
+body:not(.dark-layout) .main-menu .navigation > li > a:hover {
+    color: #000;
+}
+
+/* Keep text-muted distinctly muted (used for Showing N entries, etc.) */
+body:not(.dark-layout) .text-muted { color: #6c757d !important; }
+
+/* Buttons keep Vuexy's white-on-cyan for contrast; no override here */
+
+/* Delete buttons that are blocked due to dependent records — look disabled but remain clickable to show popup */
+.js-delete-blocked {
+    opacity: 0.55;
+    cursor: not-allowed !important;
+}
+.js-delete-blocked:hover,
+.js-delete-blocked:focus {
+    opacity: 0.65;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Image hover preview — floating card, no arrow. Triggered by
+   any element with [data-preview-src]. JS lives in the admin
+   layout; this file owns all visual styling.
+   ──────────────────────────────────────────────────────────── */
+[data-preview-src] { cursor: zoom-in; }
+
+.ob-image-preview-card {
+    position: fixed;
+    z-index: 2000;
+    left: -9999px;
+    top: -9999px;
+    background: #fff;
+    border: 1px solid rgba(24, 28, 40, 0.06);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow:
+        0 12px 32px rgba(24, 28, 40, 0.18),
+        0 2px 8px rgba(24, 28, 40, 0.08);
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+    transition: opacity 140ms ease-out, transform 140ms ease-out;
+    pointer-events: none;
+}
+.ob-image-preview-card.is-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+.ob-image-preview-card img {
+    display: block;
+    max-width: 240px;
+    max-height: 240px;
+    width: auto;
+    height: auto;
+    border-radius: 7px;
+}
+.ob-image-preview-card.is-lg img {
+    max-width: 360px;
+    max-height: 360px;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Selected-file chip (product image form, new file selected)
+   ──────────────────────────────────────────────────────────── */
+.ob-file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    background: #f4f5f7;
+    border: 1px solid #e6e7eb;
+    border-radius: 10px;
+    padding: 0.5rem 0.625rem 0.5rem 0.5rem;
+    max-width: 100%;
+    animation: obChipIn 180ms ease-out;
+}
+@keyframes obChipIn {
+    from { opacity: 0; transform: translateY(-2px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.ob-file-chip-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e9f6fb;   /* brand cyan tint */
+    color: #5bc0de;
+    flex: 0 0 auto;
+}
+.ob-file-chip-icon svg { width: 16px; height: 16px; }
+.ob-file-chip-meta {
+    min-width: 0;
+    line-height: 1.25;
+}
+.ob-file-chip-name {
+    font-weight: 600;
+    color: #1f1f1f;
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ob-file-chip-size {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+.ob-file-chip-remove {
+    border: 0;
+    background: transparent;
+    color: #8a8a8a;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 120ms ease, color 120ms ease;
+    flex: 0 0 auto;
+}
+.ob-file-chip-remove:hover,
+.ob-file-chip-remove:focus-visible {
+    background: #fde7e9;
+    color: #d9534f;
+    outline: none;
+}
+.ob-file-chip-remove svg { width: 14px; height: 14px; }
+
+/* ────────────────────────────────────────────────────────────
+   Existing image card (edit form): frame + hover × overlay,
+   with a pending-remove state (dimmed + undo icon).
+   ──────────────────────────────────────────────────────────── */
+.ob-current-image-frame {
+    position: relative;
+    display: inline-block;
+    border: 1px solid #e6e7eb;
+    border-radius: 10px;
+    padding: 4px;
+    background: #fff;
+    transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+.ob-current-image-frame:hover {
+    border-color: #d4d6dc;
+    box-shadow: 0 6px 18px rgba(24, 28, 40, 0.08);
+}
+.ob-current-image-thumb {
+    display: block;
+    max-height: 96px;
+    max-width: 160px;
+    border-radius: 7px;
+    transition: opacity 160ms ease;
+}
+.ob-current-image-remove {
+    position: absolute;
+    top: -9px;
+    right: -9px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 0;
+    background: #fff;
+    color: #374151;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow:
+        0 2px 6px rgba(24, 28, 40, 0.22),
+        0 0 0 1px rgba(0, 0, 0, 0.06);
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 120ms ease, transform 120ms ease, background 120ms ease, color 120ms ease;
+}
+.ob-current-image-frame:hover .ob-current-image-remove,
+.ob-current-image-remove:focus-visible {
+    opacity: 1;
+    transform: scale(1);
+    outline: none;
+}
+.ob-current-image-remove:hover {
+    background: #d9534f;
+    color: #fff;
+}
+.ob-current-image-remove svg { width: 14px; height: 14px; }
+
+/* Pending-remove: frame goes soft-red, image dims, overlay flips to undo */
+.ob-current-image.is-pending-remove .ob-current-image-frame {
+    border-color: #f0a0a5;
+    background: #fff6f6;
+}
+.ob-current-image.is-pending-remove .ob-current-image-thumb {
+    opacity: 0.35;
+}
+.ob-current-image.is-pending-remove .ob-current-image-remove {
+    opacity: 1;
+    transform: scale(1);
+    background: #5bc0de;
+    color: #fff;
+}
+.ob-current-image.is-pending-remove .ob-current-image-remove:hover {
+    background: #3fb1d4;
+}
+.ob-current-image-hint {
+    font-size: 0.75rem;
+    color: #d9534f;
+    margin-top: 0.35rem;
+    display: none;
+}
+.ob-current-image.is-pending-remove .ob-current-image-hint {
+    display: block;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Multi-image gallery (product form, edit): reorderable tiles
+   with × overlay and a "Cover" badge on the first tile.
+   ──────────────────────────────────────────────────────────── */
+.ob-image-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #eef6fb;
+    color: #3aa5c4;
+    border: 1px solid #d6ecf3;
+}
+.ob-image-count.is-full {
+    background: #fff4e5;
+    color: #b76a00;
+    border-color: #ffd9a8;
+}
+.ob-image-count.is-over {
+    background: #fdecee;
+    color: #b7282b;
+    border-color: #f5b8bc;
+}
+
+.ob-image-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    min-height: 1px;   /* keeps drop zone targetable when empty */
+}
+.ob-image-gallery-empty {
+    padding: 0.9rem 1rem;
+    border: 1px dashed #d4d6dc;
+    border-radius: 10px;
+    color: #6c757d;
+    font-size: 0.85rem;
+    background: #fafbfc;
+}
+
+.ob-image-gallery-item {
+    position: relative;
+    width: 112px;
+    height: 112px;
+    border: 1px solid #e6e7eb;
+    border-radius: 10px;
+    background: #fff;
+    padding: 4px;
+    cursor: grab;
+    transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+.ob-image-gallery-item:hover {
+    border-color: #cfd2d8;
+    box-shadow: 0 6px 18px rgba(24, 28, 40, 0.08);
+}
+.ob-image-gallery-item:active { cursor: grabbing; }
+.ob-image-gallery-item.is-dragging {
+    opacity: 0.4;
+    transform: scale(0.97);
+}
+.ob-image-gallery-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 7px;
+    display: block;
+    pointer-events: none;   /* drag originates on the tile, not the img */
+}
+
+.ob-image-cover-badge {
+    position: absolute;
+    left: 6px;
+    bottom: 6px;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: rgba(91, 192, 222, 0.95);   /* brand cyan */
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+.ob-image-gallery-item:not(:first-child) .ob-image-cover-badge { display: none; }
+
+.ob-image-gallery-remove {
+    position: absolute;
+    top: -9px;
+    right: -9px;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    color: #374151;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow:
+        0 2px 6px rgba(24, 28, 40, 0.22),
+        0 0 0 1px rgba(0, 0, 0, 0.06);
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 120ms ease, transform 120ms ease, background 120ms ease, color 120ms ease;
+    z-index: 2;
+}
+.ob-image-gallery-item:hover .ob-image-gallery-remove,
+.ob-image-gallery-remove:focus-visible {
+    opacity: 1;
+    transform: scale(1);
+    outline: none;
+}
+.ob-image-gallery-remove:hover {
+    background: #d9534f;
+    color: #fff;
+}
+.ob-image-gallery-remove svg { width: 12px; height: 12px; }
+
+.ob-image-drag-hint {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #6c757d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 120ms ease;
+    pointer-events: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.ob-image-gallery-item:hover .ob-image-drag-hint { opacity: 1; }
+.ob-image-drag-hint svg { width: 12px; height: 12px; }
+
+/* Dragula: mirror element (the floating clone during drag) */
+.gu-mirror {
+    opacity: 0.85;
+    box-shadow: 0 10px 28px rgba(24, 28, 40, 0.2) !important;
+    border-radius: 10px;
+}
+.gu-transit { opacity: 0.25; }
+
+/* ────────────────────────────────────────────────────────────
+   Chip list (multiple pending files)
+   ──────────────────────────────────────────────────────────── */
+.ob-file-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.ob-file-chip-list:empty { display: none; }
+
+/* ────────────────────────────────────────────────────────────
+   Hover preview — carousel extensions (dots + cross-fade)
+   ──────────────────────────────────────────────────────────── */
+.ob-image-preview-card img {
+    transition: opacity 120ms ease;
+}
+.ob-image-preview-card img.is-fading { opacity: 0; }
+
+.ob-image-preview-dots {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 0 2px;
+}
+.ob-image-preview-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(24, 28, 40, 0.18);
+    transition: background 160ms ease, transform 160ms ease;
+}
+.ob-image-preview-dot.is-active {
+    background: #5bc0de;
+    transform: scale(1.2);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Product list thumbnail — cover image + "+N" badge overlay
+   ──────────────────────────────────────────────────────────── */
+.ob-list-thumb {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 48px;
+}
+.ob-list-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    cursor: zoom-in;
+}
+.ob-list-thumb-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: #1f1f1f;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+}
+
+/* ════════════════════════════════════════════════════════════
+   GENTLE MEDICAL SIDEBAR  —  Soft Sky-Blue Palette
+   Inspired by clean dental/medical UI (light mode only).
+   Dark mode keeps the standard Vuexy dark sidebar but with
+   a cooler blue-navy tint.
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Container ─────────────────────────────────────────────── */
+body:not(.dark-layout) .main-menu {
+    background: #ffffff !important;
+    border-right: 1px solid rgba(14,165,197,.15) !important;
+    box-shadow: 3px 0 20px rgba(14,80,140,.08) !important;
+}
+body:not(.dark-layout) .main-menu .shadow-bottom {
+    background: linear-gradient(
+        rgba(255,255,255,1) 44%,
+        rgba(255,255,255,.5) 73%,
+        rgba(255,255,255,0)
+    ) !important;
+}
+body:not(.dark-layout) .main-menu .main-menu-content,
+body:not(.dark-layout) .main-menu .ps-container { background: transparent !important; }
+
+/* ── Brand / header area ───────────────────────────────────── */
+body:not(.dark-layout) .main-menu .navbar-header {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(14,165,197,.13) !important;
+}
+body:not(.dark-layout) .main-menu .navbar-brand .brand-ortho { color: #0EA5C5 !important; }
+body:not(.dark-layout) .main-menu .navbar-brand .brand-brain { color: #16A34A !important; }
+body:not(.dark-layout) .main-menu .navbar-brand .brand-tm    { color: #16A34A !important; }
+body:not(.dark-layout) .main-menu .navbar-brand .brand-tagline { color: #7AAEC8 !important; }
+
+/* ── Section headers (USERS, MANAGE TYPES, LOCATIONS) ─────── */
+body:not(.dark-layout) .main-menu .navigation-header span {
+    color: #7AAABF !important;
+    font-size: .64rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 1.1px !important;
+    text-transform: uppercase !important;
+}
+body:not(.dark-layout) .main-menu .navigation-header.ob-section-head { color: #7AAABF !important; }
+body:not(.dark-layout) .main-menu .navigation-header.ob-section-head .ob-chevron { stroke: #7AAABF !important; }
+
+/* ── All nav links — base reset ────────────────────────────── */
+body:not(.dark-layout) .main-menu .navigation > li > a {
+    margin: 2px 10px !important;
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+    color: #1A3B5E !important;
+    font-size: .875rem !important;
+    font-weight: 500 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transition: background .18s ease, color .18s ease !important;
+}
+
+/* Feather SVG icons */
+body:not(.dark-layout) .main-menu .navigation > li > a svg {
+    stroke: #4E82A8 !important;
+    width: 17px !important;
+    height: 17px !important;
+}
+body:not(.dark-layout) .main-menu .navigation > li > a .menu-title {
+    color: #1A3B5E !important;
+    font-size: .875rem !important;
+}
+
+/* ── Hover ──────────────────────────────────────────────────── */
+body:not(.dark-layout) .main-menu .navigation > li:not(.active) > a:hover {
+    background: rgba(14,165,197,.1) !important;
+    color: #0A6E8A !important;
+}
+body:not(.dark-layout) .main-menu .navigation > li:not(.active) > a:hover svg {
+    stroke: #0EA5C5 !important;
+}
+body:not(.dark-layout) .main-menu .navigation > li:not(.active) > a:hover .menu-title {
+    color: #0A6E8A !important;
+}
+
+/* ── Active ─────────────────────────────────────────────────── */
+body:not(.dark-layout) .main-menu .navigation > li.active > a {
+    background: rgba(14,165,197,.17) !important;
+    color: #0A6E8A !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 14px rgba(14,165,197,.18) !important;
+}
+body:not(.dark-layout) .main-menu .navigation > li.active > a svg { stroke: #0EA5C5 !important; }
+body:not(.dark-layout) .main-menu .navigation > li.active > a .menu-title { color: #0A6E8A !important; }
+
+/* Remove Vuexy's default active accent strip pseudo-element */
+body:not(.dark-layout) .main-menu .navigation > li.active > a::before,
+body:not(.dark-layout) .main-menu .navigation > li.active > a::after { display: none !important; }
+
+/* ── Dark mode sidebar — cooler blue-navy ──────────────────── */
+body.dark-layout .main-menu {
+    background: linear-gradient(185deg, #172238 0%, #1E2E45 100%) !important;
+    border-right: 1px solid rgba(14,165,197,.1) !important;
+}
+body.dark-layout .main-menu .navigation-header span { color: rgba(14,165,197,.55) !important; }
+body.dark-layout .main-menu .navigation > li.active > a {
+    background: rgba(14,165,197,.2) !important;
+    box-shadow: 0 4px 14px rgba(14,165,197,.15) !important;
+}
+body.dark-layout .main-menu .navigation > li.active > a svg { stroke: #0EA5C5 !important; }
+body.dark-layout .main-menu .navigation > li:not(.active) > a:hover {
+    background: rgba(14,165,197,.12) !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   SIDEBAR FOOTER — quote
+   ════════════════════════════════════════════════════════════ */
+
+.main-menu .main-menu-content { padding-bottom: 64px !important; }
+
+.ob-sb-foot {
+    position: absolute;
+    bottom: 20px; left: 0; right: 0;
+    padding: 0 1.1rem;
+    background: #ffffff;
+    z-index: 10;
+}
+.ob-sb-quote {
+    margin: 0;
+    font-size: .71rem;
+    font-style: italic;
+    color: #8BBBD4;
+    line-height: 1.5;
+    text-align: center;
+    font-weight: 500;
+}
+
+body.dark-layout .ob-sb-quote { color: rgba(14,165,197,.35); }
+
+/* ────────────────────────────────────────────────────────────
+   Show view — read-only gallery
+   ──────────────────────────────────────────────────────────── */
+.ob-show-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.ob-show-gallery-item {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    border: 1px solid #e6e7eb;
+    border-radius: 10px;
+    background: #fff;
+    padding: 4px;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.ob-show-gallery-item:hover {
+    border-color: #cfd2d8;
+    box-shadow: 0 6px 18px rgba(24, 28, 40, 0.08);
+}
+.ob-show-gallery-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 7px;
+    display: block;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Unified Clear button — subtle red tint, deeper red on hover.
+   Sized to align with Vuexy form-control (0.358rem radius,
+   0.486rem 1rem padding, 0.9rem font-size).
+   ──────────────────────────────────────────────────────────── */
+.ob-btn-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.486rem 1rem;
+    border-radius: 0.358rem;
+    border: 1px solid transparent;
+    background: rgba(234, 84, 85, 0.12);
+    color: #EA5455;
+    font-weight: 500;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+.ob-btn-clear:hover,
+.ob-btn-clear:focus {
+    background: #EA5455;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(234, 84, 85, 0.25);
+    text-decoration: none;
+}
+.ob-btn-clear:focus-visible {
+    outline: 2px solid rgba(234, 84, 85, 0.45);
+    outline-offset: 2px;
+}
+.ob-btn-clear svg,
+.ob-btn-clear i { width: 14px; height: 14px; font-size: 14px; line-height: 1; }
+
+/* ────────────────────────────────────────────────────────────
+   Sortable table column headers
+   ──────────────────────────────────────────────────────────── */
+.ob-th-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: inherit;
+    text-decoration: none;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.ob-th-sort > span { white-space: nowrap; }
+.ob-th-sort:hover { color: var(--ob-primary, #3B82F6); }
+.ob-th-sort i { font-size: 0.85em; opacity: 0.55; transition: opacity 120ms ease; }
+.ob-th-sort:hover i { opacity: 0.9; }
+.ob-th-sort.is-active { color: var(--ob-primary, #3B82F6); }
+.ob-th-sort.is-active i { opacity: 1; }
