@@ -165,3 +165,54 @@ this.$nextTick(() => {
 commits because the pattern wasn't searched for before implementation.
 Future fixes touching select options bound via `x-for` should grep for
 `nextTick` in `resources/js/` first.
+
+## Local dev environment
+
+### Entry 7 — Stale `php artisan serve` processes
+
+**Rule:** When debugging behavior that should have been fixed by a recent
+PR, restart `php artisan serve` before assuming the fix didn't work or
+isn't deployed.
+
+**Reason:** `php artisan serve` is a long-running process that loads its
+router and bootstrapper at startup. Pulling new commits, switching
+branches, or running migrations does NOT cause the running process to
+pick up new code. The server continues to serve whatever code was on
+disk when it started.
+
+**Symptom pattern:** Behavior that works in one environment (a freshly-
+restarted server, a teammate's machine, CI) but fails in another (a
+long-lived local dev server). Same DB, same checkout, different running
+binary state. Server-side artifacts (logs, DB records, files) are fine,
+but page rendering or behavior is wrong.
+
+**Discipline:** After every `git pull` or branch switch, restart any
+`php artisan serve` processes:
+
+```
+ps aux | grep "artisan serve" | grep -v grep   # see when each was started
+lsof -i :8000 | grep LISTEN                    # find PID for a port
+kill <PID>
+php artisan serve --port=8000                  # restart
+```
+
+Multiple servers on different ports compound this — each must be
+restarted independently.
+
+**Diagnostic trap to avoid:** When inspecting tile components with
+`document.querySelector('.media-tile img')` (or similar multi-match
+selectors), `querySelector` returns the FIRST match in DOM order. For
+tiles that contain both a placeholder `<img>` and a preview `<img>`
+controlled by `x-show`, the first match is usually the placeholder.
+A `display: none` on that element means "placeholder hidden because
+the tile is filled" — NOT "the real image is hidden". Use
+`querySelectorAll` and iterate, or scope to `.media-tile__preview`
+specifically.
+
+**Reference:** Issue 3 diagnostic, 2026-05-05. The :8000 server had
+been running since 2026-05-04 13:08, predating six merged PRs (#95,
+#96, #97, #98, #99, #100). Hours of "case images not appearing"
+diagnostic concluded with a server restart fixing the symptom — the
+running binary simply hadn't picked up PR #98's hydration fix. The
+querySelector trap above masked the fix's effect across two diagnostic
+rounds even after the server was restarted.
