@@ -132,7 +132,14 @@
         // assignments the city/state/country inputs render blank on reload.
         this.city    = p.city    || '';
         this.state   = p.state   || '';
-        this.country = p.country || '';
+        // Country is a <select> whose <option>s are produced by an Alpine
+        // x-for over window.COUNTRY_ENTRIES. If we set `country` synchronously
+        // here, the select's x-model evaluates before x-for has rendered the
+        // matching <option>, so the DOM falls back to the placeholder and
+        // 2-way-binds an empty string back into our state. Defer to the next
+        // tick so the options exist when the assignment lands.
+        var self = this;
+        this.$nextTick(function () { self.country = p.country || ''; });
       },
 
       // Set zipQuery to the display label matching the given zipId. If the
