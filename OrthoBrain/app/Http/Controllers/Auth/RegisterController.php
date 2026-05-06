@@ -47,8 +47,19 @@ class RegisterController extends Controller
 
     public function show()
     {
+        // Load just the previously-selected zip (if a validation bounce happened)
+        // rather than all 180 K+ rows — loading the full table exhausts PHP memory.
+        $selectedZip = null;
+        if ($oldId = old('zip_id')) {
+            $selectedZip = Zipcode::with([
+                'city:id,name,state_id',
+                'city.state:id,name,state_code,country_id',
+                'city.state.country:id,name,country_code',
+            ])->find((int) $oldId);
+        }
+
         return view('register', [
-            'zipcodes'                => $this->activeZipcodes(),
+            'selectedZip'             => $selectedZip,
             'modalitiesList'          => Modality::orderBy('id')->get(),
             'specialtiesList'         => Specialty::orderBy('id')->get(),
             'treatmentModalitiesList' => TreatmentModality::orderBy('id')->get(),
@@ -441,15 +452,6 @@ class RegisterController extends Controller
         }
 
         return redirect('/login')->with('success', 'Registration submitted. Your account is pending admin approval — you\'ll receive an email once approved.');
-    }
-
-    private function activeZipcodes()
-    {
-        return Zipcode::with('city.state.country')
-            ->where('status', 'ACTIVE')
-            ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
-            ->orderBy('code')
-            ->get();
     }
 
     private function activePhoneCodes(): array

@@ -227,7 +227,7 @@
                                 </form>
 
                                 <button type="button"
-                                        class="btn btn-sm btn-outline-danger"
+                                        class="btn btn-sm btn-danger"
                                         data-bs-toggle="modal"
                                         data-bs-target="#rejectPracticeModal-{{ $link->link_id }}"
                                         title="Reject">
