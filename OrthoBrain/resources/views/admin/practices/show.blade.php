@@ -143,22 +143,6 @@
     #practice-show .ob-pivot-pill--left      { background: var(--ob-surface-alt); color: var(--ob-muted); border-color: var(--ob-border); }
     #practice-show .ob-pivot-pill--onhold    { background: rgba(255, 159, 67, 0.12); color: #ff9f43; border-color: rgba(255, 159, 67, 0.2); }
 
-    #practice-show .ob-inline-btn {
-        display: inline-flex; align-items: center; gap: 0.3rem;
-        padding: 0.3rem 0.6rem;
-        border-radius: 0.4rem;
-        font-size: 0.78rem;
-        font-weight: 600;
-        border: 1px solid transparent;
-        cursor: pointer;
-    }
-    #practice-show .ob-inline-btn + .ob-inline-btn { margin-left: 0.3rem; }
-    #practice-show .ob-inline-btn--approve  { background: #2eb85c; color: #fff; }
-    #practice-show .ob-inline-btn--approve:hover { background: #289c4f; }
-    #practice-show .ob-inline-btn--reject   { background: var(--ob-surface); color: #ea5455; border-color: rgba(234, 84, 85, 0.4); }
-    #practice-show .ob-inline-btn--reject:hover { background: rgba(234, 84, 85, 0.12); }
-    #practice-show .ob-inline-btn svg { width: 12px; height: 12px; }
-
     /* Hero practice-status select */
     #practice-show .ob-hero-status {
         display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-end;
@@ -273,6 +257,7 @@
     }
     #practice-show .ob-bulk-actions {
         display: inline-flex; align-items: center; gap: .4rem;
+        flex-shrink: 0;
     }
     #practice-show .ob-contact-line {
         display: inline-flex; align-items: center; gap: 0.4rem;
@@ -281,44 +266,6 @@
     #practice-show .ob-contact-line svg { width: 13px; height: 13px; color: #9a9aab; flex: 0 0 auto; }
     #practice-show .ob-contact-line a { color: var(--ob-text); text-decoration: none; }
     #practice-show .ob-contact-line a:hover { color: var(--ob-primary); text-decoration: underline; }
-    #practice-show .ob-bulk-btn {
-        display: inline-flex; align-items: center; gap: .35rem;
-        padding: .45rem .85rem;
-        border-radius: .5rem;
-        font-size: .8rem;
-        font-weight: 600;
-        border: 1px solid transparent;
-        cursor: pointer;
-        transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
-        background: var(--ob-surface);
-        color: var(--ob-text);
-        border-color: var(--ob-border);
-    }
-    #practice-show .ob-bulk-btn svg { width: 14px; height: 14px; }
-    #practice-show .ob-bulk-btn--approve {
-        background: #2eb85c;
-        color: #fff;
-        border-color: #2eb85c;
-    }
-    #practice-show .ob-bulk-btn--approve:hover:not(:disabled) {
-        background: #289c4f;
-        border-color: #289c4f;
-        transform: translateY(-1px);
-    }
-    #practice-show .ob-bulk-btn--reject {
-        background: var(--ob-surface);
-        color: #ea5455;
-        border-color: rgba(234, 84, 85, 0.4);
-    }
-    #practice-show .ob-bulk-btn--reject:hover:not(:disabled) {
-        background: #fde7e7;
-        transform: translateY(-1px);
-    }
-    #practice-show .ob-bulk-btn:disabled {
-        opacity: .55;
-        cursor: not-allowed;
-        transform: none;
-    }
     #practice-show .ob-empty-row td {
         padding: 1.5rem 1.25rem;
         text-align: center;
@@ -497,7 +444,7 @@
                 <div class="ob-bulk-actions">
                     <button type="button"
                             id="bulkApproveBtn"
-                            class="ob-bulk-btn ob-bulk-btn--approve"
+                            class="btn btn-sm btn-success"
                             data-url="{{ route('admin.practices.doctors.bulk', $practice) }}"
                             data-practice-name="{{ $practice->name }}"
                             @disabled($pendingPivotCount === 0)>
@@ -505,7 +452,7 @@
                     </button>
                     <button type="button"
                             id="bulkRejectBtn"
-                            class="ob-bulk-btn ob-bulk-btn--reject"
+                            class="btn btn-sm btn-danger"
                             data-url="{{ route('admin.practices.doctors.bulk', $practice) }}"
                             data-practice-name="{{ $practice->name }}"
                             @disabled($pendingPivotCount === 0)>

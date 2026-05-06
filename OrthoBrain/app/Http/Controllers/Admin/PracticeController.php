@@ -130,13 +130,19 @@ class PracticeController extends Controller
 
     public function edit(Practice $practice)
     {
-        $practice->load(['city', 'state', 'country', 'zipcode']);
+        $practice->load(['city', 'state', 'country', 'zipcode.city.state.country']);
 
-        $zipcodes = Zipcode::with('city.state.country')
-            ->where('status', 'ACTIVE')
-            ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
-            ->orderBy('code')
-            ->get();
+        // On a validation bounce, old('zip_id') may differ from the practice's saved zip.
+        // Load just that one record so the select can pre-render a single option instead
+        // of fetching the entire zipcodes table upfront.
+        $oldZipId = session()->getOldInput('zip_id');
+        if ($oldZipId && (int) $oldZipId !== (int) $practice->zip_id) {
+            $selectedZip = Zipcode::with('city.state.country')
+                ->where('status', 'ACTIVE')
+                ->find((int) $oldZipId);
+        } else {
+            $selectedZip = $practice->zipcode;
+        }
 
         $phoneCodes = Country::where('status', 'ACTIVE')
             ->select('phone_code')
@@ -146,9 +152,9 @@ class PracticeController extends Controller
             ->all();
 
         return view('admin.practices.edit', [
-            'practice'   => $practice,
-            'zipcodes'   => $zipcodes,
-            'phoneCodes' => $phoneCodes,
+            'practice'    => $practice,
+            'selectedZip' => $selectedZip,
+            'phoneCodes'  => $phoneCodes,
         ]);
     }
 
