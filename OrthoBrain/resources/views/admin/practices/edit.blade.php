@@ -81,6 +81,32 @@
         background: var(--ob-surface-alt);
         border-top: 1px solid var(--ob-border);
     }
+
+    /* ── Phone: fused Select2 + text input ── */
+    #practice-edit .ob-phone-group {
+        display: flex;
+        align-items: stretch;
+    }
+    #practice-edit .ob-phone-group .select2-container {
+        flex: 0 0 115px;
+        width: 115px !important;
+    }
+    #practice-edit .ob-phone-group .select2-container--default .select2-selection--single {
+        height: 100%;
+        border-right: 0;
+        border-radius: 0.357rem 0 0 0.357rem;
+    }
+    #practice-edit .ob-phone-group .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 100%;
+        top: 0;
+    }
+    #practice-edit .ob-phone-group .form-control {
+        border-radius: 0 0.357rem 0.357rem 0 !important;
+    }
+    #practice-edit .ob-phone-group .select2-container--open .select2-selection--single,
+    #practice-edit .ob-phone-group .select2-container--focus .select2-selection--single {
+        border-color: var(--ob-primary);
+    }
 </style>
 @endpush
 
@@ -119,30 +145,26 @@
                         @error('website')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                     </div>
 
-                    <div class="col-md-2 mb-1">
-                        <label for="phone_country_code" class="form-label">Code<span class="text-danger">*</span></label>
+                    <div class="col-md-6 mb-1">
                         @php $currentCode = old('phone_country_code', $practice->phone_country_code ?? '+1'); @endphp
-                        <select id="phone_country_code" name="phone_country_code"
-                                class="form-select js-searchable @error('phone_country_code') is-invalid @enderror"
-                                data-placeholder="Code">
-                            <option value="">Code</option>
-                            @forelse ($phoneCodes as $code)
-                                <option value="{{ $code }}" @selected($currentCode === $code)>{{ $code }}</option>
-                            @empty
-                                <option value="+1" @selected($currentCode === '+1')>+1</option>
-                            @endforelse
-                        </select>
+                        <label for="phone_number" class="form-label">Phone<span class="text-danger">*</span></label>
+                        <div class="ob-phone-group">
+                            <select id="phone_country_code" name="phone_country_code"
+                                    class="@error('phone_country_code') is-invalid @enderror">
+                                @forelse ($phoneCodes as $code)
+                                    <option value="{{ $code }}" @selected($currentCode === $code)>{{ $code }}</option>
+                                @empty
+                                    <option value="+1" @selected($currentCode === '+1')>+1</option>
+                                @endforelse
+                            </select>
+                            <input id="phone_number" name="phone_number" type="tel"
+                                   value="{{ old('phone_number', $practice->phone_number) }}"
+                                   inputmode="numeric" maxlength="10"
+                                   placeholder="Phone number"
+                                   class="form-control @error('phone_number') is-invalid @enderror"
+                                   required>
+                        </div>
                         @error('phone_country_code')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
-                    </div>
-
-                    <div class="col-md-4 mb-1">
-                        <label for="phone_number" class="form-label">Phone Number<span class="text-danger">*</span></label>
-                        <input id="phone_number" name="phone_number" type="tel"
-                               value="{{ old('phone_number', $practice->phone_number) }}"
-                               inputmode="numeric" maxlength="10"
-                               placeholder="10 digits"
-                               class="form-control @error('phone_number') is-invalid @enderror"
-                               required>
                         @error('phone_number')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                     </div>
                 </div>
@@ -272,6 +294,12 @@
     }
 
     if (window.jQuery && typeof $.fn.select2 === 'function') {
+        // Phone country code — compact Select2, same look as zipcode dropdown.
+        $('#phone_country_code').select2({
+            width: '115px',
+            dropdownParent: $(document.body),
+        });
+
         // AJAX-backed Select2 — avoids loading all zipcodes upfront (would crash with massive data).
         $('#zip_id').select2({
             placeholder: 'Search zip or city...',

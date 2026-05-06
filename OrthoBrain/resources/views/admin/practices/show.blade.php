@@ -345,13 +345,25 @@
             <div class="ob-grid">
                 <div>
                     <span class="ob-field-label">Phone</span>
-                    <div class="ob-field-value">{{ $phoneDisplay !== '' ? $phoneDisplay : '—' }}</div>
+                    <div class="ob-field-value">
+                        @if ($phoneDisplay !== '')
+                            <span class="ob-contact-line">
+                                <i data-feather="phone"></i>
+                                <a href="tel:{{ preg_replace('/[^0-9+]/', '', $phoneDisplay) }}">{{ $phoneDisplay }}</a>
+                            </span>
+                        @else
+                            —
+                        @endif
+                    </div>
                 </div>
                 <div>
                     <span class="ob-field-label">Website</span>
                     <div class="ob-field-value">
                         @if ($practice->website)
-                            <a href="{{ $websiteHref }}" target="_blank" rel="noopener">{{ $practice->website }}</a>
+                            <span class="ob-contact-line">
+                                <i data-feather="globe"></i>
+                                <a href="{{ $websiteHref }}" target="_blank" rel="noopener">{{ $practice->website }}</a>
+                            </span>
                         @else
                             —
                         @endif
@@ -361,9 +373,14 @@
                     <span class="ob-field-label">Address</span>
                     <div class="ob-field-value">
                         @if (count($addressLines))
-                            @foreach ($addressLines as $line)
-                                {{ $line }}@if (!$loop->last)<br>@endif
-                            @endforeach
+                            <span class="ob-contact-line" style="align-items: flex-start;">
+                                <i data-feather="map-pin" style="margin-top: 0.15rem; flex-shrink: 0;"></i>
+                                <span>
+                                    @foreach ($addressLines as $line)
+                                        {{ $line }}@if (!$loop->last)<br>@endif
+                                    @endforeach
+                                </span>
+                            </span>
                         @else
                             —
                         @endif
