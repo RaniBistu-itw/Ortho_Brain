@@ -371,28 +371,51 @@
 
         this._closeTileModal();
 
-        var originalFile = this.tiles[tileId].originalFile;
         var self = this;
 
-        setTimeout(function () {
-          window.MediaTileHelpers.createPreviewUrl(originalFile).then(function (preview) {
-            window.CropModalController.open({
-              imageUrl: preview.url,
-              onApply: function (croppedBlob, cropParams) {
-                URL.revokeObjectURL(preview.url);
-                if (self.tiles[tileId].previewUrl) {
-                  URL.revokeObjectURL(self.tiles[tileId].previewUrl);
-                }
-                self.tiles[tileId].croppedBlob = croppedBlob;
-                self.tiles[tileId].previewUrl = URL.createObjectURL(croppedBlob);
-                self.tiles[tileId].cropParams = cropParams;
-                self.syncToState();
-                self._persistTile(tileId, croppedBlob);
-              },
-              onCancel: function () {
-                URL.revokeObjectURL(preview.url);
-              },
-            });
+        // Same URL→blob fetch pattern as photographs.js cropTile — see the
+        // comment there for the full rationale. X-rays share the same
+        // hydration shape (originalFile null after server prefill) and the
+        // same fix applies. No AI re-classify call here (xrays has no AI).
+        setTimeout(async function () {
+          var blob = self.tiles[tileId].originalFile;
+
+          if (!blob && self.tiles[tileId].previewUrl) {
+            try {
+              var res = await fetch(self.tiles[tileId].previewUrl, { credentials: 'same-origin' });
+              if (!res.ok) throw { status: res.status, body: {} };
+              blob = await res.blob();
+              self.tiles[tileId].originalFile = blob;
+            } catch (err) {
+              var msg = window.MediaTileHelpers.upgradeCropFetchError(err, self.getTileLabel(tileId));
+              self.bulkError = msg;
+              setTimeout(function () { self.bulkError = null; }, 6000);
+              return;
+            }
+          }
+
+          if (!blob) {
+            console.warn('cropTile (xray): tile filled but has no blob and no URL', tileId);
+            return;
+          }
+
+          var preview = await window.MediaTileHelpers.createPreviewUrl(blob);
+          window.CropModalController.open({
+            imageUrl: preview.url,
+            onApply: function (croppedBlob, cropParams) {
+              URL.revokeObjectURL(preview.url);
+              if (self.tiles[tileId].previewUrl) {
+                URL.revokeObjectURL(self.tiles[tileId].previewUrl);
+              }
+              self.tiles[tileId].croppedBlob = croppedBlob;
+              self.tiles[tileId].previewUrl = URL.createObjectURL(croppedBlob);
+              self.tiles[tileId].cropParams = cropParams;
+              self.syncToState();
+              self._persistTile(tileId, croppedBlob);
+            },
+            onCancel: function () {
+              URL.revokeObjectURL(preview.url);
+            },
           });
         }, 400);
       },
