@@ -504,8 +504,12 @@
         if (ok) document.getElementById('addressForm').submit();
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function bindAddressFormHandlers() {
         if (FORM_MODE === 'view') return;
+
+        const zipEl = document.getElementById('in-zip');
+        if (!zipEl || zipEl.dataset.obBound === '1') return; // idempotent
+        zipEl.dataset.obBound = '1';
 
         // Text inputs: validate on blur, re-validate on input after first blur
         ['address1', 'billing-email'].forEach(id => {
@@ -515,15 +519,35 @@
             el.addEventListener('input', () => { if (addrTouched.has(id)) addrValidateField(id); });
         });
 
-        // Zip has extra auto-fill behavior
-        const zipEl = document.getElementById('in-zip');
-        if (zipEl) {
-            zipEl.addEventListener('change', () => {
-                addrTouched.add('zip');
-                addrValidateField('zip');
-                onZipChange();
-            });
+        // Zip has extra auto-fill behavior. Listen via jQuery so we catch the
+        // `change` Select2 fires on the underlying <select> (Select2 uses
+        // jQuery.trigger which native addEventListener may miss in some
+        // versions).
+        zipEl.addEventListener('change', onZipFire);
+        if (window.jQuery) window.jQuery(zipEl).on('change.obAddrZip', onZipFire);
+
+        // If the form was rendered with a pre-selected zip (edit mode) but no
+        // city/state/country values, populate them now.
+        if (zipEl.value && !document.getElementById('hid-city').value) {
+            onZipChange();
         }
-    });
+    }
+
+    function onZipFire() {
+        addrTouched.add('zip');
+        addrValidateField('zip');
+        onZipChange();
+    }
+
+    // Run the binder regardless of how the page was loaded:
+    //  - fresh load: DOMContentLoaded hasn't fired → wait for it
+    //  - already-loaded (the wire:navigate body-morph case): run immediately
+    //  - wire:navigated event: re-bind after each soft navigation
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindAddressFormHandlers);
+    } else {
+        bindAddressFormHandlers();
+    }
+    document.addEventListener('livewire:navigated', bindAddressFormHandlers);
 </script>
 @endpush
