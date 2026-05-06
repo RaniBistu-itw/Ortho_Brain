@@ -321,3 +321,38 @@ symmetry matters across all four validation sources.
 **Reference:** PR #103. Initial scope had server `max:10` paired
 with client `maxlength:5` — a silent contract mismatch caught in
 pre-flight reading. The reconciliation became this entry's example.
+
+## Media persistence
+
+### Entry 11 — Server-only media rows must not be moved via destroy+upload
+
+**Rule:** When frontend code "swaps" or "moves" media that may live
+only on the server (URL prefill, no client-side blob), never use
+destroy+upload as the persistence path. Either fetch the URL→blob
+first and let the upload re-send the same content, or call a
+dedicated reorder endpoint that mutates `tile_id` server-side.
+
+**Reason:** If destroy+upload runs while the upload-side has no blob
+(the file was loaded into the form via prefill, not via the user's
+file picker), destroy deletes the row and upload silently no-ops with
+nothing to send. Net effect: the photo disappears on next reload,
+with no error to the user and no log to the server. Silent data-loss
+is the worst class of bug because it doesn't trigger an error path.
+The user only discovers the deletion later, by which time the cause
+is hard to retrace.
+
+**Discipline:** Before persisting a "swap" or "move" of media tiles,
+check whether each tile has a client-side blob:
+
+- Both have blobs → destroy+upload is safe.
+- Neither has a blob → call `POST /cases/{case}/media/reorder` (or
+  equivalent endpoint that mutates `tile_id` server-side).
+- One has a blob, one is URL-only → fetch the URL into a blob before
+  the swap runs.
+
+Drag-reorder is the canonical example, but the rule generalises to
+any media-replacement flow.
+
+**Reference:** PR #106. Fixed for photographs and x-rays. See
+`Docs/architecture/04-add-case-flow.md` § "Tile drag-reorder
+semantics" for the implementation map.
