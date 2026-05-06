@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Models\BuccalCorridorOption;
@@ -184,6 +185,23 @@ class ProfileController extends Controller
         return redirect()
             ->route('doctor.profile.index', ['tab' => $address->type])
             ->with('success', ucfirst($address->type) . ' address updated successfully.');
+    }
+
+    public function addressSetDefault(DoctorAddress $address)
+    {
+        $this->authorizeAddress($address);
+
+        DB::transaction(function () use ($address) {
+            DoctorAddress::where('doctor_id', $address->doctor_id)
+                ->where('type', $address->type)
+                ->where('id', '!=', $address->id)
+                ->update(['is_default' => false]);
+            $address->update(['is_default' => true]);
+        });
+
+        return redirect()
+            ->route('doctor.profile.index', ['tab' => $address->type])
+            ->with('success', 'Default ' . $address->type . ' address updated.');
     }
 
     public function updateAdditional(Request $request)

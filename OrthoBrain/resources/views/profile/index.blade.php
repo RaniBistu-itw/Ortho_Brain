@@ -504,7 +504,10 @@
                                         @if($addr->is_default)
                                             <span class="badge bg-light-success">Yes</span>
                                         @else
-                                            <span class="badge bg-light-secondary">No</span>
+                                            <form action="{{ route('doctor.profile.address.set-default', $addr) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-primary py-25 px-1">Set as default</button>
+                                            </form>
                                         @endif
                                     </td>
                                 </tr>
@@ -561,7 +564,7 @@
                                 <th>City</th>
                                 <th>State/Province</th>
                                 <th>Zip Code</th>
-                                <th>Billing Email</th>
+                                <th>Is Default</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -573,7 +576,7 @@
                                         $addr->city?->name,
                                         $addr->state?->name,
                                         $addr->zipcode?->code,
-                                        $addr->billing_email,
+                                        $addr->is_default ? 'yes default' : 'no',
                                     ]))));
                                 @endphp
                                 <tr data-searchable="{{ $searchText }}">
@@ -587,7 +590,16 @@
                                     <td>{{ $addr->city?->name }}</td>
                                     <td>{{ $addr->state?->name }}</td>
                                     <td>{{ $addr->zipcode?->code }}</td>
-                                    <td>{{ $addr->billing_email ?? '—' }}</td>
+                                    <td>
+                                        @if($addr->is_default)
+                                            <span class="badge bg-light-success">Yes</span>
+                                        @else
+                                            <form action="{{ route('doctor.profile.address.set-default', $addr) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-outline-primary py-25 px-1">Set as default</button>
+                                            </form>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr class="empty-state"><td colspan="6" class="text-center text-muted">No billing addresses yet.</td></tr>
