@@ -38,7 +38,7 @@ class CaseMediaController extends Controller
         'image/tiff', 'image/bmp', 'image/heic', 'image/heif',
     ];
 
-    private const MAX_BYTES = 10 * 1024 * 1024; // 10 MB — generous; client cap is 5 MB.
+    private const MAX_BYTES = 5 * 1024 * 1024; // 5 MB — matches client cap in media-tile-helpers.js.
 
     public function upload(Request $request, int $caseId)
     {
