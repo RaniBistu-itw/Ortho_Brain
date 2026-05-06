@@ -447,34 +447,36 @@
                     </a>
                 </div>
 
-                <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 border-top border-bottom py-1 mb-1">
-                    <div class="d-flex align-items-center">
-                        <span class="me-50">Show</span>
-                        <select id="ship-pagesize" class="form-select form-select-sm" style="width: 5.5rem; padding-right: 2rem;">
-                            <option value="10" selected>10</option>
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
-                        <span class="ms-50">entries</span>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <label for="ship-search" class="me-50 mb-0">Search:</label>
-                        <input id="ship-search" type="text" class="form-control form-control-sm flex-grow-1" style="max-width: 14rem;">
+                <div class="ob-addr-toolbar">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-4">
+                            <div class="ob-input-icon">
+                                <i data-feather="search"></i>
+                                <input id="ship-search" type="text" class="form-control" placeholder="Search addresses…" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-none" id="ship-clear-col">
+                            <button type="button" class="ob-btn-clear w-100" id="ship-clear-btn">
+                                <i data-feather="x"></i> Clear
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                @php $shippingList = ($addresses ?? collect())->where('type', 'shipping'); @endphp
+                @php
+                    $shippingList  = ($addresses ?? collect())->where('type', 'shipping');
+                    $shippingCount = $shippingList->count();
+                @endphp
                 <div class="table-responsive">
-                    <table id="ship-table" class="table table-hover mb-0">
+                    <table id="ship-table" class="table ob-addr-table mb-0">
                         <thead>
                             <tr>
-                                <th>Action</th>
+                                <th>Default</th>
                                 <th>Street Address</th>
                                 <th>City</th>
-                                <th>State/Province</th>
+                                <th>State / Province</th>
                                 <th>Zip Code</th>
-                                <th>Is Default</th>
+                                <th class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -491,37 +493,62 @@
                                 @endphp
                                 <tr data-searchable="{{ $searchText }}">
                                     <td>
-                                        <div class="ob-row-actions">
-                                            <a href="{{ route('doctor.profile.address.show', $addr) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
-                                            <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="ob-icon-btn ob-icon-btn--edit" title="Edit"><i data-feather="edit-2"></i></a>
-                                        </div>
-                                    </td>
-                                    <td>{{ $addr->street_address_1 }}{{ $addr->street_address_2 ? ', ' . $addr->street_address_2 : '' }}</td>
-                                    <td>{{ $addr->city?->name }}</td>
-                                    <td>{{ $addr->state?->name }}</td>
-                                    <td>{{ $addr->zipcode?->code }}</td>
-                                    <td>
                                         @if($addr->is_default)
-                                            <span class="badge bg-light-success">Yes</span>
+                                            <span class="addr-default-badge">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                Default
+                                            </span>
                                         @else
                                             <form action="{{ route('doctor.profile.address.set-default', $addr) }}" method="POST" class="d-inline">
                                                 @csrf
-                                                <button type="submit" class="btn btn-sm btn-outline-primary py-25 px-1">Set as default</button>
+                                                <button type="submit" class="addr-set-default-btn">Set default</button>
                                             </form>
                                         @endif
                                     </td>
+                                    <td>{{ $addr->street_address_1 }}{{ $addr->street_address_2 ? ', ' . $addr->street_address_2 : '' }}</td>
+                                    <td>{{ $addr->city?->name ?? '—' }}</td>
+                                    <td>{{ $addr->state?->name ?? '—' }}</td>
+                                    <td>{{ $addr->zipcode?->code ?? '—' }}</td>
+                                    <td class="text-end">
+                                        <div class="ob-row-actions">
+                                            <a href="{{ route('doctor.profile.address.show', $addr) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                                            <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="ob-icon-btn ob-icon-btn--edit" title="Edit"><i data-feather="edit-2"></i></a>
+                                            @if($addr->is_default)
+                                                @php
+                                                    $shipBlockReason = $shippingCount === 1
+                                                        ? 'This is your only shipping address and it is set as default. Add a new shipping address first, then set it as default before deleting this one.'
+                                                        : 'This is your default shipping address. Set another shipping address as default first, then you can delete this one.';
+                                                @endphp
+                                                <button type="button"
+                                                        class="ob-icon-btn ob-icon-btn--disabled js-delete-blocked"
+                                                        aria-disabled="true"
+                                                        title="Cannot delete default"
+                                                        data-reason="{{ $shipBlockReason }}">
+                                                    <i data-feather="trash-2"></i>
+                                                </button>
+                                            @else
+                                                <form action="{{ route('doctor.profile.address.destroy', $addr) }}" method="POST"
+                                                      class="d-inline js-delete-form"
+                                                      data-confirm="Delete this shipping address? This action cannot be undone.">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    </td>
                                 </tr>
                             @empty
-                                <tr class="empty-state"><td colspan="6" class="text-center text-muted">No shipping addresses yet.</td></tr>
+                                <tr class="empty-state"><td colspan="6" class="text-center text-muted py-3">No shipping addresses yet.</td></tr>
                             @endforelse
-                            <tr class="no-results d-none"><td colspan="6" class="text-center text-muted">No matching results.</td></tr>
+                            <tr class="no-results d-none"><td colspan="6" class="text-center text-muted py-3">No matching results.</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 mt-1">
-                    <small id="ship-footer" class="text-muted"></small>
-                    <ul id="ship-pager" class="pagination pagination-sm mb-0"></ul>
+                <div class="ob-foot addr-ob-foot">
+                    <div id="ship-footer" class="ob-foot-meta"></div>
+                    <div id="ship-pager"></div>
                 </div>
                 </div>
                 @endif
@@ -537,34 +564,37 @@
                     </a>
                 </div>
 
-                <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 border-top border-bottom py-1 mb-1">
-                    <div class="d-flex align-items-center">
-                        <span class="me-50">Show</span>
-                        <select id="bill-pagesize" class="form-select form-select-sm" style="width: 5.5rem; padding-right: 2rem;">
-                            <option value="10" selected>10</option>
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                        </select>
-                        <span class="ms-50">entries</span>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <label for="bill-search" class="me-50 mb-0">Search:</label>
-                        <input id="bill-search" type="text" class="form-control form-control-sm flex-grow-1" style="max-width: 14rem;">
+                <div class="ob-addr-toolbar">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-4">
+                            <div class="ob-input-icon">
+                                <i data-feather="search"></i>
+                                <input id="bill-search" type="text" class="form-control" placeholder="Search addresses…" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-none" id="bill-clear-col">
+                            <button type="button" class="ob-btn-clear w-100" id="bill-clear-btn">
+                                <i data-feather="x"></i> Clear
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                @php $billingList = ($addresses ?? collect())->where('type', 'billing'); @endphp
+                @php
+                    $billingList  = ($addresses ?? collect())->where('type', 'billing');
+                    $billingCount = $billingList->count();
+                @endphp
                 <div class="table-responsive">
-                    <table id="bill-table" class="table table-hover mb-0">
+                    <table id="bill-table" class="table ob-addr-table mb-0">
                         <thead>
                             <tr>
-                                <th>Action</th>
+                                <th>Default</th>
                                 <th>Street Address</th>
                                 <th>City</th>
-                                <th>State/Province</th>
+                                <th>State / Province</th>
                                 <th>Zip Code</th>
-                                <th>Is Default</th>
+                                <th>Billing Email</th>
+                                <th class="text-end">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -576,42 +606,78 @@
                                         $addr->city?->name,
                                         $addr->state?->name,
                                         $addr->zipcode?->code,
+                                        $addr->billing_email,
                                         $addr->is_default ? 'yes default' : 'no',
                                     ]))));
                                 @endphp
                                 <tr data-searchable="{{ $searchText }}">
                                     <td>
-                                        <div class="ob-row-actions">
-                                            <a href="{{ route('doctor.profile.address.show', $addr) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
-                                            <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="ob-icon-btn ob-icon-btn--edit" title="Edit"><i data-feather="edit-2"></i></a>
-                                        </div>
-                                    </td>
-                                    <td>{{ $addr->street_address_1 }}{{ $addr->street_address_2 ? ', ' . $addr->street_address_2 : '' }}</td>
-                                    <td>{{ $addr->city?->name }}</td>
-                                    <td>{{ $addr->state?->name }}</td>
-                                    <td>{{ $addr->zipcode?->code }}</td>
-                                    <td>
                                         @if($addr->is_default)
-                                            <span class="badge bg-light-success">Yes</span>
+                                            <span class="addr-default-badge">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                Default
+                                            </span>
                                         @else
                                             <form action="{{ route('doctor.profile.address.set-default', $addr) }}" method="POST" class="d-inline">
                                                 @csrf
-                                                <button type="submit" class="btn btn-sm btn-outline-primary py-25 px-1">Set as default</button>
+                                                <button type="submit" class="addr-set-default-btn">Set default</button>
                                             </form>
                                         @endif
                                     </td>
+                                    <td>{{ $addr->street_address_1 }}{{ $addr->street_address_2 ? ', ' . $addr->street_address_2 : '' }}</td>
+                                    <td>{{ $addr->city?->name ?? '—' }}</td>
+                                    <td>{{ $addr->state?->name ?? '—' }}</td>
+                                    <td>{{ $addr->zipcode?->code ?? '—' }}</td>
+                                    <td>
+                                        @if($addr->billing_email)
+                                            <span class="addr-billing-email">
+                                                <i data-feather="mail"></i>
+                                                {{ $addr->billing_email }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="ob-row-actions">
+                                            <a href="{{ route('doctor.profile.address.show', $addr) }}" class="ob-icon-btn ob-icon-btn--view" title="View"><i data-feather="eye"></i></a>
+                                            <a href="{{ route('doctor.profile.address.edit', $addr) }}" class="ob-icon-btn ob-icon-btn--edit" title="Edit"><i data-feather="edit-2"></i></a>
+                                            @if($addr->is_default)
+                                                @php
+                                                    $billBlockReason = $billingCount === 1
+                                                        ? 'This is your only billing address and it is set as default. Add a new billing address first, then set it as default before deleting this one.'
+                                                        : 'This is your default billing address. Set another billing address as default first, then you can delete this one.';
+                                                @endphp
+                                                <button type="button"
+                                                        class="ob-icon-btn ob-icon-btn--disabled js-delete-blocked"
+                                                        aria-disabled="true"
+                                                        title="Cannot delete default"
+                                                        data-reason="{{ $billBlockReason }}">
+                                                    <i data-feather="trash-2"></i>
+                                                </button>
+                                            @else
+                                                <form action="{{ route('doctor.profile.address.destroy', $addr) }}" method="POST"
+                                                      class="d-inline js-delete-form"
+                                                      data-confirm="Delete this billing address? This action cannot be undone.">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="ob-icon-btn ob-icon-btn--delete" title="Delete"><i data-feather="trash-2"></i></button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    </td>
                                 </tr>
                             @empty
-                                <tr class="empty-state"><td colspan="6" class="text-center text-muted">No billing addresses yet.</td></tr>
+                                <tr class="empty-state"><td colspan="7" class="text-center text-muted py-3">No billing addresses yet.</td></tr>
                             @endforelse
-                            <tr class="no-results d-none"><td colspan="6" class="text-center text-muted">No matching results.</td></tr>
+                            <tr class="no-results d-none"><td colspan="7" class="text-center text-muted py-3">No matching results.</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1 mt-1">
-                    <small id="bill-footer" class="text-muted"></small>
-                    <ul id="bill-pager" class="pagination pagination-sm mb-0"></ul>
+                <div class="ob-foot addr-ob-foot">
+                    <div id="bill-footer" class="ob-foot-meta"></div>
+                    <div id="bill-pager"></div>
                 </div>
                 </div>
                 @endif
@@ -1395,6 +1461,93 @@
 </div>
 @endsection
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('vuexy/vendors/css/extensions/sweetalert2.min.css') }}">
+<style>
+    /* ── Address table: match admin ob-table / ob-list-card style ── */
+    .addr-pane .ob-addr-toolbar {
+        padding: 0.6rem 0;
+        border-top: 1px solid var(--ob-border, #ebe9f1);
+        border-bottom: 1px solid var(--ob-border, #ebe9f1);
+        margin-bottom: 0;
+    }
+    .addr-pane .ob-input-icon { position: relative; }
+    .addr-pane .ob-input-icon > svg {
+        position: absolute;
+        left: 0.75rem; top: 50%; transform: translateY(-50%);
+        width: 15px; height: 15px;
+        color: var(--ob-text-muted, #b9b9c3);
+        pointer-events: none;
+    }
+    .addr-pane .ob-input-icon .form-control { padding-left: 2.2rem; }
+    .addr-pane .ob-input-icon .form-control:focus {
+        border-color: var(--ob-primary, #7367f0);
+        box-shadow: 0 0 0 3px rgba(115,103,240,.08);
+    }
+
+    .addr-pane .ob-addr-table { width: 100%; margin: 0; }
+    .addr-pane .ob-addr-table thead th {
+        background: var(--ob-surface-2, #f8f8f8);
+        color: var(--ob-text, #6e6b7b);
+        font-weight: 700;
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.85rem 1rem;
+        border-top: 0;
+        border-bottom: 1px solid var(--ob-border, #ebe9f1);
+        white-space: nowrap;
+    }
+    .addr-pane .ob-addr-table tbody td {
+        padding: 0.85rem 1rem;
+        border-top: 1px solid var(--ob-border, #ebe9f1);
+        vertical-align: middle;
+        font-size: 0.88rem;
+    }
+    .addr-pane .ob-addr-table tbody tr { transition: background 120ms ease; }
+    .addr-pane .ob-addr-table tbody tr:hover { background: rgba(115,103,240,0.04); }
+    .addr-pane .ob-addr-table .ob-row-actions { justify-content: flex-end; }
+
+    .addr-pane .ob-foot.addr-ob-foot {
+        padding: 0.85rem 0;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 1rem; flex-wrap: wrap;
+        border-top: 1px solid var(--ob-border, #ebe9f1);
+    }
+    .addr-pane .ob-foot.addr-ob-foot .ob-foot-meta { color: var(--ob-text-muted, #b9b9c3); font-size: 0.8rem; font-weight: 500; }
+    .addr-pane .ob-foot.addr-ob-foot .pagination { margin: 0; }
+
+    .addr-default-badge {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        padding: 0.2rem 0.6rem;
+        background: rgba(40,199,111,0.12);
+        color: #28c76f;
+        border-radius: 999px;
+        font-size: 0.72rem; font-weight: 700;
+    }
+    .addr-default-badge svg { width: 10px; height: 10px; }
+    .addr-set-default-btn {
+        display: inline-flex; align-items: center;
+        padding: 0.2rem 0.6rem;
+        background: transparent;
+        border: 1px solid var(--ob-primary, #7367f0);
+        color: var(--ob-primary, #7367f0);
+        border-radius: 999px;
+        font-size: 0.72rem; font-weight: 600;
+        cursor: pointer; white-space: nowrap;
+        transition: background 120ms, color 120ms;
+        line-height: 1.4;
+    }
+    .addr-set-default-btn:hover { background: var(--ob-primary, #7367f0); color: #fff; }
+
+    .addr-billing-email {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        color: var(--ob-text-muted, #b9b9c3); font-size: 0.82rem;
+    }
+    .addr-billing-email svg { width: 12px; height: 12px; flex: 0 0 auto; }
+</style>
+@endpush
+
 @push('scripts')
 <script>
     /* ── Photo delete — submits the static form rendered just below the outer form ── */
@@ -1564,8 +1717,8 @@
         if (ok) alert('Contact information is valid! (Backend save coming soon.)');
     }
 
-    /* ── Reusable client-side datatable: search + page size + pagination ── */
-    function wireDataTable({ tableId, searchId, pageSizeId, footerId, pagerId }) {
+    /* ── Reusable client-side datatable: search + pagination ── */
+    function wireDataTable({ tableId, searchId, clearColId, footerId, pagerId, itemLabel }) {
         const table = document.getElementById(tableId);
         if (!table) return;
         const tbody    = table.querySelector('tbody');
@@ -1573,15 +1726,17 @@
         const emptyRow = tbody.querySelector('tr.empty-state');
         const noResRow = tbody.querySelector('tr.no-results');
         const search   = document.getElementById(searchId);
-        const sizeSel  = document.getElementById(pageSizeId);
+        const clearCol = document.getElementById(clearColId);
         const footer   = document.getElementById(footerId);
         const pager    = document.getElementById(pagerId);
+        const pageSize = 5;
 
         let currentPage = 1;
 
         function render() {
             const q = (search?.value || '').trim().toLowerCase();
-            const pageSize = parseInt(sizeSel?.value || '10', 10);
+
+            if (clearCol) clearCol.classList.toggle('d-none', q === '');
 
             const filtered = q
                 ? allRows.filter(r => (r.dataset.searchable || '').includes(q))
@@ -1600,15 +1755,15 @@
 
             if (footer) {
                 if (allRows.length === 0) {
-                    footer.textContent = '';
+                    footer.innerHTML = '';
                 } else if (filtered.length === 0) {
-                    footer.textContent = `Showing 0 of ${allRows.length} entries (filtered)`;
+                    footer.innerHTML = `Showing <strong>0</strong> of <strong>${allRows.length}</strong> ${itemLabel}`;
                 } else {
                     const end = Math.min(start + pageSize, filtered.length);
                     const suffix = (q && filtered.length !== allRows.length)
-                        ? ` (filtered from ${allRows.length} total)`
+                        ? ` (filtered from <strong>${allRows.length}</strong> total)`
                         : '';
-                    footer.textContent = `Showing ${start + 1} to ${end} of ${filtered.length} entries${suffix}`;
+                    footer.innerHTML = `Showing <strong>${start + 1}</strong>–<strong>${end}</strong> of <strong>${filtered.length}</strong> ${itemLabel}${suffix}`;
                 }
             }
 
@@ -1618,37 +1773,121 @@
         function renderPager(el, cur, total) {
             el.innerHTML = '';
             if (total <= 1) return;
-            const mk = (label, page, opts = {}) => {
+            const nav = document.createElement('nav');
+            const ul  = document.createElement('ul');
+            ul.className = 'pagination mb-0';
+
+            const mkItem = (label, page, opts = {}) => {
                 const li = document.createElement('li');
                 li.className = 'page-item'
                     + (opts.disabled ? ' disabled' : '')
-                    + (opts.active ? ' active' : '');
-                const a = document.createElement('a');
-                a.className = 'page-link';
-                a.href = '#';
-                a.textContent = label;
-                a.addEventListener('click', e => {
-                    e.preventDefault();
-                    if (opts.disabled || opts.active) return;
-                    currentPage = page;
-                    render();
-                });
-                li.appendChild(a);
-                el.appendChild(li);
+                    + (opts.active   ? ' active'   : '');
+                const el2 = opts.active || opts.disabled
+                    ? document.createElement('span')
+                    : document.createElement('a');
+                el2.className = 'page-link';
+                if (!opts.active && !opts.disabled) {
+                    el2.href = '#';
+                    el2.addEventListener('click', e => {
+                        e.preventDefault();
+                        currentPage = page;
+                        render();
+                    });
+                }
+                el2.innerHTML = label;
+                li.appendChild(el2);
+                ul.appendChild(li);
             };
-            mk('Previous', cur - 1, { disabled: cur === 1 });
-            for (let p = 1; p <= total; p++) mk(String(p), p, { active: p === cur });
-            mk('Next', cur + 1, { disabled: cur === total });
+
+            const mkEllipsis = () => {
+                const li = document.createElement('li');
+                li.className = 'page-item disabled';
+                const s = document.createElement('span');
+                s.className = 'page-link';
+                s.textContent = '…';
+                li.appendChild(s);
+                ul.appendChild(li);
+            };
+
+            mkItem('&lsaquo;', cur - 1, { disabled: cur === 1 });
+
+            const pages = new Set();
+            [1, 2].forEach(p => pages.add(p));
+            [total - 1, total].forEach(p => { if (p > 0) pages.add(p); });
+            for (let p = cur - 2; p <= cur + 2; p++) { if (p > 0 && p <= total) pages.add(p); }
+
+            const sorted = Array.from(pages).sort((a, b) => a - b);
+            let prev = 0;
+            sorted.forEach(p => {
+                if (p - prev > 1) mkEllipsis();
+                mkItem(String(p), p, { active: p === cur });
+                prev = p;
+            });
+
+            mkItem('&rsaquo;', cur + 1, { disabled: cur === total });
+            nav.appendChild(ul);
+            el.appendChild(nav);
         }
 
-        search?.addEventListener('input',  () => { currentPage = 1; render(); });
-        sizeSel?.addEventListener('change', () => { currentPage = 1; render(); });
+        search?.addEventListener('input', () => { currentPage = 1; render(); });
+        clearCol?.querySelector('button')?.addEventListener('click', () => {
+            if (search) search.value = '';
+            currentPage = 1;
+            render();
+            if (typeof feather !== 'undefined') feather.replace();
+        });
         render();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        wireDataTable({ tableId: 'ship-table', searchId: 'ship-search', pageSizeId: 'ship-pagesize', footerId: 'ship-footer', pagerId: 'ship-pager' });
-        wireDataTable({ tableId: 'bill-table', searchId: 'bill-search', pageSizeId: 'bill-pagesize', footerId: 'bill-footer', pagerId: 'bill-pager' });
+        wireDataTable({ tableId: 'ship-table', searchId: 'ship-search', clearColId: 'ship-clear-col', footerId: 'ship-footer', pagerId: 'ship-pager', itemLabel: 'addresses' });
+        wireDataTable({ tableId: 'bill-table', searchId: 'bill-search', clearColId: 'bill-clear-col', footerId: 'bill-footer', pagerId: 'bill-pager', itemLabel: 'addresses' });
+    });
+</script>
+<script src="{{ asset('vuexy/vendors/js/extensions/sweetalert2.all.min.js') }}"></script>
+<script>
+    /* ── Delete confirmation (SweetAlert2) ── */
+    document.addEventListener('submit', function (e) {
+        const form = e.target.closest('form.js-delete-form');
+        if (!form) return;
+        if (form.dataset.confirmed) return;
+        e.preventDefault();
+
+        const message = form.dataset.confirm || 'Are you sure you want to delete this?';
+        Swal.fire({
+            title: 'Are you sure?',
+            text: message,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                confirmButton: 'btn btn-danger',
+                cancelButton: 'btn btn-outline-secondary ms-1'
+            },
+            buttonsStyling: false
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                form.dataset.confirmed = '1';
+                form.submit();
+            }
+        });
+    }, true);
+
+    /* ── Blocked delete notice ── */
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.js-delete-blocked');
+        if (!btn) return;
+        e.preventDefault();
+        const reason = btn.dataset.reason || 'This item cannot be deleted.';
+        Swal.fire({
+            title: 'Cannot delete',
+            html: reason,
+            icon: 'info',
+            confirmButtonText: 'Got it',
+            customClass: { confirmButton: 'btn btn-primary' },
+            buttonsStyling: false
+        });
     });
 </script>
 @endpush
