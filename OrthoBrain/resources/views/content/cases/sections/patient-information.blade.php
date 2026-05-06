@@ -8,7 +8,7 @@
 
     {{-- Row 1: Practice | Doctor Name (read-only, sourced from auth doctor) --}}
     @php
-      $piPractice = $caseDoctor?->practice?->name ?? '—';
+      $piPractice = currentPractice()?->name ?? $caseDoctor?->practice?->name ?? '—';
       $piDoctorName = $caseDoctor ? trim($caseDoctor->first_name . ' ' . $caseDoctor->last_name) : '—';
     @endphp
     <div class="row mb-1">
