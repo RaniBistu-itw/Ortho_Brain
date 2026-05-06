@@ -40,15 +40,6 @@ class ProfileController extends Controller
         $selectedTreatmentModalityIds= $doctor ? $doctor->treatmentModalities()->pluck('treatment_modalities.id')->all() : [];
         $selectedBuccalCorridorIds   = $doctor ? $doctor->buccalCorridorOptions()->pluck('buccal_corridor_options.id')->all() : [];
 
-        // Zipcodes needed when rendering the "Request Another Practice → new" form.
-        $zipcodes = $tab === 'practices'
-            ? Zipcode::with('city.state.country')
-                ->where('status', 'ACTIVE')
-                ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
-                ->orderBy('code')
-                ->get()
-            : collect();
-
         // Distinct phone codes from the active countries — drives every phone-code <select> in the page.
         $phoneCodes = Country::where('status', 'ACTIVE')
             ->select('phone_code')->distinct()->orderBy('phone_code')->pluck('phone_code')->all();
@@ -57,7 +48,7 @@ class ProfileController extends Controller
             'tab', 'doctor', 'activePractice', 'addresses',
             'modalitiesList', 'specialtiesList', 'treatmentModalitiesList', 'buccalCorridorsList',
             'selectedModalityIds', 'selectedSpecialtyIds', 'selectedTreatmentModalityIds', 'selectedBuccalCorridorIds',
-            'zipcodes', 'phoneCodes'
+            'phoneCodes'
         ));
     }
 
@@ -136,7 +127,6 @@ class ProfileController extends Controller
             'doctor'         => $doctor,
             'activePractice' => currentPractice(),
             'address'        => null,
-            'zipcodes'       => $this->activeZipcodes(),
         ]);
     }
 
@@ -149,7 +139,6 @@ class ProfileController extends Controller
             'doctor'         => $address->doctor,
             'activePractice' => currentPractice(),
             'address'        => $address->load('zipcode', 'city', 'state', 'country'),
-            'zipcodes'       => $this->activeZipcodes(),
         ]);
     }
 
@@ -162,7 +151,6 @@ class ProfileController extends Controller
             'doctor'         => $address->doctor,
             'activePractice' => currentPractice(),
             'address'        => $address->load('zipcode', 'city', 'state', 'country'),
-            'zipcodes'       => $this->activeZipcodes(),
         ]);
     }
 
@@ -233,15 +221,6 @@ class ProfileController extends Controller
     {
         $doctor = Doctor::where('user_id', Auth::id())->first();
         abort_unless($doctor && $address->doctor_id === $doctor->id, 403);
-    }
-
-    private function activeZipcodes()
-    {
-        return Zipcode::with('city.state.country')
-            ->where('status', 'ACTIVE')
-            ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
-            ->orderBy('code')
-            ->get();
     }
 
     public function addressZipLookup(Request $request)

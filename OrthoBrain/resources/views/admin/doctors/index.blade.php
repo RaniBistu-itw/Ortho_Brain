@@ -243,8 +243,8 @@
     .ob-practice { color: var(--ob-text); font-weight: 600; }
 
     /* Registered cell */
-    .ob-when { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--ob-text); }
-    .ob-when svg { width: 13px; height: 13px; color: var(--ob-text-muted); }
+    .ob-when { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--ob-text); white-space: nowrap; }
+    .ob-when svg { width: 13px; height: 13px; color: var(--ob-text-muted); flex: 0 0 auto; }
 
     /* Empty state */
     .ob-empty { padding: 3rem 1.5rem; text-align: center; }

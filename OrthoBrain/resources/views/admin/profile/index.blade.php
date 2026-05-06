@@ -5,6 +5,27 @@
 @section('content')
 @php $avatarUrl = $admin->avatarUrl(); @endphp
 
+{{-- Flash messages --}}
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show mb-2" role="alert">
+        <div class="d-flex align-items-center gap-2">
+            <i data-feather="check-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
+            {{ session('success') }}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show mb-2" role="alert">
+        <div class="d-flex align-items-center gap-2">
+            <i data-feather="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
+            {{ session('error') }}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+{{-- ── Account card ── --}}
 <div class="card">
     <div class="card-body">
         <h4 class="card-title mb-2">Account</h4>
@@ -60,11 +81,11 @@
                 <div class="col-12 mb-1">
                     <label class="form-label">Profile Image</label>
                     <div class="d-flex align-items-center gap-3">
-                        <div style="width:96px; height:96px; border-radius:50%; overflow:hidden; border:1px solid #ebe9f1; background:#f8f8f8; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <div style="width:96px; height:96px; border-radius:50%; overflow:hidden; border:1px solid var(--ob-border, #ebe9f1); background:var(--ob-surface-2, #f8f8f8); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
                             @if($avatarUrl)
                                 <img src="{{ $avatarUrl }}" alt="avatar" style="width:100%; height:100%; object-fit:cover;">
                             @else
-                                <i class="bi bi-person" style="font-size:2.75rem; color:#b9b9c3;"></i>
+                                <i class="bi bi-person" style="font-size:2.75rem; color:var(--ob-text-muted, #b9b9c3);"></i>
                             @endif
                         </div>
                         <div>
@@ -82,12 +103,12 @@
             </div>
 
             <div class="d-flex mt-2">
-                <button type="submit" class="btn btn-success me-1">Save</button>
+                <button type="submit" class="btn btn-primary me-1">Save</button>
                 <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
             </div>
         </form>
 
-        {{-- Hidden delete-avatar form (kept outside the main form) --}}
+        {{-- Hidden delete-avatar form (outside main form — nested forms are invalid HTML) --}}
         <form id="remove-admin-avatar-form" method="POST" action="{{ route('admin.profile.photo.delete') }}" style="display:none;">
             @csrf
             @method('DELETE')

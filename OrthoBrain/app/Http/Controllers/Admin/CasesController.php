@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 
 class CasesController extends Controller
 {
-    private const STATUS_OPTIONS = ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
+    private const STATUS_OPTIONS = ['SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
 
     private const STATUS_LABELS = [
         'DRAFT'     => 'Draft',
@@ -73,7 +73,8 @@ class CasesController extends Controller
                 'cases.status',
                 'cases.created_at',
                 'cases.submitted_at',
-            ]);
+            ])
+            ->where('cases.status', '!=', 'DRAFT');
 
         if (in_array($sortKey, ['doctor', 'practice'], true)) {
             $query->leftJoin('doctors', 'doctors.id', '=', 'cases.doctor_id')
@@ -113,6 +114,7 @@ class CasesController extends Controller
 
         $statusCounts = CaseModel::query()
             ->selectRaw('status, COUNT(*) as total')
+            ->where('status', '!=', 'DRAFT')
             ->groupBy('status')
             ->pluck('total', 'status');
 
@@ -163,10 +165,6 @@ class CasesController extends Controller
         $serializeShipping->setAccessible(true);
         $shippingAddressPrefill = $serializeShipping->invoke($doctorController, $case->shippingAddress);
 
-        $serializeSubmitOrder = new \ReflectionMethod($doctorController, 'serializeSubmitOrder');
-        $serializeSubmitOrder->setAccessible(true);
-        $submitOrderPrefill = $serializeSubmitOrder->invoke($doctorController, $case);
-
         return view('content.cases.add-case', [
             'id' => $case->id,
             'prescriptionPrefill' => $prescriptionPrefill,
@@ -175,7 +173,6 @@ class CasesController extends Controller
             'caseDoctor' => $case->doctor,
             'statusOptions' => self::STATUS_OPTIONS,
             'statusLabels' => self::STATUS_LABELS,
-            'allowedTransitions' => self::ALLOWED_TRANSITIONS[$case->status] ?? [],
             'scanners' => Scanner::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
             'caseMedia' => $caseMedia,
             'patientPrefill' => $patientPrefill,
@@ -185,7 +182,6 @@ class CasesController extends Controller
                 'impressionMethod' => $case->impression_method ? strtolower($case->impression_method) : null,
                 'scannerId' => $case->scanner_id,
             ],
-            'submitOrderPrefill' => $submitOrderPrefill,
         ]);
     }
 

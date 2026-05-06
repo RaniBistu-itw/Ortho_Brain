@@ -71,6 +71,9 @@ Route::post('/reset-password',         [ForgotPasswordController::class, 'reset'
 // Public practice-search (used by the register page autocomplete on Practice Name)
 Route::get('/practice-search', [PracticeController::class, 'search'])->name('practice.search');
 
+// Public ZIP/postal lookup — used by the registration page's zip autocomplete.
+Route::get('/zipcodes/search', [ZipcodeSearchController::class, 'search'])->name('zipcodes.search');
+
 // ─── Doctor area (authenticated) ──────────────────────────
 Route::middleware(['web', 'auth'])
     ->prefix('dev')
@@ -326,6 +329,10 @@ Route::middleware(['web', 'admin'])
             ->only(['index', 'show', 'destroy']);
 
         // Zipcodes — AJAX drawer endpoints
+        // Lightweight ZIP/postal lookup — must be before the resource so that
+        // "search" is not swallowed as a {zipcode} wildcard parameter.
+        Route::get('zipcodes/search', [ZipcodeSearchController::class, 'search'])
+            ->name('zipcodes.search');
         Route::post('zipcodes/ajax', [ZipcodeController::class, 'ajaxStore'])
             ->name('zipcodes.ajax.store');
         Route::post('zipcodes/ajax/check-unique', [ZipcodeController::class, 'ajaxCheckUnique'])

@@ -115,14 +115,19 @@ class DoctorController extends Controller
 
     public function create()
     {
-        $zipcodes = Zipcode::with('city.state.country')
-            ->where('status', 'ACTIVE')
-            ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
-            ->orderBy('code')
-            ->get();
+        // Load just the previously-selected zipcode (if a validation bounce happened)
+        // rather than all 180 K+ rows — loading the full table exhausts PHP memory.
+        $selectedZip = null;
+        if ($oldId = old('zip_id')) {
+            $selectedZip = Zipcode::with([
+                'city:id,name,state_id',
+                'city.state:id,name,state_code,country_id',
+                'city.state.country:id,name,country_code',
+            ])->find((int) $oldId);
+        }
 
         return view('admin.doctors.create', [
-            'zipcodes' => $zipcodes,
+            'selectedZip' => $selectedZip,
             'modalitiesList' => Modality::orderBy('id')->get(),
             'specialtiesList' => Specialty::orderBy('id')->get(),
             'treatmentModalitiesList' => TreatmentModality::orderBy('id')->get(),

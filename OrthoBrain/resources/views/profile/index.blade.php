@@ -1056,22 +1056,6 @@
                     </div>
                 </form>
 
-                {{-- Zip options reused per-row in JS template (avoids repeating per row) --}}
-                <template id="profile-req-zip-options">
-                    <option value="" disabled selected>Select zip code</option>
-                    @foreach($zipcodes as $z)
-                        <option value="{{ $z->id }}"
-                            data-city-id="{{ $z->city?->id }}"
-                            data-city="{{ $z->city?->name }}"
-                            data-state-id="{{ $z->city?->state?->id }}"
-                            data-state="{{ $z->city?->state?->name }}"
-                            data-country-id="{{ $z->city?->state?->country?->id }}"
-                            data-country="{{ $z->city?->state?->country?->name }}">
-                            {{ $z->code }} — {{ $z->city?->name }}{{ $z->city?->state?->state_code ? ', ' . $z->city->state->state_code : '' }}
-                        </option>
-                    @endforeach
-                </template>
-
                 {{-- If validation failed, server-old data for rebuilding rows. --}}
                 @if(old('practices'))
                     <script type="application/json" id="profile-req-old-data">@json(old('practices'))</script>
@@ -1191,7 +1175,15 @@
                                         <input type="hidden" name="practices[${idx}][city_id]"    id="pr-city-${idx}">
                                         <input type="hidden" name="practices[${idx}][state_id]"   id="pr-state-${idx}">
                                         <input type="hidden" name="practices[${idx}][country_id]" id="pr-country-${idx}">
-                                        <select name="practices[${idx}][zip_id]" id="pr-zip-${idx}" class="form-select" onchange="profileReqZipChange(${idx})"></select>
+                                        <input type="hidden" name="practices[${idx}][zip_id]"     id="pr-zip-${idx}">
+                                        <div style="position:relative;">
+                                            <input type="text" id="pr-zip-search-${idx}" class="form-control"
+                                                   placeholder="Type zip code or city…"
+                                                   autocomplete="off"
+                                                   oninput="profileReqZipSearch(${idx}, event)"
+                                                   onblur="setTimeout(() => profileReqZipHideMenu(${idx}), 150)">
+                                            <div id="pr-zip-menu-${idx}" class="profile-req-menu list-group" style="display:none;"></div>
+                                        </div>
                                         <div id="pr-zip-preview-${idx}" class="profile-req-zip-preview"></div>
                                     </div>
                                     <div class="col-md-6">
@@ -1206,11 +1198,6 @@
                             </div>
                         `;
                         rowsWrap.appendChild(row);
-
-                        // Clone zip options from the template.
-                        const zipSel = document.getElementById('pr-zip-' + idx);
-                        const tpl = document.getElementById('profile-req-zip-options');
-                        if (zipSel && tpl) zipSel.innerHTML = tpl.innerHTML;
 
                         profileReqRenumber();
                         profileReqUpdateDelState();
@@ -1246,7 +1233,72 @@
                         row.querySelector(`[data-pane="new-${idx}"]`).style.display      = (mode === 'new')      ? '' : 'none';
                     };
 
-                    const searchTimers = {};
+                    const ZIP_SEARCH_URL = '{{ route('zipcodes.search') }}';
+                    const searchTimers    = {};
+                    const zipSearchTimers = {};
+
+                    window.profileReqZipSearch = function (idx, e) {
+                        document.getElementById('pr-zip-' + idx).value = '';
+                        const q    = e.target.value.trim();
+                        const menu = document.getElementById('pr-zip-menu-' + idx);
+                        clearTimeout(zipSearchTimers[idx]);
+                        if (q.length < 2) { menu.style.display = 'none'; menu.innerHTML = ''; return; }
+                        zipSearchTimers[idx] = setTimeout(async () => {
+                            try {
+                                const res = await fetch(ZIP_SEARCH_URL + '?q=' + encodeURIComponent(q),
+                                    { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+                                if (!res.ok) return;
+                                const items = await res.json();
+                                menu.innerHTML = '';
+                                if (items.length) {
+                                    items.forEach(z => {
+                                        const btn = document.createElement('button');
+                                        btn.type = 'button';
+                                        btn.className = 'list-group-item list-group-item-action';
+                                        btn.textContent = z.displayLabel;
+                                        btn.addEventListener('mousedown', ev => {
+                                            ev.preventDefault();
+                                            profileReqZipPick(idx, z);
+                                        });
+                                        menu.appendChild(btn);
+                                    });
+                                } else {
+                                    const empty = document.createElement('div');
+                                    empty.className = 'list-group-item text-muted';
+                                    empty.textContent = 'No matching zip codes found.';
+                                    menu.appendChild(empty);
+                                }
+                                menu.style.display = 'block';
+                            } catch (err) { console.error('zip search error', err); }
+                        }, 250);
+                    };
+
+                    window.profileReqZipPick = function (idx, z) {
+                        document.getElementById('pr-zip-' + idx).value            = z.id;
+                        document.getElementById('pr-zip-search-' + idx).value     = z.displayLabel;
+                        document.getElementById('pr-zip-menu-' + idx).style.display = 'none';
+                        document.getElementById('pr-city-' + idx).value           = z.cityId    || '';
+                        document.getElementById('pr-state-' + idx).value          = z.stateId   || '';
+                        document.getElementById('pr-country-' + idx).value        = z.countryId || '';
+                        document.getElementById('pr-city-disp-' + idx).value      = z.city      || '';
+                        document.getElementById('pr-state-disp-' + idx).value     = [z.state, z.country].filter(Boolean).join(' / ');
+                        const prev = document.getElementById('pr-zip-preview-' + idx);
+                        if (z.city || z.state) {
+                            prev.innerHTML = '✓ Matched: <strong>' + (z.city || '') + '</strong>' +
+                                             (z.state   ? ' · <strong>' + z.state   + '</strong>' : '') +
+                                             (z.country ? ' · <strong>' + z.country + '</strong>' : '');
+                            prev.style.display = 'block';
+                        } else {
+                            prev.style.display = 'none';
+                            prev.innerHTML = '';
+                        }
+                    };
+
+                    window.profileReqZipHideMenu = function (idx) {
+                        const m = document.getElementById('pr-zip-menu-' + idx);
+                        if (m) m.style.display = 'none';
+                    };
+
                     window.profileReqSearch = function (idx, e) {
                         document.getElementById('pr-pid-' + idx).value = '';
                         const q = e.target.value.trim();
@@ -1295,29 +1347,6 @@
                         if (m) m.style.display = 'none';
                     };
 
-                    window.profileReqZipChange = function (idx) {
-                        const sel = document.getElementById('pr-zip-' + idx);
-                        const opt = sel.options[sel.selectedIndex];
-                        const city    = opt.getAttribute('data-city')    || '';
-                        const state   = opt.getAttribute('data-state')   || '';
-                        const country = opt.getAttribute('data-country') || '';
-                        document.getElementById('pr-city-' + idx).value    = opt.getAttribute('data-city-id')    || '';
-                        document.getElementById('pr-state-' + idx).value   = opt.getAttribute('data-state-id')   || '';
-                        document.getElementById('pr-country-' + idx).value = opt.getAttribute('data-country-id') || '';
-                        document.getElementById('pr-city-disp-' + idx).value  = city;
-                        document.getElementById('pr-state-disp-' + idx).value = [state, country].filter(Boolean).join(' / ');
-                        const prev = document.getElementById('pr-zip-preview-' + idx);
-                        if (city || state || country) {
-                            prev.innerHTML = '✓ Matched: <strong>' + city + '</strong>' +
-                                             (state ? ' · <strong>' + state + '</strong>' : '') +
-                                             (country ? ' · <strong>' + country + '</strong>' : '');
-                            prev.style.display = 'block';
-                        } else {
-                            prev.style.display = 'none';
-                            prev.innerHTML = '';
-                        }
-                    };
-
                     // On load: always show at least one row. If validation failed, rebuild from old().
                     document.addEventListener('DOMContentLoaded', function () {
                         const oldEl = document.getElementById('profile-req-old-data');
@@ -1339,9 +1368,12 @@
                                             if (r.street_address_1) row.querySelector(`input[name="practices[${idx}][street_address_1]"]`).value = r.street_address_1;
                                             if (r.street_address_2) row.querySelector(`input[name="practices[${idx}][street_address_2]"]`).value = r.street_address_2;
                                             if (r.zip_id) {
-                                                const zs = document.getElementById('pr-zip-' + idx);
-                                                zs.value = r.zip_id;
-                                                profileReqZipChange(idx);
+                                                document.getElementById('pr-zip-' + idx).value = r.zip_id;
+                                                fetch(ZIP_SEARCH_URL + '?ids[]=' + encodeURIComponent(r.zip_id),
+                                                    { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+                                                    .then(res => res.json())
+                                                    .then(items => { if (items[0]) profileReqZipPick(idx, items[0]); })
+                                                    .catch(() => {});
                                             }
                                         } else if (r && r.practice_id) {
                                             document.getElementById('pr-pid-' + idx).value = r.practice_id;

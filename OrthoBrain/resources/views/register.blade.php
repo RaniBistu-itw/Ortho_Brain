@@ -838,20 +838,6 @@
                                 <script type="application/json" id="extra-old-data">@json(old('additional_practices'))</script>
                             @endif
 
-                            <template id="extra-prac-zip-options">
-                                <option value="" disabled selected>Select zip code</option>
-                                @foreach(($zipcodes ?? []) as $z)
-                                    <option value="{{ $z->id }}"
-                                            data-city-id="{{ $z->city?->id }}"
-                                            data-city="{{ $z->city?->name }}"
-                                            data-state-id="{{ $z->city?->state?->id }}"
-                                            data-state="{{ $z->city?->state?->name }}"
-                                            data-country-id="{{ $z->city?->state?->country?->id }}"
-                                            data-country="{{ $z->city?->state?->country?->name }}">
-                                        {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
-                                    </option>
-                                @endforeach
-                            </template>
 
                             <template id="extra-prac-phone-options">
                                 @foreach($phoneCodes as $code)
@@ -904,21 +890,19 @@
                                 </div>
                                 <div>
                                     <label class="reg-label">Zip<span class="reg-required">*</span></label>
-                                    <select id="in-zip" name="zip_id" required class="reg-select" onchange="onRegZipChange()">
-                                        <option value="" disabled {{ old('zip_id') ? '' : 'selected' }}>Select zip code</option>
-                                        @foreach(($zipcodes ?? []) as $z)
-                                            <option value="{{ $z->id }}"
-                                                    @selected(old('zip_id') == $z->id)
-                                                    data-city-id="{{ $z->city?->id }}"
-                                                    data-city="{{ $z->city?->name }}"
-                                                    data-state-id="{{ $z->city?->state?->id }}"
-                                                    data-state="{{ $z->city?->state?->name }}"
-                                                    data-country-id="{{ $z->city?->state?->country?->id }}"
-                                                    data-country="{{ $z->city?->state?->country?->name }}">
-                                                {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    <input type="hidden" id="in-zip" name="zip_id" value="{{ old('zip_id') }}">
+                                    <div class="reg-autocomplete">
+                                        <div class="reg-input-group" id="box-zip">
+                                            <span class="reg-input-icon"><i class="bi bi-geo-alt-fill"></i></span>
+                                            <input id="in-zip-search" type="text" autocomplete="off" class="reg-input"
+                                                   placeholder="Search zip or city…"
+                                                   value="{{ $selectedZip ? ($selectedZip->code . ' — ' . ($selectedZip->city?->name ?? '') . ', ' . ($selectedZip->city?->state?->state_code ?? '')) : '' }}"
+                                                   oninput="onZipInput()"
+                                                   onkeydown="onZipKey(event)"
+                                                   onblur="onZipBlur()" />
+                                        </div>
+                                        <div id="zip-suggest" class="reg-autocomplete-menu" role="listbox"></div>
+                                    </div>
                                     <p id="err-zip" class="reg-err hidden"></p>
                                 </div>
                                 <div>
@@ -1592,27 +1576,181 @@
                 return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
             }
 
-            // Zip auto-fill
+            // ─── Primary zip autocomplete ──────────────────────────
+            const ZIP_SEARCH_URL = @json(route('zipcodes.search'));
+            let zipSearchTimer = null;
+            let zipSearchAbort = null;
+            let zipSuggestions = [];
+            let zipActiveIdx   = -1;
+            let currentZipData = null;
+
             function onRegZipChange() {
                 clearError('zip');
-                const sel = document.getElementById('in-zip');
-                const opt = sel?.options[sel.selectedIndex];
-                const city    = document.getElementById('in-city');
-                const state   = document.getElementById('in-state');
-                const country = document.getElementById('in-country');
-                const hCity   = document.getElementById('hid-city');
-                const hState  = document.getElementById('hid-state');
-                const hCty    = document.getElementById('hid-country');
-                if (!opt || !opt.value) {
-                    [city, state, country, hCity, hState, hCty].forEach(el => { if (el) el.value = ''; });
+                const z = currentZipData;
+                const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+                if (!z) {
+                    ['in-city','in-state','in-country','hid-city','hid-state','hid-country'].forEach(id => set(id, ''));
                     return;
                 }
-                if (city)    city.value    = opt.dataset.city    || '';
-                if (state)   state.value   = opt.dataset.state   || '';
-                if (country) country.value = opt.dataset.country || '';
-                if (hCity)   hCity.value   = opt.dataset.cityId    || '';
-                if (hState)  hState.value  = opt.dataset.stateId   || '';
-                if (hCty)    hCty.value    = opt.dataset.countryId || '';
+                set('in-city',    z.city);
+                set('in-state',   z.state);
+                set('in-country', z.country);
+                set('hid-city',   z.cityId);
+                set('hid-state',  z.stateId);
+                set('hid-country',z.countryId);
+            }
+
+            function onZipInput() {
+                clearError('zip');
+                document.getElementById('in-zip').value = '';
+                currentZipData = null;
+                const q = (document.getElementById('in-zip-search')?.value || '').trim();
+                clearTimeout(zipSearchTimer);
+                if (q.length < 2) { hideZipMenu(); return; }
+                zipSearchTimer = setTimeout(() => fetchZipSuggestions(q), 300);
+            }
+
+            async function fetchZipSuggestions(q) {
+                if (zipSearchAbort) zipSearchAbort.abort();
+                zipSearchAbort = new AbortController();
+                try {
+                    const res = await fetch(ZIP_SEARCH_URL + '?q=' + encodeURIComponent(q), {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        signal: zipSearchAbort.signal,
+                    });
+                    if (!res.ok) throw new Error('zip search failed');
+                    zipSuggestions = await res.json();
+                    zipActiveIdx   = -1;
+                    renderZipMenu();
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.error('zip search error', err);
+                }
+            }
+
+            function renderZipMenu() {
+                const menu = document.getElementById('zip-suggest');
+                if (!zipSuggestions.length) {
+                    menu.innerHTML = '<div class="reg-autocomplete-empty">No zip code found for that search.</div>';
+                } else {
+                    menu.innerHTML = zipSuggestions.map((z, i) =>
+                        `<div class="reg-autocomplete-item${i === zipActiveIdx ? ' active' : ''}" role="option" onmousedown="pickZip(${i})">${escapeHtml(z.displayLabel)}</div>`
+                    ).join('');
+                }
+                menu.classList.add('open');
+            }
+
+            function hideZipMenu() {
+                const menu = document.getElementById('zip-suggest');
+                if (menu) { menu.classList.remove('open'); menu.innerHTML = ''; }
+            }
+
+            function onZipKey(e) {
+                const menu = document.getElementById('zip-suggest');
+                if (!menu?.classList.contains('open') || !zipSuggestions.length) return;
+                if (e.key === 'ArrowDown') { e.preventDefault(); zipActiveIdx = (zipActiveIdx + 1) % zipSuggestions.length; renderZipMenu(); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); zipActiveIdx = (zipActiveIdx - 1 + zipSuggestions.length) % zipSuggestions.length; renderZipMenu(); }
+                else if (e.key === 'Enter' && zipActiveIdx >= 0) { e.preventDefault(); pickZip(zipActiveIdx); }
+                else if (e.key === 'Escape') { hideZipMenu(); }
+            }
+
+            function onZipBlur() { setTimeout(hideZipMenu, 150); }
+
+            function pickZip(idx) {
+                const z = zipSuggestions[idx];
+                if (!z) return;
+                currentZipData = z;
+                document.getElementById('in-zip').value = z.id;
+                document.getElementById('in-zip-search').value = z.displayLabel;
+                hideZipMenu();
+                onRegZipChange();
+                clearError('zip');
+            }
+
+            // ─── Extra-practice zip autocomplete ────────────────────
+            const epZipState = {};
+
+            function _epZip(idx) {
+                if (!epZipState[idx]) epZipState[idx] = { timer: null, abort: null, suggestions: [], activeIdx: -1 };
+                return epZipState[idx];
+            }
+
+            function onEpZipInput(idx, input) {
+                document.getElementById('ep-zip-' + idx).value = '';
+                const q = (input?.value || '').trim();
+                const s = _epZip(idx);
+                clearTimeout(s.timer);
+                if (q.length < 2) { hideEpZipMenu(idx); return; }
+                s.timer = setTimeout(() => fetchEpZipSuggestions(idx, q), 300);
+            }
+
+            async function fetchEpZipSuggestions(idx, q) {
+                const s = _epZip(idx);
+                if (s.abort) s.abort.abort();
+                s.abort = new AbortController();
+                try {
+                    const res = await fetch(ZIP_SEARCH_URL + '?q=' + encodeURIComponent(q), {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        signal: s.abort.signal,
+                    });
+                    if (!res.ok) throw new Error('zip search failed');
+                    s.suggestions = await res.json();
+                    s.activeIdx = -1;
+                    renderEpZipMenu(idx);
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.error('ep zip search error', err);
+                }
+            }
+
+            function renderEpZipMenu(idx) {
+                const menu = document.getElementById('ep-zip-menu-' + idx);
+                if (!menu) return;
+                const s = _epZip(idx);
+                if (!s.suggestions.length) {
+                    menu.innerHTML = '<div class="reg-autocomplete-empty">No zip code found.</div>';
+                } else {
+                    menu.innerHTML = s.suggestions.map((z, i) =>
+                        `<div class="reg-autocomplete-item${i === s.activeIdx ? ' active' : ''}" role="option" onmousedown="pickEpZip(${idx}, ${i})">${escapeHtml(z.displayLabel)}</div>`
+                    ).join('');
+                }
+                menu.classList.add('open');
+            }
+
+            function hideEpZipMenu(idx) {
+                const menu = document.getElementById('ep-zip-menu-' + idx);
+                if (menu) { menu.classList.remove('open'); menu.innerHTML = ''; }
+            }
+
+            function onEpZipKey(idx, e) {
+                const s = _epZip(idx);
+                if (!document.getElementById('ep-zip-menu-' + idx)?.classList.contains('open') || !s.suggestions.length) return;
+                if (e.key === 'ArrowDown') { e.preventDefault(); s.activeIdx = (s.activeIdx + 1) % s.suggestions.length; renderEpZipMenu(idx); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); s.activeIdx = (s.activeIdx - 1 + s.suggestions.length) % s.suggestions.length; renderEpZipMenu(idx); }
+                else if (e.key === 'Enter' && s.activeIdx >= 0) { e.preventDefault(); pickEpZip(idx, s.activeIdx); }
+                else if (e.key === 'Escape') { hideEpZipMenu(idx); }
+            }
+
+            function onEpZipBlur(idx) { setTimeout(() => hideEpZipMenu(idx), 150); }
+
+            function pickEpZip(idx, i) {
+                const z = _epZip(idx).suggestions[i];
+                if (!z) return;
+                document.getElementById('ep-zip-' + idx).value         = z.id;
+                document.getElementById('ep-zip-search-' + idx).value  = z.displayLabel;
+                document.getElementById('ep-city-' + idx).value        = z.city || '';
+                document.getElementById('ep-state-' + idx).value       = (z.state || '') + (z.country ? ' / ' + z.country : '');
+                document.getElementById('ep-h-city-' + idx).value      = z.cityId || '';
+                document.getElementById('ep-h-state-' + idx).value     = z.stateId || '';
+                document.getElementById('ep-h-country-' + idx).value   = z.countryId || '';
+                hideEpZipMenu(idx);
+                epValidateField(idx, 'zip');
+                refreshExtraRowCache(idx);
+                maybeReapplySource('extra-' + idx);
+            }
+
+            function onExtraZipChange(idx) {
+                // Hidden inputs already set by bounce recovery — just refresh downstream state.
+                refreshExtraRowCache(idx);
+                maybeReapplySource('extra-' + idx);
             }
 
             // ── Validation ──────────────────────────────
@@ -1828,11 +1966,24 @@
 
                 regShowStep(1);
 
-                // On bounce: zip_id is preserved on the <select>, but visible city/state/country
-                // readonly fields are JS-populated. Re-run the auto-fill once so they show.
-                if (document.getElementById('in-zip')?.value) {
-                    onRegZipChange();
-                }
+                // On bounce: restore currentZipData from server-embedded selection so
+                // city/state/country display fields fill correctly.
+                @if($selectedZip)
+                @php
+                $_zipJs = [
+                    'id'           => $selectedZip->id,
+                    'displayLabel' => trim(implode(' — ', array_filter([$selectedZip->code, $selectedZip->city?->name, $selectedZip->city?->state?->state_code ?? $selectedZip->city?->state?->name]))),
+                    'city'         => $selectedZip->city?->name,
+                    'cityId'       => $selectedZip->city?->id,
+                    'state'        => $selectedZip->city?->state?->name,
+                    'stateId'      => $selectedZip->city?->state?->id,
+                    'country'      => $selectedZip->city?->state?->country?->country_code,
+                    'countryId'    => $selectedZip->city?->state?->country?->id,
+                ];
+                @endphp
+                currentZipData = @json($_zipJs);
+                onRegZipChange();
+                @endif
 
                 // Surface server-side validation errors inline (per field), not just in the top banner.
                 const SERVER_ERRORS = @json($errors->messages());
@@ -2044,7 +2195,18 @@
                                 <input type="hidden" name="additional_practices[${idx}][city_id]"    id="ep-h-city-${idx}">
                                 <input type="hidden" name="additional_practices[${idx}][state_id]"   id="ep-h-state-${idx}">
                                 <input type="hidden" name="additional_practices[${idx}][country_id]" id="ep-h-country-${idx}">
-                                <select name="additional_practices[${idx}][zip_id]" id="ep-zip-${idx}" class="reg-select" onchange="onExtraZipChange(${idx})"></select>
+                                <input type="hidden" name="additional_practices[${idx}][zip_id]" id="ep-zip-${idx}">
+                                <div class="reg-autocomplete">
+                                    <div class="reg-input-group" id="box-ep-zip-${idx}">
+                                        <span class="reg-input-icon"><i class="bi bi-geo-alt-fill"></i></span>
+                                        <input type="text" id="ep-zip-search-${idx}" autocomplete="off" class="reg-input"
+                                               placeholder="Search zip or city…"
+                                               oninput="onEpZipInput(${idx}, this)"
+                                               onkeydown="onEpZipKey(${idx}, event)"
+                                               onblur="onEpZipBlur(${idx})" />
+                                    </div>
+                                    <div id="ep-zip-menu-${idx}" class="reg-autocomplete-menu" role="listbox"></div>
+                                </div>
                                 <p class="reg-err hidden ep-err-zip-${idx}"></p>
                             </div>
                             <div>
@@ -2064,10 +2226,6 @@
                 `;
 
                 document.getElementById('extra-practice-rows').appendChild(wrap);
-
-                const zipSel = document.getElementById('ep-zip-' + idx);
-                const tpl = document.getElementById('extra-prac-zip-options');
-                if (zipSel && tpl) zipSel.innerHTML = tpl.innerHTML;
 
                 const phoneSel = document.getElementById('ep-phone-cc-' + idx);
                 const phoneTpl = document.getElementById('extra-prac-phone-options');
@@ -2321,7 +2479,18 @@
                             const el = wrap.querySelector(`[name="additional_practices[${idx}][${k}]"]`);
                             if (el && row[k] != null) el.value = row[k];
                         });
-                        if (row.zip_id) onExtraZipChange(idx);
+                        if (row.zip_id) {
+                            onExtraZipChange(idx);
+                            // Async: populate the search input + display fields from the saved zip ID
+                            fetch(ZIP_SEARCH_URL + '?ids[]=' + encodeURIComponent(row.zip_id), {
+                                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                            }).then(r => r.json()).then(zips => {
+                                const z = zips[0]; if (!z) return;
+                                setVal('ep-zip-search-' + idx, z.displayLabel);
+                                setVal('ep-city-' + idx, z.city || '');
+                                setVal('ep-state-' + idx, (z.state || '') + (z.country ? ' / ' + z.country : ''));
+                            }).catch(() => {});
+                        }
                     } else if (row.practice_id) {
                         const hid = wrap.querySelector(`input[name="additional_practices[${idx}][practice_id]"]`);
                         if (hid) hid.value = row.practice_id;
@@ -2499,16 +2668,11 @@
                 setVal('in-address1', p.street_address_1);
                 setVal('in-address2', p.street_address_2);
 
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel && p.zip_id) {
-                    let found = Array.from(zipSel.options).find(o => o.value == p.zip_id);
-                    if (!found) {
-                        const opt = document.createElement('option');
-                        opt.value = p.zip_id;
-                        opt.textContent = (p.zip_code ?? '') + ' — ' + (p.city ?? '') + (p.state_code ? ', ' + p.state_code : '');
-                        zipSel.appendChild(opt);
-                    }
-                    zipSel.value = p.zip_id;
+                if (p.zip_id) {
+                    document.getElementById('in-zip').value = p.zip_id;
+                    const label = [p.zip_code || '', p.city || '', p.state_code || p.state || ''].filter(Boolean).join(' — ');
+                    setVal('in-zip-search', label);
+                    currentZipData = { id: p.zip_id, city: p.city, cityId: p.city_id, state: p.state, stateId: p.state_id, country: p.country, countryId: p.country_id };
                 }
                 setVal('in-city',    p.city);
                 setVal('in-state',   p.state);
@@ -2521,8 +2685,9 @@
             function clearStep3Address() {
                 ['in-address1','in-address2','in-city','in-state','in-country','hid-city','hid-state','hid-country']
                     .forEach(id => setVal(id, ''));
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel) zipSel.selectedIndex = 0;
+                setVal('in-zip', '');
+                setVal('in-zip-search', '');
+                currentZipData = null;
             }
 
             function lockStep3Address() {
@@ -2530,11 +2695,8 @@
                 setLockedGroup('box-address2', true);
                 setReadonly('in-address1', true);
                 setReadonly('in-address2', true);
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel) {
-                    zipSel.classList.add('is-locked');
-                    zipSel.style.pointerEvents = 'none';
-                }
+                setLockedGroup('box-zip', true);
+                setReadonly('in-zip-search', true);
             }
 
             function unlockStep3Address() {
@@ -2542,11 +2704,8 @@
                 setLockedGroup('box-address2', false);
                 setReadonly('in-address1', false);
                 setReadonly('in-address2', false);
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel) {
-                    zipSel.classList.remove('is-locked');
-                    zipSel.style.pointerEvents = '';
-                }
+                setLockedGroup('box-zip', false);
+                setReadonly('in-zip-search', false);
             }
 
             // Live re-sync: if the dropdown's source is `extra-N` (or `primary` in
