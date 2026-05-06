@@ -10,6 +10,7 @@ use App\Models\CaseAdditionalInfo;
 use App\Models\CaseShippingAddress;
 use App\Http\Requests\Cases\AdditionalInformationRequest;
 use App\Services\ImageUploadService;
+use App\Support\ActivePractice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -126,12 +127,21 @@ class CasesController extends Controller
     {
         $doctor = $this->currentDoctor();
         $doctor->loadMissing('practice:id,name');
-        $practiceId = currentPractice()->id;
 
         $case = CaseModel::with(['prescription.toothRestrictions', 'media', 'patient', 'additionalInfo', 'shippingAddress'])
             ->where('doctor_id', $doctor->id)
-            ->where('practice_id', $practiceId)
             ->findOrFail($id);
+
+        // Align the active practice to the case's practice so the topbar,
+        // form, and case-list scope all match what the doctor is editing.
+        // ActivePractice::set() returns false if the doctor doesn't have
+        // an APPROVED link to that practice — in that case they have no
+        // access to this case anymore (e.g., they LEFT the practice).
+        if ((int) $case->practice_id !== (int) (currentPractice()?->id)) {
+            if (! ActivePractice::set((int) $case->practice_id)) {
+                abort(404);
+            }
+        }
 
         return view('content.cases.add-case', [
             'id' => $case->id,
@@ -198,12 +208,16 @@ class CasesController extends Controller
     public function submit(Request $request, int $id)
     {
         $doctor = $this->currentDoctor();
-        $practiceId = currentPractice()->id;
 
         $case = CaseModel::with('prescription.toothRestrictions')
             ->where('doctor_id', $doctor->id)
-            ->where('practice_id', $practiceId)
             ->findOrFail($id);
+
+        if ((int) $case->practice_id !== (int) (currentPractice()?->id)) {
+            if (! ActivePractice::set((int) $case->practice_id)) {
+                abort(404);
+            }
+        }
 
         if (! $case->prescription) {
             return response()->json([
