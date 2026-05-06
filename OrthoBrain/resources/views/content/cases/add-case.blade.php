@@ -246,6 +246,7 @@
     $cropModalVer  = @filemtime(public_path('js/scripts/cases/sections/crop-modal.js')) ?: time();
     $photographsVer = @filemtime(public_path('js/scripts/cases/sections/photographs.js')) ?: time();
     $xraysVer      = @filemtime(public_path('js/scripts/cases/sections/xrays.js')) ?: time();
+    $mediaHelpersVer = @filemtime(public_path('js/scripts/cases/sections/media-tile-helpers.js')) ?: time();
     $smilePlanVer  = @filemtime(public_path('js/scripts/cases/sections/perfect-smile-plan.js')) ?: time();
   @endphp
   <script src="{{ asset('js/scripts/cases/voice-input.js') }}?v={{ $voiceInputVer }}"></script>
@@ -262,7 +263,7 @@
   <script src="{{ asset('js/scripts/cases/sections/submit-order.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/add-case.js') }}?v={{ @filemtime(public_path('js/scripts/cases/add-case.js')) ?: time() }}"></script>
   {{-- Phase 6: shared media helpers must load before section scripts --}}
-  <script src="{{ asset('js/scripts/cases/sections/media-tile-helpers.js') }}"></script>
+  <script src="{{ asset('js/scripts/cases/sections/media-tile-helpers.js') }}?v={{ $mediaHelpersVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/crop-modal.js') }}?v={{ $cropModalVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/photographs.js') }}?v={{ $photographsVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/xrays.js') }}?v={{ $xraysVer }}"></script>
