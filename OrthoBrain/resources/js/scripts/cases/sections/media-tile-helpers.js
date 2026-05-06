@@ -6,19 +6,26 @@ window.MediaTileHelpers = {
   // PR — see CLAUDE.md Entry 10).
   //
   // 422-vs-413 nuance: Laravel's `max:` rule returns 422 with errors.file,
-  // not 413. We sniff body.errors.file for size-related copy ("greater",
-  // "exceed", etc.) so it surfaces as "File too large" rather than the
-  // generic "not a supported image" message. 413 stays mapped for forward
-  // compatibility — proxy/PHP server-level limits (Nginx
-  // client_max_body_size, post_max_size) DO fire genuine 413s.
+  // not 413. We sniff body.errors.file for size-related copy so it surfaces
+  // as "File too large" rather than the generic "not a supported image"
+  // message. The regex covers two paths:
+  //   1. Laravel's max: rule — "may not be greater than", "exceeds", etc.
+  //   2. PHP's ini-level upload caps (upload_max_filesize / post_max_size)
+  //      — these reject before Laravel's max: rule and produce the
+  //      `validation.uploaded` message ("The file failed to upload."), so
+  //      we treat that as size-related too. Other "uploaded" causes
+  //      (temp-dir, partial) are rare and the workaround is identical.
+  // 413 stays mapped for forward compatibility — proxy-level limits (Nginx
+  // client_max_body_size) DO fire genuine 413s.
   upgradeUploadError: function (err, tileLabel) {
     var label = tileLabel || 'image';
     var status = err && err.status;
     var body = (err && err.body) || {};
 
     var fileErrs = body.errors && body.errors.file;
+    var sizePat = /(greater|exceed|larger|too large|\bmax\b|failed to upload|did not upload)/i;
     var isSize422 = status === 422 && Array.isArray(fileErrs) &&
-      fileErrs.some(function (m) { return /(greater|exceed|larger|too large|max)/i.test(m); });
+      fileErrs.some(function (m) { return sizePat.test(m); });
     if (isSize422 || status === 413) return 'File too large. Max 5 MB.';
     if (status === 422) {
       return "Couldn't upload " + label + ". The file isn't a supported image (JPG, PNG, HEIC).";
