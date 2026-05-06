@@ -64,17 +64,36 @@
           });
         }
 
-        var draft = window.AddCaseState && window.AddCaseState.xrays;
-        if (draft) {
-          this._hydrate(draft);
-        }
+        // Always run _hydrate — server prefill (window.__caseMediaPrefill) is
+        // the source of truth and lives outside the local AddCaseState draft.
+        // Same parity fix as photographs.js: gating on the draft hid server
+        // data on fresh page loads / cleared localStorage / different browsers.
+        var draft = (window.AddCaseState && window.AddCaseState.xrays) || {};
+        this._hydrate(draft);
 
         window.XRaysSection = {
           validateAll: function () { return self.validateAll(); },
           hydrate: function (d) { self._hydrate(d); },
+          flushUnsynced: function () { self._flushUnsynced(); },
         };
 
         this.syncToState();
+      },
+
+      // Re-upload any x-ray tiles whose blobs are in memory but never reached
+      // the server (typically because _persistTile skipped while caseId was
+      // 'new'). X-rays have NO IDB fallback, so without this they're lost on
+      // first save-draft. Called from add-case.js after shell creation.
+      _flushUnsynced: function () {
+        var caseId = this._getCaseId();
+        if (!window.CaseMediaApi || !caseId || caseId === 'new') return;
+        var self = this;
+        XRAY_TILE_ORDER.forEach(function (id) {
+          var tile = self.tiles[id];
+          if (!tile || !tile.filled) return;
+          var blob = tile.croppedBlob || tile.originalFile;
+          if (blob) self._persistTile(id, blob);
+        });
       },
 
       // ── Draft hydration ─────────────────────────────────────────────────────
@@ -386,6 +405,13 @@
         var src = this.tiles[sourceId];
         var tgt = this.tiles[targetId];
 
+        // Pre-swap blob state — drives the server-side reorder call below
+        // (parity with photographs.js).
+        var srcHadBlob   = !!(src.croppedBlob || src.originalFile);
+        var tgtHadBlob   = !!(tgt.croppedBlob || tgt.originalFile);
+        var srcWasFilled = src.filled;
+        var tgtWasFilled = tgt.filled;
+
         if (tgt.filled) {
           var tmpFilled    = src.filled;
           var tmpFile      = src.originalFile;
@@ -418,6 +444,19 @@
           this.tiles[sourceId].cropParams   = null;
         }
         this.syncToState();
+
+        // URL-only swap/move → server-side reorder so the in-memory swap is
+        // mirrored on disk. Without this, reopening the case shows x-rays in
+        // their original slots.
+        var caseId = this._getCaseId();
+        var bothUrlOnly = srcWasFilled && !srcHadBlob && tgtWasFilled && !tgtHadBlob;
+        var moveUrlOnly = srcWasFilled && !srcHadBlob && !tgtWasFilled;
+        if (bothUrlOnly || moveUrlOnly) {
+          if (window.CaseMediaApi && caseId && caseId !== 'new') {
+            window.CaseMediaApi.reorder(caseId, 'xray', sourceId, targetId)
+              .catch(function (err) { console.warn('CaseMediaApi.reorder failed', err); });
+          }
+        }
       },
 
       // ── Bulk upload ─────────────────────────────────────────────────────────

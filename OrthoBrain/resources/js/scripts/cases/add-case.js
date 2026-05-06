@@ -79,6 +79,16 @@
         window.CaseImageStore.rekey(oldCaseId, caseId)
           .catch(function (e) { console.warn('CaseImageStore.rekey failed', e); });
       }
+
+      // Flush any media uploaded while caseId was 'new' — _persistTile skips
+      // those, leaving blobs stranded client-side. X-rays especially: they
+      // have no IDB fallback, so without this they're lost on first save.
+      if (window.PhotographsSection && typeof window.PhotographsSection.flushUnsynced === 'function') {
+        window.PhotographsSection.flushUnsynced();
+      }
+      if (window.XRaysSection && typeof window.XRaysSection.flushUnsynced === 'function') {
+        window.XRaysSection.flushUnsynced();
+      }
     });
   }
 
