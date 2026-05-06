@@ -144,6 +144,9 @@ Route::middleware(['web', 'auth'])
             Route::post('/cases/{case}/media/{section}/{tile_id}/destroy', [CaseMediaController::class, 'destroy'])
                 ->where('section', 'photograph|xray')
                 ->name('cases.media.destroy');
+            Route::post('/cases/{case}/media/reorder', [CaseMediaController::class, 'reorder'])
+                ->middleware('throttle:60,1')
+                ->name('cases.media.reorder');
 
             // AI vision — photo QC + Perfect Smile Plan generation. Throttled per user
             // to keep accidental retry loops from blowing through the free-tier quota.

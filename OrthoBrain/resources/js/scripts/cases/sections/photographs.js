@@ -116,17 +116,37 @@
           }
         }
 
-        var draft = window.AddCaseState && window.AddCaseState.photographs;
-        if (draft) {
-          this._hydrate(draft);
-        }
+        // Always run _hydrate — server prefill (window.__caseMediaPrefill via
+        // CaseMediaApi.prefill) is the source of truth and lives outside the
+        // local AddCaseState draft. Gating on the draft skipped server data
+        // for fresh page loads / cleared localStorage / different browsers.
+        var draft = (window.AddCaseState && window.AddCaseState.photographs) || {};
+        this._hydrate(draft);
 
         window.PhotographsSection = {
           validateAll: function () { return self.validateAll(); },
           hydrate: function (d) { self._hydrate(d); },
+          flushUnsynced: function () { self._flushUnsynced(); },
         };
 
         this.syncToState();
+      },
+
+      // Re-upload any tiles whose blobs are in memory/IDB but never reached
+      // the server (typically because _persistTile skipped while caseId was
+      // 'new'). Called from add-case.js after ensureShellCreated() mints a
+      // real case ID — without this, media uploaded before the first Save
+      // Draft is stranded client-side.
+      _flushUnsynced: function () {
+        var caseId = this._getCaseId();
+        if (!window.CaseMediaApi || !caseId || caseId === 'new') return;
+        var self = this;
+        PHOTO_TILE_ORDER.forEach(function (id) {
+          var tile = self.tiles[id];
+          if (!tile || !tile.filled) return;
+          var blob = tile.croppedBlob || tile.originalFile;
+          if (blob) self._persistTile(id, blob);
+        });
       },
 
       // ── Draft hydration ─────────────────────────────────────────────────────
@@ -536,9 +556,49 @@
         }
       },
 
-      _swapOrMoveTiles: function (sourceId, targetId) {
+      _swapOrMoveTiles: async function (sourceId, targetId) {
         var src = this.tiles[sourceId];
         var tgt = this.tiles[targetId];
+
+        // Capture pre-swap state — drives persistence strategy below. When a
+        // tile holds only a server-side previewUrl (no blob), the old code
+        // would call _forgetTile() during persistence, silently DELETING the
+        // record. Detect that and route to the reorder endpoint instead.
+        var srcHadBlob   = !!(src.croppedBlob || src.originalFile);
+        var tgtHadBlob   = !!(tgt.croppedBlob || tgt.originalFile);
+        var srcWasFilled = src.filled;
+        var tgtWasFilled = tgt.filled;
+
+        // Mixed-case guard: when both tiles aren't URL-only, the destroy+upload
+        // path runs below. If ONE tile is URL-only, _forgetTile would DELETE
+        // its server record. Fetch URL-only sides into blobs pre-swap so every
+        // re-persist has actual content. (Both-URL-only is the fast path below.)
+        var bothUrlOnly = srcWasFilled && !srcHadBlob && tgtWasFilled && !tgtHadBlob;
+        var moveUrlOnly = srcWasFilled && !srcHadBlob && !tgtWasFilled;
+        if (!bothUrlOnly && !moveUrlOnly) {
+          try {
+            if (srcWasFilled && !srcHadBlob && src.previewUrl) {
+              var srcRes = await fetch(src.previewUrl, { credentials: 'same-origin' });
+              if (!srcRes.ok) throw new Error('source URL fetch ' + srcRes.status);
+              src.originalFile = await srcRes.blob();
+              // Re-anchor preview to the blob — the destroy+upload below
+              // invalidates the original server URL, which would otherwise
+              // appear as a broken image on the OTHER tile after the swap.
+              src.previewUrl = URL.createObjectURL(src.originalFile);
+              srcHadBlob = true;
+            }
+            if (tgtWasFilled && !tgtHadBlob && tgt.previewUrl) {
+              var tgtRes = await fetch(tgt.previewUrl, { credentials: 'same-origin' });
+              if (!tgtRes.ok) throw new Error('target URL fetch ' + tgtRes.status);
+              tgt.originalFile = await tgtRes.blob();
+              tgt.previewUrl = URL.createObjectURL(tgt.originalFile);
+              tgtHadBlob = true;
+            }
+          } catch (e) {
+            console.warn('photographs: pre-swap URL→blob fetch failed, aborting swap', e);
+            return;
+          }
+        }
 
         if (tgt.filled) {
           // Swap both tiles
@@ -574,6 +634,20 @@
           this.tiles[sourceId].cropParams   = null;
         }
         this.syncToState();
+
+        // URL-only swaps/moves (server-loaded tiles with no client blob) need
+        // the server to rename the tile_id on existing rows. Calling
+        // destroy+upload here would delete the rows. (bothUrlOnly / moveUrlOnly
+        // were captured pre-swap above — see the mixed-case fetch guard.)
+        var caseId = this._getCaseId();
+        if (bothUrlOnly || moveUrlOnly) {
+          if (window.CaseMediaApi && caseId && caseId !== 'new') {
+            window.CaseMediaApi.reorder(caseId, 'photograph', sourceId, targetId)
+              .catch(function (err) { console.warn('CaseMediaApi.reorder failed', err); });
+          }
+          // Same content, just moved — no AI re-classify needed.
+          return;
+        }
 
         // Re-write IDB so blobs follow their new tile slots after the swap/move.
         var newSrcBlob = this.tiles[sourceId].croppedBlob || this.tiles[sourceId].originalFile;
