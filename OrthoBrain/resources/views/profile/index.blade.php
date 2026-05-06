@@ -139,6 +139,14 @@
     .dark-layout .addr-pane .table.table-hover tbody tr:hover { background-color: rgba(var(--bs-primary-rgb), .08); }
     .dark-layout .addr-pane .table tbody tr.empty-state td,
     .dark-layout .addr-pane .table tbody tr.no-results td { color: rgba(255, 255, 255, 0.45); }
+
+    /* ── Dark mode: Doctor Preferences ── */
+    .dark-layout .preferences-card .pref-section { border-bottom-color: rgba(255, 255, 255, .08); }
+    .dark-layout .preferences-card .pref-section p.pref-title { color: #fff; }
+    .dark-layout .preferences-card .form-check-label { color: #fff; }
+    .dark-layout .preferences-card .card-body::-webkit-scrollbar-track { background: #283046; }
+    .dark-layout .preferences-card .card-body::-webkit-scrollbar-thumb { background: #3b4253; }
+    .dark-layout .preferences-card .bg-light { background-color: #283046 !important; }
 </style>
 @endpush
 
