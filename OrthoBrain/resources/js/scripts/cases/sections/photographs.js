@@ -281,13 +281,37 @@
         // is already showing, so user doesn't wait on the network.
         if (window.CaseMediaApi && caseId && caseId !== 'new') {
           var cropParams = this.tiles[tileId] && this.tiles[tileId].cropParams;
+          var self = this;
           window.CaseMediaApi.upload(caseId, 'photograph', tileId, blob, {
             filename: 'photograph-' + tileId,
             cropParams: cropParams,
           }).catch(function (err) {
             console.warn('CaseMediaApi.upload failed', tileId, err);
+            self._handleUploadFailure(tileId, err);
           });
         }
+      },
+
+      // On upload rejection: roll the tile back to its empty state so the
+      // user doesn't see a "filled" tile that the server doesn't know about.
+      // Without this, a refresh would replace the local preview with the
+      // server's empty record (or the previous image).
+      _handleUploadFailure: function (tileId, err) {
+        if (this.tiles[tileId].previewUrl) {
+          URL.revokeObjectURL(this.tiles[tileId].previewUrl);
+        }
+        this.tiles[tileId].filled = false;
+        this.tiles[tileId].originalFile = null;
+        this.tiles[tileId].croppedBlob = null;
+        this.tiles[tileId].previewUrl = null;
+        this.tiles[tileId].cropParams = null;
+        this._resetTileAi(tileId);
+        this.syncToState();
+
+        var msg = window.MediaTileHelpers.upgradeUploadError(err, this.getTileLabel(tileId));
+        this.bulkError = msg;
+        var self = this;
+        setTimeout(function () { self.bulkError = null; }, 6000);
       },
 
       // Ask the AI whether `blob` matches the pose for `tileId`. Non-blocking.
@@ -340,8 +364,17 @@
             .catch(function (e) { console.warn('CaseImageStore.remove failed', tileId, e); });
         }
         if (window.CaseMediaApi && caseId && caseId !== 'new') {
+          var self = this;
           window.CaseMediaApi.destroy(caseId, 'photograph', tileId)
-            .catch(function (err) { console.warn('CaseMediaApi.destroy failed', tileId, err); });
+            .catch(function (err) {
+              console.warn('CaseMediaApi.destroy failed', tileId, err);
+              // Destroy failure means the tile is locally cleared but the
+              // server still holds the row — next reload would re-populate
+              // it. Surface so the user knows the removal didn't stick.
+              var msg = window.MediaTileHelpers.upgradeUploadError(err, self.getTileLabel(tileId));
+              self.bulkError = msg;
+              setTimeout(function () { self.bulkError = null; }, 6000);
+            });
         }
       },
 
@@ -642,8 +675,17 @@
         var caseId = this._getCaseId();
         if (bothUrlOnly || moveUrlOnly) {
           if (window.CaseMediaApi && caseId && caseId !== 'new') {
+            var self = this;
             window.CaseMediaApi.reorder(caseId, 'photograph', sourceId, targetId)
-              .catch(function (err) { console.warn('CaseMediaApi.reorder failed', err); });
+              .catch(function (err) {
+                console.warn('CaseMediaApi.reorder failed', err);
+                // Reorder failure means tiles are locally swapped but the
+                // server still has the original layout — silent state
+                // divergence on next reload. Surface so the user knows.
+                var msg = window.MediaTileHelpers.upgradeUploadError(err, self.getTileLabel(targetId));
+                self.bulkError = msg;
+                setTimeout(function () { self.bulkError = null; }, 6000);
+              });
           }
           // Same content, just moved — no AI re-classify needed.
           return;

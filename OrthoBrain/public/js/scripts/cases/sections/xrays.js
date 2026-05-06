@@ -145,20 +145,53 @@
         var caseId = this._getCaseId();
         if (window.CaseMediaApi && caseId && caseId !== 'new') {
           var cropParams = this.tiles[tileId] && this.tiles[tileId].cropParams;
+          var self = this;
           window.CaseMediaApi.upload(caseId, 'xray', tileId, blob, {
             filename: 'xray-' + tileId,
             cropParams: cropParams,
           }).catch(function (err) {
             console.warn('CaseMediaApi.upload (xray) failed', tileId, err);
+            self._handleUploadFailure(tileId, err);
           });
         }
+      },
+
+      // On upload rejection: clear the tile so the user doesn't see a
+      // "filled" preview that the server hasn't accepted. X-rays have no
+      // IDB fallback (unlike photographs), so the local blob would
+      // disappear on refresh anyway — surfacing the failure tells the user
+      // what happened and to retry.
+      _handleUploadFailure: function (tileId, err) {
+        if (this.tiles[tileId].previewUrl) {
+          URL.revokeObjectURL(this.tiles[tileId].previewUrl);
+        }
+        this.tiles[tileId].filled = false;
+        this.tiles[tileId].originalFile = null;
+        this.tiles[tileId].croppedBlob = null;
+        this.tiles[tileId].previewUrl = null;
+        this.tiles[tileId].cropParams = null;
+        this.syncToState();
+
+        var msg = window.MediaTileHelpers.upgradeUploadError(err, this.getTileLabel(tileId));
+        this.bulkError = msg;
+        var self = this;
+        setTimeout(function () { self.bulkError = null; }, 6000);
       },
 
       _forgetTile: function (tileId) {
         var caseId = this._getCaseId();
         if (window.CaseMediaApi && caseId && caseId !== 'new') {
+          var self = this;
           window.CaseMediaApi.destroy(caseId, 'xray', tileId)
-            .catch(function (err) { console.warn('CaseMediaApi.destroy (xray) failed', tileId, err); });
+            .catch(function (err) {
+              console.warn('CaseMediaApi.destroy (xray) failed', tileId, err);
+              // Destroy failure means the tile is locally cleared but the
+              // server still holds the row — next reload would re-populate
+              // it. Surface so the user knows the removal didn't stick.
+              var msg = window.MediaTileHelpers.upgradeUploadError(err, self.getTileLabel(tileId));
+              self.bulkError = msg;
+              setTimeout(function () { self.bulkError = null; }, 6000);
+            });
         }
       },
 
@@ -453,8 +486,17 @@
         var moveUrlOnly = srcWasFilled && !srcHadBlob && !tgtWasFilled;
         if (bothUrlOnly || moveUrlOnly) {
           if (window.CaseMediaApi && caseId && caseId !== 'new') {
+            var self = this;
             window.CaseMediaApi.reorder(caseId, 'xray', sourceId, targetId)
-              .catch(function (err) { console.warn('CaseMediaApi.reorder failed', err); });
+              .catch(function (err) {
+                console.warn('CaseMediaApi.reorder failed', err);
+                // Reorder failure means tiles are locally swapped but the
+                // server still has the original layout — silent state
+                // divergence on next reload. Surface so the user knows.
+                var msg = window.MediaTileHelpers.upgradeUploadError(err, self.getTileLabel(targetId));
+                self.bulkError = msg;
+                setTimeout(function () { self.bulkError = null; }, 6000);
+              });
           }
         }
       },
