@@ -223,6 +223,8 @@
     window.__additionalInfoPrefill = @json($additionalInfoPrefill ?? null);
     window.__shippingAddressPrefill = @json($shippingAddressPrefill ?? null);
     window.__impressionsPrefill = @json($impressionsPrefill ?? null);
+    window.__photographsPrefill = @json($photographsPrefill ?? null);
+    window.__xraysPrefill = @json($xraysPrefill ?? null);
     window.__submitOrderPrefill = @json($submitOrderPrefill ?? null);
     window.CASE_API_BASE = @json($apiBase);
     window.CASE_ADMIN_MODE = @json((bool) $adminMode);

@@ -22,10 +22,14 @@ class CaseModel extends Model
         'status',
         'submitted_at',
         'submitter_initials',
+        'photos_date',
+        'xrays_date',
     ];
 
     protected $casts = [
         'submitted_at' => 'datetime',
+        'photos_date'  => 'date',
+        'xrays_date'   => 'date',
     ];
 
     public function doctor()
