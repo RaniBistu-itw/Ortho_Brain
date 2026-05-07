@@ -185,6 +185,7 @@ Route::middleware(['web', 'auth'])
         Route::get('/profile/address/{address}',     [ProfileController::class, 'addressShow'])->name('profile.address.show');
         Route::get('/profile/address/{address}/edit',[ProfileController::class, 'addressEdit'])->name('profile.address.edit');
         Route::put('/profile/address/{address}',     [ProfileController::class, 'addressUpdate'])->name('profile.address.update');
+        Route::delete('/profile/address/{address}',  [ProfileController::class, 'addressDestroy'])->name('profile.address.destroy');
         Route::post('/profile/address/{address}/set-default', [ProfileController::class, 'addressSetDefault'])->name('profile.address.set-default');
     });
 

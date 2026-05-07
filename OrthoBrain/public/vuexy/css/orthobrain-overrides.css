@@ -470,6 +470,22 @@ body:not(.dark-layout) .text-muted { color: #6c757d !important; }
 }
 .ob-image-gallery-item:not(:first-child) .ob-image-cover-badge { display: none; }
 
+.ob-image-pending-badge {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: rgba(40, 167, 69, 0.90);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
 .ob-image-gallery-remove {
     position: absolute;
     top: -9px;

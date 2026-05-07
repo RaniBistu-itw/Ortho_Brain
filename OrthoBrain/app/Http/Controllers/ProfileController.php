@@ -168,11 +168,45 @@ class ProfileController extends Controller
             'billing_email'    => ($address->type === 'billing' ? 'required|' : 'nullable|') . 'email|max:150',
         ]);
 
+        $duplicate = DoctorAddress::where('doctor_id', $address->doctor_id)
+            ->where('type', $address->type)
+            ->where('id', '!=', $address->id)
+            ->where('street_address_1', $data['street_address_1'])
+            ->where('zip_id', $data['zip_id'])
+            ->where('city_id', $data['city_id'])
+            ->where('state_id', $data['state_id'])
+            ->where('country_id', $data['country_id'])
+            ->exists();
+
+        if ($duplicate) {
+            return back()
+                ->withErrors(['street_address_1' => 'This address already exists in your ' . $address->type . ' addresses.'])
+                ->withInput();
+        }
+
         $address->update($data);
 
         return redirect()
             ->route('doctor.profile.index', ['tab' => $address->type])
             ->with('success', ucfirst($address->type) . ' address updated successfully.');
+    }
+
+    public function addressDestroy(DoctorAddress $address)
+    {
+        $this->authorizeAddress($address);
+
+        if ($address->is_default) {
+            return redirect()
+                ->route('doctor.profile.index', ['tab' => $address->type])
+                ->with('error', 'Cannot delete your default ' . $address->type . ' address. Set another address as default first.');
+        }
+
+        $type = $address->type;
+        $address->delete();
+
+        return redirect()
+            ->route('doctor.profile.index', ['tab' => $type])
+            ->with('success', ucfirst($type) . ' address deleted.');
     }
 
     public function addressSetDefault(DoctorAddress $address)
@@ -261,6 +295,21 @@ class ProfileController extends Controller
         ]);
 
         $doctor = Doctor::where('user_id', Auth::id())->firstOrFail();
+
+        $duplicate = $doctor->addresses()
+            ->where('type', $data['type'])
+            ->where('street_address_1', $data['street_address_1'])
+            ->where('zip_id', $data['zip_id'])
+            ->where('city_id', $data['city_id'])
+            ->where('state_id', $data['state_id'])
+            ->where('country_id', $data['country_id'])
+            ->exists();
+
+        if ($duplicate) {
+            return back()
+                ->withErrors(['street_address_1' => 'This address already exists in your ' . $data['type'] . ' addresses.'])
+                ->withInput();
+        }
 
         $isFirst = ! $doctor->addresses()->where('type', $data['type'])->exists();
 

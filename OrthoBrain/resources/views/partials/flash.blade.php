@@ -12,7 +12,7 @@
         </div>
     </div>
 @endif
-@if ($errors->any() && ! $errors->has('email'))
+@if ($errors->any() && ! $errors->has('email') && ! request()->routeIs('doctor.profile.address.create', 'doctor.profile.address.edit'))
     <div class="ob-flash alert alert-danger" role="alert">
         <div class="alert-body">
             <strong>Please fix the errors below.</strong>
