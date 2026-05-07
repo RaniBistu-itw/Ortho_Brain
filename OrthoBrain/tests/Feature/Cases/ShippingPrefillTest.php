@@ -120,7 +120,7 @@ it('returns explicit nulls (not missing keys) for shipping with null FKs', funct
 
 it('exposes the same shipping text fields on the admin edit prefill', function () {
     $geo = makeGeoChain();
-    ['caseId' => $caseId] = makeDoctorCase();
+    ['caseId' => $caseId] = makeDoctorCase(['status' => 'SUBMITTED']);
 
     DB::table('case_shipping_addresses')->insert([
         'case_id'          => $caseId,

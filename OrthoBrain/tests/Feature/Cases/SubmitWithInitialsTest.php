@@ -28,7 +28,10 @@ function caseReadyForInitialsGate(): array
     ]);
 
     DB::table('prescriptions')->insert(['case_id' => $bundle['caseId']]);
-    DB::table('cases')->where('id', $bundle['caseId'])->update(['patient_id' => $patientId]);
+    DB::table('cases')->where('id', $bundle['caseId'])->update([
+        'patient_id' => $patientId,
+        'xrays_date' => '2026-01-01',
+    ]);
 
     return $bundle;
 }
