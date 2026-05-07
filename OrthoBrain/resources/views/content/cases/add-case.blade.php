@@ -177,6 +177,11 @@
 
       {{-- Submit confirmation modal — rendered once, managed by AddCaseSubmit --}}
       @include('content.cases.components.submit-confirm-modal')
+
+      {{-- Admin rejection modal — top-level placement avoids the sticky topbar's stacking context (z-index trap). --}}
+      @if($adminMode && $caseRow)
+        @include('content.cases.components.reject-modal')
+      @endif
     </main>
 
   </div>
@@ -290,21 +295,54 @@
 
       // Admin: save-status button
       var btnAdminStatus = document.getElementById('btn-admin-save-status');
+      var rejectModalEl  = document.getElementById('rejectCaseModal');
+      var rejectForm     = document.getElementById('rejectCaseForm');
+      var rejectReason   = document.getElementById('reject_case_reason');
+      var rejectError    = document.getElementById('reject_case_reason_error');
+
+      function performStatusUpdate(status, extras) {
+        if (btnAdminStatus) btnAdminStatus.disabled = true;
+        return window.CaseApi.updateStatus(window.CASE_ID, status, extras || {})
+          .then(function (res) {
+            alert('Status updated to ' + res.status + '.');
+          })
+          .catch(function (err) {
+            console.error('Status update failed', err);
+            var msg = (err && err.data && err.data.error) || 'Failed to update status.';
+            alert(msg);
+          })
+          .finally(function () { if (btnAdminStatus) btnAdminStatus.disabled = false; });
+      }
+
       if (btnAdminStatus) {
         btnAdminStatus.addEventListener('click', function () {
           var sel = document.getElementById('admin-status-select');
           if (!sel || !window.CASE_ID || window.CASE_ID === 'new') return;
-          btnAdminStatus.disabled = true;
-          window.CaseApi.updateStatus(window.CASE_ID, sel.value)
-            .then(function (res) {
-              alert('Status updated to ' + res.status + '.');
-            })
-            .catch(function (err) {
-              console.error('Status update failed', err);
-              var msg = (err && err.data && err.data.error) || 'Failed to update status.';
-              alert(msg);
-            })
-            .finally(function () { btnAdminStatus.disabled = false; });
+
+          if (sel.value === 'REJECTED' && rejectModalEl && window.bootstrap) {
+            if (rejectError) { rejectError.textContent = ''; rejectError.style.display = 'none'; }
+            new bootstrap.Modal(rejectModalEl).show();
+            return;
+          }
+
+          performStatusUpdate(sel.value);
+        });
+      }
+
+      if (rejectForm) {
+        rejectForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var reason = (rejectReason && rejectReason.value || '').trim();
+          if (reason.length < 10) {
+            if (rejectError) {
+              rejectError.textContent = 'Minimum 10 characters.';
+              rejectError.style.display = '';
+            }
+            return;
+          }
+          var modal = window.bootstrap ? bootstrap.Modal.getInstance(rejectModalEl) : null;
+          performStatusUpdate('REJECTED', { rejection_reason: reason })
+            .then(function () { if (modal) modal.hide(); });
         });
       }
 

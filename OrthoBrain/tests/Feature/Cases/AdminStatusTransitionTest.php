@@ -64,3 +64,12 @@ it('shows REJECTED + IN_REVIEW for a REJECTED case', function () {
     expect(extractStatusDropdownOptions(viewCaseAsAdmin($caseId)))
         ->toEqualCanonicalizing(['REJECTED', 'IN_REVIEW']);
 });
+
+it('includes the reject case modal in the admin edit page HTML', function () {
+    ['caseId' => $caseId] = makeDoctorCase(['status' => 'IN_REVIEW']);
+    $html = viewCaseAsAdmin($caseId);
+
+    expect($html)->toContain('id="rejectCaseModal"');
+    expect($html)->toContain('id="rejectCaseForm"');
+    expect($html)->toContain('name="rejection_reason"');
+});
