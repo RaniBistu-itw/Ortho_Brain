@@ -15,7 +15,8 @@ class Admin extends Model
         'first_name',
         'last_name',
         'profile_photo_s3_key',
-        'phone',
+        'phone_country_code',
+        'phone_number',
     ];
 
     public function user()

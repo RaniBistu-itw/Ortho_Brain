@@ -2,6 +2,36 @@
 @section('title', 'My Profile')
 @section('page_title', 'My Profile')
 
+@push('styles')
+<style>
+    /* ── Phone: fused Select2 + text input ── */
+    .ob-phone-group {
+        display: flex;
+        align-items: stretch;
+    }
+    .ob-phone-group .select2-container {
+        flex: 0 0 115px;
+        width: 115px !important;
+    }
+    .ob-phone-group .select2-container--default .select2-selection--single {
+        height: 100%;
+        border-right: 0;
+        border-radius: 0.357rem 0 0 0.357rem;
+    }
+    .ob-phone-group .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 100%;
+        top: 0;
+    }
+    .ob-phone-group .form-control {
+        border-radius: 0 0.357rem 0.357rem 0 !important;
+    }
+    .ob-phone-group .select2-container--open .select2-selection--single,
+    .ob-phone-group .select2-container--focus .select2-selection--single {
+        border-color: var(--ob-primary, #7367f0);
+    }
+</style>
+@endpush
+
 @section('content')
 @php $avatarUrl = $admin->avatarUrl(); @endphp
 
@@ -67,15 +97,24 @@
                 </div>
 
                 <div class="col-md-6 mb-1">
-                    <label for="phone" class="form-label">Phone Number</label>
-                    <div class="input-group input-group-merge">
-                        <span class="input-group-text"><i data-feather="phone"></i></span>
-                        <input id="phone" type="text" name="phone" maxlength="20"
-                               value="{{ old('phone', $admin->phone) }}"
-                               placeholder="XXX-XXX-XXXX"
-                               class="form-control @error('phone') is-invalid @enderror">
+                    @php $currentPhoneCode = old('phone_country_code', $admin->phone_country_code ?? '+1'); @endphp
+                    <label for="phone_number" class="form-label">Phone Number</label>
+                    <div class="ob-phone-group">
+                        <select id="phone_country_code" name="phone_country_code">
+                            @forelse ($phoneCodes as $code)
+                                <option value="{{ $code }}" @selected($currentPhoneCode === $code)>{{ $code }}</option>
+                            @empty
+                                <option value="+1" @selected($currentPhoneCode === '+1')>+1</option>
+                            @endforelse
+                        </select>
+                        <input id="phone_number" name="phone_number" type="tel"
+                               value="{{ old('phone_number', $admin->phone_number) }}"
+                               inputmode="numeric" maxlength="10"
+                               placeholder="Phone number"
+                               class="form-control @error('phone_number') is-invalid @enderror">
                     </div>
-                    @error('phone')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    @error('phone_country_code')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    @error('phone_number')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="col-12 mb-1">
@@ -126,3 +165,16 @@
     'enableCam' => true,
 ])
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    if (window.jQuery && typeof $.fn.select2 === 'function') {
+        $('#phone_country_code').select2({
+            width: '115px',
+            dropdownParent: $(document.body),
+        });
+    }
+})();
+</script>
+@endpush

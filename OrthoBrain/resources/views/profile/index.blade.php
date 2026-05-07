@@ -147,6 +147,32 @@
     .dark-layout .preferences-card .card-body::-webkit-scrollbar-track { background: #283046; }
     .dark-layout .preferences-card .card-body::-webkit-scrollbar-thumb { background: #3b4253; }
     .dark-layout .preferences-card .bg-light { background-color: #283046 !important; }
+
+    /* ── Phone: fused Select2 + text input ── */
+    .ob-phone-group {
+        display: flex;
+        align-items: stretch;
+    }
+    .ob-phone-group .select2-container {
+        flex: 0 0 115px;
+        width: 115px !important;
+    }
+    .ob-phone-group .select2-container--default .select2-selection--single {
+        height: 100%;
+        border-right: 0;
+        border-radius: 0.357rem 0 0 0.357rem;
+    }
+    .ob-phone-group .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 100%;
+        top: 0;
+    }
+    .ob-phone-group .form-control {
+        border-radius: 0 0.357rem 0.357rem 0 !important;
+    }
+    .ob-phone-group .select2-container--open .select2-selection--single,
+    .ob-phone-group .select2-container--focus .select2-selection--single {
+        border-color: var(--ob-primary, #7367f0);
+    }
 </style>
 @endpush
 
@@ -255,22 +281,15 @@
 
                         <div class="col-md-6 mb-1">
                             <label for="in-acc-phone" class="form-label">Phone Number</label>
-                            <div class="row g-1">
-                                <div class="col-5 col-sm-4">
-                                    <select name="practice_phone_country_code" class="form-select js-searchable">
-                                        @foreach($phoneCodes as $code)
-                                            <option value="{{ $code }}" @selected(old('practice_phone_country_code', $doctor?->practice?->phone_country_code ?? '+1') === $code)>{{ $code }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-7 col-sm-8">
-                                    <div class="input-group input-group-merge">
-                                        <span class="input-group-text"><i data-feather="phone"></i></span>
-                                        <input id="in-acc-phone" type="text" name="practice_phone_number"
-                                               value="{{ old('practice_phone_number', $doctor?->practice?->phone_number ?? '') }}"
-                                               placeholder="XXX-XXX-XXXX" class="form-control">
-                                    </div>
-                                </div>
+                            <div class="ob-phone-group">
+                                <select name="practice_phone_country_code" class="js-phone-code">
+                                    @foreach($phoneCodes as $code)
+                                        <option value="{{ $code }}" @selected(old('practice_phone_country_code', $doctor?->practice?->phone_country_code ?? '+1') === $code)>{{ $code }}</option>
+                                    @endforeach
+                                </select>
+                                <input id="in-acc-phone" type="text" name="practice_phone_number"
+                                       value="{{ old('practice_phone_number', $doctor?->practice?->phone_number ?? '') }}"
+                                       placeholder="Phone number" class="form-control">
                             </div>
                             <small id="err-acc-phone" class="text-danger d-none"></small>
                         </div>
@@ -363,22 +382,15 @@
 
                         <div class="col-md-6 mb-1">
                             <label for="in-prac-phone" class="form-label">Practice Phone Number<span class="text-danger">*</span></label>
-                            <div class="row g-1">
-                                <div class="col-5 col-sm-4">
-                                    <select name="practice_phone_country_code" class="form-select js-searchable">
-                                        @foreach($phoneCodes as $code)
-                                            <option value="{{ $code }}" @selected(old('practice_phone_country_code', $activePractice?->phone_country_code ?? '+1') === $code)>{{ $code }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div class="col-7 col-sm-8">
-                                    <div class="input-group input-group-merge">
-                                        <span class="input-group-text"><i data-feather="phone"></i></span>
-                                        <input id="in-prac-phone" type="text" name="practice_phone_number"
-                                               value="{{ old('practice_phone_number', $activePractice?->phone_number ?? '') }}"
-                                               placeholder="XXX-XXX-XXXX" class="form-control">
-                                    </div>
-                                </div>
+                            <div class="ob-phone-group">
+                                <select name="practice_phone_country_code" class="js-phone-code">
+                                    @foreach($phoneCodes as $code)
+                                        <option value="{{ $code }}" @selected(old('practice_phone_country_code', $activePractice?->phone_country_code ?? '+1') === $code)>{{ $code }}</option>
+                                    @endforeach
+                                </select>
+                                <input id="in-prac-phone" type="text" name="practice_phone_number"
+                                       value="{{ old('practice_phone_number', $activePractice?->phone_number ?? '') }}"
+                                       placeholder="Phone number" class="form-control">
                             </div>
                             <small id="err-prac-phone" class="text-danger d-none"></small>
                         </div>
@@ -780,9 +792,13 @@
                             </div>
                             <div class="col-md-6 mb-1">
                                 <label for="in-doc-phone" class="form-label">Doctor Cell Phone Number</label>
-                                <div class="input-group input-group-merge">
-                                    <span class="input-group-text"><i data-feather="phone"></i></span>
-                                    <input id="in-doc-phone" type="text" class="form-control" placeholder="XXX-XXX-XXXX"
+                                <div class="ob-phone-group">
+                                    <select class="js-phone-code">
+                                        @foreach($phoneCodes as $code)
+                                            <option value="{{ $code }}" @selected('+1' === $code)>{{ $code }}</option>
+                                        @endforeach
+                                    </select>
+                                    <input id="in-doc-phone" type="text" class="form-control" placeholder="Phone number"
                                            value="{{ $doctor?->doctor_cell_phone ?? '' }}">
                                 </div>
                                 <small id="err-doc-phone" class="text-danger d-none"></small>
@@ -1557,6 +1573,15 @@
 @endpush
 
 @push('scripts')
+<script>
+(function () {
+    if (window.jQuery && typeof $.fn.select2 === 'function') {
+        $('.js-phone-code').each(function () {
+            $(this).select2({ width: '115px', dropdownParent: $(document.body) });
+        });
+    }
+})();
+</script>
 <script>
     /* ── Photo delete — submits the static form rendered just below the outer form ── */
     function deletePhoto(formId, kind) {
