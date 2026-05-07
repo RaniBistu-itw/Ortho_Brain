@@ -6,17 +6,17 @@
   <div class="case-section__body">
 
     {{-- Row 1: Saved Address (full width) --}}
-    {{-- TODO: replace with API call to GET /api/doctors/{id}/saved-addresses --}}
     <div class="mb-1">
       <label for="sa-saved" class="form-label fw-semibold">Saved Address</label>
       <select id="sa-saved" class="form-select"
               x-model="savedAddressId"
               @change="onSavedAddressChange()">
         <option value="">— Select a saved address —</option>
-        <option value="saved-1">Main Office</option>
-        <option value="saved-2">Satellite Clinic</option>
+        <template x-for="a in (window.DOCTOR_SAVED_ADDRESSES || [])" :key="a.id">
+          <option :value="a.id" x-text="a.label"></option>
+        </template>
       </select>
-      <div class="form-text text-muted">Selecting a saved address will fill the fields below.</div>
+      <div class="form-text text-muted">Selecting a saved address will fill the fields below. You can still edit any field after.</div>
     </div>
 
     {{-- Row 2: Practice | Doctor Name (read-only context labels) --}}
@@ -148,9 +148,9 @@
                 @blur="validateField('country')"
                 :class="{ 'is-invalid': errors.country }">
           <option value="">— Select country —</option>
-          <template x-for="c in (window.COUNTRY_ENTRIES || [])" :key="c.code">
-            <option :value="c.code" x-text="c.name"></option>
-          </template>
+          @foreach($countryEntries as $c)
+            <option value="{{ $c['code'] }}">{{ $c['name'] }}</option>
+          @endforeach
         </select>
         <div class="small text-danger mt-25"
              x-show="errors.country"
