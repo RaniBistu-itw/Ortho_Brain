@@ -318,9 +318,7 @@ class CasesController extends Controller
     }
 
     /**
-     * Shape a Patient for the case wizard's hydration. Field names match
-     * what patient-information.js previously read from MOCK_PATIENTS so the
-     * JS consumer can swap-in cleanly.
+     * Shape a Patient for the case wizard's hydration.
      */
     private function serializePatient(?\App\Models\Patient $patient): ?array
     {

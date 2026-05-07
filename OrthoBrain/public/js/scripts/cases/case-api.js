@@ -83,7 +83,7 @@
       return request('POST', base() + '/' + encodeURIComponent(caseId) + '/prescription', payload);
     },
 
-    // Patient identity persistence — replaces mock-patients.js. Body must
+    // Patient identity persistence. Body must
     // satisfy PatientInformationRequest (firstName, lastName, dateOfBirth,
     // biologicalGender, chiefComplaint required). Optional: email, phone,
     // patientChartId, biologicalGenderOther, selectedPatientId.
