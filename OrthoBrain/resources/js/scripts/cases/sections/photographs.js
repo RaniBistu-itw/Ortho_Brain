@@ -521,31 +521,61 @@
 
         this._closeTileModal();
 
-        // Always crop from original file so re-crop stays non-destructive
-        var originalFile = this.tiles[tileId].originalFile;
         var self = this;
 
-        setTimeout(function () {
-          window.MediaTileHelpers.createPreviewUrl(originalFile).then(function (preview) {
-            window.CropModalController.open({
-              imageUrl: preview.url,
-              onApply: function (croppedBlob, cropParams) {
-                URL.revokeObjectURL(preview.url);
-                if (self.tiles[tileId].previewUrl) {
-                  URL.revokeObjectURL(self.tiles[tileId].previewUrl);
-                }
-                self.tiles[tileId].croppedBlob = croppedBlob;
-                self.tiles[tileId].previewUrl = URL.createObjectURL(croppedBlob);
-                self.tiles[tileId].cropParams = cropParams;
-                self.syncToState();
-                self._persistTile(tileId, croppedBlob);
-                // Cropped blob can change what the AI sees — re-classify.
-                self._classifyTile(tileId, croppedBlob);
-              },
-              onCancel: function () {
-                URL.revokeObjectURL(preview.url);
-              },
-            });
+        // Always crop from the source blob so re-crop stays non-destructive.
+        // For server-hydrated tiles, originalFile is null (only previewUrl is
+        // set by _hydrate) — fetch the URL into a blob first, mirroring the
+        // pattern already used by _swapOrMoveTiles for URL-only tiles.
+        // Cache the result on tile.originalFile so subsequent crops in the
+        // same session don't re-fetch.
+        setTimeout(async function () {
+          var blob = self.tiles[tileId].originalFile;
+
+          if (!blob && self.tiles[tileId].previewUrl) {
+            try {
+              var res = await fetch(self.tiles[tileId].previewUrl, { credentials: 'same-origin' });
+              if (!res.ok) throw { status: res.status, body: {} };
+              var rawBlob = await res.blob();
+              // Wrap as File so MediaTileHelpers.createPreviewUrl's .name
+              // access works. The synthetic name is decorative — the real
+              // original_name lives server-side. HEIC detection still works
+              // via the helper's blob.type check.
+              blob = new File([rawBlob], tileId, { type: rawBlob.type });
+              self.tiles[tileId].originalFile = blob;
+            } catch (err) {
+              var msg = window.MediaTileHelpers.upgradeCropFetchError(err, self.getTileLabel(tileId));
+              self.bulkError = msg;
+              setTimeout(function () { self.bulkError = null; }, 6000);
+              return;
+            }
+          }
+
+          if (!blob) {
+            // Defensive — a filled tile should always have either a blob or a URL.
+            console.warn('cropTile: tile filled but has no blob and no URL', tileId);
+            return;
+          }
+
+          var preview = await window.MediaTileHelpers.createPreviewUrl(blob);
+          window.CropModalController.open({
+            imageUrl: preview.url,
+            onApply: function (croppedBlob, cropParams) {
+              URL.revokeObjectURL(preview.url);
+              if (self.tiles[tileId].previewUrl) {
+                URL.revokeObjectURL(self.tiles[tileId].previewUrl);
+              }
+              self.tiles[tileId].croppedBlob = croppedBlob;
+              self.tiles[tileId].previewUrl = URL.createObjectURL(croppedBlob);
+              self.tiles[tileId].cropParams = cropParams;
+              self.syncToState();
+              self._persistTile(tileId, croppedBlob);
+              // Cropped blob can change what the AI sees — re-classify.
+              self._classifyTile(tileId, croppedBlob);
+            },
+            onCancel: function () {
+              URL.revokeObjectURL(preview.url);
+            },
           });
         }, 400);
       },

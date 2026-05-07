@@ -35,6 +35,23 @@ window.MediaTileHelpers = {
     return "Couldn't upload " + label + '. Try again.';
   },
 
+  // Translate a fetch-for-crop rejection ({ status, body? }) into a
+  // user-facing message. Crop on server-hydrated tiles fetches the
+  // original image URL into a blob before invoking Cropper.js
+  // (tile.originalFile is null after _hydrate). Different vocabulary
+  // from upgradeUploadError — "load for cropping" instead of "upload"
+  // — and the 422 size-sniff doesn't apply (fetches don't return
+  // errors.file with size copy). See cropTile in photographs.js / xrays.js.
+  upgradeCropFetchError: function (err, tileLabel) {
+    var label = tileLabel || 'image';
+    var status = err && err.status;
+    if (status === 404) return "Couldn't load " + label + " for cropping. The file may have been deleted or moved.";
+    if (status === 403) return 'Permission denied loading ' + label + ' for cropping.';
+    if (status >= 500 && status < 600) return 'Server error loading image. Try again.';
+    if (!status || status === 0) return "Couldn't reach the server. Check your connection and try again.";
+    return "Couldn't load " + label + ' for cropping. Try again.';
+  },
+
   // Returns { valid: boolean, error: string | null }
   validateFile: function (file, options) {
     var maxSizeBytes = options.maxSizeBytes;
