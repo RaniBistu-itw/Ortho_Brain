@@ -165,6 +165,10 @@ class CasesController extends Controller
         $serializeShipping->setAccessible(true);
         $shippingAddressPrefill = $serializeShipping->invoke($doctorController, $case->shippingAddress);
 
+        $serializeSavedAddresses = new \ReflectionMethod($doctorController, 'serializeDoctorSavedAddresses');
+        $serializeSavedAddresses->setAccessible(true);
+        $doctorSavedAddresses = $serializeSavedAddresses->invoke($doctorController, $case->doctor);
+
         return view('content.cases.add-case', [
             'id' => $case->id,
             'prescriptionPrefill' => $prescriptionPrefill,
@@ -178,6 +182,7 @@ class CasesController extends Controller
             'patientPrefill' => $patientPrefill,
             'additionalInfoPrefill' => $case->additionalInfo?->data,
             'shippingAddressPrefill' => $shippingAddressPrefill,
+            'doctorSavedAddresses' => $doctorSavedAddresses,
             'impressionsPrefill' => [
                 'impressionMethod' => $case->impression_method ? strtolower($case->impression_method) : null,
                 'scannerId' => $case->scanner_id,

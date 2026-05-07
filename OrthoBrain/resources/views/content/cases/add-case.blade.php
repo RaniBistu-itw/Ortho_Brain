@@ -3,6 +3,7 @@
   $caseRow = $caseRow ?? null;
   $caseDoctor = $caseDoctor ?? null;
   $scanners = $scanners ?? collect();
+  $doctorSavedAddresses = $doctorSavedAddresses ?? [];
   $statusOptions = $statusOptions ?? ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
   $statusLabels = $statusLabels ?? [
       'DRAFT'     => 'Draft',
@@ -40,6 +41,19 @@
     ['id' => 'submit-order',           'label' => 'Submit Order',           'subtitle' => 'Submit Order',             'icon' => 'send',       'placeholder' => false],
   ];
   $sections = array_values(array_filter($sections, fn ($s) => $adminMode || empty($s['adminOnly'])));
+
+  // Country list — needed by both the shipping-address partial (server-rendered
+  // <option> list, avoids the Alpine x-for/x-model render race per CLAUDE.md
+  // Entry 6) and the @push('scripts') block below (window.COUNTRY_ENTRIES).
+  $countryEntries = \App\Models\Country::where('status', 'ACTIVE')
+      ->orderBy('name')
+      ->get(['id', 'name', 'country_code'])
+      ->map(fn ($c) => [
+          'id'   => $c->id,
+          'code' => $c->country_code,
+          'name' => $c->name,
+      ])
+      ->values();
 @endphp
 
 @section('content')
@@ -195,19 +209,11 @@
         'country'        => $activePractice->country?->country_code,
     ] : null;
 
-    // Country list stays inlined — small (< 30 rows) and used by the
-    // country dropdown immediately on render. The Zipcode list, which
-    // used to ship here too (~600 rows / 102 KB), now lazy-loads via
-    // GET /dev/zipcodes/search?q=... — see shipping-address.js.
-    $countryEntries = \App\Models\Country::where('status', 'ACTIVE')
-        ->orderBy('name')
-        ->get(['id', 'name', 'country_code'])
-        ->map(fn ($c) => [
-            'id'   => $c->id,
-            'code' => $c->country_code,
-            'name' => $c->name,
-        ])
-        ->values();
+    // $countryEntries lifted to the top-level @php block so the
+    // shipping-address partial can render <option>s server-side; this
+    // block now consumes it. The Zipcode list, which used to ship here
+    // too (~600 rows / 102 KB), lazy-loads via GET /dev/zipcodes/search
+    // — see shipping-address.js.
   @endphp
   <script>
     window.CASE_ID = '{{ $caseId ?? 'new' }}';
@@ -221,6 +227,7 @@
     window.CASE_API_BASE = @json($apiBase);
     window.CASE_ADMIN_MODE = @json((bool) $adminMode);
     window.ACTIVE_PRACTICE_ADDRESS = @json($activePracticeAddress);
+    window.DOCTOR_SAVED_ADDRESSES = @json($doctorSavedAddresses);
     window.COUNTRY_ENTRIES = @json($countryEntries);
   </script>
   {{-- Alpine.js is bundled with @livewireScripts (Livewire 3); loading the

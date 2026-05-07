@@ -102,6 +102,7 @@ class CasesController extends Controller
             'prescriptionPrefill' => null,
             'caseDoctor' => $doctor,
             'scanners' => $this->activeScanners(),
+            'doctorSavedAddresses' => $this->serializeDoctorSavedAddresses($doctor),
         ]);
     }
 
@@ -152,6 +153,7 @@ class CasesController extends Controller
             'patientPrefill' => $this->serializePatient($case->patient),
             'additionalInfoPrefill' => $case->additionalInfo?->data,
             'shippingAddressPrefill' => $this->serializeShipping($case->shippingAddress),
+            'doctorSavedAddresses' => $this->serializeDoctorSavedAddresses($doctor),
             'impressionsPrefill' => [
                 'impressionMethod' => $case->impression_method ? strtolower($case->impression_method) : null,
                 'scannerId' => $case->scanner_id,
@@ -432,5 +434,44 @@ class CasesController extends Controller
             // <select> options keyed by Country.country_code.
             'country'        => $addr->country?->country_code,
         ];
+    }
+
+    private function serializeDoctorSavedAddresses(Doctor $doctor): array
+    {
+        return $doctor->shippingAddresses()
+            ->with(['zipcode', 'city', 'state', 'country'])
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (\App\Models\DoctorAddress $a) => [
+                'id'             => (string) $a->id,
+                'isDefault'      => (bool) $a->is_default,
+                'label'          => $this->buildAddressLabel($a),
+                'streetAddress'  => $a->street_address_1,
+                'streetAddress2' => $a->street_address_2,
+                'zipId'          => $a->zip_id,
+                'zipCode'        => $a->zipcode?->code,
+                'cityId'         => $a->city_id,
+                'city'           => $a->city?->name,
+                'stateId'        => $a->state_id,
+                'state'          => $a->state?->name,
+                'countryId'      => $a->country_id,
+                // ISO code, not display name — matches serializeShipping.
+                'country'        => $a->country?->country_code,
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function buildAddressLabel(\App\Models\DoctorAddress $a): string
+    {
+        $parts = array_filter([
+            $a->street_address_1,
+            $a->city?->name,
+            $a->state?->name,
+            $a->zipcode?->code,
+        ], fn ($v) => filled($v));
+        $base = $parts ? implode(', ', $parts) : ('Address #' . $a->id);
+        return $a->is_default ? $base . ' (Default)' : $base;
     }
 }

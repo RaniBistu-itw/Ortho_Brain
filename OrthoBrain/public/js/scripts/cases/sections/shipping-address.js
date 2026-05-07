@@ -48,7 +48,9 @@
           var draft = window.AddCaseState && window.AddCaseState.shippingAddress;
           if (draft && (draft.streetAddress || draft.zipId)) {
             this._hydrate(draft);
-          } else {
+          } else if (!this._prefillFromDoctorDefault()) {
+            // No default profile shipping address — fall back to the active
+            // practice's address so the form isn't empty for new doctors.
             this._prefillFromClinic();
           }
         }
@@ -140,6 +142,46 @@
         // tick so the options exist when the assignment lands.
         var self = this;
         this.$nextTick(function () { self.country = p.country || ''; });
+      },
+
+      // Auto-fill from the doctor's default profile shipping address when
+      // creating a new case. Returns true if a default was applied; false if
+      // the doctor has no default flagged (caller should fall back).
+      _prefillFromDoctorDefault: function () {
+        var list = window.DOCTOR_SAVED_ADDRESSES || [];
+        var entry = list.find(function (a) { return a.isDefault === true; });
+        if (!entry) return false;
+        this.savedAddressId = String(entry.id);
+        this._applySavedAddress(entry);
+        return true;
+      },
+
+      // Shared field-copy used by both the dropdown change handler and the
+      // default-prefill path. Sets every FK and display field, clears errors,
+      // and uses the sync + $nextTick pattern for `country` (Entry 6).
+      _applySavedAddress: function (addr) {
+        if (!addr) return;
+        this.streetAddress  = addr.streetAddress  || '';
+        this.streetAddress2 = addr.streetAddress2 || '';
+        this.zipId          = addr.zipId          || null;
+        this.cityId         = addr.cityId         || null;
+        this.stateId        = addr.stateId        || null;
+        this.countryId      = addr.countryId      || null;
+        if (addr.zipCode) {
+          this.zipQuery = addr.zipCode;
+        } else {
+          this._resolveZipQuery(addr.zipId);
+        }
+        this.city    = addr.city    || '';
+        this.state   = addr.state   || '';
+        this.country = addr.country || '';
+        var self = this;
+        this.$nextTick(function () { self.country = addr.country || ''; });
+        this.errors.streetAddress = null;
+        this.errors.zipId         = null;
+        this.errors.city          = null;
+        this.errors.state         = null;
+        this.errors.country       = null;
       },
 
       // Set zipQuery to the display label matching the given zipId. If the
@@ -248,22 +290,12 @@
       // ── Saved Address handler ───────────────────────────────────────────────
 
       onSavedAddressChange: function () {
-        var id   = this.savedAddressId;
-        var addr = (window.MOCK_SAVED_ADDRESSES || []).find(function (a) { return a.id === id; });
+        var id   = String(this.savedAddressId || '');
+        if (!id) return;
+        var addr = (window.DOCTOR_SAVED_ADDRESSES || [])
+          .find(function (a) { return String(a.id) === id; });
         if (!addr) return;
-        this.streetAddress  = addr.streetAddress  || '';
-        this.streetAddress2 = addr.streetAddress2 || '';
-        this.zipId          = addr.zipId          || null;
-        this._resolveZipQuery(addr.zipId);
-        this.city    = addr.city    || '';
-        this.state   = addr.state   || '';
-        this.country = addr.country || '';
-        // Clear field errors after a clean fill
-        this.errors.streetAddress = null;
-        this.errors.zipId         = null;
-        this.errors.city          = null;
-        this.errors.state         = null;
-        this.errors.country       = null;
+        this._applySavedAddress(addr);
         this.syncToState();
       },
 
