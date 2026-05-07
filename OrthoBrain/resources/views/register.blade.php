@@ -1357,6 +1357,19 @@
                     submitBtn.classList.add('hidden-btn');
                 }
 
+                // Defensive: refresh every practice cache slot when entering Step 3
+                // so the Address-source dropdown is always in sync with what the
+                // doctor entered in Step 2, regardless of which input events fired.
+                if (n === 3) {
+                    if (typeof refreshPrimaryCache === 'function') refreshPrimaryCache();
+                    if (typeof refreshExtraRowCache === 'function') {
+                        document.querySelectorAll('.extra-prac-row').forEach(r => {
+                            refreshExtraRowCache(r.dataset.idx);
+                        });
+                    }
+                    if (typeof rebuildPrimaryAddressDropdown === 'function') rebuildPrimaryAddressDropdown();
+                }
+
                 const panel = document.querySelector('.reg-wizard-panel');
                 if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
@@ -1755,7 +1768,7 @@
 
             // ── Validation ──────────────────────────────
             const emailRe    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            const nameRe     = /^[A-Za-z\s\-]+$/;
+            const nameRe     = /^[A-Za-z\-]+$/;
             const websiteRe  = /^(https?:\/\/)?([\da-z\.\-]+)\.([a-z\.]{2,6})([\/\w \.\-]*)*\/?$/i;
             const pwSpecial  = /[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\/]/;
 
@@ -1763,16 +1776,20 @@
                 email: v => !v ? 'Email is required'
                     : !emailRe.test(v) ? 'Please enter a valid email address' : '',
                 firstName: v => !v ? 'First name is required'
+                    : /\s/.test(v) ? 'First name cannot contain spaces'
                     : v.length < 2 ? 'First name must be at least 2 characters'
-                    : !nameRe.test(v) ? 'Only letters, spaces, and hyphens are allowed' : '',
+                    : !nameRe.test(v) ? 'Only letters and hyphens are allowed' : '',
                 lastName: v => !v ? 'Last name is required'
+                    : /\s/.test(v) ? 'Last name cannot contain spaces'
                     : v.length < 2 ? 'Last name must be at least 2 characters'
-                    : !nameRe.test(v) ? 'Only letters, spaces, and hyphens are allowed' : '',
+                    : !nameRe.test(v) ? 'Only letters and hyphens are allowed' : '',
                 password: v => !v ? 'Password is required'
+                    : /\s/.test(v) ? 'Password cannot contain spaces'
                     : (v.length < 8 || !/[A-Z]/.test(v) || !/[a-z]/.test(v) || !/\d/.test(v) || !pwSpecial.test(v))
                         ? 'Min 8 characters with uppercase, lowercase, number & special character' : '',
                 confirmPassword: (v, all) => {
                     if (!v) return 'Please confirm your password';
+                    if (/\s/.test(v)) return 'Password cannot contain spaces';
                     if (v !== all.password) return 'Passwords do not match';
                     return '';
                 },
@@ -1977,7 +1994,7 @@
                     'cityId'       => $selectedZip->city?->id,
                     'state'        => $selectedZip->city?->state?->name,
                     'stateId'      => $selectedZip->city?->state?->id,
-                    'country'      => $selectedZip->city?->state?->country?->country_code,
+                    'country'      => $selectedZip->city?->state?->country?->name,
                     'countryId'    => $selectedZip->city?->state?->country?->id,
                 ];
                 @endphp
@@ -2236,11 +2253,15 @@
                 // is the chosen source).
                 const newPane = document.getElementById('ep-new-' + idx);
                 if (newPane) {
-                    newPane.querySelectorAll('input[name^="additional_practices"]').forEach(el => {
-                        el.addEventListener('input', () => {
-                            refreshExtraRowCache(idx);
-                            maybeReapplySource('extra-' + idx);
-                        });
+                    // `input` fires for keystrokes; `change` covers programmatic
+                    // assignments and selects (e.g. phone country code).
+                    const handler = () => {
+                        refreshExtraRowCache(idx);
+                        maybeReapplySource('extra-' + idx);
+                    };
+                    newPane.querySelectorAll('input[name^="additional_practices"], select[name^="additional_practices"]').forEach(el => {
+                        el.addEventListener('input', handler);
+                        el.addEventListener('change', handler);
                     });
                 }
 
@@ -2567,12 +2588,21 @@
                 } else {
                     // New mode — read fields directly off the row.
                     const get = (n) => row.querySelector(`[name="additional_practices[${idx}][${n}]"]`)?.value || '';
+                    const byId = (id) => document.getElementById(id)?.value || '';
                     const label = get('name').trim();
                     if (!label) {
                         delete practiceDataCache['extra-' + idx];
                     } else {
-                        const zipSel = row.querySelector(`[name="additional_practices[${idx}][zip_id]"]`);
-                        const zipOpt = zipSel?.options[zipSel.selectedIndex];
+                        // Zip / city / state / country come from the readonly display
+                        // inputs the autocomplete fills (see onEpZipKey / extra-old-data
+                        // bounce restoration). The previous `zipSel.options[...]` path
+                        // was a copy-paste bug — `zipSel` is an <input type="hidden">,
+                        // not a <select>, so `.options` is undefined and reading from
+                        // it throws, silently aborting the whole cache refresh.
+                        const zipDisplay = byId('ep-zip-search-' + idx);
+                        const cityName   = byId('ep-city-' + idx);
+                        const stateRaw   = byId('ep-state-' + idx); // "State / Country"
+                        const [stateName = '', countryName = ''] = stateRaw.split(' / ');
                         practiceDataCache['extra-' + idx] = {
                             mode: 'new',
                             label,
@@ -2580,14 +2610,14 @@
                                 street_address_1: get('street_address_1'),
                                 street_address_2: get('street_address_2'),
                                 zip_id:           get('zip_id'),
-                                zip_code:         zipOpt ? (zipOpt.textContent.split(' — ')[0] || '') : '',
+                                zip_code:         (zipDisplay.split(' — ')[0] || '').trim(),
                                 city_id:          get('city_id'),
-                                city:             zipOpt?.dataset?.city || '',
+                                city:             cityName.trim(),
                                 state_id:         get('state_id'),
-                                state:            zipOpt?.dataset?.state || '',
-                                state_code:       zipOpt?.dataset?.state || '',
+                                state:            stateName.trim(),
+                                state_code:       stateName.trim(),
                                 country_id:       get('country_id'),
-                                country:          zipOpt?.dataset?.country || '',
+                                country:          countryName.trim(),
                             },
                         };
                     }

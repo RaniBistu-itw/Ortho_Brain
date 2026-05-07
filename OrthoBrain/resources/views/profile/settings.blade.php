@@ -17,7 +17,7 @@
                     <div class="input-group input-group-merge form-password-toggle">
                         <span class="input-group-text"><i data-feather="lock"></i></span>
                         <input type="password" id="old_password" name="old_password" class="form-control" placeholder="............" required>
-                        <span class="input-group-text cursor-pointer" onclick="const i=document.getElementById('old_password'); i.type=i.type==='password'?'text':'password';">
+                        <span class="input-group-text cursor-pointer">
                             <i data-feather="eye"></i>
                         </span>
                     </div>
@@ -28,7 +28,7 @@
                     <div class="input-group input-group-merge form-password-toggle">
                         <span class="input-group-text"><i data-feather="lock"></i></span>
                         <input type="password" id="new_password" name="new_password" class="form-control" placeholder="............" required>
-                        <span class="input-group-text cursor-pointer" onclick="const i=document.getElementById('new_password'); i.type=i.type==='password'?'text':'password';">
+                        <span class="input-group-text cursor-pointer">
                             <i data-feather="eye"></i>
                         </span>
                     </div>
@@ -39,7 +39,7 @@
                     <div class="input-group input-group-merge form-password-toggle">
                         <span class="input-group-text"><i data-feather="lock"></i></span>
                         <input type="password" id="new_password_confirmation" name="new_password_confirmation" class="form-control" placeholder="............" required>
-                        <span class="input-group-text cursor-pointer" onclick="const i=document.getElementById('new_password_confirmation'); i.type=i.type==='password'?'text':'password';">
+                        <span class="input-group-text cursor-pointer">
                             <i data-feather="eye"></i>
                         </span>
                     </div>

@@ -41,7 +41,7 @@ class ZipcodeSearchController extends Controller
             ->with([
                 'city:id,name,state_id',
                 'city.state:id,name,state_code,country_id',
-                'city.state.country:id,country_code',
+                'city.state.country:id,name',
             ])
             ->where('status', 'ACTIVE')
             ->whereHas('city', fn ($c) => $c->where('status', 'ACTIVE'));
@@ -69,7 +69,7 @@ class ZipcodeSearchController extends Controller
                 'stateId'      => $z->city?->state_id,
                 'state'        => $z->city?->state?->name,
                 'countryId'    => $z->city?->state?->country_id,
-                'country'      => $z->city?->state?->country?->country_code,
+                'country'      => $z->city?->state?->country?->name,
                 'displayLabel' => trim(implode(' — ', array_filter([
                     $z->code,
                     $z->city?->name,

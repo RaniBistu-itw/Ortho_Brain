@@ -115,9 +115,9 @@ class RegisterController extends Controller
             'email'                 => $resurrecting
                 ? ['required', 'email', 'max:150', new NotDisposableEmail]
                 : ['required', 'email', 'max:150', 'unique:users,email', new NotDisposableEmail],
-            'first_name'            => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
-            'last_name'             => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
-            'password'              => 'required|string|min:8|confirmed:confirm_password|regex:/[A-Z]/|regex:/[a-z]/|regex:/\d/|regex:/[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\\\\/]/',
+            'first_name'            => 'required|string|max:100|regex:/^[A-Za-z\-]+$/',
+            'last_name'             => 'required|string|max:100|regex:/^[A-Za-z\-]+$/',
+            'password'              => 'required|string|min:8|confirmed:confirm_password|regex:/^\S+$/|regex:/[A-Z]/|regex:/[a-z]/|regex:/\d/|regex:/[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\\\\/]/',
             'confirm_password'      => 'required|string',
 
             'providing_ortho'       => 'nullable|in:yes,no',
@@ -215,7 +215,9 @@ class RegisterController extends Controller
         }
 
         $data = $request->validate($rules, array_merge([
-            'password.regex'              => 'Password must include uppercase, lowercase, number & special character.',
+            'password.regex'              => 'Password must have no spaces and include uppercase, lowercase, number & special character.',
+            'first_name.regex'            => 'First name may only contain letters and hyphens (no spaces).',
+            'last_name.regex'             => 'Last name may only contain letters and hyphens (no spaces).',
             'practice_phone_number.regex' => 'Phone must be exactly 10 digits.',
             'terms_agreed.accepted'       => 'You must accept the Terms and Conditions to continue.',
         ], $extraMessages));
