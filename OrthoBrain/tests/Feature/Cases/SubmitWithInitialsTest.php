@@ -116,7 +116,7 @@ it('exposes submitter_initials in the doctor edit prefill', function () {
 });
 
 it('exposes submitter_initials in the admin edit prefill (Entry 2 parity)', function () {
-    ['caseId' => $caseId] = makeDoctorCase();
+    ['caseId' => $caseId] = makeDoctorCase(['status' => 'SUBMITTED']);
     DB::table('cases')->where('id', $caseId)->update(['submitter_initials' => 'AB']);
 
     $admin = User::factory()->admin()->create();

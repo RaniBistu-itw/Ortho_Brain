@@ -145,6 +145,8 @@ class CasesController extends Controller
             ])
             ->findOrFail($id);
 
+        abort_if($case->status === 'DRAFT', 404);
+
         // Reuse the doctor CasesController's serializers so the prefill
         // shapes match exactly what the Alpine components expect.
         $doctorController = app(DoctorCasesController::class);
@@ -169,6 +171,10 @@ class CasesController extends Controller
         $serializeSavedAddresses->setAccessible(true);
         $doctorSavedAddresses = $serializeSavedAddresses->invoke($doctorController, $case->doctor);
 
+        $serializeSubmitOrder = new \ReflectionMethod($doctorController, 'serializeSubmitOrder');
+        $serializeSubmitOrder->setAccessible(true);
+        $submitOrderPrefill = $serializeSubmitOrder->invoke($doctorController, $case);
+
         return view('content.cases.add-case', [
             'id' => $case->id,
             'prescriptionPrefill' => $prescriptionPrefill,
@@ -177,6 +183,7 @@ class CasesController extends Controller
             'caseDoctor' => $case->doctor,
             'statusOptions' => self::STATUS_OPTIONS,
             'statusLabels' => self::STATUS_LABELS,
+            'allowedTransitions' => self::ALLOWED_TRANSITIONS[$case->status] ?? [],
             'scanners' => Scanner::where('status', 'ACTIVE')->orderBy('name')->get(['id', 'name']),
             'caseMedia' => $caseMedia,
             'patientPrefill' => $patientPrefill,
@@ -189,6 +196,7 @@ class CasesController extends Controller
             ],
             'photographsPrefill' => ['dateOfPhotos' => $case->photos_date?->format('Y-m-d')],
             'xraysPrefill'       => ['dateOfXrays'  => $case->xrays_date?->format('Y-m-d')],
+            'submitOrderPrefill' => $submitOrderPrefill,
         ]);
     }
 
