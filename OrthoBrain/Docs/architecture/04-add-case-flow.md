@@ -1,4 +1,4 @@
-> _Last verified: against origin/dev @ `ecbf653` on 2026-05-06. If editing, update this stamp._
+> _Last verified: against origin/dev @ `a747b50` on 2026-05-07. If editing, update this stamp._
 
 # 04 — Add Case Flow
 
@@ -200,6 +200,53 @@ semantics (e.g. country **code** vs country **name**).
 
 `CasePdfController::export` accepts both GET and POST and renders
 [pdf/case-report.blade.php](../../resources/views/content/cases/pdf/case-report.blade.php) via dompdf. Watch for asset URLs — dompdf doesn't fetch over HTTPS reliably; use `public_path()` not `asset()` for embedded images.
+
+## Locked workflow — case state machine and rules
+
+(Authoritative reference: `Docs/case-workflow.md`)
+
+This file documents the implementation of the locked workflow. For the product-level rules (who can do what at each status, why), see `Docs/case-workflow.md`. This section maps those rules to the code.
+
+### State machine in code
+
+`ALLOWED_TRANSITIONS` map in `app/Http/Controllers/Admin/CasesController.php`:
+
+```php
+public const ALLOWED_TRANSITIONS = [
+    'DRAFT'     => ['SUBMITTED'],   // unreachable from admin UI (DRAFT filtered out)
+    'SUBMITTED' => ['IN_REVIEW'],
+    'IN_REVIEW' => ['APPROVED', 'REJECTED'],
+    'APPROVED'  => ['IN_REVIEW'],
+    'REJECTED'  => ['IN_REVIEW'],
+];
+```
+
+DRAFT → SUBMITTED is fired by the doctor via `CasesController::submit()`, not by admin. The admin map's DRAFT entry is technically unreachable (admin doesn't see DRAFT cases in the index) but kept for type-checker comfort.
+
+### Status gates (Sprint B-1)
+
+Doctor's `edit()` and section-save endpoints (`saveImpressions`, `saveShipping`, `saveAdditionalInfo`, etc.) must reject with 403 if the case status is not DRAFT. Currently NOT enforced — see Sprint B-1.
+
+`submit()` is idempotent: if status is not DRAFT, returns successfully without re-stamping `submitted_at` or `submitter_initials`. Currently NOT enforced — see Sprint B-1.
+
+### Admin write parity (Sprint B-2)
+
+Admin's case-edit screen renders the same Blade partials as the doctor's, but currently the admin path has no `/admin/cases/{case}/media/*` routes and no admin section-save endpoints (except `prescription`). All admin write operations currently 404 silently — see Sprint B-2.
+
+When Sprint B-2 lands, the recommended pattern is:
+
+1. Extract persistence logic from `CasesController` into service classes (`CaseSectionService`, `CaseMediaService`, etc.)
+2. Both `CasesController` and `Admin/CasesController` call the services with appropriate scoping (`doctor` vs `admin-on-behalf`)
+3. Service layer enforces patient identity locked fields (`first_name`, `last_name`, `dob` rejected from updates if `acting_as === 'admin'`)
+4. Reflection hack in `Admin/CasesController::edit()` (currently used to call doctor serializers) is removed; both controllers use shared methods directly
+
+### Notifications dispatch (Sprint B-4)
+
+Status transitions in `Admin/CasesController::updateStatus()` dispatch notifications via `Notification::send($doctor, new CaseApprovedNotification($case))` etc. Only IN_REVIEW → APPROVED and IN_REVIEW → REJECTED dispatch.
+
+Admin section-save endpoints (post-Sprint B-2) dispatch `CaseEditedByAdminNotification` once per Save Draft action (single notification listing changed sections, not one per section).
+
+Last verified: 2026-05-07 (workflow design lock; implementation gaps documented above pending Sprint B).
 
 ## Where things go wrong (cross-references)
 

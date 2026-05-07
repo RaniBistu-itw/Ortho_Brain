@@ -1,4 +1,4 @@
-> _Last verified: against origin/dev @ `096aea5` on 2026-05-06. If editing, update this stamp._
+> _Last verified: against origin/dev @ `a747b50` on 2026-05-07. If editing, update this stamp._
 
 # 06 — Admin / Doctor Parity
 
@@ -97,6 +97,41 @@ via `POST /admin/cases/{case}/status` ([Admin/CasesController::updateStatus](../
 Allowed-status / actor-status mismatch checks live in the admin
 controller. Test coverage:
 [tests/Feature/Cases/AdminStatusTransitionTest.php](../../tests/Feature/Cases/AdminStatusTransitionTest.php).
+
+## Write-side parity decision (locked 2026-05-07)
+
+Admin gets full write parity for case data, with two carveouts:
+
+1. **Status restriction:** Admin can edit cases in SUBMITTED, IN_REVIEW, APPROVED. Cannot edit REJECTED (terminal).
+2. **Patient identity locked fields:** `patient.first_name`, `patient.last_name`, `patient.dob` are read-only in admin edit. All other patient fields editable. Reason: prevents admin from accidentally re-keying a case onto a different patient identity.
+
+### Admin acts on doctor's behalf
+
+When admin edits, the case's `doctor_id`, `practice_id`, `submitted_at`, and `submitter_initials` are preserved. Admin's identity is captured in audit context (when audit log lands), not in case ownership.
+
+### Implementation pattern (Sprint B-2)
+
+Current state (pre-Sprint-B-2):
+- Admin's case-edit screen has no `/admin/cases/{case}/media/*` routes (upload, destroy, reorder all 404)
+- Admin's case-edit has no section-save endpoints except `/prescription`
+- All admin write operations fail silently due to swallowed errors in `add-case.js`'s shielded chain
+- Admin/CasesController uses Reflection on doctor's serializers for read-side parity (a known smell — see Reflection refactor backlog)
+
+Target state (post-Sprint-B-2):
+- Service layer extracted from `CasesController` (e.g., `CaseSectionService`, `CaseMediaService`, `PatientService`)
+- Both `CasesController` and `Admin/CasesController` call services with role context
+- Services enforce locked fields based on role (`acting_as: 'doctor'` vs `'admin'`)
+- 8 new admin routes mirror doctor routes; admin's controller is thin
+- Reflection hack removed; doctor controller's methods are public/protected as appropriate
+
+### Tests required
+
+- Per-endpoint admin parity tests: same input, same output as doctor's equivalent
+- Locked field enforcement tests: admin attempting to update first_name/last_name/dob → 422
+- Status restriction tests: admin attempting to edit REJECTED case → 403
+- Audit attribution tests (when audit log lands): admin's edits show admin identity, not doctor's
+
+Last verified: 2026-05-07 (write-side parity decision locked; pending Sprint B-2 implementation).
 
 ## Other admin-only domains
 
