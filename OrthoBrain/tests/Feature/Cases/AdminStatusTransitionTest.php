@@ -33,10 +33,12 @@ function viewCaseAsAdmin(int $caseId): string
         ->getContent();
 }
 
-it('shows DRAFT + SUBMITTED for a DRAFT case', function () {
+it('returns 404 for a DRAFT case', function () {
     ['caseId' => $caseId] = makeDoctorCase(['status' => 'DRAFT']);
-    expect(extractStatusDropdownOptions(viewCaseAsAdmin($caseId)))
-        ->toEqualCanonicalizing(['DRAFT', 'SUBMITTED']);
+    $admin = User::factory()->admin()->create();
+    test()->actingAs($admin)
+        ->get("/admin/cases/{$caseId}/edit")
+        ->assertStatus(404);
 });
 
 it('shows SUBMITTED + IN_REVIEW for a SUBMITTED case', function () {

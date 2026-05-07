@@ -28,7 +28,10 @@ function caseReadyForInitialsGate(): array
     ]);
 
     DB::table('prescriptions')->insert(['case_id' => $bundle['caseId']]);
-    DB::table('cases')->where('id', $bundle['caseId'])->update(['patient_id' => $patientId]);
+    DB::table('cases')->where('id', $bundle['caseId'])->update([
+        'patient_id' => $patientId,
+        'xrays_date' => '2026-01-01',
+    ]);
 
     return $bundle;
 }
@@ -116,7 +119,7 @@ it('exposes submitter_initials in the doctor edit prefill', function () {
 });
 
 it('exposes submitter_initials in the admin edit prefill (Entry 2 parity)', function () {
-    ['caseId' => $caseId] = makeDoctorCase();
+    ['caseId' => $caseId] = makeDoctorCase(['status' => 'SUBMITTED']);
     DB::table('cases')->where('id', $caseId)->update(['submitter_initials' => 'AB']);
 
     $admin = User::factory()->admin()->create();
