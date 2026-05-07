@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\GuardsCaseStatus;
 use App\Models\CaseModel;
 use App\Models\Doctor;
 use App\Models\Prescription;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Auth;
 
 class CasesController extends Controller
 {
+    use GuardsCaseStatus;
+
     private const STATUSES        = ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
     private const ACTIVE_STATUSES = ['SUBMITTED', 'IN_REVIEW', 'APPROVED'];
 
@@ -146,6 +149,7 @@ class CasesController extends Controller
 
         return view('content.cases.add-case', [
             'id' => $case->id,
+            'caseStatus' => $case->status,
             'prescriptionPrefill' => $this->serializePrescription($case->prescription),
             'caseDoctor' => $doctor,
             'scanners' => $this->activeScanners(),
@@ -167,6 +171,7 @@ class CasesController extends Controller
     public function saveShipping(Request $request, int $id)
     {
         $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+        $this->abortIfNotDraft($case);
 
         $case->shippingAddress()->updateOrCreate(
             ['case_id' => $case->id],
@@ -188,6 +193,7 @@ class CasesController extends Controller
     public function saveImpressions(Request $request, int $id)
     {
         $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+        $this->abortIfNotDraft($case);
 
         $case->update([
             'impression_method' => strtoupper($request->input('impressionMethod')),
@@ -200,6 +206,7 @@ class CasesController extends Controller
     public function saveAdditionalInfo(AdditionalInformationRequest $request, int $id)
     {
         $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+        $this->abortIfNotDraft($case);
 
         $case->additionalInfo()->updateOrCreate(
             ['case_id' => $case->id],
@@ -245,6 +252,14 @@ class CasesController extends Controller
             if (! ActivePractice::set((int) $case->practice_id)) {
                 abort(404);
             }
+        }
+
+        if ($case->status !== 'DRAFT') {
+            return response()->json([
+                'ok'       => true,
+                'redirect' => route('doctor.cases.index'),
+                'message'  => 'Case already submitted.',
+            ]);
         }
 
         if (! $case->prescription) {

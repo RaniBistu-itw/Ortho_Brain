@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\GuardsCaseStatus;
 use App\Http\Requests\Cases\PatientInformationRequest;
 use App\Models\CaseModel;
 use App\Models\Doctor;
@@ -21,6 +22,8 @@ use Illuminate\Support\Facades\DB;
  */
 class PatientController extends Controller
 {
+    use GuardsCaseStatus;
+
     private const SEARCH_LIMIT = 8;
 
     /**
@@ -82,6 +85,7 @@ class PatientController extends Controller
         $case = CaseModel::where('doctor_id', $doctor->id)
             ->where('practice_id', $practiceId)
             ->findOrFail($caseId);
+        $this->abortIfNotDraft($case);
 
         $payload = $request->validated();
 

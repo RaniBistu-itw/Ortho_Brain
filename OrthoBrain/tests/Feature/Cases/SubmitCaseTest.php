@@ -51,7 +51,10 @@ it('allows submit when both prescription and patient are present', function () {
         'updated_at'   => now(),
     ]);
 
-    DB::table('cases')->where('id', $caseId)->update(['patient_id' => $patientId]);
+    DB::table('cases')->where('id', $caseId)->update([
+        'patient_id' => $patientId,
+        'xrays_date' => '2026-01-01',
+    ]);
     DB::table('prescriptions')->insert(['case_id' => $caseId]);
 
     $this->withSession([ActivePractice::SESSION_KEY => $pid])
@@ -63,6 +66,47 @@ it('allows submit when both prescription and patient are present', function () {
         'id'     => $caseId,
         'status' => 'SUBMITTED',
     ]);
+});
+
+// ─── Idempotency — non-DRAFT cases are no-ops, no re-stamping ──────────────
+
+it('is a no-op on a SUBMITTED case — does not re-stamp submitted_at', function () {
+    ['practiceId' => $pid, 'caseId' => $caseId] = makeDoctorCase(['status' => 'SUBMITTED']);
+
+    $originalStamp = '2026-01-01 09:00:00';
+    DB::table('cases')->where('id', $caseId)->update(['submitted_at' => $originalStamp]);
+
+    $this->withSession([ActivePractice::SESSION_KEY => $pid])
+        ->postJson("/dev/cases/{$caseId}/submit", ['submitter_initials' => 'XY'])
+        ->assertStatus(200)
+        ->assertJson(['ok' => true]);
+
+    $persisted = DB::table('cases')->where('id', $caseId)->value('submitted_at');
+    expect((string) $persisted)->toBe($originalStamp);
+});
+
+it('is a no-op on a SUBMITTED case — does not overwrite submitter_initials', function () {
+    ['practiceId' => $pid, 'caseId' => $caseId] = makeDoctorCase(['status' => 'SUBMITTED']);
+
+    DB::table('cases')->where('id', $caseId)->update(['submitter_initials' => 'AB']);
+
+    $this->withSession([ActivePractice::SESSION_KEY => $pid])
+        ->postJson("/dev/cases/{$caseId}/submit", ['submitter_initials' => 'ZZ'])
+        ->assertStatus(200);
+
+    expect(DB::table('cases')->where('id', $caseId)->value('submitter_initials'))->toBe('AB');
+});
+
+it('returns ok=true with redirect on idempotent submit (all non-DRAFT statuses)', function () {
+    foreach (['SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'] as $status) {
+        ['practiceId' => $pid, 'caseId' => $caseId] = makeDoctorCase(['status' => $status]);
+
+        $this->withSession([ActivePractice::SESSION_KEY => $pid])
+            ->postJson("/dev/cases/{$caseId}/submit")
+            ->assertStatus(200, "Expected 200 for status={$status}")
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('message', 'Case already submitted.');
+    }
 });
 
 // ─── Isolation ──────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\GuardsCaseStatus;
 use App\Models\CaseModel;
 use App\Models\Doctor;
 use App\Models\Prescription;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 class PrescriptionController extends Controller
 {
+    use GuardsCaseStatus;
+
     public function update(Request $request, int $id)
     {
         $user = Auth::user();
@@ -29,6 +32,7 @@ class PrescriptionController extends Controller
             $case = CaseModel::where('doctor_id', $doctor->id)
                 ->where('practice_id', currentPractice()->id)
                 ->findOrFail($id);
+            $this->abortIfNotDraft($case);
         }
 
         $payload = $request->validate([
