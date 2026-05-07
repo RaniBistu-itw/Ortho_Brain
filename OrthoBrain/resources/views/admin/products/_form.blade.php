@@ -90,8 +90,23 @@
         @endif
 
         {{-- Hidden file input — clicked programmatically by the Add button; synced via DataTransfer. --}}
-        <input id="images" name="images[]" type="file" multiple accept="image/jpeg,image/png"
-               class="@error('images') is-invalid @enderror" hidden>
+        <input id="images"
+       name="images[]"
+       type="file"
+       multiple
+       accept="image/jpeg,image/png"
+       class="@error('images') is-invalid @enderror"
+       tabindex="-1"
+       aria-hidden="true"
+       style="
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            overflow: hidden;
+       ">
 
         {{-- Add-image trigger --}}
         <div class="mt-1">
@@ -128,7 +143,7 @@
 
 @push('scripts')
 <script src="{{ asset('vuexy/vendors/js/extensions/dragula.min.js') }}"></script>
-<script src="https://cdn.ckeditor.com/ckeditor5/41.3.1/classic/ckeditor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ckeditor/ckeditor5-build-classic@41.3.1/build/ckeditor.js"></script>
 <script>
 obCascade({ parent:'#category_id', child:'#subcategory_id', url:'{{ route('admin.ajax.subcategories') }}', paramName:'category_id', placeholder:'Select sub category', preselectId: @json($selSubcategory) });
 ClassicEditor.create(document.querySelector('#description'), {
@@ -229,10 +244,10 @@ ClassicEditor.create(document.querySelector('#description'), {
         if (window.feather) feather.replace();
     }
 
-    // Click the native hidden file input directly in the same user-gesture tick.
+    // Click the native file input synchronously — must stay in the same user-gesture tick.
     addBtn.addEventListener('click', function () {
         if (addBtn.disabled) return;
-        fileInput.value = '';   // reset so the same file can be re-picked
+        fileInput.value = '';
         fileInput.click();
     });
 
