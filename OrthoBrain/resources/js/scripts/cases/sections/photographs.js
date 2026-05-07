@@ -536,7 +536,12 @@
             try {
               var res = await fetch(self.tiles[tileId].previewUrl, { credentials: 'same-origin' });
               if (!res.ok) throw { status: res.status, body: {} };
-              blob = await res.blob();
+              var rawBlob = await res.blob();
+              // Wrap as File so MediaTileHelpers.createPreviewUrl's .name
+              // access works. The synthetic name is decorative — the real
+              // original_name lives server-side. HEIC detection still works
+              // via the helper's blob.type check.
+              blob = new File([rawBlob], tileId, { type: rawBlob.type });
               self.tiles[tileId].originalFile = blob;
             } catch (err) {
               var msg = window.MediaTileHelpers.upgradeCropFetchError(err, self.getTileLabel(tileId));
