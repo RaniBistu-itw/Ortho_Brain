@@ -151,5 +151,13 @@
     saveAdditionalInfo: function (caseId, payload) {
       return request('POST', base() + '/' + encodeURIComponent(caseId) + '/additional', payload);
     },
+
+    savePhotographsDate: function (caseId, dateOfPhotos) {
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/photographs/date', { dateOfPhotos: dateOfPhotos });
+    },
+
+    saveXraysDate: function (caseId, dateOfXrays) {
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/xrays/date', { dateOfXrays: dateOfXrays });
+    },
   };
 })();

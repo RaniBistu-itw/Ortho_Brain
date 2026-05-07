@@ -158,6 +158,8 @@ class CasesController extends Controller
                 'impressionMethod' => $case->impression_method ? strtolower($case->impression_method) : null,
                 'scannerId' => $case->scanner_id,
             ],
+            'photographsPrefill' => ['dateOfPhotos' => $case->photos_date?->format('Y-m-d')],
+            'xraysPrefill'       => ['dateOfXrays'  => $case->xrays_date?->format('Y-m-d')],
             'submitOrderPrefill' => $this->serializeSubmitOrder($case),
         ]);
     }
@@ -207,6 +209,30 @@ class CasesController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function savePhotographsDate(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'dateOfPhotos' => 'nullable|date|before_or_equal:today',
+        ]);
+
+        $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+        $case->update(['photos_date' => $data['dateOfPhotos'] ?? null]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function saveXraysDate(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'dateOfXrays' => 'nullable|date|before_or_equal:today',
+        ]);
+
+        $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+        $case->update(['xrays_date' => $data['dateOfXrays'] ?? null]);
+
+        return response()->json(['ok' => true]);
+    }
+
     public function submit(Request $request, int $id)
     {
         $doctor = $this->currentDoctor();
@@ -246,6 +272,17 @@ class CasesController extends Controller
                 'ok'      => false,
                 'error'   => 'initials_required',
                 'message' => 'Submitter initials are required (2-5 letters).',
+            ], 422);
+        }
+
+        // Refresh in case the saveDraft() flush from add-case-submit.js
+        // wrote xrays_date microseconds before this request landed.
+        $case->refresh();
+        if (! $case->xrays_date) {
+            return response()->json([
+                'ok'      => false,
+                'error'   => 'xrays_date_required',
+                'message' => 'Date of X-Rays is required before submit.',
             ], 422);
         }
 

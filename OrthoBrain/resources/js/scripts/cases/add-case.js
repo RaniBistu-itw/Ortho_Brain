@@ -35,6 +35,12 @@
   if (window.__additionalInfoPrefill) state.additionalInformation = window.__additionalInfoPrefill;
   if (window.__shippingAddressPrefill) state.shippingAddress = window.__shippingAddressPrefill;
   if (window.__impressionsPrefill) state.impressions = window.__impressionsPrefill;
+  if (window.__photographsPrefill && window.__photographsPrefill.dateOfPhotos) {
+    state.photographs = Object.assign({}, state.photographs, { dateOfPhotos: window.__photographsPrefill.dateOfPhotos });
+  }
+  if (window.__xraysPrefill && window.__xraysPrefill.dateOfXrays) {
+    state.xrays = Object.assign({}, state.xrays, { dateOfXrays: window.__xraysPrefill.dateOfXrays });
+  }
 
   // ─── Autosave indicator ───────────────────────────────────────────────────
 
@@ -117,6 +123,20 @@
     return window.CaseApi.saveAdditionalInfo(caseId, state.additionalInformation);
   }
 
+  function persistPhotographsDate() {
+    if (!window.CaseApi || caseId === 'new') return Promise.resolve();
+    var date = state.photographs && state.photographs.dateOfPhotos;
+    if (!date) return Promise.resolve();
+    return window.CaseApi.savePhotographsDate(caseId, date);
+  }
+
+  function persistXraysDate() {
+    if (!window.CaseApi || caseId === 'new') return Promise.resolve();
+    var date = state.xrays && state.xrays.dateOfXrays;
+    if (!date) return Promise.resolve();
+    return window.CaseApi.saveXraysDate(caseId, date);
+  }
+
   // Persist patient identity (firstName, lastName, DOB, gender, chartId,
   // chiefComplaint, plus optional email/phone). Skips silently when the
   // form isn't yet complete enough to satisfy PatientInformationRequest —
@@ -191,19 +211,23 @@
     }
 
     var LABELS = {
-      prescription: 'Prescription',
-      patient:      'Patient',
-      shipping:     'Shipping',
-      impressions:  'Impressions',
-      additionalInfo: 'Additional Info',
+      prescription:    'Prescription',
+      patient:         'Patient',
+      shipping:        'Shipping',
+      impressions:     'Impressions',
+      additionalInfo:  'Additional Info',
+      photographsDate: 'Date of Photos',
+      xraysDate:       'Date of X-Rays',
     };
 
     return ensureShellCreated()
-      .then(shield('prescription',   persistPrescription))
-      .then(shield('patient',        persistPatient))
-      .then(shield('shipping',       persistShipping))
-      .then(shield('impressions',    persistImpressions))
-      .then(shield('additionalInfo', persistAdditionalInfo))
+      .then(shield('prescription',     persistPrescription))
+      .then(shield('patient',          persistPatient))
+      .then(shield('shipping',         persistShipping))
+      .then(shield('impressions',      persistImpressions))
+      .then(shield('additionalInfo',   persistAdditionalInfo))
+      .then(shield('photographsDate',  persistPhotographsDate))
+      .then(shield('xraysDate',        persistXraysDate))
       .then(function () {
         try { localStorage.setItem(draftKey, JSON.stringify(state)); } catch (e) { /* ignore quota */ }
         state.lastSavedAt = new Date().toISOString();
@@ -369,6 +393,17 @@
       updateAutosaveIndicator();
     },
     currentCaseId: function () { return caseId; },
+
+    // Immediate (non-debounced) save for the X-Rays date input. The 30s
+    // autosave debounce + saveDraft's isDirty early-return + the
+    // change-vs-click ordering on <input type="date"> together make it
+    // possible for a typed date to never reach the DB before submit fires.
+    // Saving on @change closes that race.
+    saveXraysDateNow: function (date) {
+      if (!window.CaseApi || caseId === 'new' || !date) return;
+      return window.CaseApi.saveXraysDate(caseId, date)
+        .catch(function (e) { console.warn('saveXraysDateNow failed', e); });
+    },
   };
 
   // ─── Init ─────────────────────────────────────────────────────────────────

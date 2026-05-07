@@ -44,7 +44,7 @@
                class="form-control case-date-input"
                id="xray-date"
                x-model="dateOfXrays"
-               @change="validateField('dateOfXrays'); syncToState()">
+               @change="validateField('dateOfXrays'); syncToState(); window.AddCaseSave?.saveXraysDateNow?.(dateOfXrays)">
       </div>
       <div class="small text-danger mt-25"
            x-show="errors.dateOfXrays"

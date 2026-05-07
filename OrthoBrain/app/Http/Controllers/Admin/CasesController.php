@@ -187,6 +187,8 @@ class CasesController extends Controller
                 'impressionMethod' => $case->impression_method ? strtolower($case->impression_method) : null,
                 'scannerId' => $case->scanner_id,
             ],
+            'photographsPrefill' => ['dateOfPhotos' => $case->photos_date?->format('Y-m-d')],
+            'xraysPrefill'       => ['dateOfXrays'  => $case->xrays_date?->format('Y-m-d')],
         ]);
     }
 
