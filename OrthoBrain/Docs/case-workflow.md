@@ -2,7 +2,7 @@
 
 Source of truth for the case state machine, role capabilities, and notification expectations. Plain-English, written for the team (product, QA, engineering onboarding) and for Claude during pre-flight.
 
-Last verified: locked at session 2026-05-07.
+Last verified: 2026-05-08 against origin/dev @ `fcb6fb7`.
 
 ## Statuses
 
@@ -80,6 +80,18 @@ Once submitted, the doctor cannot edit the case. There is no withdraw button, no
 | Export PDF | n/a | ✓ | ✓ | ✓ | ✓ |
 
 Admin's role is review-and-decide with corrective edit capability. Admin acts on the doctor's behalf — case ownership stays with the doctor regardless of admin edits.
+
+### Admin locked fields
+
+`patient.first_name`, `patient.last_name`, `patient.dob` are never editable by admin regardless of case status.
+
+### APPROVED case unlock flow
+
+APPROVED cases are view-only for admin. To edit, admin must transition APPROVED → IN_REVIEW via the status dropdown. The page reloads automatically after the transition. The form becomes editable in IN_REVIEW state.
+
+### Status update UX
+
+After any admin status change, the page reloads automatically (toast + `window.location.reload()`). No stale state after transition.
 
 ## Admin edit semantics
 
