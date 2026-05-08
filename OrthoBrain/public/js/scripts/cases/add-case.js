@@ -16,6 +16,8 @@
     lastSavedAt: null,
     hasAttemptedSubmit: false,
     isDirty: false,
+    isReadOnly: window.__isReadOnly === true,
+    caseStatus: window.__caseStatus || 'DRAFT',
     sections: {},
   };
 

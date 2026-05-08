@@ -2,6 +2,7 @@
   $adminMode = $adminMode ?? false;
   $caseRow = $caseRow ?? null;
   $caseDoctor = $caseDoctor ?? null;
+  $caseStatus = $caseStatus ?? 'DRAFT';
   $scanners = $scanners ?? collect();
   $doctorSavedAddresses = $doctorSavedAddresses ?? [];
   $statusOptions = $statusOptions ?? ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
@@ -112,16 +113,18 @@
         <i data-feather="file-text"></i> Export PDF
       </button>
 
-      <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-25" id="btn-save-draft" title="Save draft now">
-        <i data-feather="save"></i> Save Draft
-      </button>
+      @if($adminMode || $caseStatus === 'DRAFT')
+        <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-25" id="btn-save-draft" title="Save draft now">
+          <i data-feather="save"></i> Save Draft
+        </button>
+      @endif
 
-      @unless($adminMode)
+      @if(!$adminMode && $caseStatus === 'DRAFT')
         <button type="button" class="btn btn-success btn-sm d-flex align-items-center gap-25" id="btn-submit" title="Submit case for review"
                 onclick="window.AddCaseSubmit.submit()">
           <i data-feather="check"></i> Submit
         </button>
-      @endunless
+      @endif
     </div>
   </div>
 
@@ -233,6 +236,8 @@
     window.__submitOrderPrefill = @json($submitOrderPrefill ?? null);
     window.CASE_API_BASE = @json($apiBase);
     window.CASE_ADMIN_MODE = @json((bool) $adminMode);
+    window.__caseStatus = @json($caseStatus);
+    window.__isReadOnly = window.__caseStatus !== 'DRAFT' && !@json((bool) $adminMode);
     window.ACTIVE_PRACTICE_ADDRESS = @json($activePracticeAddress);
     window.DOCTOR_SAVED_ADDRESSES = @json($doctorSavedAddresses);
     window.COUNTRY_ENTRIES = @json($countryEntries);

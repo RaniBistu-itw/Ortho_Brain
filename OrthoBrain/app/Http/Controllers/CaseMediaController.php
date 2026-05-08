@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\GuardsCaseStatus;
 use App\Models\CaseMedia;
 use App\Models\CaseModel;
 use App\Models\Doctor;
@@ -21,6 +22,8 @@ use Illuminate\Support\Str;
  */
 class CaseMediaController extends Controller
 {
+    use GuardsCaseStatus;
+
     private const SECTIONS = ['photograph', 'xray'];
 
     public function __construct(private ImageUploadService $images) {}
@@ -43,6 +46,7 @@ class CaseMediaController extends Controller
     public function upload(Request $request, int $caseId)
     {
         $case = $this->resolveCaseForDoctor($caseId);
+        $this->abortIfNotDraft($case);
 
         $payload = $request->validate([
             'section'     => 'required|in:' . implode(',', self::SECTIONS),
@@ -134,6 +138,7 @@ class CaseMediaController extends Controller
     public function reorder(Request $request, int $caseId)
     {
         $case = $this->resolveCaseForDoctor($caseId);
+        $this->abortIfNotDraft($case);
 
         $payload = $request->validate([
             'section'        => 'required|in:' . implode(',', self::SECTIONS),
@@ -180,6 +185,7 @@ class CaseMediaController extends Controller
     public function destroy(int $caseId, string $section, string $tileId)
     {
         $case = $this->resolveCaseForDoctor($caseId);
+        $this->abortIfNotDraft($case);
 
         if (! in_array($section, self::SECTIONS, true)) {
             abort(404);

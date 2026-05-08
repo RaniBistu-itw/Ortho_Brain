@@ -177,6 +177,7 @@ class CasesController extends Controller
 
         return view('content.cases.add-case', [
             'id' => $case->id,
+            'caseStatus' => $case->status,
             'prescriptionPrefill' => $prescriptionPrefill,
             'adminMode' => true,
             'caseRow' => $case,
