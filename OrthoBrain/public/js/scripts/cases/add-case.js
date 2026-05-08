@@ -275,6 +275,14 @@
   }
 
   window.addEventListener('beforeunload', function () {
+    // Last-ditch backup: if the user navigates away with typing still in
+    // memory (closed tab, browser back, deep-link click), persist to
+    // localStorage so the next visit can rehydrate. The practice switcher
+    // uses the awaitable `flushNow()` for a real server save.
+    if (state.isDirty) {
+      try { localStorage.setItem(draftKey, JSON.stringify(state)); }
+      catch (e) { /* ignore quota */ }
+    }
     clearTimeout(autosaveTimer);
   });
 
@@ -395,6 +403,16 @@
       updateAutosaveIndicator();
     },
     currentCaseId: function () { return caseId; },
+
+    // Flush any pending autosave immediately. Returns a Promise that
+    // resolves when every section has been acknowledged by the server (or
+    // no-ops if the form is clean — saveDraft early-returns on !isDirty).
+    // Called by the practice switcher to guarantee no data loss across
+    // a mid-form switch.
+    flushNow: function () {
+      clearTimeout(autosaveTimer);
+      return saveDraft();
+    },
 
     // Immediate (non-debounced) save for the X-Rays date input. The 30s
     // autosave debounce + saveDraft's isDirty early-return + the
