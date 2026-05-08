@@ -269,6 +269,17 @@ Route::middleware(['web', 'admin'])
         Route::post('/cases/{case}/media/{section}/{tile_id}/destroy',              [\App\Http\Controllers\Admin\CaseMediaController::class, 'destroy'])->where('section', 'photograph|xray')->name('cases.media.destroy');
         Route::post('/cases/{case}/media/reorder',                                  [\App\Http\Controllers\Admin\CaseMediaController::class, 'reorder'])->name('cases.media.reorder');
 
+        // Admin section-save routes — admin edits cases on doctor's behalf.
+        // No doctor/practice scope needed; no abortIfNotDraft guard (admin can
+        // edit SUBMITTED + IN_REVIEW). Identity fields (first/last/dob) are
+        // locked client-side and excluded server-side in savePatient().
+        // See Docs/case-workflow.md — Admin locked fields.
+        Route::post('/cases/{case}/shipping',     [AdminCasesController::class, 'saveShipping'])->name('cases.shipping.save');
+        Route::post('/cases/{case}/impressions',  [AdminCasesController::class, 'saveImpressions'])->name('cases.impressions.save');
+        Route::post('/cases/{case}/additional',   [AdminCasesController::class, 'saveAdditionalInfo'])->name('cases.additional.save');
+        Route::post('/cases/{case}/patient',      [AdminCasesController::class, 'savePatient'])->name('cases.patient.save');
+        Route::post('/cases/{case}/submit-order', [AdminCasesController::class, 'saveSubmitOrder'])->name('cases.submit-order.save');
+
         // Admin Doctors — review + approve/reject/suspend (PR #17)
         Route::resource('doctors', AdminDoctorController::class)
             ->only(['index', 'create', 'store', 'show', 'update', 'destroy']);

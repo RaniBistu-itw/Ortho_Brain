@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\CasesController as DoctorCasesController;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateCaseStatusRequest;
+use App\Http\Requests\Cases\AdditionalInformationRequest;
 use App\Models\CaseModel;
 use App\Models\Doctor;
 use App\Models\Patient;
@@ -272,5 +273,90 @@ class CasesController extends Controller
             'submitted_at' => $case->submitted_at?->toIso8601String(),
             'message' => 'Status updated.',
         ]);
+    }
+
+    // ─── Section-save endpoints (B-2) ────────────────────────────────────────
+    //
+    // Admin equivalents of the doctor section-save methods. Key differences:
+    //   - No doctor_id / practice_id scope (admin sees all cases).
+    //   - No abortIfNotDraft guard (admin can edit SUBMITTED + IN_REVIEW).
+    //
+    // APPROVED and REJECTED cases are read-only client-side via the widened
+    // window.__isReadOnly formula — the server does not re-enforce this because
+    // the UI prevents submission. These endpoints mirror the doctor-side
+    // contracts so the same case-api.js payload shapes work unchanged.
+
+    // Admin section save: shipping address.
+    public function saveShipping(Request $request, int $id)
+    {
+        $case = CaseModel::findOrFail($id);
+        $case->shippingAddress()->updateOrCreate(
+            ['case_id' => $case->id],
+            [
+                'practice_name'    => $request->input('practice'),
+                'doctor_name'      => $request->input('doctorName'),
+                'street_address_1' => $request->input('streetAddress'),
+                'street_address_2' => $request->input('streetAddress2'),
+                'zip_id'           => $request->input('zipId'),
+                'city_id'          => $request->input('cityId'),
+                'state_id'         => $request->input('stateId'),
+                'country_id'       => $request->input('countryId'),
+            ]
+        );
+        return response()->json(['ok' => true]);
+    }
+
+    // Admin section save: impression method + scanner.
+    public function saveImpressions(Request $request, int $id)
+    {
+        $case = CaseModel::findOrFail($id);
+        $case->update([
+            'impression_method' => strtoupper($request->input('impressionMethod', '')),
+            'scanner_id'        => $request->input('scannerId'),
+        ]);
+        return response()->json(['ok' => true]);
+    }
+
+    // Admin section save: additional information JSON blob.
+    // Reuses AdditionalInformationRequest — all rules are nullable so an
+    // admin partial-save never fails validation on untouched sections.
+    public function saveAdditionalInfo(AdditionalInformationRequest $request, int $id)
+    {
+        $case = CaseModel::findOrFail($id);
+        $case->additionalInfo()->updateOrCreate(
+            ['case_id' => $case->id],
+            ['data' => $request->validated()]
+        );
+        return response()->json(['ok' => true]);
+    }
+
+    // Admin section save: patient non-identity fields only.
+    // first_name, last_name, date_of_birth are intentionally excluded —
+    // admin cannot alter patient identity. See Docs/case-workflow.md.
+    public function savePatient(Request $request, int $id)
+    {
+        $case = CaseModel::findOrFail($id);
+        if ($case->patient) {
+            $case->patient->update([
+                'biological_gender'       => $request->input('biologicalGender'),
+                'biological_gender_other' => $request->input('biologicalGenderOther'),
+                'chart_id'                => $request->input('patientChartId'),
+                'chief_complaint'         => $request->input('chiefComplaint'),
+                'email'                   => $request->input('email'),
+                'phone'                   => $request->input('phone'),
+            ]);
+        }
+        return response()->json(['ok' => true]);
+    }
+
+    // Admin section save: submitter initials.
+    public function saveSubmitOrder(Request $request, int $id)
+    {
+        $case = CaseModel::findOrFail($id);
+        $initials = trim((string) $request->input('submitterInitials', ''));
+        $case->update([
+            'submitter_initials' => $initials !== '' ? $initials : null,
+        ]);
+        return response()->json(['ok' => true]);
     }
 }

@@ -533,6 +533,16 @@
         if (el) el.disabled = true;
       });
     }
+    // Admin locked fields: first_name, last_name, dob are never
+    // editable by admin regardless of case status or isReadOnly.
+    // Workflow rule: admin acts on doctor's behalf but cannot
+    // alter patient identity. See Docs/case-workflow.md.
+    if (window.CASE_ADMIN_MODE) {
+      ['pi-first-name', 'pi-last-name', 'pi-dob'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.disabled = true;
+      });
+    }
   }
 
   // ─── Expose module ────────────────────────────────────────────────────────
