@@ -2,7 +2,7 @@
 
 Source of truth for the case state machine, role capabilities, and notification expectations. Plain-English, written for the team (product, QA, engineering onboarding) and for Claude during pre-flight.
 
-Last verified: 2026-05-08 against origin/dev @ `fcb6fb7`.
+Last verified: 2026-05-08 against feat/b2-admin-parity-reload @ `266d312` (B-2 implemented — admin section-save routes, widened __isReadOnly formula, page reload after status change).
 
 ## Statuses
 
