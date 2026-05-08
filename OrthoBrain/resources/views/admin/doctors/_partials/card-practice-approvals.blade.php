@@ -167,7 +167,7 @@
                                     @if($link->phone_number)
                                         <span class="ob-practice-meta-item text-muted">
                                             <i data-feather="phone"></i>
-                                            {{ $link->phone_country_code ? '+' . $link->phone_country_code . ' ' : '' }}{{ $link->phone_number }}
+                                            {{ $link->phone_country_code ? '+' . ltrim($link->phone_country_code, '+') . ' ' : '' }}{{ $link->phone_number }}
                                         </span>
                                     @endif
                                 </div>

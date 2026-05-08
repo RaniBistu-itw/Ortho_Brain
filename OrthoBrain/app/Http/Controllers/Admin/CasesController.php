@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateCaseStatusRequest;
 use App\Models\CaseModel;
 use App\Models\Doctor;
 use App\Models\Patient;
+use App\Models\Practice;
 use App\Models\Scanner;
 use Illuminate\Http\Request;
 
@@ -36,9 +37,11 @@ class CasesController extends Controller
 
     public function index(Request $request)
     {
-        $statusFilter  = $request->query('status');
-        $doctorFilter  = $request->query('doctor_id');
-        $patientFilter = $request->query('patient_id');
+        $statusFilter   = $request->query('status');
+        $doctorFilter   = $request->query('doctor_id');
+        $patientFilter  = $request->query('patient_id');
+        $practiceFilter = $request->query('practice_id');
+        $caseIdFilter   = $request->query('case_id');
 
         $sortable = [
             'id'           => 'cases.id',
@@ -99,6 +102,14 @@ class CasesController extends Controller
             $query->where('cases.patient_id', $patientFilter);
         }
 
+        if ($practiceFilter) {
+            $query->whereHas('doctor', fn ($q) => $q->where('practice_id', $practiceFilter));
+        }
+
+        if ($caseIdFilter && ctype_digit((string) $caseIdFilter)) {
+            $query->where('cases.id', (int) $caseIdFilter);
+        }
+
         $cases = $query->paginate(20)->withQueryString();
 
         $selectedDoctor = $doctorFilter
@@ -112,6 +123,10 @@ class CasesController extends Controller
                 ->find($patientFilter)
             : null;
 
+        $selectedPractice = $practiceFilter
+            ? Practice::select('id', 'name')->find($practiceFilter)
+            : null;
+
         $statusCounts = CaseModel::query()
             ->selectRaw('status, COUNT(*) as total')
             ->where('status', '!=', 'DRAFT')
@@ -119,16 +134,19 @@ class CasesController extends Controller
             ->pluck('total', 'status');
 
         return view('admin.cases.index', [
-            'cases' => $cases,
-            'selectedDoctor' => $selectedDoctor,
+            'cases'           => $cases,
+            'selectedDoctor'  => $selectedDoctor,
             'selectedPatient' => $selectedPatient,
-            'statusOptions' => self::STATUS_OPTIONS,
-            'statusLabels' => self::STATUS_LABELS,
-            'statusFilter' => $statusFilter,
-            'doctorFilter' => $doctorFilter,
-            'patientFilter' => $patientFilter,
-            'statusCounts' => $statusCounts,
-            'totalCount'   => (int) $statusCounts->sum(),
+            'selectedPractice'=> $selectedPractice,
+            'statusOptions'   => self::STATUS_OPTIONS,
+            'statusLabels'    => self::STATUS_LABELS,
+            'statusFilter'    => $statusFilter,
+            'doctorFilter'    => $doctorFilter,
+            'patientFilter'   => $patientFilter,
+            'practiceFilter'  => $practiceFilter,
+            'caseIdFilter'    => $caseIdFilter,
+            'statusCounts'    => $statusCounts,
+            'totalCount'      => (int) $statusCounts->sum(),
         ]);
     }
 

@@ -27,7 +27,7 @@
                 <div class="mb-1">
                     <label class="form-label">Phone</label>
                     <div class="form-control bg-light-secondary" style="min-height: 38px;">
-                        {{ $practice->phone_country_code ? str_replace('_', ' ', $practice->phone_country_code) . ' ' : '' }}{{ $practice->phone_number }}
+                        {{ $practice->phone_country_code ? '+' . ltrim($practice->phone_country_code, '+') . ' ' : '' }}{{ $practice->phone_number }}
                     </div>
                 </div>
             @endif

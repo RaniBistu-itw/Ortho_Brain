@@ -126,6 +126,7 @@ Route::middleware(['web', 'auth'])
             Route::post('/cases/{case}/shipping',   [CasesController::class, 'saveShipping'])->name('cases.shipping.save');
             Route::post('/cases/{case}/impressions',[CasesController::class, 'saveImpressions'])->name('cases.impressions.save');
             Route::post('/cases/{case}/additional', [CasesController::class, 'saveAdditionalInfo'])->name('cases.additional.save');
+            Route::post('/cases/{case}/submit-order', [CasesController::class, 'saveSubmitOrder'])->name('cases.submit-order.save');
             Route::post('/cases/{case}/photographs/date', [CasesController::class, 'savePhotographsDate'])->name('cases.photographs.date.save');
             Route::post('/cases/{case}/xrays/date',       [CasesController::class, 'saveXraysDate'])->name('cases.xrays.date.save');
             Route::post('/cases/{case}/prescription',[PrescriptionController::class, 'update'])->name('cases.prescription.update');
@@ -153,13 +154,10 @@ Route::middleware(['web', 'auth'])
                 ->middleware('throttle:60,1')
                 ->name('cases.media.reorder');
 
-            // AI vision — photo QC + Perfect Smile Plan generation. Throttled per user
-            // to keep accidental retry loops from blowing through the free-tier quota.
+            // AI vision — photo QC + Perfect Smile Plan generation.
             Route::post('/cases/{case}/photos/classify',      [ImageAnalysisController::class, 'classify'])
-                ->middleware('throttle:30,60')
                 ->name('cases.photos.classify');
             Route::post('/cases/{case}/smile-plan/generate',  [ImageAnalysisController::class, 'smilePlan'])
-                ->middleware('throttle:10,60')
                 ->name('cases.smile-plan.generate');
 
             // AI image-edit — before/after smile visualisation. Rate-limited to protect free-tier quota.
@@ -266,6 +264,11 @@ Route::middleware(['web', 'admin'])
             [SmilePreviewController::class, 'generate']
         )->middleware('throttle:5,1')->name('cases.smile-preview.generate');
 
+        // Admin media — upload / destroy / reorder for photographs and x-rays
+        Route::post('/cases/{case}/media/upload',                                   [\App\Http\Controllers\Admin\CaseMediaController::class, 'upload'])->name('cases.media.upload');
+        Route::post('/cases/{case}/media/{section}/{tile_id}/destroy',              [\App\Http\Controllers\Admin\CaseMediaController::class, 'destroy'])->where('section', 'photograph|xray')->name('cases.media.destroy');
+        Route::post('/cases/{case}/media/reorder',                                  [\App\Http\Controllers\Admin\CaseMediaController::class, 'reorder'])->name('cases.media.reorder');
+
         // Admin Doctors — review + approve/reject/suspend (PR #17)
         Route::resource('doctors', AdminDoctorController::class)
             ->only(['index', 'create', 'store', 'show', 'update', 'destroy']);
@@ -351,7 +354,8 @@ Route::middleware(['web', 'admin'])
             Route::get('states',         [LookupController::class, 'statesByCountry'])->name('states');
             Route::get('cities',         [LookupController::class, 'citiesByState'])->name('cities');
             Route::get('subcategories',  [LookupController::class, 'subcategoriesByCategory'])->name('subcategories');
-            Route::get('doctors/search', [LookupController::class, 'doctorSearch'])->name('doctors-search');
-            Route::get('patients/search', [LookupController::class, 'patientSearch'])->name('patients-search');
+            Route::get('doctors/search',   [LookupController::class, 'doctorSearch'])->name('doctors-search');
+            Route::get('patients/search',  [LookupController::class, 'patientSearch'])->name('patients-search');
+            Route::get('practices/search', [LookupController::class, 'practiceSearch'])->name('practices-search');
         });
     });

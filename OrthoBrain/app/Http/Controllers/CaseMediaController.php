@@ -214,7 +214,7 @@ class CaseMediaController extends Controller
      * controllers: doctor must own the case AND the case must belong to
      * their currently active practice.
      */
-    private function resolveCaseForDoctor(int $caseId): CaseModel
+    protected function resolveCaseForDoctor(int $caseId): CaseModel
     {
         $user = Auth::user();
         if (! $user) {

@@ -153,6 +153,10 @@
       return request('POST', base() + '/' + encodeURIComponent(caseId) + '/additional', payload);
     },
 
+    saveSubmitOrder: function (caseId, payload) {
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/submit-order', payload);
+    },
+
     savePhotographsDate: function (caseId, dateOfPhotos) {
       return request('POST', base() + '/' + encodeURIComponent(caseId) + '/photographs/date', { dateOfPhotos: dateOfPhotos });
     },
