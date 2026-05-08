@@ -498,6 +498,42 @@
                 padding-top: 1.25rem;
                 border-top: 1px solid #eef1f6;
             }
+            .reg-actions-left,
+            .reg-actions-right {
+                display: flex; align-items: center; gap: 0.6rem;
+                flex-wrap: wrap;
+            }
+
+            /* In-page info modal (replaces browser alert for cap warnings) */
+            .reg-modal {
+                position: fixed; inset: 0;
+                display: flex; align-items: center; justify-content: center;
+                z-index: 1000;
+            }
+            .reg-modal[hidden] { display: none !important; }
+            .reg-modal__backdrop {
+                position: absolute; inset: 0;
+                background: rgba(15, 23, 42, 0.45);
+            }
+            .reg-modal__dialog {
+                position: relative;
+                background: #fff; border-radius: 14px;
+                box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.35);
+                padding: 1.5rem 1.5rem 1.25rem;
+                width: min(420px, calc(100% - 2rem));
+                text-align: center;
+            }
+            .reg-modal__icon {
+                width: 48px; height: 48px;
+                border-radius: 50%;
+                background: #eff6ff; color: var(--ob-primary);
+                display: inline-flex; align-items: center; justify-content: center;
+                font-size: 1.6rem;
+                margin-bottom: 0.75rem;
+            }
+            .reg-modal__title { margin: 0 0 0.5rem; font-size: 1.1rem; color: var(--ob-text); }
+            .reg-modal__body  { margin: 0 0 1.25rem; color: var(--ob-text-muted); font-size: 0.92rem; line-height: 1.5; }
+            .reg-modal .reg-btn-primary-grad { min-width: 120px; justify-content: center; }
             .reg-btn-secondary {
                 display: inline-flex; align-items: center; gap: 0.4rem;
                 padding: 0.65rem 1.25rem;
@@ -801,7 +837,7 @@
                                                 <option value="{{ $code }}" @selected(old('practice_phone_country_code', '+1') === $code)>{{ $code }}</option>
                                             @endforeach
                                         </select>
-                                        <input id="in-phone" name="practice_phone_number" type="text" maxlength="10" placeholder="XXX-XXX-XXXX" value="{{ old('practice_phone_number') }}" oninput="clearError('phone')" />
+                                        <input id="in-phone" name="practice_phone_number" type="text" inputmode="numeric" maxlength="10" placeholder="XXX-XXX-XXXX" value="{{ old('practice_phone_number') }}" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10); clearError('phone');" />
                                     </div>
                                     <p id="err-phone" class="reg-err hidden"></p>
                                 </div>
@@ -1233,19 +1269,31 @@
                     </div>
 
                     <div class="reg-actions">
-                        <a href="{{ url('/login') }}" id="reg-back-login" class="reg-btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Back to Login
-                        </a>
-                        <button type="button" id="reg-back-btn" class="reg-btn-secondary hidden-btn" onclick="regGoPrev()">
-                            <i class="bi bi-arrow-left"></i> Back
-                        </button>
-                        <div style="display:flex;gap:0.6rem;align-items:center;">
+                        <div class="reg-actions-left">
+                            <button type="button" id="reg-back-btn" class="reg-btn-secondary hidden-btn" onclick="regGoPrev()">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </button>
+                            <a href="{{ url('/login') }}" id="reg-back-login" class="reg-btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Login
+                            </a>
+                        </div>
+                        <div class="reg-actions-right">
                             <button type="button" id="reg-next-btn" class="reg-btn-primary-grad" onclick="regGoNext()">
                                 Next <i class="bi bi-arrow-right"></i>
                             </button>
                             <button type="button" id="reg-submit-btn" class="reg-btn-primary-grad is-submit hidden-btn" onclick="validateForm()">
                                 Submit for Approval <i class="bi bi-check2-circle"></i>
                             </button>
+                        </div>
+                    </div>
+
+                    <div id="reg-info-modal" class="reg-modal" role="dialog" aria-modal="true" aria-labelledby="reg-info-modal-title" hidden>
+                        <div class="reg-modal__backdrop" data-close></div>
+                        <div class="reg-modal__dialog">
+                            <div class="reg-modal__icon"><i class="bi bi-info-circle-fill"></i></div>
+                            <h3 id="reg-info-modal-title" class="reg-modal__title">Limit reached</h3>
+                            <p class="reg-modal__body" id="reg-info-modal-body"></p>
+                            <button type="button" class="reg-btn-primary-grad" data-close>Got it</button>
                         </div>
                     </div>
                 </form>
@@ -1341,11 +1389,10 @@
                 const nextBtn   = document.getElementById('reg-next-btn');
                 const submitBtn = document.getElementById('reg-submit-btn');
 
+                backLogin.classList.remove('hidden-btn');
                 if (n === 1) {
-                    backLogin.classList.remove('hidden-btn');
                     backBtn.classList.add('hidden-btn');
                 } else {
-                    backLogin.classList.add('hidden-btn');
                     backBtn.classList.remove('hidden-btn');
                 }
 
@@ -1411,10 +1458,59 @@
                 }
             }
 
+            const MAX_OTHER_EMAILS = 3;
+
+            // Hoisted out of DOMContentLoaded so addEmailRow (top-level, called via inline
+            // onclick) can reach wireOtherEmailRow when adding rows. Inside the closure,
+            // the reference threw and silently left dynamic rows unvalidated.
+            function validateOtherEmailInput(input) {
+                const val = input.value.trim();
+                const row = input.closest('[data-other-email-row]');
+                const errEl = row ? row.querySelector('p.reg-err') : null;
+                if (!val) {
+                    input.classList.remove('is-invalid');
+                    if (errEl) { errEl.textContent = ''; errEl.classList.add('hidden'); }
+                    return;
+                }
+                if (!emailRe.test(val)) {
+                    input.classList.add('is-invalid');
+                    if (errEl) { errEl.textContent = 'Please enter a valid email address'; errEl.classList.remove('hidden'); }
+                } else {
+                    input.classList.remove('is-invalid');
+                    if (errEl) { errEl.textContent = ''; errEl.classList.add('hidden'); }
+                }
+            }
+
+            function wireOtherEmailRow(input) {
+                let touched = false;
+                function run() {
+                    if (!touched && !input.value) return;
+                    touched = true;
+                    validateOtherEmailInput(input);
+                }
+                input.addEventListener('input', run);
+                input.addEventListener('blur',  run);
+            }
+
+            function showRegInfoModal(message) {
+                const modal = document.getElementById('reg-info-modal');
+                if (!modal) { alert(message); return; }
+                modal.querySelector('#reg-info-modal-body').textContent = message;
+                modal.hidden = false;
+                const okBtn = modal.querySelector('.reg-btn-primary-grad');
+                if (okBtn) okBtn.focus();
+            }
+
             function addEmailRow(containerId) {
                 const container = document.getElementById(containerId);
                 const isDoctor = containerId.includes('doctor');
                 const inputName = isDoctor ? 'contact_doctor_other_emails[]' : 'contact_emp_other_emails[]';
+
+                const visible = container.querySelectorAll('[data-other-email-row]').length;
+                if (visible >= MAX_OTHER_EMAILS) {
+                    showRegInfoModal('You can add up to ' + MAX_OTHER_EMAILS + ' additional email addresses for this contact.');
+                    return;
+                }
 
                 const row = document.createElement('div');
                 row.innerHTML = `
@@ -1529,6 +1625,12 @@
                 setVal('in-website', p.website);
                 const cc = document.querySelector('select[name="practice_phone_country_code"]');
                 if (cc && p.phone_country_code) cc.value = p.phone_country_code;
+
+                // setVal() bypasses the inputs' inline oninput handlers, so any
+                // "required" errors shown by a prior failed Next-click stay onscreen
+                // even though the fields are now populated. Clear them explicitly.
+                clearError('phone');
+                clearError('website');
 
                 // Stash the picked existing primary practice's full address into the
                 // dropdown cache so Step 3 can offer it as a source. We deliberately
@@ -1939,39 +2041,21 @@
                     if (el) el.addEventListener('input', () => clearError(id));
                 });
 
-                // Helpers for dynamic "Other Email" rows
-                function validateOtherEmailInput(input) {
-                    const val = input.value.trim();
-                    const errEl = input.closest('.reg-input-group').nextElementSibling;
-                    if (!val) {
-                        input.classList.remove('is-invalid');
-                        if (errEl) { errEl.textContent = ''; errEl.classList.add('hidden'); }
-                        return;
-                    }
-                    if (!emailRe.test(val)) {
-                        input.classList.add('is-invalid');
-                        if (errEl) { errEl.textContent = 'Please enter a valid email address'; errEl.classList.remove('hidden'); }
-                    } else {
-                        input.classList.remove('is-invalid');
-                        if (errEl) { errEl.textContent = ''; errEl.classList.add('hidden'); }
-                    }
-                }
-
-                function wireOtherEmailRow(input) {
-                    let touched = false;
-                    function run() {
-                        if (!touched && !input.value) return;
-                        touched = true;
-                        validateOtherEmailInput(input);
-                    }
-                    input.addEventListener('input', run);
-                    input.addEventListener('blur',  run);
-                }
-
-                // Wire static "Other Email" rows
+                // Wire static "Other Email" rows (helpers are hoisted to top-level scope).
                 document.querySelectorAll(
                     '#doctor-other-emails-list input[type="email"], #employee-other-emails-list input[type="email"]'
                 ).forEach(wireOtherEmailRow);
+
+                // Wire close handlers for the in-page info modal.
+                const _regInfoModal = document.getElementById('reg-info-modal');
+                if (_regInfoModal) {
+                    _regInfoModal.querySelectorAll('[data-close]').forEach(el => {
+                        el.addEventListener('click', () => { _regInfoModal.hidden = true; });
+                    });
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && !_regInfoModal.hidden) _regInfoModal.hidden = true;
+                    });
+                }
 
                 const terms = document.querySelector('input[name="terms_agreed"]');
                 if (terms) {
@@ -2176,10 +2260,10 @@
                                 <div class="reg-phone">
                                     <span class="reg-input-icon" style="border-right:0"><i class="bi bi-telephone"></i></span>
                                     <select name="additional_practices[${idx}][phone_country_code]" id="ep-phone-cc-${idx}"></select>
-                                    <input type="text" name="additional_practices[${idx}][phone_number]" maxlength="10"
+                                    <input type="text" inputmode="numeric" name="additional_practices[${idx}][phone_number]" maxlength="10"
                                            placeholder="10 digits, no dashes"
                                            onblur="epValidateField(${idx}, 'phone_number')"
-                                           oninput="epValidateField(${idx}, 'phone_number')" />
+                                           oninput="this.value=this.value.replace(/\\D/g,'').slice(0,10); epValidateField(${idx}, 'phone_number')" />
                                 </div>
                                 <p class="reg-err hidden ep-err-phone_number-${idx}"></p>
                             </div>
