@@ -263,11 +263,8 @@
 
 @section('content')
 @php
-    $selectedCountry = request('country_id')
-        ? optional($countries->firstWhere('id', (int) request('country_id')))->name
-        : null;
     $searchTerm = trim((string) request('search', ''));
-    $hasActiveFilters = $selectedCountry || $searchTerm !== '';
+    $hasActiveFilters = $searchTerm !== '';
 
     $queryWithout = function (array $remove) {
         $q = request()->query();
@@ -303,22 +300,14 @@
                         <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <select name="country_id" class="js-searchable form-select">
-                        <option value="">All countries</option>
-                        @foreach ($countries as $c)
-                            <option value="{{ $c->id }}" @selected(request('country_id') == $c->id)>{{ $c->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
+                <div class="col-md-5">
                     <div class="ob-input-icon">
                         <i data-feather="search"></i>
-                        <input type="text" name="search" placeholder="Search by name, website, or phone"
+                        <input type="text" name="search" placeholder="Search by name, address, city, state, country, website, or phone"
                                value="{{ $searchTerm }}" class="form-control">
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <select name="order" class="form-select" aria-label="Sort order">
                         <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
                         <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
@@ -337,12 +326,6 @@
                         <span class="ob-chip">
                             <span class="ob-chip-label">Search:</span> {{ $searchTerm }}
                             <a href="{{ $queryWithout(['search']) }}" title="Remove filter"><i data-feather="x"></i></a>
-                        </span>
-                    @endif
-                    @if ($selectedCountry)
-                        <span class="ob-chip">
-                            <span class="ob-chip-label">Country:</span> {{ $selectedCountry }}
-                            <a href="{{ $queryWithout(['country_id']) }}" title="Remove filter"><i data-feather="x"></i></a>
                         </span>
                     @endif
                 </div>

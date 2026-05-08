@@ -68,30 +68,28 @@ class PracticeController extends Controller
             ->withCount('members')
             ->withCount(['doctors as pending_pivot_count' => function ($q) {
                 $q->where('doctor_practice.approval_status', 'PENDING');
-            }]);
+            }])
+            ->leftJoin('countries', 'countries.id', '=', 'practices.country_id')
+            ->leftJoin('states', 'states.id', '=', 'practices.state_id')
+            ->leftJoin('cities', 'cities.id', '=', 'practices.city_id');
 
         // Always float practices with pending doctor approvals to the top.
-        $query->orderByDesc('pending_pivot_count');
-
-        if ($sortKey === 'location') {
-            $query->leftJoin('countries', 'countries.id', '=', 'practices.country_id')
-                  ->orderBy($sortCol, $dir);
-        } else {
-            $query->orderBy($sortCol, $dir);
-        }
+        $query->orderByDesc('pending_pivot_count')
+              ->orderBy($sortCol, $dir);
 
         $practices = $query
             ->when($status, fn ($q) => $q->where('practices.status', $status))
-            ->when(
-                $request->filled('country_id'),
-                fn ($q) => $q->where('practices.country_id', $request->integer('country_id'))
-            )
             ->when($search !== '', function ($q) use ($search) {
                 $like = '%' . $search . '%';
                 $q->where(function ($w) use ($like) {
                     $w->where('practices.name', 'like', $like)
                       ->orWhere('practices.website', 'like', $like)
-                      ->orWhere('practices.phone_number', 'like', $like);
+                      ->orWhere('practices.phone_number', 'like', $like)
+                      ->orWhere('practices.street_address_1', 'like', $like)
+                      ->orWhere('practices.street_address_2', 'like', $like)
+                      ->orWhere('cities.name', 'like', $like)
+                      ->orWhere('states.name', 'like', $like)
+                      ->orWhere('countries.name', 'like', $like);
                 });
             })
             ->paginate(15)
@@ -104,7 +102,6 @@ class PracticeController extends Controller
 
         return view('admin.practices.index', [
             'practices'     => $practices,
-            'countries'     => Country::orderBy('name')->get(['id', 'name']),
             'currentStatus' => $status,
             'statusCounts'  => $statusCounts,
             'totalCount'    => $statusCounts->sum(),
