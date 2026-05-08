@@ -396,28 +396,35 @@
           <label class="form-check-label" for="ai-fh-not-known">Not Known</label>
         </div>
 
+        {{-- :disabled below combines isReadOnly (case not editable) with
+             the section's mutual-exclusivity logic (None / Not Known lock
+             out the non-exclusive options). Alpine only respects the FIRST
+             :disabled attribute on an element — merged here intentionally
+             after a B-1b regression where the perl batch appended a second
+             :disabled and the chained-disable silently won.
+             See Docs/case-workflow.md → "Role capabilities > Doctor". --}}
         {{-- Non-exclusive options — locked while None or Not Known is on --}}
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-fh-extractions"
                  x-model="familyHistory.extractions"
-                 :disabled="familyHistory.none || familyHistory.notKnown"
-                 @change="syncToState()" :disabled="isReadOnly">
+                 :disabled="isReadOnly || familyHistory.none || familyHistory.notKnown"
+                 @change="syncToState()">
           <label class="form-check-label" for="ai-fh-extractions">Relative Had Orthodontic Extractions</label>
         </div>
 
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-fh-canines"
                  x-model="familyHistory.impactedCanines"
-                 :disabled="familyHistory.none || familyHistory.notKnown"
-                 @change="syncToState()" :disabled="isReadOnly">
+                 :disabled="isReadOnly || familyHistory.none || familyHistory.notKnown"
+                 @change="syncToState()">
           <label class="form-check-label" for="ai-fh-canines">Relative Had Impacted Canines</label>
         </div>
 
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-fh-ortho-surg"
                  x-model="familyHistory.orthognathicSurgery"
-                 :disabled="familyHistory.none || familyHistory.notKnown"
-                 @change="syncToState()" :disabled="isReadOnly">
+                 :disabled="isReadOnly || familyHistory.none || familyHistory.notKnown"
+                 @change="syncToState()">
           <label class="form-check-label" for="ai-fh-ortho-surg">Relative Had Orthognathic Surgery</label>
         </div>
 
@@ -583,44 +590,48 @@
           <label class="form-check-label" for="ai-ph-none">None</label>
         </div>
 
+        {{-- :disabled below combines isReadOnly with the section's None
+             mutual-exclusivity. Same merge rationale as Family History
+             above (B-1b duplicate-attribute regression).
+             See Docs/case-workflow.md → "Role capabilities > Doctor". --}}
         {{-- Non-exclusive options — locked while None is on --}}
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-finger"
                  x-model="parafunctionalHabits.fingerSucking"
-                 :disabled="parafunctionalHabits.none"
-                 @change="syncToState()" :disabled="isReadOnly">
+                 :disabled="isReadOnly || parafunctionalHabits.none"
+                 @change="syncToState()">
           <label class="form-check-label" for="ai-ph-finger">Finger Sucking</label>
         </div>
 
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-lip"
                  x-model="parafunctionalHabits.lipSucking"
-                 :disabled="parafunctionalHabits.none"
-                 @change="syncToState()" :disabled="isReadOnly">
+                 :disabled="isReadOnly || parafunctionalHabits.none"
+                 @change="syncToState()">
           <label class="form-check-label" for="ai-ph-lip">Lip Sucking</label>
         </div>
 
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-bruxing"
                  x-model="parafunctionalHabits.bruxing"
-                 :disabled="parafunctionalHabits.none"
-                 @change="syncToState()" :disabled="isReadOnly">
+                 :disabled="isReadOnly || parafunctionalHabits.none"
+                 @change="syncToState()">
           <label class="form-check-label" for="ai-ph-bruxing">Bruxing</label>
         </div>
 
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-clenching"
                  x-model="parafunctionalHabits.clenching"
-                 :disabled="parafunctionalHabits.none"
-                 @change="syncToState()" :disabled="isReadOnly">
+                 :disabled="isReadOnly || parafunctionalHabits.none"
+                 @change="syncToState()">
           <label class="form-check-label" for="ai-ph-clenching">Clenching</label>
         </div>
 
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-tongue"
                  x-model="parafunctionalHabits.tongueThrusting"
-                 :disabled="parafunctionalHabits.none"
-                 @change="syncToState()" :disabled="isReadOnly">
+                 :disabled="isReadOnly || parafunctionalHabits.none"
+                 @change="syncToState()">
           <label class="form-check-label" for="ai-ph-tongue">Tongue Thrusting</label>
         </div>
 
@@ -629,8 +640,8 @@
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-other"
                    x-model="parafunctionalHabits.other.enabled"
-                   :disabled="parafunctionalHabits.none"
-                   @change="onParaOtherToggle()" :disabled="isReadOnly">
+                   :disabled="isReadOnly || parafunctionalHabits.none"
+                   @change="onParaOtherToggle()">
             <label class="form-check-label" for="ai-ph-other">Other</label>
           </div>
           <div class="ai-specify-input"

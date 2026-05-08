@@ -194,6 +194,12 @@
   // ─── Save Draft ────────────────────────────────────────────────────────────
 
   function saveDraft() {
+    // B-1b follow-up: skip auto-save on read-only cases. The 7 doctor
+    // section-save endpoints all 403 (B-1a gate) on non-DRAFT cases — firing
+    // them would just produce a "Saved 0 of 7 — ... failed" toast and a
+    // burst of doomed POSTs. Returning early avoids the failure cascade.
+    // This guard also covers PR #126's flushNow() since it calls saveDraft.
+    if (state.isReadOnly) return Promise.resolve();
     if (!state.isDirty) return Promise.resolve();
     state.isSaving = true;
     state.isDirty = false;
@@ -263,6 +269,12 @@
   var autosaveTimer = null;
 
   function scheduleAutosave() {
+    // B-1b follow-up: skip scheduling on read-only cases. Sections call
+    // syncToState() during hydration which calls markDirty (this function).
+    // Without this guard, every read-only page load would schedule a 30s
+    // autosave that ultimately runs saveDraft → 7×403s. saveDraft also
+    // guards, but skipping here avoids dirtying state.isDirty for nothing.
+    if (state.isReadOnly) return;
     state.isDirty = true;
     clearTimeout(autosaveTimer);
     autosaveTimer = setTimeout(saveDraft, AUTOSAVE_DELAY_MS);

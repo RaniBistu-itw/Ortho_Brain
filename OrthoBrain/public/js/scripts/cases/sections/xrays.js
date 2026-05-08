@@ -235,6 +235,10 @@
       // ── File processing ─────────────────────────────────────────────────────
 
       _processFile: async function (tileId, file) {
+        // B-1b follow-up: defense-in-depth read-only guard. See photographs.js
+        // for the full rationale — _processFile is the chokepoint for media
+        // writes and is reached via several entry points.
+        if (this.isReadOnly) return;
         var result = window.MediaTileHelpers.validateFile(file, XRAY_CONFIG);
         if (!result.valid) {
           this.bulkError = result.error;
@@ -312,6 +316,8 @@
       },
 
       replaceTile: function () {
+        // B-1b follow-up: read-only guard. See photographs.js comment.
+        if (this.isReadOnly) return;
         var tileId = this.tileModal.activeTileId;
         if (!tileId) return;
         // Bypass the post-change recency guard from PR #78 — user explicitly
@@ -323,6 +329,8 @@
       },
 
       removeTile: function (tileId) {
+        // B-1b follow-up: read-only guard. See photographs.js comment.
+        if (this.isReadOnly) return;
         var id = tileId || this.tileModal.activeTileId;
         if (!id || !this.tiles[id].filled) return;
 
@@ -453,6 +461,9 @@
       },
 
       onTileDrop: async function (event, targetTileId) {
+        // B-1b follow-up: read-only guard. See photographs.js comment for
+        // the desktop-file-drop gap that this closes.
+        if (this.isReadOnly) return;
         this.tiles[targetTileId].isDragOver = false;
 
         var sourceTileId = event.dataTransfer.getData('text/x-tile-id');

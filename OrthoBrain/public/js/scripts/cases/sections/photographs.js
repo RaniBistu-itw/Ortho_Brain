@@ -243,6 +243,11 @@
       // ── File processing ─────────────────────────────────────────────────────
 
       _processFile: async function (tileId, file) {
+        // B-1b follow-up: defense-in-depth read-only guard. _processFile is
+        // reached via multiple paths (bulk picker, tile replace, camera
+        // capture, drop). Each entry point should also guard, but a single
+        // catch here ensures no path can write through.
+        if (this.isReadOnly) return;
         var result = window.MediaTileHelpers.validateFile(file, PHOTO_CONFIG);
         if (!result.valid) {
           this.bulkError = result.error;
@@ -449,6 +454,10 @@
       },
 
       replaceTile: function () {
+        // B-1b follow-up: read-only guard. The Replace button is hidden via
+        // x-show="!isReadOnly", but the underlying handler should still
+        // refuse to act if reached programmatically.
+        if (this.isReadOnly) return;
         var tileId = this.tileModal.activeTileId;
         if (!tileId) return;
         // User explicitly asked to replace — bypass the post-change recency
@@ -461,6 +470,11 @@
       },
 
       removeTile: function (tileId) {
+        // B-1b follow-up: read-only guard. The Remove buttons (modal +
+        // hover overlay) are hidden via x-show="!isReadOnly", but the
+        // underlying handler should still refuse to act if reached
+        // programmatically.
+        if (this.isReadOnly) return;
         var id = tileId || this.tileModal.activeTileId;
         if (!id || !this.tiles[id].filled) return;
 
@@ -611,6 +625,11 @@
       },
 
       onTileDrop: async function (event, targetTileId) {
+        // B-1b follow-up: block all drop operations when case is not editable.
+        // The :draggable binding gates outgoing drags from a tile, but does
+        // NOT gate incoming desktop file drops — those still fire @drop and
+        // would call _processFile here. Closes that gap.
+        if (this.isReadOnly) return;
         this.tiles[targetTileId].isDragOver = false;
 
         var sourceTileId = event.dataTransfer.getData('text/x-tile-id');
