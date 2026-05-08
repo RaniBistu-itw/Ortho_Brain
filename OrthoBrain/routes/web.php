@@ -153,13 +153,10 @@ Route::middleware(['web', 'auth'])
                 ->middleware('throttle:60,1')
                 ->name('cases.media.reorder');
 
-            // AI vision — photo QC + Perfect Smile Plan generation. Throttled per user
-            // to keep accidental retry loops from blowing through the free-tier quota.
+            // AI vision — photo QC + Perfect Smile Plan generation.
             Route::post('/cases/{case}/photos/classify',      [ImageAnalysisController::class, 'classify'])
-                ->middleware('throttle:30,60')
                 ->name('cases.photos.classify');
             Route::post('/cases/{case}/smile-plan/generate',  [ImageAnalysisController::class, 'smilePlan'])
-                ->middleware('throttle:10,60')
                 ->name('cases.smile-plan.generate');
 
             // AI image-edit — before/after smile visualisation. Rate-limited to protect free-tier quota.

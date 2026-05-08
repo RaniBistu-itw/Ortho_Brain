@@ -30,6 +30,7 @@ window.MediaTileHelpers = {
     if (status === 422) {
       return "Couldn't upload " + label + ". The file isn't a supported image (JPG, PNG, HEIC).";
     }
+    if (status === 429) return 'Too many uploads. Please wait a moment and try again.';
     if (status >= 500 && status < 600) return 'Server error. Try again or contact support if it persists.';
     if (!status || status === 0) return "Couldn't reach the server. Check your connection and try again.";
     return "Couldn't upload " + label + '. Try again.';

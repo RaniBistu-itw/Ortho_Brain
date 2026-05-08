@@ -171,6 +171,15 @@
       // disappear on refresh anyway — surfacing the failure tells the user
       // what happened and to retry.
       _handleUploadFailure: function (tileId, err) {
+        var self = this;
+        // 429: server is rate-limiting uploads. The local preview + IDB blob are
+        // still valid — preserve the tile so the user can retry without re-selecting.
+        if (err && err.status === 429) {
+          var msg429 = window.MediaTileHelpers.upgradeUploadError(err, this.getTileLabel(tileId));
+          this.bulkError = msg429;
+          setTimeout(function () { self.bulkError = null; }, 6000);
+          return;
+        }
         if (this.tiles[tileId].previewUrl) {
           URL.revokeObjectURL(this.tiles[tileId].previewUrl);
         }
@@ -183,7 +192,6 @@
 
         var msg = window.MediaTileHelpers.upgradeUploadError(err, this.getTileLabel(tileId));
         this.bulkError = msg;
-        var self = this;
         setTimeout(function () { self.bulkError = null; }, 6000);
       },
 
