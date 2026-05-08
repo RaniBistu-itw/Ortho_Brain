@@ -511,6 +511,28 @@
     hydrate();
     // Re-init feather icons inside this section
     if (typeof feather !== 'undefined') feather.replace({ width: 14, height: 14 });
+
+    // B-1b: apply read-only state imperatively. This section is vanilla JS,
+    // not Alpine, so :disabled bindings aren't available. When the case is
+    // not editable for the doctor (any non-DRAFT status), every input in
+    // this section is disabled at init time. See Docs/case-workflow.md →
+    // "Role capabilities > Doctor".
+    if (window.AddCaseState && window.AddCaseState.isReadOnly) {
+      var fields = [
+        'pi-search-patient',
+        'pi-first-name',
+        'pi-last-name',
+        'pi-dob',
+        'pi-gender',
+        'pi-gender-other',
+        'pi-chart-id',
+        'pi-chief-complaint'
+      ];
+      fields.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.disabled = true;
+      });
+    }
   }
 
   // ─── Expose module ────────────────────────────────────────────────────────

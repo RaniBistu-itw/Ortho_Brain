@@ -5,12 +5,21 @@
   $sectionType     = $sectionType ?? 'photograph';
 @endphp
 
+{{-- isReadOnly: inherited from parent Alpine scope (photographsSection /
+     xraysSection). Gates all write actions on media tiles when the case is
+     not editable. The hidden file input is :disabled, and the per-tile
+     Replace / Remove / Crop / Camera buttons disappear via x-show. The
+     drag-and-drop handlers on the tile div itself (@dragstart, @drop) are
+     not gated here because the tile is no longer set as :draggable when
+     read-only — see the :draggable binding below.
+     See Docs/case-workflow.md for the permission matrix. --}}
+
 <div class="media-tile"
      :class="{
        'media-tile--filled':    tiles['{{ $tileId }}'].filled,
        'media-tile--drag-over': tiles['{{ $tileId }}'].isDragOver
      }"
-     :draggable="tiles['{{ $tileId }}'].filled ? 'true' : 'false'"
+     :draggable="!isReadOnly && tiles['{{ $tileId }}'].filled ? 'true' : 'false'"
      @click="onTileClick('{{ $tileId }}', $event)"
      @dragstart="onTileDragStart($event, '{{ $tileId }}')"
      @dragend="dragSourceTileId = null"
@@ -66,7 +75,7 @@
     {{-- Camera entry — only when empty AND device exposes a camera --}}
     <button type="button"
             class="media-tile__camera-btn"
-            x-show="!tiles['{{ $tileId }}'].filled && cameraSupported"
+            x-show="!isReadOnly && !tiles['{{ $tileId }}'].filled && cameraSupported"
             @click.stop="onTileCameraClick('{{ $tileId }}')"
             aria-label="Take photo for {{ $poseLabel }}"
             title="Use camera"
@@ -78,7 +87,7 @@
   {{-- Hover-to-remove overlay — only when tile has content --}}
   <button type="button"
           class="media-tile__remove-btn"
-          x-show="tiles['{{ $tileId }}'].filled"
+          x-show="!isReadOnly && tiles['{{ $tileId }}'].filled"
           @click.stop="removeTile('{{ $tileId }}')"
           aria-label="Remove {{ $poseLabel }}"
           title="Remove {{ $poseLabel }}"
@@ -97,5 +106,6 @@
          class="media-tile__file-input"
          :accept="acceptAttribute"
          @click.stop
-         @change="onFileInputChange('{{ $tileId }}')">
+         @change="onFileInputChange('{{ $tileId }}')"
+         :disabled="isReadOnly">
 </div>

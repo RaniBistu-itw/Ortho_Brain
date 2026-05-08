@@ -14,6 +14,17 @@
             x-text="sectionExpanded ? '−' : '+'">−</button>
   </div>
 
+  {{-- B-1b: isReadOnly inherited from additionalInformationSection() Alpine
+       scope. Disables every checkbox, radio, switch, text input, and textarea
+       in this section (94 form controls across all subsections) when the
+       case is not editable for the current doctor.
+
+       The collapse toggle button at the top stays clickable (visual nav).
+       additionalInformationSection.syncToState() short-circuits in read-only
+       mode (see additional-information.js), so toggling collapse does not
+       mark the draft dirty.
+
+       See Docs/case-workflow.md → "Role capabilities > Doctor". --}}
   {{-- Section Body --}}
   <div x-show="sectionExpanded" x-transition style="display:none;">
 
@@ -23,52 +34,52 @@
       <div class="ai-chip-row">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="ai-dx-crowding"
-                 x-model="diagnosis.crowding" @change="syncToState()">
+                 x-model="diagnosis.crowding" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dx-crowding">Crowding</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="ai-dx-spacing"
-                 x-model="diagnosis.spacing" @change="syncToState()">
+                 x-model="diagnosis.spacing" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dx-spacing">Spacing</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="ai-dx-deepbite"
-                 x-model="diagnosis.deepBite" @change="syncToState()">
+                 x-model="diagnosis.deepBite" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dx-deepbite">Deep Bite</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="ai-dx-openbite"
-                 x-model="diagnosis.openBite" @change="syncToState()">
+                 x-model="diagnosis.openBite" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dx-openbite">Open Bite</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="ai-dx-overjet"
-                 x-model="diagnosis.overjet" @change="syncToState()">
+                 x-model="diagnosis.overjet" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dx-overjet">Overjet</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="ai-dx-ant-cross"
-                 x-model="diagnosis.anteriorCrossbite" @change="syncToState()">
+                 x-model="diagnosis.anteriorCrossbite" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dx-ant-cross">Anterior Crossbite</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="ai-dx-post-cross"
-                 x-model="diagnosis.posteriorCrossbite" @change="syncToState()">
+                 x-model="diagnosis.posteriorCrossbite" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dx-post-cross">Posterior Crossbite</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="ai-dx-class1"
-                 x-model="diagnosis.classI" @change="syncToState()">
+                 x-model="diagnosis.classI" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dx-class1">Class I</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="ai-dx-class2"
-                 x-model="diagnosis.classII" @change="syncToState()">
+                 x-model="diagnosis.classII" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dx-class2">Class II</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="ai-dx-class3"
-                 x-model="diagnosis.classIII" @change="syncToState()">
+                 x-model="diagnosis.classIII" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dx-class3">Class III</label>
         </div>
       </div>
@@ -83,7 +94,7 @@
       <div class="ai-wnl-check mb-75">
         <input class="form-check-input" type="checkbox" id="ai-mh-wnl"
                x-model="medicalHistory.wnl"
-               @change="medicalHistory.wnl ? applyWnl('medicalHistory') : syncToState()">
+               @change="medicalHistory.wnl ? applyWnl('medicalHistory') : syncToState()" :disabled="isReadOnly">
         <label class="form-check-label fw-medium" for="ai-mh-wnl">
           If Medical History is within normal limits check here
         </label>
@@ -96,7 +107,7 @@
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-mh-allergy"
                    x-model="medicalHistory.allergies.enabled"
-                   @change="onAllergiesToggle()">
+                   @change="onAllergiesToggle()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-mh-allergy">Allergies</label>
           </div>
           <div class="ai-follow-up" x-show="medicalHistory.allergies.enabled" x-transition style="display:none;">
@@ -104,7 +115,7 @@
             <textarea class="form-control form-control-sm" id="ai-mh-allergy-desc" rows="2"
                       maxlength="5000" placeholder="Please describe"
                       x-model="medicalHistory.allergies.description"
-                      @input="syncToState()"></textarea>
+                      @input="syncToState()" :disabled="isReadOnly"></textarea>
             <div class="d-flex justify-content-end small text-muted mt-25">
               <span x-text="(medicalHistory.allergies.description || '').length + ' / 5000'"></span>
             </div>
@@ -116,7 +127,7 @@
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-mh-meds"
                    x-model="medicalHistory.medications.enabled"
-                   @change="onMedicationsToggle()">
+                   @change="onMedicationsToggle()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-mh-meds">Medications</label>
           </div>
           <div class="ai-follow-up" x-show="medicalHistory.medications.enabled" x-transition style="display:none;">
@@ -125,35 +136,35 @@
                 <input class="form-check-input" type="radio" id="ai-mh-meds-immuno"
                        name="ai-mh-meds-val" value="immunosuppressants"
                        x-model="medicalHistory.medications.value"
-                       @change="onMedicationsValueChange()">
+                       @change="onMedicationsValueChange()" :disabled="isReadOnly">
                 <label class="form-check-label" for="ai-mh-meds-immuno">Immunosuppressants</label>
               </div>
               <div class="form-check">
                 <input class="form-check-input" type="radio" id="ai-mh-meds-bone"
                        name="ai-mh-meds-val" value="boneModifier"
                        x-model="medicalHistory.medications.value"
-                       @change="onMedicationsValueChange()">
+                       @change="onMedicationsValueChange()" :disabled="isReadOnly">
                 <label class="form-check-label" for="ai-mh-meds-bone">Bone Modifier</label>
               </div>
               <div class="form-check">
                 <input class="form-check-input" type="radio" id="ai-mh-meds-calcium"
                        name="ai-mh-meds-val" value="calciumChannelBlocker"
                        x-model="medicalHistory.medications.value"
-                       @change="onMedicationsValueChange()">
+                       @change="onMedicationsValueChange()" :disabled="isReadOnly">
                 <label class="form-check-label" for="ai-mh-meds-calcium">Calcium Channel Blocker</label>
               </div>
               <div class="form-check">
                 <input class="form-check-input" type="radio" id="ai-mh-meds-anti"
                        name="ai-mh-meds-val" value="antiConvulsant"
                        x-model="medicalHistory.medications.value"
-                       @change="onMedicationsValueChange()">
+                       @change="onMedicationsValueChange()" :disabled="isReadOnly">
                 <label class="form-check-label" for="ai-mh-meds-anti">Anti-convulsant</label>
               </div>
               <div class="form-check">
                 <input class="form-check-input" type="radio" id="ai-mh-meds-other"
                        name="ai-mh-meds-val" value="other"
                        x-model="medicalHistory.medications.value"
-                       @change="onMedicationsValueChange()">
+                       @change="onMedicationsValueChange()" :disabled="isReadOnly">
                 <label class="form-check-label" for="ai-mh-meds-other">Other</label>
               </div>
               <div class="ai-specify-input"
@@ -162,7 +173,7 @@
                 <input type="text" class="form-control form-control-sm"
                        placeholder="Please specify" maxlength="200"
                        x-model="medicalHistory.medications.otherText"
-                       @input="syncToState()">
+                       @input="syncToState()" :disabled="isReadOnly">
               </div>
             </div>
           </div>
@@ -173,7 +184,7 @@
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-mh-bone"
                    x-model="medicalHistory.boneDisorders.enabled"
-                   @change="onBoneDisordersToggle()">
+                   @change="onBoneDisordersToggle()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-mh-bone">Bone Disorders</label>
           </div>
           <div class="ai-follow-up" x-show="medicalHistory.boneDisorders.enabled" x-transition style="display:none;">
@@ -181,7 +192,7 @@
             <textarea class="form-control form-control-sm" id="ai-mh-bone-desc" rows="2"
                       maxlength="5000" placeholder="Please describe"
                       x-model="medicalHistory.boneDisorders.description"
-                      @input="syncToState()"></textarea>
+                      @input="syncToState()" :disabled="isReadOnly"></textarea>
             <div class="d-flex justify-content-end small text-muted mt-25">
               <span x-text="(medicalHistory.boneDisorders.description || '').length + ' / 5000'"></span>
             </div>
@@ -201,7 +212,7 @@
       <div class="ai-wnl-check mb-75">
         <input class="form-check-input" type="checkbox" id="ai-dh-wnl"
                x-model="dentalHistory.wnl"
-               @change="dentalHistory.wnl ? applyWnl('dentalHistory') : syncToState()">
+               @change="dentalHistory.wnl ? applyWnl('dentalHistory') : syncToState()" :disabled="isReadOnly">
         <label class="form-check-label fw-medium" for="ai-dh-wnl">
           If Dental History is within normal limits check here
         </label>
@@ -214,7 +225,7 @@
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-dh-trauma"
                    x-model="dentalHistory.trauma.enabled"
-                   @change="onTraumaToggle()">
+                   @change="onTraumaToggle()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-dh-trauma">Trauma</label>
           </div>
           <div class="ai-follow-up" x-show="dentalHistory.trauma.enabled" x-transition style="display:none;">
@@ -222,7 +233,7 @@
             <textarea class="form-control form-control-sm" id="ai-dh-trauma-desc" rows="2"
                       maxlength="5000" placeholder="Please describe"
                       x-model="dentalHistory.trauma.description"
-                      @input="syncToState()"></textarea>
+                      @input="syncToState()" :disabled="isReadOnly"></textarea>
             <div class="d-flex justify-content-end small text-muted mt-25">
               <span x-text="(dentalHistory.trauma.description || '').length + ' / 5000'"></span>
             </div>
@@ -234,7 +245,7 @@
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-dh-prognosis"
                    x-model="dentalHistory.poorPrognosis.enabled"
-                   @change="onPoorPrognosisToggle()">
+                   @change="onPoorPrognosisToggle()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-dh-prognosis">Poor Prognosis (Hopeless)</label>
           </div>
           <div class="ai-follow-up" x-show="dentalHistory.poorPrognosis.enabled" x-transition style="display:none;">
@@ -242,7 +253,7 @@
             <textarea class="form-control form-control-sm" id="ai-dh-prognosis-desc" rows="2"
                       maxlength="5000" placeholder="Please describe"
                       x-model="dentalHistory.poorPrognosis.description"
-                      @input="syncToState()"></textarea>
+                      @input="syncToState()" :disabled="isReadOnly"></textarea>
             <div class="d-flex justify-content-end small text-muted mt-25">
               <span x-text="(dentalHistory.poorPrognosis.description || '').length + ' / 5000'"></span>
             </div>
@@ -252,14 +263,14 @@
         {{-- Oral Pathology --}}
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-dh-oral-path"
-                 x-model="dentalHistory.oralPathology" @change="syncToState()">
+                 x-model="dentalHistory.oralPathology" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dh-oral-path">Oral Pathology</label>
         </div>
 
         {{-- Enamel Pathologies (Pattern E tooltip) --}}
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-dh-enamel"
-                 x-model="dentalHistory.enamelPathologies" @change="syncToState()">
+                 x-model="dentalHistory.enamelPathologies" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dh-enamel">
             Enamel Pathologies
             {{-- TODO: tooltip content from content review --}}
@@ -272,28 +283,28 @@
         {{-- Attrition --}}
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-dh-attrition"
-                 x-model="dentalHistory.attrition" @change="syncToState()">
+                 x-model="dentalHistory.attrition" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dh-attrition">Attrition</label>
         </div>
 
         {{-- Speech Dysfunction --}}
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-dh-speech"
-                 x-model="dentalHistory.speechDysfunction" @change="syncToState()">
+                 x-model="dentalHistory.speechDysfunction" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dh-speech">Speech Dysfunction</label>
         </div>
 
         {{-- Airway Problems --}}
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-dh-airway"
-                 x-model="dentalHistory.airwayProblems" @change="syncToState()">
+                 x-model="dentalHistory.airwayProblems" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dh-airway">Airway Problems</label>
         </div>
 
         {{-- TMJ/Masticatory Issues --}}
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-dh-tmj"
-                 x-model="dentalHistory.tmjIssues" @change="syncToState()">
+                 x-model="dentalHistory.tmjIssues" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-dh-tmj">TMJ/Masticatory Issues</label>
         </div>
 
@@ -302,14 +313,14 @@
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-dh-other"
                    x-model="dentalHistory.other.enabled"
-                   @change="onDentalOtherToggle()">
+                   @change="onDentalOtherToggle()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-dh-other">Other</label>
           </div>
           <div class="ai-specify-input" x-show="dentalHistory.other.enabled" x-transition style="display:none;">
             <input type="text" class="form-control form-control-sm"
                    placeholder="Please specify" maxlength="200"
                    x-model="dentalHistory.other.otherText"
-                   @input="syncToState()">
+                   @input="syncToState()" :disabled="isReadOnly">
           </div>
         </div>
 
@@ -326,19 +337,19 @@
 
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-oh-no-prev"
-                 x-model="orthodonticHistory.noPreviousTreatment" @change="syncToState()">
+                 x-model="orthodonticHistory.noPreviousTreatment" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-oh-no-prev">No Previous Treatment</label>
         </div>
 
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-oh-phase1"
-                 x-model="orthodonticHistory.completedPhase1" @change="syncToState()">
+                 x-model="orthodonticHistory.completedPhase1" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-oh-phase1">Completed Phase 1 Interceptive Treatment</label>
         </div>
 
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-oh-prev-comp"
-                 x-model="orthodonticHistory.previousComprehensive" @change="syncToState()">
+                 x-model="orthodonticHistory.previousComprehensive" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-oh-prev-comp">Previous Comprehensive Treatment</label>
         </div>
 
@@ -347,14 +358,14 @@
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-oh-other"
                    x-model="orthodonticHistory.other.enabled"
-                   @change="onOrthoOtherToggle()">
+                   @change="onOrthoOtherToggle()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-oh-other">Other</label>
           </div>
           <div class="ai-specify-input" x-show="orthodonticHistory.other.enabled" x-transition style="display:none;">
             <input type="text" class="form-control form-control-sm"
                    placeholder="Please specify" maxlength="200"
                    x-model="orthodonticHistory.other.otherText"
-                   @input="syncToState()">
+                   @input="syncToState()" :disabled="isReadOnly">
           </div>
         </div>
 
@@ -373,7 +384,7 @@
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-fh-none"
                  x-model="familyHistory.none"
-                 @change="familyHistory.none ? applyExclusivity(familyHistory, 'none') : syncToState()">
+                 @change="familyHistory.none ? applyExclusivity(familyHistory, 'none') : syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-fh-none">None</label>
         </div>
 
@@ -381,7 +392,7 @@
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-fh-not-known"
                  x-model="familyHistory.notKnown"
-                 @change="familyHistory.notKnown ? applyExclusivity(familyHistory, 'notKnown') : syncToState()">
+                 @change="familyHistory.notKnown ? applyExclusivity(familyHistory, 'notKnown') : syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-fh-not-known">Not Known</label>
         </div>
 
@@ -390,7 +401,7 @@
           <input class="form-check-input" type="checkbox" role="switch" id="ai-fh-extractions"
                  x-model="familyHistory.extractions"
                  :disabled="familyHistory.none || familyHistory.notKnown"
-                 @change="syncToState()">
+                 @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-fh-extractions">Relative Had Orthodontic Extractions</label>
         </div>
 
@@ -398,7 +409,7 @@
           <input class="form-check-input" type="checkbox" role="switch" id="ai-fh-canines"
                  x-model="familyHistory.impactedCanines"
                  :disabled="familyHistory.none || familyHistory.notKnown"
-                 @change="syncToState()">
+                 @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-fh-canines">Relative Had Impacted Canines</label>
         </div>
 
@@ -406,7 +417,7 @@
           <input class="form-check-input" type="checkbox" role="switch" id="ai-fh-ortho-surg"
                  x-model="familyHistory.orthognathicSurgery"
                  :disabled="familyHistory.none || familyHistory.notKnown"
-                 @change="syncToState()">
+                 @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-fh-ortho-surg">Relative Had Orthognathic Surgery</label>
         </div>
 
@@ -422,7 +433,7 @@
       <div class="ai-wnl-check mb-75">
         <input class="form-check-input" type="checkbox" id="ai-pe-wnl"
                x-model="periodontalEvaluation.wnl"
-               @change="periodontalEvaluation.wnl ? applyWnl('periodontal') : syncToState()">
+               @change="periodontalEvaluation.wnl ? applyWnl('periodontal') : syncToState()" :disabled="isReadOnly">
         <label class="form-check-label fw-medium" for="ai-pe-wnl">
           If Periodontal Evaluation is within normal limits check here
         </label>
@@ -435,19 +446,19 @@
           <div class="form-check">
             <input class="form-check-input" type="radio" id="ai-pe-oh-wnl"
                    name="ai-pe-oral-hygiene" value="wnl"
-                   x-model="periodontalEvaluation.oralHygiene" @change="syncToState()">
+                   x-model="periodontalEvaluation.oralHygiene" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-oh-wnl">Within Normal Limits</label>
           </div>
           <div class="form-check">
             <input class="form-check-input" type="radio" id="ai-pe-oh-fair"
                    name="ai-pe-oral-hygiene" value="fair"
-                   x-model="periodontalEvaluation.oralHygiene" @change="syncToState()">
+                   x-model="periodontalEvaluation.oralHygiene" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-oh-fair">Fair</label>
           </div>
           <div class="form-check">
             <input class="form-check-input" type="radio" id="ai-pe-oh-poor"
                    name="ai-pe-oral-hygiene" value="poor"
-                   x-model="periodontalEvaluation.oralHygiene" @change="syncToState()">
+                   x-model="periodontalEvaluation.oralHygiene" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-oh-poor">Poor</label>
           </div>
         </div>
@@ -460,19 +471,19 @@
           <div class="form-check">
             <input class="form-check-input" type="radio" id="ai-pe-fa-wnl"
                    name="ai-pe-frenal" value="wnl"
-                   x-model="periodontalEvaluation.frenalAttachments" @change="syncToState()">
+                   x-model="periodontalEvaluation.frenalAttachments" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-fa-wnl">Within Normal Limits</label>
           </div>
           <div class="form-check">
             <input class="form-check-input" type="radio" id="ai-pe-fa-excessive"
                    name="ai-pe-frenal" value="excessive"
-                   x-model="periodontalEvaluation.frenalAttachments" @change="syncToState()">
+                   x-model="periodontalEvaluation.frenalAttachments" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-fa-excessive">Excessive</label>
           </div>
           <div class="form-check">
             <input class="form-check-input" type="radio" id="ai-pe-fa-frenectomy"
                    name="ai-pe-frenal" value="frenectomy"
-                   x-model="periodontalEvaluation.frenalAttachments" @change="syncToState()">
+                   x-model="periodontalEvaluation.frenalAttachments" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-fa-frenectomy">History of Frenectomy</label>
           </div>
         </div>
@@ -484,37 +495,37 @@
         <div class="ai-toggle-list">
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-pe-gt-wnl"
-                   x-model="periodontalEvaluation.gingivalTissue.wnl" @change="syncToState()">
+                   x-model="periodontalEvaluation.gingivalTissue.wnl" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-gt-wnl">Within Normal Limits</label>
           </div>
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-pe-gt-inflamed"
-                   x-model="periodontalEvaluation.gingivalTissue.inflamed" @change="syncToState()">
+                   x-model="periodontalEvaluation.gingivalTissue.inflamed" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-gt-inflamed">Inflamed</label>
           </div>
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-pe-gt-bleeding"
-                   x-model="periodontalEvaluation.gingivalTissue.bleeding" @change="syncToState()">
+                   x-model="periodontalEvaluation.gingivalTissue.bleeding" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-gt-bleeding">Bleeding on Probing</label>
           </div>
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-pe-gt-pockets"
-                   x-model="periodontalEvaluation.gingivalTissue.pockets" @change="syncToState()">
+                   x-model="periodontalEvaluation.gingivalTissue.pockets" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-gt-pockets">4mm or Greater Pockets</label>
           </div>
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-pe-gt-thin"
-                   x-model="periodontalEvaluation.gingivalTissue.thinGingiva" @change="syncToState()">
+                   x-model="periodontalEvaluation.gingivalTissue.thinGingiva" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-gt-thin">Thin Attached Gingiva</label>
           </div>
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-pe-gt-recession"
-                   x-model="periodontalEvaluation.gingivalTissue.recession" @change="syncToState()">
+                   x-model="periodontalEvaluation.gingivalTissue.recession" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-gt-recession">Recession</label>
           </div>
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-pe-gt-grafting"
-                   x-model="periodontalEvaluation.gingivalTissue.tissueGrafting" @change="syncToState()">
+                   x-model="periodontalEvaluation.gingivalTissue.tissueGrafting" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-gt-grafting">History of Tissue Grafting</label>
           </div>
         </div>
@@ -526,12 +537,12 @@
         <div class="ai-toggle-list">
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-pe-ht-wnl"
-                   x-model="periodontalEvaluation.hardTissue.wnl" @change="syncToState()">
+                   x-model="periodontalEvaluation.hardTissue.wnl" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-ht-wnl">Within Normal Limits</label>
           </div>
           <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" role="switch" id="ai-pe-ht-boneloss"
-                   x-model="periodontalEvaluation.hardTissue.boneLoss" @change="syncToState()">
+                   x-model="periodontalEvaluation.hardTissue.boneLoss" @change="syncToState()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-pe-ht-boneloss">Bone Loss/Grafting/Tooth Mobility</label>
           </div>
           {{-- Other (Pattern A) --}}
@@ -539,7 +550,7 @@
             <div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" role="switch" id="ai-pe-ht-other"
                      x-model="periodontalEvaluation.hardTissue.other.enabled"
-                     @change="onHardTissueOtherToggle()">
+                     @change="onHardTissueOtherToggle()" :disabled="isReadOnly">
               <label class="form-check-label" for="ai-pe-ht-other">Other</label>
             </div>
             <div class="ai-specify-input"
@@ -548,7 +559,7 @@
               <input type="text" class="form-control form-control-sm"
                      placeholder="Please specify" maxlength="200"
                      x-model="periodontalEvaluation.hardTissue.other.otherText"
-                     @input="syncToState()">
+                     @input="syncToState()" :disabled="isReadOnly">
             </div>
           </div>
         </div>
@@ -568,7 +579,7 @@
         <div class="form-check form-switch mb-0">
           <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-none"
                  x-model="parafunctionalHabits.none"
-                 @change="parafunctionalHabits.none ? applyExclusivity(parafunctionalHabits, 'none') : syncToState()">
+                 @change="parafunctionalHabits.none ? applyExclusivity(parafunctionalHabits, 'none') : syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ph-none">None</label>
         </div>
 
@@ -577,7 +588,7 @@
           <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-finger"
                  x-model="parafunctionalHabits.fingerSucking"
                  :disabled="parafunctionalHabits.none"
-                 @change="syncToState()">
+                 @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ph-finger">Finger Sucking</label>
         </div>
 
@@ -585,7 +596,7 @@
           <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-lip"
                  x-model="parafunctionalHabits.lipSucking"
                  :disabled="parafunctionalHabits.none"
-                 @change="syncToState()">
+                 @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ph-lip">Lip Sucking</label>
         </div>
 
@@ -593,7 +604,7 @@
           <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-bruxing"
                  x-model="parafunctionalHabits.bruxing"
                  :disabled="parafunctionalHabits.none"
-                 @change="syncToState()">
+                 @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ph-bruxing">Bruxing</label>
         </div>
 
@@ -601,7 +612,7 @@
           <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-clenching"
                  x-model="parafunctionalHabits.clenching"
                  :disabled="parafunctionalHabits.none"
-                 @change="syncToState()">
+                 @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ph-clenching">Clenching</label>
         </div>
 
@@ -609,7 +620,7 @@
           <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-tongue"
                  x-model="parafunctionalHabits.tongueThrusting"
                  :disabled="parafunctionalHabits.none"
-                 @change="syncToState()">
+                 @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ph-tongue">Tongue Thrusting</label>
         </div>
 
@@ -619,7 +630,7 @@
             <input class="form-check-input" type="checkbox" role="switch" id="ai-ph-other"
                    x-model="parafunctionalHabits.other.enabled"
                    :disabled="parafunctionalHabits.none"
-                   @change="onParaOtherToggle()">
+                   @change="onParaOtherToggle()" :disabled="isReadOnly">
             <label class="form-check-label" for="ai-ph-other">Other</label>
           </div>
           <div class="ai-specify-input"
@@ -628,7 +639,7 @@
             <input type="text" class="form-control form-control-sm"
                    placeholder="Please specify" maxlength="200"
                    x-model="parafunctionalHabits.other.otherText"
-                   @input="syncToState()">
+                   @input="syncToState()" :disabled="isReadOnly">
           </div>
         </div>
 
@@ -645,13 +656,13 @@
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-cr-not-present"
                  name="ai-centric-relation" value="notPresent"
-                 x-model="centricRelation.value" @change="onCentricRelationChange()">
+                 x-model="centricRelation.value" @change="onCentricRelationChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-cr-not-present">Not Present</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-cr-present"
                  name="ai-centric-relation" value="present"
-                 x-model="centricRelation.value" @change="onCentricRelationChange()">
+                 x-model="centricRelation.value" @change="onCentricRelationChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-cr-present">Present</label>
         </div>
       </div>
@@ -662,7 +673,7 @@
         <textarea class="form-control form-control-sm" id="ai-cr-desc" rows="2"
                   maxlength="5000" placeholder="Please describe"
                   x-model="centricRelation.description"
-                  @input="syncToState()"></textarea>
+                  @input="syncToState()" :disabled="isReadOnly"></textarea>
         <div class="d-flex justify-content-end small text-muted mt-25">
           <span x-text="(centricRelation.description || '').length + ' / 5000'"></span>
         </div>
@@ -679,19 +690,19 @@
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-ts-aesthetics"
                  name="ai-treatment-scope" value="aesthetics"
-                 x-model="treatmentScope.value" @change="onTreatmentScopeChange()">
+                 x-model="treatmentScope.value" @change="onTreatmentScopeChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ts-aesthetics">Focus on Aesthetics</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-ts-comprehensive"
                  name="ai-treatment-scope" value="comprehensive"
-                 x-model="treatmentScope.value" @change="onTreatmentScopeChange()">
+                 x-model="treatmentScope.value" @change="onTreatmentScopeChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ts-comprehensive">Comprehensive Treatment with a Functional Occlusion</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-ts-other"
                  name="ai-treatment-scope" value="other"
-                 x-model="treatmentScope.value" @change="onTreatmentScopeChange()">
+                 x-model="treatmentScope.value" @change="onTreatmentScopeChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ts-other">Other</label>
         </div>
       </div>
@@ -701,7 +712,7 @@
         <input type="text" class="form-control form-control-sm"
                placeholder="Please specify" maxlength="200"
                x-model="treatmentScope.otherText"
-               @input="syncToState()">
+               @input="syncToState()" :disabled="isReadOnly">
       </div>
     </div>
 
@@ -715,25 +726,25 @@
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-ap-defer"
                  name="ai-anterior-posterior" value="defer"
-                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()">
+                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ap-defer">Defer to orthobrain®</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-ap-maintain"
                  name="ai-anterior-posterior" value="maintain"
-                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()">
+                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ap-maintain">Maintain</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-ap-ipr"
                  name="ai-anterior-posterior" value="iprIfNecessary"
-                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()">
+                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ap-ipr">Improve with IPR if Necessary</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-ap-elastics"
                  name="ai-anterior-posterior" value="elasticsOnly"
-                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()">
+                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ap-elastics">
             Improve with Elastics Only
             <span class="ai-tooltip-icon"
@@ -744,7 +755,7 @@
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-ap-elastics-ipr"
                  name="ai-anterior-posterior" value="elasticsAndIpr"
-                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()">
+                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ap-elastics-ipr">
             Improve with Elastics &amp; IPR
             <span class="ai-tooltip-icon"
@@ -755,7 +766,7 @@
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-ap-other"
                  name="ai-anterior-posterior" value="other"
-                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()">
+                 x-model="anteriorPosterior.value" @change="onAnteriorPosteriorChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-ap-other">Other</label>
         </div>
       </div>
@@ -765,7 +776,7 @@
         <input type="text" class="form-control form-control-sm"
                placeholder="Please specify" maxlength="200"
                x-model="anteriorPosterior.otherText"
-               @input="syncToState()">
+               @input="syncToState()" :disabled="isReadOnly">
       </div>
     </div>
 
@@ -779,19 +790,19 @@
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-mc-yes"
                  name="ai-midline" value="yes"
-                 x-model="midlineCorrection" @change="syncToState()">
+                 x-model="midlineCorrection" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-mc-yes">Yes</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-mc-no"
                  name="ai-midline" value="no"
-                 x-model="midlineCorrection" @change="syncToState()">
+                 x-model="midlineCorrection" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-mc-no">No</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-mc-defer"
                  name="ai-midline" value="defer"
-                 x-model="midlineCorrection" @change="syncToState()">
+                 x-model="midlineCorrection" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-mc-defer">Defer to orthobrain®</label>
         </div>
       </div>
@@ -807,19 +818,19 @@
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-oo-defer"
                  name="ai-overjet" value="defer"
-                 x-model="overjetOverbite" @change="syncToState()">
+                 x-model="overjetOverbite" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-oo-defer">Defer to orthobrain®</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-oo-maintain"
                  name="ai-overjet" value="maintain"
-                 x-model="overjetOverbite" @change="syncToState()">
+                 x-model="overjetOverbite" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-oo-maintain">Maintain</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-oo-improve"
                  name="ai-overjet" value="improve"
-                 x-model="overjetOverbite" @change="syncToState()">
+                 x-model="overjetOverbite" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-oo-improve">Improve</label>
         </div>
       </div>
@@ -835,19 +846,19 @@
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-cb-defer"
                  name="ai-crossbite" value="defer"
-                 x-model="crossbite" @change="syncToState()">
+                 x-model="crossbite" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-cb-defer">Defer to orthobrain®</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-cb-maintain"
                  name="ai-crossbite" value="maintain"
-                 x-model="crossbite" @change="syncToState()">
+                 x-model="crossbite" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-cb-maintain">Maintain</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="ai-cb-improve"
                  name="ai-crossbite" value="improve"
-                 x-model="crossbite" @change="syncToState()">
+                 x-model="crossbite" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="ai-cb-improve">Improve</label>
         </div>
       </div>

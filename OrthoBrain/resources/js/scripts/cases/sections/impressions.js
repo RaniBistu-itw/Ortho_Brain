@@ -4,6 +4,12 @@
   window.impressionsSection = function () {
     return {
 
+      // B-1b: read-only mode for non-DRAFT cases. See prescription.js comment
+      // for context. Bound to :disabled on the impression-method select.
+      get isReadOnly() {
+        return !!(window.AddCaseState && window.AddCaseState.isReadOnly);
+      },
+
       // ── Reactive state ──────────────────────────────────────────────────────
 
       impressionMethodId: '',

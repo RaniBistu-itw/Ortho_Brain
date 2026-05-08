@@ -4,6 +4,15 @@
   window.additionalInformationSection = function () {
     return {
 
+      // B-1b: read-only mode for non-DRAFT cases. See prescription.js comment
+      // for context. Bound to :disabled on every checkbox/radio/text input/
+      // textarea in this section's Blade partial. The collapse toggle button
+      // stays clickable (visual nav), but syncToState() short-circuits below
+      // so toggling does not mark the draft dirty in read-only mode.
+      get isReadOnly() {
+        return !!(window.AddCaseState && window.AddCaseState.isReadOnly);
+      },
+
       // ── State — every reactive property pre-declared at creation ─────────────
       // Follows the exact shape of window.AddCaseState.additionalInformation.
 
@@ -147,6 +156,11 @@
 
       syncToState: function () {
         if (!window.AddCaseState) return;
+        // B-1b: short-circuit in read-only mode. The collapse toggle still
+        // works visually, but does not mark the draft dirty (no localStorage
+        // write, no autosave nudge). Avoids polluting the persisted draft
+        // with cosmetic toggles when the doctor cannot save anyway.
+        if (window.AddCaseState.isReadOnly) return;
         var payload = {
           sectionExpanded:        this.sectionExpanded,
           diagnosis:              this.diagnosis,

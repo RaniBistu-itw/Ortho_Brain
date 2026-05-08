@@ -29,6 +29,15 @@
   window.photographsSection = function () {
     return {
 
+      // B-1b: read-only mode for non-DRAFT cases. See prescription.js comment
+      // for context. Bound to :disabled on the date input + bulk file input,
+      // and to x-show on the bulk Upload Images button. Per-tile buttons
+      // (Replace/Remove/Crop/Camera) live in the shared media-tile component
+      // and are gated there via the same getter (parent Alpine scope).
+      get isReadOnly() {
+        return !!(window.AddCaseState && window.AddCaseState.isReadOnly);
+      },
+
       // ── Pre-declared reactive state ─────────────────────────────────────────
       dateOfPhotos: '',
 
