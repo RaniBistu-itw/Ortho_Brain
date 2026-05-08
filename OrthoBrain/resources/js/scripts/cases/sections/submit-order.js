@@ -62,6 +62,16 @@
         // from the server — the admin viewing a submitted case still
         // sees an unchecked box (the historical agreement is implied by
         // the case being SUBMITTED, not by re-displaying the checkbox).
+
+        // B-1b follow-up: display-only pre-tick on non-DRAFT cases. The
+        // historical agreement is implied by submitted status — no DB
+        // column needed. Not editable: isReadOnly gates the checkbox via
+        // :disabled in the Blade. Without this, a SUBMITTED case shows
+        // an unchecked box next to "I agree…" which reads as "the doctor
+        // never agreed", which is misleading.
+        if (window.AddCaseState && window.AddCaseState.caseStatus !== 'DRAFT') {
+          this.termsAgreed = true;
+        }
       },
 
       // ── Handlers ────────────────────────────────────────────────────────────

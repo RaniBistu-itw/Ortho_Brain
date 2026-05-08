@@ -74,3 +74,36 @@ it('renders the x-show="!isReadOnly" gate on photographs bulk Upload button', fu
     // and on per-tile Replace/Remove/Crop buttons in media-tile.blade.php.
     $response->assertSee('x-show="!isReadOnly"', false);
 });
+
+// ─── B-1b follow-up — gap fixes ─────────────────────────────────────────────
+
+it('merges Family History chained-disable with isReadOnly (regression test)', function () {
+    // Original B-1b perl batch left duplicate :disabled attributes on 9
+    // checkboxes — Alpine respects only the first, so isReadOnly was
+    // silently ignored on Family History (Bug 1) and Parafunctional Habits.
+    // The fix combines both conditions into a single :disabled. Asserting
+    // the merged form catches re-introduction of the duplicate.
+    ['practiceId' => $pid, 'caseId' => $caseId] = makeDoctorCase(['status' => 'SUBMITTED']);
+
+    $response = $this->withSession([ActivePractice::SESSION_KEY => $pid])
+        ->get("/dev/cases/{$caseId}/edit")
+        ->assertStatus(200);
+
+    // Family History group — the merged :disabled must include both
+    // isReadOnly AND the section's mutual-exclusivity logic.
+    $response->assertSee(':disabled="isReadOnly || familyHistory.none || familyHistory.notKnown"', false);
+    // Parafunctional Habits group — same merge pattern.
+    $response->assertSee(':disabled="isReadOnly || parafunctionalHabits.none"', false);
+});
+
+// Note on terms checkbox pre-tick (B-1b follow-up Bug 2):
+// _hydrateFromPrefill() in submit-order.js sets termsAgreed = true on
+// non-DRAFT cases for display-only completeness. This is JS-driven (Alpine
+// state), not server-rendered HTML — Pest cannot assert the resulting
+// `checked` attribute. Verified via browser smoke only.
+
+// Note on read-only handler guards (B-1b follow-up Bugs 3 + 4):
+// The added isReadOnly guards at the top of onTileDrop, _processFile,
+// replaceTile, removeTile (photographs.js + xrays.js), and saveDraft +
+// scheduleAutosave (add-case.js) all execute client-side. Pest cannot
+// assert their behavior. Verified via browser smoke only.
