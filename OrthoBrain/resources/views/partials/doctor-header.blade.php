@@ -1046,4 +1046,23 @@
  
 })();
 </script>
+
+<script>
+// Practice-switcher: flush in-progress case-form draft before submitting the
+// switch, so a mid-form switch never loses the doctor's typing. AddCaseSave
+// only exists on the add-/edit-case page; on every other page this is a no-op
+// and the switcher form submits normally.
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('form[action$="/practice/switch"]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            if (window.AddCaseSave && typeof window.AddCaseSave.flushNow === 'function') {
+                e.preventDefault();
+                window.AddCaseSave.flushNow().finally(function () {
+                    HTMLFormElement.prototype.submit.call(form);
+                });
+            }
+        });
+    });
+});
+</script>
 @endpush
