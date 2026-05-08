@@ -125,6 +125,15 @@
     return window.CaseApi.saveAdditionalInfo(caseId, state.additionalInformation);
   }
 
+  function persistSubmitOrder() {
+    if (!window.CaseApi || caseId === 'new') return Promise.resolve();
+    var so = state.submitOrder;
+    if (!so) return Promise.resolve();
+    return window.CaseApi.saveSubmitOrder(caseId, {
+      submitterInitials: so.submitterInitials || null,
+    });
+  }
+
   function persistPhotographsDate() {
     if (!window.CaseApi || caseId === 'new') return Promise.resolve();
     var date = state.photographs && state.photographs.dateOfPhotos;
@@ -218,6 +227,7 @@
       shipping:        'Shipping',
       impressions:     'Impressions',
       additionalInfo:  'Additional Info',
+      submitOrder:     'Submit Order',
       photographsDate: 'Date of Photos',
       xraysDate:       'Date of X-Rays',
     };
@@ -228,6 +238,7 @@
       .then(shield('shipping',         persistShipping))
       .then(shield('impressions',      persistImpressions))
       .then(shield('additionalInfo',   persistAdditionalInfo))
+      .then(shield('submitOrder',      persistSubmitOrder))
       .then(shield('photographsDate',  persistPhotographsDate))
       .then(shield('xraysDate',        persistXraysDate))
       .then(function () {

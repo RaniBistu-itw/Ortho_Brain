@@ -216,6 +216,20 @@ class CasesController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function saveSubmitOrder(Request $request, int $id)
+    {
+        $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+
+        // Lenient draft validation — accept empty or partial input.
+        // The submit endpoint enforces the strict 2-5 letter regex.
+        $initials = trim((string) $request->input('submitterInitials', ''));
+        $case->update([
+            'submitter_initials' => $initials !== '' ? $initials : null,
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
     public function savePhotographsDate(Request $request, int $id)
     {
         $data = $request->validate([

@@ -126,6 +126,7 @@ Route::middleware(['web', 'auth'])
             Route::post('/cases/{case}/shipping',   [CasesController::class, 'saveShipping'])->name('cases.shipping.save');
             Route::post('/cases/{case}/impressions',[CasesController::class, 'saveImpressions'])->name('cases.impressions.save');
             Route::post('/cases/{case}/additional', [CasesController::class, 'saveAdditionalInfo'])->name('cases.additional.save');
+            Route::post('/cases/{case}/submit-order', [CasesController::class, 'saveSubmitOrder'])->name('cases.submit-order.save');
             Route::post('/cases/{case}/photographs/date', [CasesController::class, 'savePhotographsDate'])->name('cases.photographs.date.save');
             Route::post('/cases/{case}/xrays/date',       [CasesController::class, 'saveXraysDate'])->name('cases.xrays.date.save');
             Route::post('/cases/{case}/prescription',[PrescriptionController::class, 'update'])->name('cases.prescription.update');
