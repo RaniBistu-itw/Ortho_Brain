@@ -225,7 +225,7 @@ class PracticeMembershipController extends Controller
 
     /**
      * Doctor cancels a pending request of their own — only meaningful while
-     * the practice is INACTIVE (admin hasn't activated it yet).
+     * their pivot row is still PENDING admin review.
      */
     public function cancel(int $link)
     {
@@ -235,8 +235,7 @@ class PracticeMembershipController extends Controller
         $row = DB::table('doctor_practice')->where('id', $link)->first();
         abort_unless($row && (int) $row->doctor_id === $doctor->id, 404);
 
-        $practiceStatus = DB::table('practices')->where('id', $row->practice_id)->value('status');
-        if ($practiceStatus !== 'INACTIVE') {
+        if ($row->approval_status !== 'PENDING') {
             return back()->with('error', 'You can only cancel a link to a practice that is still pending admin approval.');
         }
 
