@@ -106,8 +106,9 @@
       return request('POST', '/dev/cases/' + encodeURIComponent(caseId) + '/submit', payload || {});
     },
 
-    updateStatus: function (caseId, status) {
-      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/status', { status: status });
+    updateStatus: function (caseId, status, extras) {
+      var body = Object.assign({ status: status }, extras || {});
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/status', body);
     },
 
     // AI — real-time photo QC after upload. Non-blocking caller-side.
