@@ -81,7 +81,7 @@ class ProfileController extends Controller
         if ($tab === 'practice') {
             $request->validate([
                 'practice_name'         => 'required|string|max:200',
-                'practice_phone_number' => 'required|string|max:30',
+                'practice_phone_number' => 'required|string|regex:/^\d{10}$/',
                 'website'               => 'required|string|max:500',
                 'language'              => 'nullable|string|max:50',
             ]);

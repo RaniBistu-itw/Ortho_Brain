@@ -264,7 +264,6 @@
     $smilePlanVer  = @filemtime(public_path('js/scripts/cases/sections/perfect-smile-plan.js')) ?: time();
   @endphp
   <script src="{{ asset('js/scripts/cases/voice-input.js') }}?v={{ $voiceInputVer }}"></script>
-  <script src="{{ asset('js/scripts/cases/mock-patients.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/mock-preferences.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/tooth-layout.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/patient-information.js') }}?v={{ @filemtime(public_path('js/scripts/cases/sections/patient-information.js')) ?: time() }}"></script>

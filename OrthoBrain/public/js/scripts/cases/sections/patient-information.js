@@ -147,9 +147,8 @@
   // Strip non-digits — lets users search by phone with or without formatting
   function digitsOnly(s) { return (s || '').replace(/[^0-9]/g, ''); }
 
-  // Server-backed autocomplete. Replaces the previous MOCK_PATIENTS filter.
-  // The server (PatientController::search) handles name / email / chart_id /
-  // phone-digits matching identically; nothing else in this file changes.
+  // Server-backed autocomplete via PatientController::search. Matches across
+  // name / email / chart_id / phone-digits.
   // Cancellation: if the user is mid-fetch when they type again, drop the
   // older request's result by checking the seq counter at resolve time.
   var _searchSeq = 0;

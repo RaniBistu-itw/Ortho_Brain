@@ -51,7 +51,10 @@ it('allows submit when both prescription and patient are present', function () {
         'updated_at'   => now(),
     ]);
 
-    DB::table('cases')->where('id', $caseId)->update(['patient_id' => $patientId]);
+    DB::table('cases')->where('id', $caseId)->update([
+        'patient_id' => $patientId,
+        'xrays_date' => '2026-01-01',
+    ]);
     DB::table('prescriptions')->insert(['case_id' => $caseId]);
 
     $this->withSession([ActivePractice::SESSION_KEY => $pid])

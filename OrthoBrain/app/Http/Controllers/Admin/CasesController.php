@@ -16,7 +16,6 @@ class CasesController extends Controller
     private const STATUS_OPTIONS = ['SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
 
     private const STATUS_LABELS = [
-        'DRAFT'     => 'Draft',
         'SUBMITTED' => 'Submitted',
         'IN_REVIEW' => 'In Review',
         'APPROVED'  => 'Approved',

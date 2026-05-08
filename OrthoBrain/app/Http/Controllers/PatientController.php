@@ -13,8 +13,6 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Real persistence layer for the case wizard's Patient Information section.
- * Replaces the mock-patients.js fixture so patient identity survives across
- * browsers / devices / admin views.
  *
  * All operations are scoped to (doctor, practice). Both routes live inside
  * the dev/active.practice middleware group so currentPractice() is non-null.
@@ -26,8 +24,7 @@ class PatientController extends Controller
     /**
      * Autocomplete for the Patient Information search field. Matches across
      * first/last name, email, phone (digits-only), and chart_id. Returns up
-     * to 8 rows shaped to match what patient-information.js previously read
-     * from window.MOCK_PATIENTS.
+     * to 8 rows.
      */
     public function search(Request $request): JsonResponse
     {
@@ -95,11 +92,8 @@ class PatientController extends Controller
             'biological_gender_other'  => $payload['biologicalGenderOther'] ?? null,
             'chart_id'                 => $payload['patientChartId'] ?? null,
             'chief_complaint'          => $payload['chiefComplaint'] ?? null,
-            // email + phone aren't in PatientInformationRequest yet; accept
-            // them when the client sends them, but tolerate omission so we
-            // don't break older drafts.
-            'email'                    => $request->input('email'),
-            'phone'                    => $request->input('phone'),
+            'email'                    => $payload['email'] ?? null,
+            'phone'                    => $payload['phone'] ?? null,
         ];
 
         $patient = DB::transaction(function () use ($case, $patientData, $request) {
@@ -153,9 +147,7 @@ class PatientController extends Controller
     }
 
     /**
-     * Shape a Patient for JSON output. Field names match what
-     * patient-information.js used to read from MOCK_PATIENTS so the JS
-     * consumer can be a near-drop-in replacement.
+     * Shape a Patient for JSON output.
      */
     private function serialize(Patient $p): array
     {

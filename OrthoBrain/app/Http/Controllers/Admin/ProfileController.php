@@ -31,7 +31,7 @@ class ProfileController extends Controller
             'last_name'          => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
             'email'              => 'required|email|max:150|unique:users,email,' . Auth::id(),
             'phone_country_code' => 'nullable|string|max:10',
-            'phone_number'       => 'nullable|string|max:20',
+            'phone_number'       => 'nullable|string|regex:/^\d{10}$/',
         ], [
             'first_name.regex' => 'First name may only contain letters, spaces and hyphens.',
             'last_name.regex'  => 'Last name may only contain letters, spaces and hyphens.',
