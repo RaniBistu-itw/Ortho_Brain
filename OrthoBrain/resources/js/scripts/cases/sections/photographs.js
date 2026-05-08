@@ -579,6 +579,16 @@
             imageUrl: preview.url,
             onApply: function (croppedBlob, cropParams) {
               URL.revokeObjectURL(preview.url);
+              // Validate size BEFORE overwriting tile state. Cropper.js
+              // re-encodes the canvas at browser-default JPEG quality (~0.92),
+              // which can produce a larger blob than the original server image
+              // (e.g. a q=0.6 camera JPEG inflates when re-encoded at q=0.92).
+              // Rejecting here keeps the original image intact in the tile.
+              if (croppedBlob.size > PHOTO_CONFIG.maxSizeBytes) {
+                self.bulkError = 'Cropped image exceeds 5 MB. Try a smaller selection or use the original.';
+                setTimeout(function () { self.bulkError = null; }, 6000);
+                return;
+              }
               if (self.tiles[tileId].previewUrl) {
                 URL.revokeObjectURL(self.tiles[tileId].previewUrl);
               }

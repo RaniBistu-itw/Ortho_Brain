@@ -1,3 +1,16 @@
+# PHP upload limits — must match the app's 5 MB cap in CaseMediaController.
+# System php.ini often defaults to 2M; these directives override it for Apache
+# mod_php so uploads don't silently fail before Laravel validation runs.
+# The equivalent for php artisan serve / PHP-FPM lives in public/.user.ini.
+<IfModule mod_php.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+</IfModule>
+<IfModule mod_php8.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
