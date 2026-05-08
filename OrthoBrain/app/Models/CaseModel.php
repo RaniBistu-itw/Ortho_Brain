@@ -24,7 +24,6 @@ class CaseModel extends Model
         'submitter_initials',
         'photos_date',
         'xrays_date',
-        'rejection_reason',
     ];
 
     protected $casts = [

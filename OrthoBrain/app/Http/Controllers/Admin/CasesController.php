@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\CasesController as DoctorCasesController;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\UpdateCaseStatusRequest;
 use App\Models\CaseModel;
 use App\Models\Doctor;
 use App\Models\Patient;
@@ -201,9 +200,11 @@ class CasesController extends Controller
         ]);
     }
 
-    public function updateStatus(UpdateCaseStatusRequest $request, int $id)
+    public function updateStatus(Request $request, int $id)
     {
-        $payload = $request->validated();
+        $payload = $request->validate([
+            'status' => 'required|in:' . implode(',', self::STATUS_OPTIONS),
+        ]);
 
         $case = CaseModel::findOrFail($id);
         $current = $case->status;
@@ -236,17 +237,8 @@ class CasesController extends Controller
         if ($next === 'SUBMITTED' && ! $case->submitted_at) {
             $updates['submitted_at'] = now();
         }
-        if ($next === 'REJECTED') {
-            $updates['rejection_reason'] = $payload['rejection_reason'];
-        }
-        if ($current === 'REJECTED' && $next === 'IN_REVIEW') {
-            $updates['rejection_reason'] = null;
-        }
 
         $case->update($updates);
-
-        // TODO B-4: dispatch CaseRejectedNotification / CaseApprovedNotification
-        // with rejection_reason in payload for the rejected variant.
 
         return response()->json([
             'ok' => true,
