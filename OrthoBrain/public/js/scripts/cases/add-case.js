@@ -21,8 +21,15 @@
     sections: {},
   };
 
-  // Hydrate from localStorage if editing an existing draft
+  // Hydrate from localStorage if editing an existing draft. On /dev/cases/create
+  // the form must always start blank — never rehydrate from a previous attempt.
+  // Also proactively clear any stale 'addCaseDraft:new' so it can't pollute
+  // later visits.
   (function hydrateFromLocalStorage() {
+    if (caseId === 'new') {
+      try { localStorage.removeItem('addCaseDraft:new'); } catch (e) { /* noop */ }
+      return;
+    }
     var raw = localStorage.getItem(draftKey);
     if (!raw) return;
     try {
@@ -275,11 +282,13 @@
   }
 
   window.addEventListener('beforeunload', function () {
-    // Last-ditch backup: if the user navigates away with typing still in
-    // memory (closed tab, browser back, deep-link click), persist to
-    // localStorage so the next visit can rehydrate. The practice switcher
-    // uses the awaitable `flushNow()` for a real server save.
-    if (state.isDirty) {
+    // Last-ditch backup ONLY for existing drafts (caseId is real). On
+    // /dev/cases/create (caseId === 'new') we deliberately don't write —
+    // a shell hasn't been created, so there's no row to rebind to, and
+    // a stale 'addCaseDraft:new' entry would leak into the next fresh
+    // visit. The practice switcher uses awaitable flushNow() which
+    // creates the shell first before unload, so it's unaffected.
+    if (state.isDirty && caseId !== 'new') {
       try { localStorage.setItem(draftKey, JSON.stringify(state)); }
       catch (e) { /* ignore quota */ }
     }
