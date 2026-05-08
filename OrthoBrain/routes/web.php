@@ -264,6 +264,11 @@ Route::middleware(['web', 'admin'])
             [SmilePreviewController::class, 'generate']
         )->middleware('throttle:5,1')->name('cases.smile-preview.generate');
 
+        // Admin media — upload / destroy / reorder for photographs and x-rays
+        Route::post('/cases/{case}/media/upload',                                   [\App\Http\Controllers\Admin\CaseMediaController::class, 'upload'])->name('cases.media.upload');
+        Route::post('/cases/{case}/media/{section}/{tile_id}/destroy',              [\App\Http\Controllers\Admin\CaseMediaController::class, 'destroy'])->where('section', 'photograph|xray')->name('cases.media.destroy');
+        Route::post('/cases/{case}/media/reorder',                                  [\App\Http\Controllers\Admin\CaseMediaController::class, 'reorder'])->name('cases.media.reorder');
+
         // Admin Doctors — review + approve/reject/suspend (PR #17)
         Route::resource('doctors', AdminDoctorController::class)
             ->only(['index', 'create', 'store', 'show', 'update', 'destroy']);
