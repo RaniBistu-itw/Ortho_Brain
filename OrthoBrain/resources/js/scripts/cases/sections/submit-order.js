@@ -4,6 +4,14 @@
   window.submitOrderSection = function () {
     return {
 
+      // B-1b: read-only mode for non-DRAFT cases. See prescription.js comment
+      // for context. Bound to :disabled on the initials input and terms
+      // checkbox. The Submit button itself lives in the topbar and is gated
+      // separately by B-1a's $caseStatus === 'DRAFT' check in the Blade.
+      get isReadOnly() {
+        return !!(window.AddCaseState && window.AddCaseState.isReadOnly);
+      },
+
       // ── Reactive state ──────────────────────────────────────────────────────
 
       submitterInitials: '',

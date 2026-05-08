@@ -33,6 +33,14 @@
       Please drag and drop files from your computer onto the template, or click each photo to upload the corresponding patient photo.
     </p>
 
+    {{-- B-1b: isReadOnly inherited from photographsSection() Alpine scope.
+         Disables date input + bulk file input, hides the bulk Upload Images
+         button, when the case is not editable for the current doctor.
+         Per-tile buttons (Replace/Remove/Crop/Camera) live in the shared
+         media-tile component and are gated there via the same getter
+         (parent Alpine scope). The camera capture modal's Capture button is
+         also gated since it's a write trigger.
+         See Docs/case-workflow.md → "Role capabilities > Doctor". --}}
     {{-- Date of Photos --}}
     <div class="mb-1">
       <label class="form-label fw-semibold" for="photo-date">
@@ -44,7 +52,8 @@
                class="form-control case-date-input"
                id="photo-date"
                x-model="dateOfPhotos"
-               @change="validateField('dateOfPhotos'); syncToState()">
+               @change="validateField('dateOfPhotos'); syncToState()"
+               :disabled="isReadOnly">
       </div>
       <div class="small text-danger mt-25"
            x-show="errors.dateOfPhotos"
@@ -86,7 +95,7 @@
 
     {{-- Bulk upload --}}
     <div class="mb-1">
-      <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-50" @click="openBulkPicker()">
+      <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-50" @click="openBulkPicker()" x-show="!isReadOnly">
         <i data-feather="upload"></i>
         Upload Images
       </button>
@@ -95,7 +104,8 @@
              class="media-bulk-input"
              multiple
              accept="image/png,image/gif,image/jpeg,image/tiff,image/bmp,image/heic"
-             @change="onBulkInputChange()">
+             @change="onBulkInputChange()"
+             :disabled="isReadOnly">
       <div class="text-muted small mt-50">
         Maximum upload size is 5MB. Files should be formatted as png, gif, jpeg, jpg, tiff, bmp, heic.
       </div>
@@ -138,7 +148,7 @@
             </button>
             <button type="button"
                     class="btn btn-primary btn-sm"
-                    :disabled="!cameraModal.isReady || cameraModal.isCapturing"
+                    :disabled="!cameraModal.isReady || cameraModal.isCapturing || isReadOnly"
                     @click="capturePhoto()">
               <i data-feather="camera" class="me-25"></i>
               <span x-text="cameraModal.isCapturing ? 'Capturing…' : 'Capture'"></span>
@@ -173,9 +183,9 @@
                  style="max-height:55vh; display:none;">
           </div>
           <div class="modal-footer flex-wrap gap-50">
-            <button type="button" class="btn btn-outline-primary btn-sm" @click="replaceTile()">Replace</button>
-            <button type="button" class="btn btn-outline-danger btn-sm" @click="removeTile()">Remove</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" @click="cropTile()">Crop</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" @click="replaceTile()" x-show="!isReadOnly">Replace</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" @click="removeTile()" x-show="!isReadOnly">Remove</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" @click="cropTile()" x-show="!isReadOnly">Crop</button>
             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
                     @click="_pendingReplaceTileId = null">Close</button>
           </div>

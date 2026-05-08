@@ -4,6 +4,13 @@
   window.shippingAddressSection = function () {
     return {
 
+      // B-1b: read-only mode for non-DRAFT cases. See prescription.js comment
+      // for context. Bound to :disabled on every input + the saved-address
+      // and country selects.
+      get isReadOnly() {
+        return !!(window.AddCaseState && window.AddCaseState.isReadOnly);
+      },
+
       // ── Reactive state ──────────────────────────────────────────────────────
 
       savedAddressId: '',

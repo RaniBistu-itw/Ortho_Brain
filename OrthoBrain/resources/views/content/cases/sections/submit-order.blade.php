@@ -6,6 +6,11 @@
   <div class="case-section__body">
 
     {{-- Submitter Initials --}}
+    {{-- B-1b: isReadOnly inherited from submitOrderSection() Alpine scope.
+         Disables initials + terms checkbox when the case is not editable
+         for the current doctor. The Submit button itself is in the topbar
+         and is gated separately by B-1a's $caseStatus check.
+         See Docs/case-workflow.md → "Role capabilities > Doctor". --}}
     <div class="mb-1">
       <label for="so-initials" class="form-label fw-semibold">
         Submitter Initials <span class="text-danger">*</span>
@@ -19,7 +24,8 @@
              :class="{ 'is-invalid': errors.submitterInitials }"
              placeholder="e.g. JD"
              maxlength="5"
-             autocomplete="off">
+             autocomplete="off"
+             :disabled="isReadOnly">
       <div class="form-text text-muted">2–5 letters only (e.g. JD, ABcd).</div>
       <div class="small text-danger mt-25"
            x-show="errors.submitterInitials"
@@ -35,7 +41,8 @@
                class="form-check-input"
                x-model="termsAgreed"
                @change="onTermsChange()"
-               :class="{ 'is-invalid': errors.termsAgreed }">
+               :class="{ 'is-invalid': errors.termsAgreed }"
+               :disabled="isReadOnly">
         <label class="form-check-label so-terms-label" for="so-terms">
           I agree to our
           {{-- TODO: link to real T&C page --}}
