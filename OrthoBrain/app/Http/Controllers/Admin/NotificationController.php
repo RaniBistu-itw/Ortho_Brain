@@ -8,6 +8,7 @@ use App\Models\Doctor;
 use App\Models\Practice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
 {
@@ -77,7 +78,39 @@ class NotificationController extends Controller
                 ];
             });
 
-        return $doctors->concat($practices)->concat($cases)
+        // Doctor-initiated cancellations of pending practice requests today.
+        // CANCELLED is terminal in the pivot's state machine, so updated_at
+        // is effectively the cancellation time.
+        $cancellations = DB::table('doctor_practice')
+            ->join('doctors', 'doctors.id', '=', 'doctor_practice.doctor_id')
+            ->join('practices', 'practices.id', '=', 'doctor_practice.practice_id')
+            ->where('doctor_practice.approval_status', 'CANCELLED')
+            ->whereDate('doctor_practice.updated_at', $today)
+            ->orderByDesc('doctor_practice.updated_at')
+            ->select(
+                'doctor_practice.id as link_id',
+                'doctor_practice.practice_id',
+                'doctor_practice.updated_at as cancelled_at',
+                'doctors.first_name',
+                'doctors.last_name',
+                'practices.name as practice_name'
+            )
+            ->get()
+            ->map(function ($r) {
+                $doctorName  = trim("{$r->first_name} {$r->last_name}") ?: 'A doctor';
+                $cancelledAt = Carbon::parse($r->cancelled_at);
+                return [
+                    'key'    => "practice-cancel:{$r->link_id}",
+                    'kind'   => 'practice_cancel',
+                    'title'  => 'Doctor cancelled practice request',
+                    'body'   => "{$doctorName} withdrew their request to join {$r->practice_name}",
+                    'time'   => $cancelledAt->diffForHumans(),
+                    'sortAt' => $cancelledAt->toIso8601String(),
+                    'url'    => route('admin.practices.show', $r->practice_id),
+                ];
+            });
+
+        return $doctors->concat($practices)->concat($cases)->concat($cancellations)
             ->sortByDesc('sortAt')
             ->values();
     }

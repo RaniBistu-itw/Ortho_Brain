@@ -393,6 +393,7 @@
     {{-- Doctors at this practice (status + per-doctor approval dropdown) --}}
     @php
         $pivotRows = $practice->doctors
+            ->reject(fn ($d) => ($d->pivot->approval_status ?? '') === 'CANCELLED')
             ->sortBy(fn ($d) => match ($d->pivot->approval_status ?? 'PENDING') {
                 'PENDING'   => 0,
                 'APPROVED'  => 1,
