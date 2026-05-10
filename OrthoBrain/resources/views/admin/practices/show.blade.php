@@ -722,7 +722,6 @@
                         // valid transitions all stay in sync without bespoke client diffing.
                         Swal.fire({ icon: 'success', title: actionLabel + 'd.', timer: 900, showConfirmButton: false })
                             .then(function () { window.location.reload(); });
-                        setTimeout(function () { window.location.reload(); }, 1000);
                     })
                     .catch(function (msg) {
                         sel.value = '';
@@ -801,7 +800,6 @@
                         timer: 1100,
                         showConfirmButton: false
                     }).then(function () { window.location.reload(); });
-                    setTimeout(function () { window.location.reload(); }, 1200);
                 })
                 .catch(function (msg) {
                     btn.disabled = false;

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\Doctor;
 use App\Models\Practice;
+use App\Models\User;
 use App\Models\Zipcode;
 use App\Notifications\PracticeActivatedNotification;
 use App\Notifications\PracticeDeactivatedNotification;
@@ -14,6 +15,7 @@ use App\Notifications\PracticeRequestRejected;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class PracticeController extends Controller
@@ -242,23 +244,26 @@ class PracticeController extends Controller
             }
         });
 
-        // Send notifications outside the transaction so mail failures never roll back DB changes.
+        // Notifications fire after the response is sent so the admin never waits on mail.
         foreach ($pendingDoctors as $doctor) {
-            try { $doctor->user?->notify(new PracticeRequestApproved($practice)); } catch (\Throwable) {}
-            usleep(600000);
+            if ($doctor->user) {
+                $this->notifyAfterResponse($doctor->user, new PracticeRequestApproved($practice));
+            }
         }
         foreach ($approvedDoctors as $doctor) {
-            try { $doctor->user?->notify(new PracticeActivatedNotification($practice)); } catch (\Throwable) {}
-            usleep(600000);
+            if ($doctor->user) {
+                $this->notifyAfterResponse($doctor->user, new PracticeActivatedNotification($practice));
+            }
         }
         foreach ($deactivatedDoctors as $doctor) {
-            try { $doctor->user?->notify(new PracticeDeactivatedNotification($practice)); } catch (\Throwable) {}
-            usleep(600000);
+            if ($doctor->user) {
+                $this->notifyAfterResponse($doctor->user, new PracticeDeactivatedNotification($practice));
+            }
         }
 
         return response()->json([
             'ok'     => true,
-            'status' => $practice->fresh()->status,
+            'status' => $data['status'],
         ]);
     }
 
@@ -323,16 +328,29 @@ class PracticeController extends Controller
         $doctors = Doctor::with('user')->whereIn('id', $doctorIds)->get();
         foreach ($doctors as $doctor) {
             if (! $doctor->user) continue;
-            try {
-                $doctor->user->notify(
-                    $data['action'] === 'APPROVE'
-                        ? new PracticeRequestApproved($practice)
-                        : new PracticeRequestRejected($practice, $data['reason'])
-                );
-            } catch (\Throwable) {}
-            usleep(600000);
+            $this->notifyAfterResponse(
+                $doctor->user,
+                $data['action'] === 'APPROVE'
+                    ? new PracticeRequestApproved($practice)
+                    : new PracticeRequestRejected($practice, $data['reason'])
+            );
         }
 
         return response()->json(['ok' => true, 'count' => $count]);
+    }
+
+    private function notifyAfterResponse(User $notifiable, \Illuminate\Notifications\Notification $notification): void
+    {
+        dispatch(function () use ($notifiable, $notification) {
+            try {
+                $notifiable->notify($notification);
+            } catch (\Throwable $e) {
+                Log::error('Practice notification failed', [
+                    'notifiable_id' => $notifiable->getKey(),
+                    'notification'  => get_class($notification),
+                    'error'         => $e->getMessage(),
+                ]);
+            }
+        })->afterResponse();
     }
 }

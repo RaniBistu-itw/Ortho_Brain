@@ -17,8 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class LogSlowRequests
 {
-    // TEMP: lowered from 20 → 1 to force log entries for testing. Restore to 20.
-    private const THRESHOLD_QUERY_COUNT = 1;
+    private const THRESHOLD_QUERY_COUNT = 20;
     private const THRESHOLD_QUERY_MS    = 500;
     private const THRESHOLD_REQUEST_MS  = 1500;
 

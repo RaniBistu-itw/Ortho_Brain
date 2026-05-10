@@ -431,6 +431,39 @@
     function markAllRead(keys) { const d = getDay(); keys.forEach(k => { if (!d.read.includes(k)) d.read.push(k); }); setDay(d); }
     function markAllDismiss(keys){ const d = getDay(); keys.forEach(k => { if (!d.dismissed.includes(k)) d.dismissed.push(k); }); setDay(d); }
 
+    // ── SweetAlert2 helpers ─────────────────────────────────────────────────
+    function showToast(title, type) {
+        if (!window.Swal) return;
+        Swal.fire({
+            title: title,
+            icon: type || 'success',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2800,
+            timerProgressBar: true,
+            customClass: { popup: 'swal2-vuexy' },
+        });
+    }
+
+    function confirmDanger(title, text) {
+        if (!window.Swal) return Promise.resolve({ isConfirmed: true });
+        return Swal.fire({
+            title: title,
+            text: text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, clear all',
+            cancelButtonText: 'Cancel',
+            customClass: {
+                confirmButton: 'btn btn-danger',
+                cancelButton: 'btn btn-outline-secondary ms-1',
+            },
+            buttonsStyling: false,
+            focusCancel: true,
+        });
+    }
+
     // ── Bell badge sync ─────────────────────────────────────────────────────
     function setBellCount(n) {
         const bell = document.querySelector('.doc-nav__icon-btn[title="Notifications"]');
@@ -543,7 +576,9 @@
             }
         });
 
-        dropdown.querySelector('[data-notif-mark-all]')?.addEventListener('click', function () {
+        dropdown.querySelector('[data-notif-mark-all]')?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            e.preventDefault();
             const keys = [...dropdown.querySelectorAll('[data-notif-key]')]
                 .filter(el => el.style.display !== 'none')
                 .map(el => el.dataset.notifKey);
@@ -551,20 +586,28 @@
             applyState(dropdown);
             setBellCount(0);
             syncDropdownButtons(dropdown);
+            showToast('All notifications marked as read');
         });
 
-        dropdown.querySelector('[data-notif-delete-all]')?.addEventListener('click', function () {
-            const keys = [...dropdown.querySelectorAll('[data-notif-key]')]
-                .filter(el => el.style.display !== 'none')
-                .map(el => el.dataset.notifKey);
-            markAllDismiss(keys);
-            keys.forEach(k => {
-                const el = dropdown.querySelector(`[data-notif-key="${k}"]`);
-                if (el) el.style.display = 'none';
-            });
-            setBellCount(0);
-            syncDropdownButtons(dropdown);
-            refreshEmptyState(dropdown, 'No new activity today.');
+        dropdown.querySelector('[data-notif-delete-all]')?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            e.preventDefault();
+            confirmDanger('Clear all notifications?', "Today's activity will be hidden. This only affects your view and resets tomorrow.")
+                .then(function (result) {
+                    if (!result.isConfirmed) return;
+                    const keys = [...dropdown.querySelectorAll('[data-notif-key]')]
+                        .filter(el => el.style.display !== 'none')
+                        .map(el => el.dataset.notifKey);
+                    markAllDismiss(keys);
+                    keys.forEach(k => {
+                        const el = dropdown.querySelector(`[data-notif-key="${k}"]`);
+                        if (el) el.style.display = 'none';
+                    });
+                    setBellCount(0);
+                    syncDropdownButtons(dropdown);
+                    refreshEmptyState(dropdown, 'No new activity today.');
+                    showToast('All notifications cleared');
+                });
         });
     }
 
@@ -632,13 +675,16 @@
         });
     }
 
-    document.querySelector('[data-notif-viewall]')?.addEventListener('click', function () {
+    document.querySelector('[data-notif-viewall]')?.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
         const m = getModal();
-        if (!m) return;
+        if (!m) { console.error('[AdminNotif] Bootstrap modal not available'); return; }
         // Hide the bell dropdown so the modal backdrop sits cleanly
         const bellToggle = document.querySelector('[data-bs-toggle="dropdown"][title="Notifications"]');
         if (bellToggle && window.bootstrap?.Dropdown) {
-            bootstrap.Dropdown.getInstance(bellToggle)?.hide();
+            const dd = bootstrap.Dropdown.getInstance(bellToggle);
+            if (dd) dd.hide();
         }
         loadModal();
         m.show();
@@ -690,23 +736,29 @@
             setBellCount(0);
             syncDropdownButtons(modalEl);
             if (dropdown) syncDropdownButtons(dropdown);
+            showToast('All notifications marked as read');
         });
 
         modalEl.querySelector('[data-notif-delete-all]')?.addEventListener('click', function () {
-            const keys = [...modalEl.querySelectorAll('[data-notif-key]')]
-                .filter(el => el.style.display !== 'none')
-                .map(el => el.dataset.notifKey);
-            markAllDismiss(keys);
-            keys.forEach(k => {
-                document.querySelectorAll(`[data-notif-key="${k}"]`).forEach(el => el.style.display = 'none');
-            });
-            setBellCount(0);
-            syncDropdownButtons(modalEl);
-            refreshEmptyState(modalEl, 'No new activity today.');
-            if (dropdown) {
-                syncDropdownButtons(dropdown);
-                refreshEmptyState(dropdown, 'No new activity today.');
-            }
+            confirmDanger('Clear all notifications?', "Today's activity will be hidden. This only affects your view and resets tomorrow.")
+                .then(function (result) {
+                    if (!result.isConfirmed) return;
+                    const keys = [...modalEl.querySelectorAll('[data-notif-key]')]
+                        .filter(el => el.style.display !== 'none')
+                        .map(el => el.dataset.notifKey);
+                    markAllDismiss(keys);
+                    keys.forEach(k => {
+                        document.querySelectorAll(`[data-notif-key="${k}"]`).forEach(el => el.style.display = 'none');
+                    });
+                    setBellCount(0);
+                    syncDropdownButtons(modalEl);
+                    refreshEmptyState(modalEl, 'No new activity today.');
+                    if (dropdown) {
+                        syncDropdownButtons(dropdown);
+                        refreshEmptyState(dropdown, 'No new activity today.');
+                    }
+                    showToast('All notifications cleared');
+                });
         });
     }
 })();

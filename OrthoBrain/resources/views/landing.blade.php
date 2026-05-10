@@ -800,7 +800,7 @@
                 // Wait for entrance, then float forever
                 setTimeout(() => {
                     animate(heroDoc,
-                        { transform: ['translateY(0px)', 'translateY(-12px)', 'translateY(0px)'] },
+                        { transform: ['translateY(28px)', 'translateY(16px)', 'translateY(28px)'] },
                         { duration: 5.5, repeat: Infinity, easing: 'ease-in-out' }
                     );
                 }, 1200);
