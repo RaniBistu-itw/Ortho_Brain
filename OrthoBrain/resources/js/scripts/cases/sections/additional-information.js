@@ -4,6 +4,15 @@
   window.additionalInformationSection = function () {
     return {
 
+      // B-1b: read-only mode for non-DRAFT cases. See prescription.js comment
+      // for context. Bound to :disabled on every checkbox/radio/text input/
+      // textarea in this section's Blade partial. The collapse toggle button
+      // stays clickable (visual nav), but syncToState() short-circuits below
+      // so toggling does not mark the draft dirty in read-only mode.
+      get isReadOnly() {
+        return !!(window.AddCaseState && window.AddCaseState.isReadOnly);
+      },
+
       // ── State — every reactive property pre-declared at creation ─────────────
       // Follows the exact shape of window.AddCaseState.additionalInformation.
 
@@ -105,7 +114,13 @@
           hydrate: function (d) { self._hydrate(d); },
         };
 
+        // _initialized guards _persistToServer from firing during
+        // hydration. Without this, opening a case triggers saves
+        // before the admin has made any change, causing spurious
+        // CaseEditedByAdminNotification dispatches.
+        this._initialized = false;
         this.syncToState();
+        this._initialized = true;
       },
 
       // ── Hydration ──────────────────────────────────────────────────────────
@@ -147,6 +162,11 @@
 
       syncToState: function () {
         if (!window.AddCaseState) return;
+        // B-1b: short-circuit in read-only mode. The collapse toggle still
+        // works visually, but does not mark the draft dirty (no localStorage
+        // write, no autosave nudge). Avoids polluting the persisted draft
+        // with cosmetic toggles when the doctor cannot save anyway.
+        if (window.AddCaseState.isReadOnly) return;
         var payload = {
           sectionExpanded:        this.sectionExpanded,
           diagnosis:              this.diagnosis,
@@ -168,8 +188,8 @@
         
         if (window.AddCaseSave) window.AddCaseSave.markDirty();
 
-        // Server-side persistence if case exists
-        if (window.CASE_ID && window.CASE_ID !== 'new') {
+        // Only persist after initialization — skip hydration saves.
+        if (this._initialized && window.CASE_ID && window.CASE_ID !== 'new') {
           this._persistToServer(payload);
         }
       },

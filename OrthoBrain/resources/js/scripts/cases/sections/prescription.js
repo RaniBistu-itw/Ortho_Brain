@@ -31,6 +31,14 @@
   window.prescriptionSection = function () {
     return {
 
+      // B-1b: read-only mode for non-DRAFT cases. Sourced from
+      // window.AddCaseState (seeded by add-case.js from window.__isReadOnly).
+      // Bound to :disabled on every input/select/textarea in this section's
+      // Blade partial. See Docs/case-workflow.md → "Role capabilities > Doctor".
+      get isReadOnly() {
+        return !!(window.AddCaseState && window.AddCaseState.isReadOnly);
+      },
+
       // ── Reactive state ──────────────────────────────────────────────────────
 
       arches: 'both',

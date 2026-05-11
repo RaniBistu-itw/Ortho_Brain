@@ -4,6 +4,12 @@
   window.impressionsSection = function () {
     return {
 
+      // B-1b: read-only mode for non-DRAFT cases. See prescription.js comment
+      // for context. Bound to :disabled on the impression-method select.
+      get isReadOnly() {
+        return !!(window.AddCaseState && window.AddCaseState.isReadOnly);
+      },
+
       // ── Reactive state ──────────────────────────────────────────────────────
 
       impressionMethodId: '',
@@ -33,7 +39,13 @@
           hydrate:     function (d) { self._hydrate(d); },
         };
 
+        // _initialized guards _persistToServer from firing during
+        // hydration. Without this, opening a case triggers saves
+        // before the admin has made any change, causing spurious
+        // CaseEditedByAdminNotification dispatches.
+        this._initialized = false;
         this.syncToState();
+        this._initialized = true;
       },
 
       // ── Data loading ────────────────────────────────────────────────────────
@@ -75,8 +87,8 @@
 
         if (window.AddCaseSave) window.AddCaseSave.markDirty();
 
-        // Server-side persistence if case exists
-        if (window.CASE_ID && window.CASE_ID !== 'new') {
+        // Only persist after initialization — skip hydration saves.
+        if (this._initialized && window.CASE_ID && window.CASE_ID !== 'new') {
           this._persistToServer(payload);
         }
       },

@@ -1035,21 +1035,20 @@
 
                                     <div class="col-md-5">
                                         <label for="zip_id" class="form-label">Zip / Postal Code<span class="text-danger">*</span></label>
-                                        <select id="zip_id" name="zip_id" required class="form-select js-searchable @error('zip_id') is-invalid @enderror"
-                                                data-placeholder="Select a zip code">
-                                            <option value="">Select a zip code</option>
-                                            @foreach(($zipcodes ?? []) as $z)
-                                                <option value="{{ $z->id }}"
-                                                        @selected(old('zip_id') == $z->id)
-                                                        data-city-id="{{ $z->city?->id }}"
-                                                        data-city="{{ $z->city?->name }}"
-                                                        data-state-id="{{ $z->city?->state?->id }}"
-                                                        data-state="{{ $z->city?->state?->name }}"
-                                                        data-country-id="{{ $z->city?->state?->country?->id }}"
-                                                        data-country="{{ $z->city?->state?->country?->name }}">
-                                                    {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
+                                        <select id="zip_id" name="zip_id" required class="form-select @error('zip_id') is-invalid @enderror"
+                                                data-placeholder="Search zip or city...">
+                                            <option value=""></option>
+                                            @if(!empty($selectedZip))
+                                                <option value="{{ $selectedZip->id }}" selected
+                                                        data-city-id="{{ $selectedZip->city?->id }}"
+                                                        data-city="{{ $selectedZip->city?->name }}"
+                                                        data-state-id="{{ $selectedZip->city?->state?->id }}"
+                                                        data-state="{{ $selectedZip->city?->state?->name }}"
+                                                        data-country-id="{{ $selectedZip->city?->state?->country?->id }}"
+                                                        data-country="{{ $selectedZip->city?->state?->country?->name }}">
+                                                    {{ $selectedZip->code }} — {{ $selectedZip->city?->name }}, {{ $selectedZip->city?->state?->state_code }}
                                                 </option>
-                                            @endforeach
+                                            @endif
                                         </select>
                                         <div id="zip_id-err" class="invalid-feedback d-block" data-err-for="zip_id">@error('zip_id'){{ $message }}@enderror</div>
                                     </div>
@@ -1698,6 +1697,8 @@ $(function () {
                 $('#zip_id').append(new Option((p.zip_code || '') + ' — ' + (p.city || ''), p.zip_id, true, true));
             }
             $('#zip_id').val(p.zip_id).trigger('change');
+            // Appended option has no data-* attrs, so update chips directly from practice data
+            updateZipChips(p.city || '', p.state_code || p.state || '', p.country || '');
         }
         $('#city_id').val(p.city_id || '');
         $('#state_id').val(p.state_id || '');
@@ -1786,28 +1787,70 @@ $(function () {
     })();
 
     // ─── Zip → auto-fill chips ──────────────────────────────
-    function syncZipChips() {
-        const opt = document.querySelector('#zip_id option:checked');
-        const fields = { city: '', state: '', country: '' };
-        if (opt && opt.value) {
-            fields.city    = opt.dataset.city || '';
-            fields.state   = opt.dataset.state || '';
-            fields.country = opt.dataset.country || '';
-            $('#city_id').val(opt.dataset.cityId || '');
-            $('#state_id').val(opt.dataset.stateId || '');
-            $('#country_id').val(opt.dataset.countryId || '');
-        } else {
-            $('#city_id,#state_id,#country_id').val('');
-        }
-        Object.entries(fields).forEach(([k, v]) => {
+    function updateZipChips(city, state, country) {
+        [['city', city], ['state', state], ['country', country]].forEach(([k, v]) => {
             const $chip = $('.obw-location-chip[data-chip="' + k + '"]');
             $chip.attr('data-empty', v ? null : '1');
             $chip.find('.obw-location-chip-val').text(v || '—');
         });
     }
+    function syncZipChips() {
+        // AJAX-selected: extended data lives in Select2's internal store
+        const s2raw = $('#zip_id').data('select2')
+            ? (($('#zip_id').select2('data') || [])[0] || null)
+            : null;
+        const opt = document.querySelector('#zip_id option:checked');
+        let city = '', state = '', country = '', cityId = '', stateId = '', countryId = '';
+        if (s2raw && s2raw.id && s2raw.cityId) {
+            city = s2raw.city || ''; state = s2raw.state || ''; country = s2raw.country || '';
+            cityId = s2raw.cityId || ''; stateId = s2raw.stateId || ''; countryId = s2raw.countryId || '';
+        } else if (opt && opt.value) {
+            // Server-rendered option (validation bounce) — data-* attrs present
+            city = opt.dataset.city || ''; state = opt.dataset.state || ''; country = opt.dataset.country || '';
+            cityId = opt.dataset.cityId || ''; stateId = opt.dataset.stateId || ''; countryId = opt.dataset.countryId || '';
+        }
+        if (opt && opt.value) {
+            $('#city_id').val(cityId);
+            $('#state_id').val(stateId);
+            $('#country_id').val(countryId);
+        } else {
+            $('#city_id,#state_id,#country_id').val('');
+        }
+        updateZipChips(city, state, country);
+    }
     $('#zip_id').on('change', syncZipChips);
     syncZipChips();
-    window.obSearchable && window.obSearchable('#zip_id');
+
+    // AJAX-backed Select2 for the zip field — avoids loading all 180K+ rows up front.
+    $('#zip_id').select2({
+        placeholder: 'Search zip or city...',
+        allowClear: false,
+        width: '100%',
+        minimumInputLength: 2,
+        dropdownParent: document.body,
+        ajax: {
+            url: '{{ route("admin.zipcodes.search") }}',
+            dataType: 'json',
+            delay: 300,
+            data: params => ({ q: params.term }),
+            processResults: data => ({
+                results: data.map(z => ({
+                    id: z.id,
+                    text: z.displayLabel,
+                    city: z.city, cityId: z.cityId,
+                    state: z.state, stateId: z.stateId,
+                    country: z.country, countryId: z.countryId,
+                }))
+            }),
+            cache: true,
+        },
+    }).on('select2:select', syncZipChips)
+      .on('select2:open.obSearch', function () {
+          setTimeout(() => {
+              const f = document.querySelector('.select2-container--open .select2-search__field');
+              if (f) f.focus();
+          }, 0);
+      });
 
     // ─── Contact preference reveals ─────────────────────────
     function syncContactReveals() {

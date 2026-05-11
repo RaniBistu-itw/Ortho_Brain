@@ -5,18 +5,25 @@
   </div>
   <div class="case-section__body">
 
+    {{-- B-1b: isReadOnly inherited from shippingAddressSection() Alpine scope.
+         Disables every input + the saved-address and country selects when
+         the case is not editable for the current doctor. The ZIP combobox
+         dropdown is gated implicitly: a disabled <input id="sa-zip"> can't
+         receive focus, so onZipQueryInput() never fires.
+         See Docs/case-workflow.md → "Role capabilities > Doctor". --}}
     {{-- Row 1: Saved Address (full width) --}}
-    {{-- TODO: replace with API call to GET /api/doctors/{id}/saved-addresses --}}
     <div class="mb-1">
       <label for="sa-saved" class="form-label fw-semibold">Saved Address</label>
       <select id="sa-saved" class="form-select"
               x-model="savedAddressId"
-              @change="onSavedAddressChange()">
+              @change="onSavedAddressChange()"
+              :disabled="isReadOnly">
         <option value="">— Select a saved address —</option>
-        <option value="saved-1">Main Office</option>
-        <option value="saved-2">Satellite Clinic</option>
+        <template x-for="a in (window.DOCTOR_SAVED_ADDRESSES || [])" :key="a.id">
+          <option :value="a.id" x-text="a.label"></option>
+        </template>
       </select>
-      <div class="form-text text-muted">Selecting a saved address will fill the fields below.</div>
+      <div class="form-text text-muted">Selecting a saved address will fill the fields below. You can still edit any field after.</div>
     </div>
 
     {{-- Row 2: Practice | Doctor Name (read-only context labels) --}}
@@ -47,7 +54,8 @@
                  @blur="validateField('streetAddress')"
                  :class="{ 'is-invalid': errors.streetAddress }"
                  placeholder="Street address"
-                 maxlength="200">
+                 maxlength="200"
+                 :disabled="isReadOnly">
         </div>
         <div class="small text-danger mt-25"
              x-show="errors.streetAddress"
@@ -64,7 +72,8 @@
                  x-model="streetAddress2"
                  @input="syncToState()"
                  placeholder="Suite, floor, unit…"
-                 maxlength="200">
+                 maxlength="200"
+                 :disabled="isReadOnly">
         </div>
       </div>
     </div>
@@ -86,7 +95,8 @@
                  @blur="onZipBlur()"
                  :class="{ 'is-invalid': errors.zipId }"
                  placeholder="Search ZIP or postal code…"
-                 autocomplete="off">
+                 autocomplete="off"
+                 :disabled="isReadOnly">
           <div class="sa-zip-dropdown"
                x-show="zipDropdownOpen && filteredZips().length > 0"
                style="display:none;">
@@ -112,7 +122,8 @@
                @blur="validateField('city')"
                :class="{ 'is-invalid': errors.city }"
                placeholder="City"
-               maxlength="100">
+               maxlength="100"
+               :disabled="isReadOnly">
         <div class="small text-danger mt-25"
              x-show="errors.city"
              x-text="errors.city"
@@ -132,7 +143,8 @@
                @blur="validateField('state')"
                :class="{ 'is-invalid': errors.state }"
                placeholder="State or province"
-               maxlength="100">
+               maxlength="100"
+               :disabled="isReadOnly">
         <div class="small text-danger mt-25"
              x-show="errors.state"
              x-text="errors.state"
@@ -146,11 +158,12 @@
                 x-model="country"
                 @change="onCountryChange()"
                 @blur="validateField('country')"
-                :class="{ 'is-invalid': errors.country }">
+                :class="{ 'is-invalid': errors.country }"
+                :disabled="isReadOnly">
           <option value="">— Select country —</option>
-          <template x-for="c in (window.COUNTRY_ENTRIES || [])" :key="c.code">
-            <option :value="c.code" x-text="c.name"></option>
-          </template>
+          @foreach($countryEntries as $c)
+            <option value="{{ $c['code'] }}">{{ $c['name'] }}</option>
+          @endforeach
         </select>
         <div class="small text-danger mt-25"
              x-show="errors.country"

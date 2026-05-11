@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CaseModel;
 use App\Models\Country;
 use App\Models\Practice;
 use App\Support\ActivePractice;
@@ -47,8 +48,36 @@ class PracticeMembershipController extends Controller
             'practice_id' => 'required|integer|exists:practices,id',
         ]);
 
-        if (! ActivePractice::set((int) $data['practice_id'])) {
+        $newPracticeId = (int) $data['practice_id'];
+
+        if (! ActivePractice::set($newPracticeId)) {
             return back()->with('error', 'You do not have access to that practice.');
+        }
+
+        // If the doctor was on a per-case URL, the old URL is bound to the OLD
+        // practice's scope and would 404 after the switch. For DRAFTs we honour
+        // the doctor's intent by moving the draft to the new active practice.
+        // For non-drafts we redirect to the cases list (which is freshly scoped).
+        $prevPath = parse_url(url()->previous(), PHP_URL_PATH) ?? '';
+        if (preg_match('#^/dev/cases/(\d+)(?:/edit)?/?$#', $prevPath, $m)) {
+            $caseId = (int) $m[1];
+            $doctor = Auth::user()?->doctor;
+            if ($doctor) {
+                $case = CaseModel::where('doctor_id', $doctor->id)
+                    ->where('id', $caseId)
+                    ->first();
+
+                if ($case && $case->status === 'DRAFT') {
+                    $case->update(['practice_id' => $newPracticeId]);
+                    return redirect()
+                        ->route('doctor.cases.edit', $case->id)
+                        ->with('success', 'Switched practice. This draft now belongs to ' . currentPractice()->name . '.');
+                }
+
+                return redirect()
+                    ->route('doctor.cases.index')
+                    ->with('success', 'Switched practice.');
+            }
         }
 
         return back()->with('success', 'Switched practice.');
@@ -196,7 +225,7 @@ class PracticeMembershipController extends Controller
 
     /**
      * Doctor cancels a pending request of their own — only meaningful while
-     * the practice is INACTIVE (admin hasn't activated it yet).
+     * their pivot row is still PENDING admin review.
      */
     public function cancel(int $link)
     {
@@ -206,8 +235,7 @@ class PracticeMembershipController extends Controller
         $row = DB::table('doctor_practice')->where('id', $link)->first();
         abort_unless($row && (int) $row->doctor_id === $doctor->id, 404);
 
-        $practiceStatus = DB::table('practices')->where('id', $row->practice_id)->value('status');
-        if ($practiceStatus !== 'INACTIVE') {
+        if ($row->approval_status !== 'PENDING') {
             return back()->with('error', 'You can only cancel a link to a practice that is still pending admin approval.');
         }
 

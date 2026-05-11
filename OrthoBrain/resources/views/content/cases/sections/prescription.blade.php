@@ -8,6 +8,16 @@
        x-data="prescriptionSection()"
        @tooth-picker-change.window="onToothPickerChange($event)">
 
+    {{-- B-1b: isReadOnly inherited from prescriptionSection() Alpine scope.
+         Disables every radio, checkbox, number input, and textarea in this
+         section when the case is not editable for the current doctor.
+         Tooth-picker (@include below) is its own Alpine root and is gated
+         indirectly: when tmrMode/arMode radios are disabled, the user can't
+         switch into 'select' mode, so the picker stays hidden via x-show.
+         Existing 'select' mode + visible picker is a known asymmetry —
+         tooth toggling inside an already-open picker is not yet gated.
+         See Docs/case-workflow.md → "Role capabilities > Doctor". --}}
+
     {{-- ── 1. Arches to be Treated ───────────────────────────────────────────── --}}
     <div class="mb-1">
       <p class="form-label fw-semibold mb-50">
@@ -17,17 +27,17 @@
       <div class="btn-group ob-segmented" role="group" aria-label="Arches to be treated">
         <input type="radio" class="btn-check" id="rx-arches-both"
                name="rx-arches" value="both"
-               x-model="arches" @change="syncToState()">
+               x-model="arches" @change="syncToState()" :disabled="isReadOnly">
         <label class="btn" for="rx-arches-both" title="Both Maxillary and Mandibular">Both</label>
 
         <input type="radio" class="btn-check" id="rx-arches-maxillary"
                name="rx-arches" value="maxillary"
-               x-model="arches" @change="syncToState()">
+               x-model="arches" @change="syncToState()" :disabled="isReadOnly">
         <label class="btn" for="rx-arches-maxillary" title="Maxillary only">Maxillary</label>
 
         <input type="radio" class="btn-check" id="rx-arches-mandibular"
                name="rx-arches" value="mandibular"
-               x-model="arches" @change="syncToState()">
+               x-model="arches" @change="syncToState()" :disabled="isReadOnly">
         <label class="btn" for="rx-arches-mandibular" title="Mandibular only">Mandibular</label>
       </div>
       <div class="small text-danger mt-25" x-show="errors.arches" x-text="errors.arches" style="display:none;"></div>
@@ -46,7 +56,7 @@
           <div class="d-flex align-items-center gap-75">
             <div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" role="switch"
-                     id="rx-ipr-toggle" x-model="ipr.on" @change="onIprToggle()">
+                     id="rx-ipr-toggle" x-model="ipr.on" @change="onIprToggle()" :disabled="isReadOnly">
               <label class="form-check-label fw-medium" for="rx-ipr-toggle">IPR Protocol</label>
             </div>
           </div>
@@ -54,19 +64,19 @@
             <div class="form-check">
               <input class="form-check-input" type="radio" id="rx-ipr-defer"
                      name="rx-ipr" value="defer"
-                     x-model="ipr.value" @change="validateField('ipr'); syncToState()">
+                     x-model="ipr.value" @change="validateField('ipr'); syncToState()" :disabled="isReadOnly">
               <label class="form-check-label" for="rx-ipr-defer">Defer to orthobrain®</label>
             </div>
             <div class="form-check">
               <input class="form-check-input" type="radio" id="rx-ipr-no"
                      name="rx-ipr" value="no-ipr"
-                     x-model="ipr.value" @change="validateField('ipr'); syncToState()">
+                     x-model="ipr.value" @change="validateField('ipr'); syncToState()" :disabled="isReadOnly">
               <label class="form-check-label" for="rx-ipr-no">No IPR</label>
             </div>
             <div class="form-check">
               <input class="form-check-input" type="radio" id="rx-ipr-other"
                      name="rx-ipr" value="other"
-                     x-model="ipr.value" @change="validateField('ipr'); syncToState()">
+                     x-model="ipr.value" @change="validateField('ipr'); syncToState()" :disabled="isReadOnly">
               <label class="form-check-label" for="rx-ipr-other">Other</label>
             </div>
             <div class="small text-danger mt-25" x-show="errors.ipr" x-text="errors.ipr" style="display:none;"></div>
@@ -78,7 +88,7 @@
           <div class="d-flex align-items-center gap-75">
             <div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" role="switch"
-                     id="rx-att-toggle" x-model="attachments.on" @change="onAttachmentsToggle()">
+                     id="rx-att-toggle" x-model="attachments.on" @change="onAttachmentsToggle()" :disabled="isReadOnly">
               <label class="form-check-label fw-medium" for="rx-att-toggle">Attachments</label>
             </div>
           </div>
@@ -86,13 +96,13 @@
             <div class="form-check">
               <input class="form-check-input" type="radio" id="rx-att-step1"
                      name="rx-attachments" value="step-1"
-                     x-model="attachments.value" @change="validateField('attachmentsValue'); syncToState()">
+                     x-model="attachments.value" @change="validateField('attachmentsValue'); syncToState()" :disabled="isReadOnly">
               <label class="form-check-label" for="rx-att-step1">At Aligner Step 1</label>
             </div>
             <div class="form-check d-flex align-items-center gap-50 flex-wrap">
               <input class="form-check-input" type="radio" id="rx-att-specific"
                      name="rx-attachments" value="specific-step"
-                     x-model="attachments.value" @change="validateField('attachmentsValue'); syncToState()">
+                     x-model="attachments.value" @change="validateField('attachmentsValue'); syncToState()" :disabled="isReadOnly">
               <label class="form-check-label mb-0" for="rx-att-specific">At Aligner Step</label>
               <input type="number"
                      class="rx-step-input form-control"
@@ -102,7 +112,7 @@
                      x-model.number="attachments.step"
                      @input="syncToState()"
                      @blur="validateField('attachmentsStep')"
-                     style="display:none;">
+                     style="display:none;" :disabled="isReadOnly">
             </div>
             <div class="small text-danger mt-25" x-show="errors.attachmentsValue" x-text="errors.attachmentsValue" style="display:none;"></div>
             <div class="small text-danger mt-25" x-show="errors.attachmentsStep" x-text="errors.attachmentsStep" style="display:none;"></div>
@@ -114,7 +124,7 @@
           <div class="d-flex align-items-center gap-75">
             <div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" role="switch"
-                     id="rx-ela-toggle" x-model="elastics.on" @change="onElasticsToggle()">
+                     id="rx-ela-toggle" x-model="elastics.on" @change="onElasticsToggle()" :disabled="isReadOnly">
               <label class="form-check-label fw-medium" for="rx-ela-toggle">Elastics/Bonded Buttons</label>
             </div>
           </div>
@@ -122,13 +132,13 @@
             <div class="form-check">
               <input class="form-check-input" type="radio" id="rx-ela-yes"
                      name="rx-elastics" value="yes"
-                     x-model="elastics.value" @change="validateField('elastics'); syncToState()">
+                     x-model="elastics.value" @change="validateField('elastics'); syncToState()" :disabled="isReadOnly">
               <label class="form-check-label" for="rx-ela-yes">Yes</label>
             </div>
             <div class="form-check">
               <input class="form-check-input" type="radio" id="rx-ela-no"
                      name="rx-elastics" value="no"
-                     x-model="elastics.value" @change="validateField('elastics'); syncToState()">
+                     x-model="elastics.value" @change="validateField('elastics'); syncToState()" :disabled="isReadOnly">
               <label class="form-check-label" for="rx-ela-no">No</label>
             </div>
             <div class="small text-danger mt-25" x-show="errors.elastics" x-text="errors.elastics" style="display:none;"></div>
@@ -140,7 +150,7 @@
           <div class="d-flex align-items-center gap-75">
             <div class="form-check form-switch mb-0">
               <input class="form-check-input" type="checkbox" role="switch"
-                     id="rx-ext-toggle" x-model="extractions.on" @change="onExtractionsToggle()">
+                     id="rx-ext-toggle" x-model="extractions.on" @change="onExtractionsToggle()" :disabled="isReadOnly">
               <label class="form-check-label fw-medium" for="rx-ext-toggle">Extractions if suggested</label>
             </div>
           </div>
@@ -148,13 +158,13 @@
             <div class="form-check">
               <input class="form-check-input" type="radio" id="rx-ext-yes"
                      name="rx-extractions" value="yes"
-                     x-model="extractions.value" @change="validateField('extractions'); syncToState()">
+                     x-model="extractions.value" @change="validateField('extractions'); syncToState()" :disabled="isReadOnly">
               <label class="form-check-label" for="rx-ext-yes">Yes</label>
             </div>
             <div class="form-check">
               <input class="form-check-input" type="radio" id="rx-ext-no"
                      name="rx-extractions" value="no"
-                     x-model="extractions.value" @change="validateField('extractions'); syncToState()">
+                     x-model="extractions.value" @change="validateField('extractions'); syncToState()" :disabled="isReadOnly">
               <label class="form-check-label" for="rx-ext-no">No</label>
             </div>
             <div class="small text-danger mt-25" x-show="errors.extractions" x-text="errors.extractions" style="display:none;"></div>
@@ -176,13 +186,13 @@
         <div class="form-check">
           <input class="form-check-input" type="radio" id="rx-tmr-none"
                  name="rx-tmr" value="none"
-                 x-model="tmrMode" @change="onTmrModeChange()">
+                 x-model="tmrMode" @change="onTmrModeChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="rx-tmr-none">None</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="rx-tmr-select"
                  name="rx-tmr" value="select"
-                 x-model="tmrMode" @change="onTmrModeChange()">
+                 x-model="tmrMode" @change="onTmrModeChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="rx-tmr-select">Select Teeth that Should not be Moved</label>
         </div>
       </div>
@@ -208,13 +218,13 @@
         <div class="form-check">
           <input class="form-check-input" type="radio" id="rx-ar-none"
                  name="rx-ar" value="none"
-                 x-model="arMode" @change="onArModeChange()">
+                 x-model="arMode" @change="onArModeChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="rx-ar-none">None</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="rx-ar-select"
                  name="rx-ar" value="select"
-                 x-model="arMode" @change="onArModeChange()">
+                 x-model="arMode" @change="onArModeChange()" :disabled="isReadOnly">
           <label class="form-check-label" for="rx-ar-select">Select Teeth that Should not Have Attachments</label>
         </div>
       </div>
@@ -239,7 +249,7 @@
                 maxlength="5000"
                 placeholder="Please Explain"
                 x-model="additionalComments"
-                @input="onAdditionalCommentsInput()"></textarea>
+                @input="onAdditionalCommentsInput()" :disabled="isReadOnly"></textarea>
       <div class="text-muted small mt-25">
         <span x-text="additionalCommentsLen">0</span> / 5000 characters
       </div>
@@ -256,13 +266,13 @@
         <div class="form-check">
           <input class="form-check-input" type="radio" id="rx-frw-no"
                  name="rx-frw" value="no"
-                 x-model="frwHasWork" @change="syncToState()">
+                 x-model="frwHasWork" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="rx-frw-no">No</label>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="radio" id="rx-frw-yes"
                  name="rx-frw" value="yes"
-                 x-model="frwHasWork" @change="syncToState()">
+                 x-model="frwHasWork" @change="syncToState()" :disabled="isReadOnly">
           <label class="form-check-label" for="rx-frw-yes">Yes</label>
         </div>
       </div>
@@ -275,7 +285,7 @@
                   placeholder="Please Explain"
                   x-model="frwExplanation"
                   @input="onFrwExplanationInput()"
-                  @blur="validateField('frwExplanation')"></textarea>
+                  @blur="validateField('frwExplanation')" :disabled="isReadOnly"></textarea>
         <div class="text-muted small mt-25">
           <span x-text="frwExplanationLen">0</span> / 5000 characters
         </div>

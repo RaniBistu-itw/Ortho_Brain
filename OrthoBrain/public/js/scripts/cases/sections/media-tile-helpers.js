@@ -1,4 +1,58 @@
 window.MediaTileHelpers = {
+  // Translate a CaseMediaApi rejection ({ status, body }) into a user-facing
+  // message naming the failed tile. Used by photographs.js + xrays.js so the
+  // bulkError banner explains *why* an upload/destroy/reorder failed instead
+  // of dropping the failure into console.warn (the bug class fixed in this
+  // PR — see CLAUDE.md Entry 10).
+  //
+  // 422-vs-413 nuance: Laravel's `max:` rule returns 422 with errors.file,
+  // not 413. We sniff body.errors.file for size-related copy so it surfaces
+  // as "File too large" rather than the generic "not a supported image"
+  // message. The regex covers two paths:
+  //   1. Laravel's max: rule — "may not be greater than", "exceeds", etc.
+  //   2. PHP's ini-level upload caps (upload_max_filesize / post_max_size)
+  //      — these reject before Laravel's max: rule and produce the
+  //      `validation.uploaded` message ("The file failed to upload."), so
+  //      we treat that as size-related too. Other "uploaded" causes
+  //      (temp-dir, partial) are rare and the workaround is identical.
+  // 413 stays mapped for forward compatibility — proxy-level limits (Nginx
+  // client_max_body_size) DO fire genuine 413s.
+  upgradeUploadError: function (err, tileLabel) {
+    var label = tileLabel || 'image';
+    var status = err && err.status;
+    var body = (err && err.body) || {};
+
+    var fileErrs = body.errors && body.errors.file;
+    var sizePat = /(greater|exceed|larger|too large|\bmax\b|failed to upload|did not upload)/i;
+    var isSize422 = status === 422 && Array.isArray(fileErrs) &&
+      fileErrs.some(function (m) { return sizePat.test(m); });
+    if (isSize422 || status === 413) return 'File too large. Max 5 MB.';
+    if (status === 422) {
+      return "Couldn't upload " + label + ". The file isn't a supported image (JPG, PNG, HEIC).";
+    }
+    if (status === 429) return 'Too many uploads. Please wait a moment and try again.';
+    if (status >= 500 && status < 600) return 'Server error. Try again or contact support if it persists.';
+    if (!status || status === 0) return "Couldn't reach the server. Check your connection and try again.";
+    return "Couldn't upload " + label + '. Try again.';
+  },
+
+  // Translate a fetch-for-crop rejection ({ status, body? }) into a
+  // user-facing message. Crop on server-hydrated tiles fetches the
+  // original image URL into a blob before invoking Cropper.js
+  // (tile.originalFile is null after _hydrate). Different vocabulary
+  // from upgradeUploadError — "load for cropping" instead of "upload"
+  // — and the 422 size-sniff doesn't apply (fetches don't return
+  // errors.file with size copy). See cropTile in photographs.js / xrays.js.
+  upgradeCropFetchError: function (err, tileLabel) {
+    var label = tileLabel || 'image';
+    var status = err && err.status;
+    if (status === 404) return "Couldn't load " + label + " for cropping. The file may have been deleted or moved.";
+    if (status === 403) return 'Permission denied loading ' + label + ' for cropping.';
+    if (status >= 500 && status < 600) return 'Server error loading image. Try again.';
+    if (!status || status === 0) return "Couldn't reach the server. Check your connection and try again.";
+    return "Couldn't load " + label + ' for cropping. Try again.';
+  },
+
   // Returns { valid: boolean, error: string | null }
   validateFile: function (file, options) {
     var maxSizeBytes = options.maxSizeBytes;

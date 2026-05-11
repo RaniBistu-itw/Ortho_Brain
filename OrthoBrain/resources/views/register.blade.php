@@ -498,6 +498,42 @@
                 padding-top: 1.25rem;
                 border-top: 1px solid #eef1f6;
             }
+            .reg-actions-left,
+            .reg-actions-right {
+                display: flex; align-items: center; gap: 0.6rem;
+                flex-wrap: wrap;
+            }
+
+            /* In-page info modal (replaces browser alert for cap warnings) */
+            .reg-modal {
+                position: fixed; inset: 0;
+                display: flex; align-items: center; justify-content: center;
+                z-index: 1000;
+            }
+            .reg-modal[hidden] { display: none !important; }
+            .reg-modal__backdrop {
+                position: absolute; inset: 0;
+                background: rgba(15, 23, 42, 0.45);
+            }
+            .reg-modal__dialog {
+                position: relative;
+                background: #fff; border-radius: 14px;
+                box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.35);
+                padding: 1.5rem 1.5rem 1.25rem;
+                width: min(420px, calc(100% - 2rem));
+                text-align: center;
+            }
+            .reg-modal__icon {
+                width: 48px; height: 48px;
+                border-radius: 50%;
+                background: #eff6ff; color: var(--ob-primary);
+                display: inline-flex; align-items: center; justify-content: center;
+                font-size: 1.6rem;
+                margin-bottom: 0.75rem;
+            }
+            .reg-modal__title { margin: 0 0 0.5rem; font-size: 1.1rem; color: var(--ob-text); }
+            .reg-modal__body  { margin: 0 0 1.25rem; color: var(--ob-text-muted); font-size: 0.92rem; line-height: 1.5; }
+            .reg-modal .reg-btn-primary-grad { min-width: 120px; justify-content: center; }
             .reg-btn-secondary {
                 display: inline-flex; align-items: center; gap: 0.4rem;
                 padding: 0.65rem 1.25rem;
@@ -801,7 +837,7 @@
                                                 <option value="{{ $code }}" @selected(old('practice_phone_country_code', '+1') === $code)>{{ $code }}</option>
                                             @endforeach
                                         </select>
-                                        <input id="in-phone" name="practice_phone_number" type="text" maxlength="10" placeholder="XXX-XXX-XXXX" value="{{ old('practice_phone_number') }}" oninput="clearError('phone')" />
+                                        <input id="in-phone" name="practice_phone_number" type="text" inputmode="numeric" maxlength="10" placeholder="XXX-XXX-XXXX" value="{{ old('practice_phone_number') }}" oninput="this.value=this.value.replace(/\D/g,'').slice(0,10); clearError('phone');" />
                                     </div>
                                     <p id="err-phone" class="reg-err hidden"></p>
                                 </div>
@@ -838,20 +874,6 @@
                                 <script type="application/json" id="extra-old-data">@json(old('additional_practices'))</script>
                             @endif
 
-                            <template id="extra-prac-zip-options">
-                                <option value="" disabled selected>Select zip code</option>
-                                @foreach(($zipcodes ?? []) as $z)
-                                    <option value="{{ $z->id }}"
-                                            data-city-id="{{ $z->city?->id }}"
-                                            data-city="{{ $z->city?->name }}"
-                                            data-state-id="{{ $z->city?->state?->id }}"
-                                            data-state="{{ $z->city?->state?->name }}"
-                                            data-country-id="{{ $z->city?->state?->country?->id }}"
-                                            data-country="{{ $z->city?->state?->country?->name }}">
-                                        {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
-                                    </option>
-                                @endforeach
-                            </template>
 
                             <template id="extra-prac-phone-options">
                                 @foreach($phoneCodes as $code)
@@ -904,21 +926,19 @@
                                 </div>
                                 <div>
                                     <label class="reg-label">Zip<span class="reg-required">*</span></label>
-                                    <select id="in-zip" name="zip_id" required class="reg-select" onchange="onRegZipChange()">
-                                        <option value="" disabled {{ old('zip_id') ? '' : 'selected' }}>Select zip code</option>
-                                        @foreach(($zipcodes ?? []) as $z)
-                                            <option value="{{ $z->id }}"
-                                                    @selected(old('zip_id') == $z->id)
-                                                    data-city-id="{{ $z->city?->id }}"
-                                                    data-city="{{ $z->city?->name }}"
-                                                    data-state-id="{{ $z->city?->state?->id }}"
-                                                    data-state="{{ $z->city?->state?->name }}"
-                                                    data-country-id="{{ $z->city?->state?->country?->id }}"
-                                                    data-country="{{ $z->city?->state?->country?->name }}">
-                                                {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    <input type="hidden" id="in-zip" name="zip_id" value="{{ old('zip_id') }}">
+                                    <div class="reg-autocomplete">
+                                        <div class="reg-input-group" id="box-zip">
+                                            <span class="reg-input-icon"><i class="bi bi-geo-alt-fill"></i></span>
+                                            <input id="in-zip-search" type="text" autocomplete="off" class="reg-input"
+                                                   placeholder="Search zip or city…"
+                                                   value="{{ $selectedZip ? ($selectedZip->code . ' — ' . ($selectedZip->city?->name ?? '') . ', ' . ($selectedZip->city?->state?->state_code ?? '')) : '' }}"
+                                                   oninput="onZipInput()"
+                                                   onkeydown="onZipKey(event)"
+                                                   onblur="onZipBlur()" />
+                                        </div>
+                                        <div id="zip-suggest" class="reg-autocomplete-menu" role="listbox"></div>
+                                    </div>
                                     <p id="err-zip" class="reg-err hidden"></p>
                                 </div>
                                 <div>
@@ -1249,19 +1269,31 @@
                     </div>
 
                     <div class="reg-actions">
-                        <a href="{{ url('/login') }}" id="reg-back-login" class="reg-btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Back to Login
-                        </a>
-                        <button type="button" id="reg-back-btn" class="reg-btn-secondary hidden-btn" onclick="regGoPrev()">
-                            <i class="bi bi-arrow-left"></i> Back
-                        </button>
-                        <div style="display:flex;gap:0.6rem;align-items:center;">
+                        <div class="reg-actions-left">
+                            <button type="button" id="reg-back-btn" class="reg-btn-secondary hidden-btn" onclick="regGoPrev()">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </button>
+                            <a href="{{ url('/login') }}" id="reg-back-login" class="reg-btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Login
+                            </a>
+                        </div>
+                        <div class="reg-actions-right">
                             <button type="button" id="reg-next-btn" class="reg-btn-primary-grad" onclick="regGoNext()">
                                 Next <i class="bi bi-arrow-right"></i>
                             </button>
                             <button type="button" id="reg-submit-btn" class="reg-btn-primary-grad is-submit hidden-btn" onclick="validateForm()">
                                 Submit for Approval <i class="bi bi-check2-circle"></i>
                             </button>
+                        </div>
+                    </div>
+
+                    <div id="reg-info-modal" class="reg-modal" role="dialog" aria-modal="true" aria-labelledby="reg-info-modal-title" hidden>
+                        <div class="reg-modal__backdrop" data-close></div>
+                        <div class="reg-modal__dialog">
+                            <div class="reg-modal__icon"><i class="bi bi-info-circle-fill"></i></div>
+                            <h3 id="reg-info-modal-title" class="reg-modal__title">Limit reached</h3>
+                            <p class="reg-modal__body" id="reg-info-modal-body"></p>
+                            <button type="button" class="reg-btn-primary-grad" data-close>Got it</button>
                         </div>
                     </div>
                 </form>
@@ -1357,11 +1389,10 @@
                 const nextBtn   = document.getElementById('reg-next-btn');
                 const submitBtn = document.getElementById('reg-submit-btn');
 
+                backLogin.classList.remove('hidden-btn');
                 if (n === 1) {
-                    backLogin.classList.remove('hidden-btn');
                     backBtn.classList.add('hidden-btn');
                 } else {
-                    backLogin.classList.add('hidden-btn');
                     backBtn.classList.remove('hidden-btn');
                 }
 
@@ -1371,6 +1402,19 @@
                 } else {
                     nextBtn.classList.remove('hidden-btn');
                     submitBtn.classList.add('hidden-btn');
+                }
+
+                // Defensive: refresh every practice cache slot when entering Step 3
+                // so the Address-source dropdown is always in sync with what the
+                // doctor entered in Step 2, regardless of which input events fired.
+                if (n === 3) {
+                    if (typeof refreshPrimaryCache === 'function') refreshPrimaryCache();
+                    if (typeof refreshExtraRowCache === 'function') {
+                        document.querySelectorAll('.extra-prac-row').forEach(r => {
+                            refreshExtraRowCache(r.dataset.idx);
+                        });
+                    }
+                    if (typeof rebuildPrimaryAddressDropdown === 'function') rebuildPrimaryAddressDropdown();
                 }
 
                 const panel = document.querySelector('.reg-wizard-panel');
@@ -1414,10 +1458,59 @@
                 }
             }
 
+            const MAX_OTHER_EMAILS = 3;
+
+            // Hoisted out of DOMContentLoaded so addEmailRow (top-level, called via inline
+            // onclick) can reach wireOtherEmailRow when adding rows. Inside the closure,
+            // the reference threw and silently left dynamic rows unvalidated.
+            function validateOtherEmailInput(input) {
+                const val = input.value.trim();
+                const row = input.closest('[data-other-email-row]');
+                const errEl = row ? row.querySelector('p.reg-err') : null;
+                if (!val) {
+                    input.classList.remove('is-invalid');
+                    if (errEl) { errEl.textContent = ''; errEl.classList.add('hidden'); }
+                    return;
+                }
+                if (!emailRe.test(val)) {
+                    input.classList.add('is-invalid');
+                    if (errEl) { errEl.textContent = 'Please enter a valid email address'; errEl.classList.remove('hidden'); }
+                } else {
+                    input.classList.remove('is-invalid');
+                    if (errEl) { errEl.textContent = ''; errEl.classList.add('hidden'); }
+                }
+            }
+
+            function wireOtherEmailRow(input) {
+                let touched = false;
+                function run() {
+                    if (!touched && !input.value) return;
+                    touched = true;
+                    validateOtherEmailInput(input);
+                }
+                input.addEventListener('input', run);
+                input.addEventListener('blur',  run);
+            }
+
+            function showRegInfoModal(message) {
+                const modal = document.getElementById('reg-info-modal');
+                if (!modal) { alert(message); return; }
+                modal.querySelector('#reg-info-modal-body').textContent = message;
+                modal.hidden = false;
+                const okBtn = modal.querySelector('.reg-btn-primary-grad');
+                if (okBtn) okBtn.focus();
+            }
+
             function addEmailRow(containerId) {
                 const container = document.getElementById(containerId);
                 const isDoctor = containerId.includes('doctor');
                 const inputName = isDoctor ? 'contact_doctor_other_emails[]' : 'contact_emp_other_emails[]';
+
+                const visible = container.querySelectorAll('[data-other-email-row]').length;
+                if (visible >= MAX_OTHER_EMAILS) {
+                    showRegInfoModal('You can add up to ' + MAX_OTHER_EMAILS + ' additional email addresses for this contact.');
+                    return;
+                }
 
                 const row = document.createElement('div');
                 row.innerHTML = `
@@ -1533,6 +1626,12 @@
                 const cc = document.querySelector('select[name="practice_phone_country_code"]');
                 if (cc && p.phone_country_code) cc.value = p.phone_country_code;
 
+                // setVal() bypasses the inputs' inline oninput handlers, so any
+                // "required" errors shown by a prior failed Next-click stay onscreen
+                // even though the fields are now populated. Clear them explicitly.
+                clearError('phone');
+                clearError('website');
+
                 // Stash the picked existing primary practice's full address into the
                 // dropdown cache so Step 3 can offer it as a source. We deliberately
                 // DO NOT touch Step 3 fields directly — the Step 3 dropdown is the
@@ -1592,32 +1691,186 @@
                 return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
             }
 
-            // Zip auto-fill
+            // ─── Primary zip autocomplete ──────────────────────────
+            const ZIP_SEARCH_URL = @json(route('zipcodes.search'));
+            let zipSearchTimer = null;
+            let zipSearchAbort = null;
+            let zipSuggestions = [];
+            let zipActiveIdx   = -1;
+            let currentZipData = null;
+
             function onRegZipChange() {
                 clearError('zip');
-                const sel = document.getElementById('in-zip');
-                const opt = sel?.options[sel.selectedIndex];
-                const city    = document.getElementById('in-city');
-                const state   = document.getElementById('in-state');
-                const country = document.getElementById('in-country');
-                const hCity   = document.getElementById('hid-city');
-                const hState  = document.getElementById('hid-state');
-                const hCty    = document.getElementById('hid-country');
-                if (!opt || !opt.value) {
-                    [city, state, country, hCity, hState, hCty].forEach(el => { if (el) el.value = ''; });
+                const z = currentZipData;
+                const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+                if (!z) {
+                    ['in-city','in-state','in-country','hid-city','hid-state','hid-country'].forEach(id => set(id, ''));
                     return;
                 }
-                if (city)    city.value    = opt.dataset.city    || '';
-                if (state)   state.value   = opt.dataset.state   || '';
-                if (country) country.value = opt.dataset.country || '';
-                if (hCity)   hCity.value   = opt.dataset.cityId    || '';
-                if (hState)  hState.value  = opt.dataset.stateId   || '';
-                if (hCty)    hCty.value    = opt.dataset.countryId || '';
+                set('in-city',    z.city);
+                set('in-state',   z.state);
+                set('in-country', z.country);
+                set('hid-city',   z.cityId);
+                set('hid-state',  z.stateId);
+                set('hid-country',z.countryId);
+            }
+
+            function onZipInput() {
+                clearError('zip');
+                document.getElementById('in-zip').value = '';
+                currentZipData = null;
+                const q = (document.getElementById('in-zip-search')?.value || '').trim();
+                clearTimeout(zipSearchTimer);
+                if (q.length < 2) { hideZipMenu(); return; }
+                zipSearchTimer = setTimeout(() => fetchZipSuggestions(q), 300);
+            }
+
+            async function fetchZipSuggestions(q) {
+                if (zipSearchAbort) zipSearchAbort.abort();
+                zipSearchAbort = new AbortController();
+                try {
+                    const res = await fetch(ZIP_SEARCH_URL + '?q=' + encodeURIComponent(q), {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        signal: zipSearchAbort.signal,
+                    });
+                    if (!res.ok) throw new Error('zip search failed');
+                    zipSuggestions = await res.json();
+                    zipActiveIdx   = -1;
+                    renderZipMenu();
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.error('zip search error', err);
+                }
+            }
+
+            function renderZipMenu() {
+                const menu = document.getElementById('zip-suggest');
+                if (!zipSuggestions.length) {
+                    menu.innerHTML = '<div class="reg-autocomplete-empty">No zip code found for that search.</div>';
+                } else {
+                    menu.innerHTML = zipSuggestions.map((z, i) =>
+                        `<div class="reg-autocomplete-item${i === zipActiveIdx ? ' active' : ''}" role="option" onmousedown="pickZip(${i})">${escapeHtml(z.displayLabel)}</div>`
+                    ).join('');
+                }
+                menu.classList.add('open');
+            }
+
+            function hideZipMenu() {
+                const menu = document.getElementById('zip-suggest');
+                if (menu) { menu.classList.remove('open'); menu.innerHTML = ''; }
+            }
+
+            function onZipKey(e) {
+                const menu = document.getElementById('zip-suggest');
+                if (!menu?.classList.contains('open') || !zipSuggestions.length) return;
+                if (e.key === 'ArrowDown') { e.preventDefault(); zipActiveIdx = (zipActiveIdx + 1) % zipSuggestions.length; renderZipMenu(); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); zipActiveIdx = (zipActiveIdx - 1 + zipSuggestions.length) % zipSuggestions.length; renderZipMenu(); }
+                else if (e.key === 'Enter' && zipActiveIdx >= 0) { e.preventDefault(); pickZip(zipActiveIdx); }
+                else if (e.key === 'Escape') { hideZipMenu(); }
+            }
+
+            function onZipBlur() { setTimeout(hideZipMenu, 150); }
+
+            function pickZip(idx) {
+                const z = zipSuggestions[idx];
+                if (!z) return;
+                currentZipData = z;
+                document.getElementById('in-zip').value = z.id;
+                document.getElementById('in-zip-search').value = z.displayLabel;
+                hideZipMenu();
+                onRegZipChange();
+                clearError('zip');
+            }
+
+            // ─── Extra-practice zip autocomplete ────────────────────
+            const epZipState = {};
+
+            function _epZip(idx) {
+                if (!epZipState[idx]) epZipState[idx] = { timer: null, abort: null, suggestions: [], activeIdx: -1 };
+                return epZipState[idx];
+            }
+
+            function onEpZipInput(idx, input) {
+                document.getElementById('ep-zip-' + idx).value = '';
+                const q = (input?.value || '').trim();
+                const s = _epZip(idx);
+                clearTimeout(s.timer);
+                if (q.length < 2) { hideEpZipMenu(idx); return; }
+                s.timer = setTimeout(() => fetchEpZipSuggestions(idx, q), 300);
+            }
+
+            async function fetchEpZipSuggestions(idx, q) {
+                const s = _epZip(idx);
+                if (s.abort) s.abort.abort();
+                s.abort = new AbortController();
+                try {
+                    const res = await fetch(ZIP_SEARCH_URL + '?q=' + encodeURIComponent(q), {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        signal: s.abort.signal,
+                    });
+                    if (!res.ok) throw new Error('zip search failed');
+                    s.suggestions = await res.json();
+                    s.activeIdx = -1;
+                    renderEpZipMenu(idx);
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.error('ep zip search error', err);
+                }
+            }
+
+            function renderEpZipMenu(idx) {
+                const menu = document.getElementById('ep-zip-menu-' + idx);
+                if (!menu) return;
+                const s = _epZip(idx);
+                if (!s.suggestions.length) {
+                    menu.innerHTML = '<div class="reg-autocomplete-empty">No zip code found.</div>';
+                } else {
+                    menu.innerHTML = s.suggestions.map((z, i) =>
+                        `<div class="reg-autocomplete-item${i === s.activeIdx ? ' active' : ''}" role="option" onmousedown="pickEpZip(${idx}, ${i})">${escapeHtml(z.displayLabel)}</div>`
+                    ).join('');
+                }
+                menu.classList.add('open');
+            }
+
+            function hideEpZipMenu(idx) {
+                const menu = document.getElementById('ep-zip-menu-' + idx);
+                if (menu) { menu.classList.remove('open'); menu.innerHTML = ''; }
+            }
+
+            function onEpZipKey(idx, e) {
+                const s = _epZip(idx);
+                if (!document.getElementById('ep-zip-menu-' + idx)?.classList.contains('open') || !s.suggestions.length) return;
+                if (e.key === 'ArrowDown') { e.preventDefault(); s.activeIdx = (s.activeIdx + 1) % s.suggestions.length; renderEpZipMenu(idx); }
+                else if (e.key === 'ArrowUp') { e.preventDefault(); s.activeIdx = (s.activeIdx - 1 + s.suggestions.length) % s.suggestions.length; renderEpZipMenu(idx); }
+                else if (e.key === 'Enter' && s.activeIdx >= 0) { e.preventDefault(); pickEpZip(idx, s.activeIdx); }
+                else if (e.key === 'Escape') { hideEpZipMenu(idx); }
+            }
+
+            function onEpZipBlur(idx) { setTimeout(() => hideEpZipMenu(idx), 150); }
+
+            function pickEpZip(idx, i) {
+                const z = _epZip(idx).suggestions[i];
+                if (!z) return;
+                document.getElementById('ep-zip-' + idx).value         = z.id;
+                document.getElementById('ep-zip-search-' + idx).value  = z.displayLabel;
+                document.getElementById('ep-city-' + idx).value        = z.city || '';
+                document.getElementById('ep-state-' + idx).value       = (z.state || '') + (z.country ? ' / ' + z.country : '');
+                document.getElementById('ep-h-city-' + idx).value      = z.cityId || '';
+                document.getElementById('ep-h-state-' + idx).value     = z.stateId || '';
+                document.getElementById('ep-h-country-' + idx).value   = z.countryId || '';
+                hideEpZipMenu(idx);
+                epValidateField(idx, 'zip');
+                refreshExtraRowCache(idx);
+                maybeReapplySource('extra-' + idx);
+            }
+
+            function onExtraZipChange(idx) {
+                // Hidden inputs already set by bounce recovery — just refresh downstream state.
+                refreshExtraRowCache(idx);
+                maybeReapplySource('extra-' + idx);
             }
 
             // ── Validation ──────────────────────────────
             const emailRe    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            const nameRe     = /^[A-Za-z\s\-]+$/;
+            const nameRe     = /^[A-Za-z\-]+$/;
             const websiteRe  = /^(https?:\/\/)?([\da-z\.\-]+)\.([a-z\.]{2,6})([\/\w \.\-]*)*\/?$/i;
             const pwSpecial  = /[!@#$%^&*()\-_+={}\[\]:;<>,.?~\\/]/;
 
@@ -1625,16 +1878,20 @@
                 email: v => !v ? 'Email is required'
                     : !emailRe.test(v) ? 'Please enter a valid email address' : '',
                 firstName: v => !v ? 'First name is required'
+                    : /\s/.test(v) ? 'First name cannot contain spaces'
                     : v.length < 2 ? 'First name must be at least 2 characters'
-                    : !nameRe.test(v) ? 'Only letters, spaces, and hyphens are allowed' : '',
+                    : !nameRe.test(v) ? 'Only letters and hyphens are allowed' : '',
                 lastName: v => !v ? 'Last name is required'
+                    : /\s/.test(v) ? 'Last name cannot contain spaces'
                     : v.length < 2 ? 'Last name must be at least 2 characters'
-                    : !nameRe.test(v) ? 'Only letters, spaces, and hyphens are allowed' : '',
+                    : !nameRe.test(v) ? 'Only letters and hyphens are allowed' : '',
                 password: v => !v ? 'Password is required'
+                    : /\s/.test(v) ? 'Password cannot contain spaces'
                     : (v.length < 8 || !/[A-Z]/.test(v) || !/[a-z]/.test(v) || !/\d/.test(v) || !pwSpecial.test(v))
                         ? 'Min 8 characters with uppercase, lowercase, number & special character' : '',
                 confirmPassword: (v, all) => {
                     if (!v) return 'Please confirm your password';
+                    if (/\s/.test(v)) return 'Password cannot contain spaces';
                     if (v !== all.password) return 'Passwords do not match';
                     return '';
                 },
@@ -1784,39 +2041,21 @@
                     if (el) el.addEventListener('input', () => clearError(id));
                 });
 
-                // Helpers for dynamic "Other Email" rows
-                function validateOtherEmailInput(input) {
-                    const val = input.value.trim();
-                    const errEl = input.closest('.reg-input-group').nextElementSibling;
-                    if (!val) {
-                        input.classList.remove('is-invalid');
-                        if (errEl) { errEl.textContent = ''; errEl.classList.add('hidden'); }
-                        return;
-                    }
-                    if (!emailRe.test(val)) {
-                        input.classList.add('is-invalid');
-                        if (errEl) { errEl.textContent = 'Please enter a valid email address'; errEl.classList.remove('hidden'); }
-                    } else {
-                        input.classList.remove('is-invalid');
-                        if (errEl) { errEl.textContent = ''; errEl.classList.add('hidden'); }
-                    }
-                }
-
-                function wireOtherEmailRow(input) {
-                    let touched = false;
-                    function run() {
-                        if (!touched && !input.value) return;
-                        touched = true;
-                        validateOtherEmailInput(input);
-                    }
-                    input.addEventListener('input', run);
-                    input.addEventListener('blur',  run);
-                }
-
-                // Wire static "Other Email" rows
+                // Wire static "Other Email" rows (helpers are hoisted to top-level scope).
                 document.querySelectorAll(
                     '#doctor-other-emails-list input[type="email"], #employee-other-emails-list input[type="email"]'
                 ).forEach(wireOtherEmailRow);
+
+                // Wire close handlers for the in-page info modal.
+                const _regInfoModal = document.getElementById('reg-info-modal');
+                if (_regInfoModal) {
+                    _regInfoModal.querySelectorAll('[data-close]').forEach(el => {
+                        el.addEventListener('click', () => { _regInfoModal.hidden = true; });
+                    });
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && !_regInfoModal.hidden) _regInfoModal.hidden = true;
+                    });
+                }
 
                 const terms = document.querySelector('input[name="terms_agreed"]');
                 if (terms) {
@@ -1828,11 +2067,24 @@
 
                 regShowStep(1);
 
-                // On bounce: zip_id is preserved on the <select>, but visible city/state/country
-                // readonly fields are JS-populated. Re-run the auto-fill once so they show.
-                if (document.getElementById('in-zip')?.value) {
-                    onRegZipChange();
-                }
+                // On bounce: restore currentZipData from server-embedded selection so
+                // city/state/country display fields fill correctly.
+                @if($selectedZip)
+                @php
+                $_zipJs = [
+                    'id'           => $selectedZip->id,
+                    'displayLabel' => trim(implode(' — ', array_filter([$selectedZip->code, $selectedZip->city?->name, $selectedZip->city?->state?->state_code ?? $selectedZip->city?->state?->name]))),
+                    'city'         => $selectedZip->city?->name,
+                    'cityId'       => $selectedZip->city?->id,
+                    'state'        => $selectedZip->city?->state?->name,
+                    'stateId'      => $selectedZip->city?->state?->id,
+                    'country'      => $selectedZip->city?->state?->country?->name,
+                    'countryId'    => $selectedZip->city?->state?->country?->id,
+                ];
+                @endphp
+                currentZipData = @json($_zipJs);
+                onRegZipChange();
+                @endif
 
                 // Surface server-side validation errors inline (per field), not just in the top banner.
                 const SERVER_ERRORS = @json($errors->messages());
@@ -2008,10 +2260,10 @@
                                 <div class="reg-phone">
                                     <span class="reg-input-icon" style="border-right:0"><i class="bi bi-telephone"></i></span>
                                     <select name="additional_practices[${idx}][phone_country_code]" id="ep-phone-cc-${idx}"></select>
-                                    <input type="text" name="additional_practices[${idx}][phone_number]" maxlength="10"
+                                    <input type="text" inputmode="numeric" name="additional_practices[${idx}][phone_number]" maxlength="10"
                                            placeholder="10 digits, no dashes"
                                            onblur="epValidateField(${idx}, 'phone_number')"
-                                           oninput="epValidateField(${idx}, 'phone_number')" />
+                                           oninput="this.value=this.value.replace(/\\D/g,'').slice(0,10); epValidateField(${idx}, 'phone_number')" />
                                 </div>
                                 <p class="reg-err hidden ep-err-phone_number-${idx}"></p>
                             </div>
@@ -2044,7 +2296,18 @@
                                 <input type="hidden" name="additional_practices[${idx}][city_id]"    id="ep-h-city-${idx}">
                                 <input type="hidden" name="additional_practices[${idx}][state_id]"   id="ep-h-state-${idx}">
                                 <input type="hidden" name="additional_practices[${idx}][country_id]" id="ep-h-country-${idx}">
-                                <select name="additional_practices[${idx}][zip_id]" id="ep-zip-${idx}" class="reg-select" onchange="onExtraZipChange(${idx})"></select>
+                                <input type="hidden" name="additional_practices[${idx}][zip_id]" id="ep-zip-${idx}">
+                                <div class="reg-autocomplete">
+                                    <div class="reg-input-group" id="box-ep-zip-${idx}">
+                                        <span class="reg-input-icon"><i class="bi bi-geo-alt-fill"></i></span>
+                                        <input type="text" id="ep-zip-search-${idx}" autocomplete="off" class="reg-input"
+                                               placeholder="Search zip or city…"
+                                               oninput="onEpZipInput(${idx}, this)"
+                                               onkeydown="onEpZipKey(${idx}, event)"
+                                               onblur="onEpZipBlur(${idx})" />
+                                    </div>
+                                    <div id="ep-zip-menu-${idx}" class="reg-autocomplete-menu" role="listbox"></div>
+                                </div>
                                 <p class="reg-err hidden ep-err-zip-${idx}"></p>
                             </div>
                             <div>
@@ -2065,10 +2328,6 @@
 
                 document.getElementById('extra-practice-rows').appendChild(wrap);
 
-                const zipSel = document.getElementById('ep-zip-' + idx);
-                const tpl = document.getElementById('extra-prac-zip-options');
-                if (zipSel && tpl) zipSel.innerHTML = tpl.innerHTML;
-
                 const phoneSel = document.getElementById('ep-phone-cc-' + idx);
                 const phoneTpl = document.getElementById('extra-prac-phone-options');
                 if (phoneSel && phoneTpl) phoneSel.innerHTML = phoneTpl.innerHTML;
@@ -2078,11 +2337,15 @@
                 // is the chosen source).
                 const newPane = document.getElementById('ep-new-' + idx);
                 if (newPane) {
-                    newPane.querySelectorAll('input[name^="additional_practices"]').forEach(el => {
-                        el.addEventListener('input', () => {
-                            refreshExtraRowCache(idx);
-                            maybeReapplySource('extra-' + idx);
-                        });
+                    // `input` fires for keystrokes; `change` covers programmatic
+                    // assignments and selects (e.g. phone country code).
+                    const handler = () => {
+                        refreshExtraRowCache(idx);
+                        maybeReapplySource('extra-' + idx);
+                    };
+                    newPane.querySelectorAll('input[name^="additional_practices"], select[name^="additional_practices"]').forEach(el => {
+                        el.addEventListener('input', handler);
+                        el.addEventListener('change', handler);
                     });
                 }
 
@@ -2321,7 +2584,18 @@
                             const el = wrap.querySelector(`[name="additional_practices[${idx}][${k}]"]`);
                             if (el && row[k] != null) el.value = row[k];
                         });
-                        if (row.zip_id) onExtraZipChange(idx);
+                        if (row.zip_id) {
+                            onExtraZipChange(idx);
+                            // Async: populate the search input + display fields from the saved zip ID
+                            fetch(ZIP_SEARCH_URL + '?ids[]=' + encodeURIComponent(row.zip_id), {
+                                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                            }).then(r => r.json()).then(zips => {
+                                const z = zips[0]; if (!z) return;
+                                setVal('ep-zip-search-' + idx, z.displayLabel);
+                                setVal('ep-city-' + idx, z.city || '');
+                                setVal('ep-state-' + idx, (z.state || '') + (z.country ? ' / ' + z.country : ''));
+                            }).catch(() => {});
+                        }
                     } else if (row.practice_id) {
                         const hid = wrap.querySelector(`input[name="additional_practices[${idx}][practice_id]"]`);
                         if (hid) hid.value = row.practice_id;
@@ -2398,12 +2672,21 @@
                 } else {
                     // New mode — read fields directly off the row.
                     const get = (n) => row.querySelector(`[name="additional_practices[${idx}][${n}]"]`)?.value || '';
+                    const byId = (id) => document.getElementById(id)?.value || '';
                     const label = get('name').trim();
                     if (!label) {
                         delete practiceDataCache['extra-' + idx];
                     } else {
-                        const zipSel = row.querySelector(`[name="additional_practices[${idx}][zip_id]"]`);
-                        const zipOpt = zipSel?.options[zipSel.selectedIndex];
+                        // Zip / city / state / country come from the readonly display
+                        // inputs the autocomplete fills (see onEpZipKey / extra-old-data
+                        // bounce restoration). The previous `zipSel.options[...]` path
+                        // was a copy-paste bug — `zipSel` is an <input type="hidden">,
+                        // not a <select>, so `.options` is undefined and reading from
+                        // it throws, silently aborting the whole cache refresh.
+                        const zipDisplay = byId('ep-zip-search-' + idx);
+                        const cityName   = byId('ep-city-' + idx);
+                        const stateRaw   = byId('ep-state-' + idx); // "State / Country"
+                        const [stateName = '', countryName = ''] = stateRaw.split(' / ');
                         practiceDataCache['extra-' + idx] = {
                             mode: 'new',
                             label,
@@ -2411,14 +2694,14 @@
                                 street_address_1: get('street_address_1'),
                                 street_address_2: get('street_address_2'),
                                 zip_id:           get('zip_id'),
-                                zip_code:         zipOpt ? (zipOpt.textContent.split(' — ')[0] || '') : '',
+                                zip_code:         (zipDisplay.split(' — ')[0] || '').trim(),
                                 city_id:          get('city_id'),
-                                city:             zipOpt?.dataset?.city || '',
+                                city:             cityName.trim(),
                                 state_id:         get('state_id'),
-                                state:            zipOpt?.dataset?.state || '',
-                                state_code:       zipOpt?.dataset?.state || '',
+                                state:            stateName.trim(),
+                                state_code:       stateName.trim(),
                                 country_id:       get('country_id'),
-                                country:          zipOpt?.dataset?.country || '',
+                                country:          countryName.trim(),
                             },
                         };
                     }
@@ -2499,16 +2782,11 @@
                 setVal('in-address1', p.street_address_1);
                 setVal('in-address2', p.street_address_2);
 
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel && p.zip_id) {
-                    let found = Array.from(zipSel.options).find(o => o.value == p.zip_id);
-                    if (!found) {
-                        const opt = document.createElement('option');
-                        opt.value = p.zip_id;
-                        opt.textContent = (p.zip_code ?? '') + ' — ' + (p.city ?? '') + (p.state_code ? ', ' + p.state_code : '');
-                        zipSel.appendChild(opt);
-                    }
-                    zipSel.value = p.zip_id;
+                if (p.zip_id) {
+                    document.getElementById('in-zip').value = p.zip_id;
+                    const label = [p.zip_code || '', p.city || '', p.state_code || p.state || ''].filter(Boolean).join(' — ');
+                    setVal('in-zip-search', label);
+                    currentZipData = { id: p.zip_id, city: p.city, cityId: p.city_id, state: p.state, stateId: p.state_id, country: p.country, countryId: p.country_id };
                 }
                 setVal('in-city',    p.city);
                 setVal('in-state',   p.state);
@@ -2521,8 +2799,9 @@
             function clearStep3Address() {
                 ['in-address1','in-address2','in-city','in-state','in-country','hid-city','hid-state','hid-country']
                     .forEach(id => setVal(id, ''));
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel) zipSel.selectedIndex = 0;
+                setVal('in-zip', '');
+                setVal('in-zip-search', '');
+                currentZipData = null;
             }
 
             function lockStep3Address() {
@@ -2530,11 +2809,8 @@
                 setLockedGroup('box-address2', true);
                 setReadonly('in-address1', true);
                 setReadonly('in-address2', true);
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel) {
-                    zipSel.classList.add('is-locked');
-                    zipSel.style.pointerEvents = 'none';
-                }
+                setLockedGroup('box-zip', true);
+                setReadonly('in-zip-search', true);
             }
 
             function unlockStep3Address() {
@@ -2542,11 +2818,8 @@
                 setLockedGroup('box-address2', false);
                 setReadonly('in-address1', false);
                 setReadonly('in-address2', false);
-                const zipSel = document.getElementById('in-zip');
-                if (zipSel) {
-                    zipSel.classList.remove('is-locked');
-                    zipSel.style.pointerEvents = '';
-                }
+                setLockedGroup('box-zip', false);
+                setReadonly('in-zip-search', false);
             }
 
             // Live re-sync: if the dropdown's source is `extra-N` (or `primary` in

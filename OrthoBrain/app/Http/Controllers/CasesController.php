@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\GuardsCaseStatus;
 use App\Models\CaseModel;
 use App\Models\Doctor;
 use App\Models\Prescription;
@@ -10,11 +11,14 @@ use App\Models\CaseAdditionalInfo;
 use App\Models\CaseShippingAddress;
 use App\Http\Requests\Cases\AdditionalInformationRequest;
 use App\Services\ImageUploadService;
+use App\Support\ActivePractice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CasesController extends Controller
 {
+    use GuardsCaseStatus;
+
     private const STATUSES        = ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
     private const ACTIVE_STATUSES = ['SUBMITTED', 'IN_REVIEW', 'APPROVED'];
 
@@ -101,6 +105,7 @@ class CasesController extends Controller
             'prescriptionPrefill' => null,
             'caseDoctor' => $doctor,
             'scanners' => $this->activeScanners(),
+            'doctorSavedAddresses' => $this->serializeDoctorSavedAddresses($doctor),
         ]);
     }
 
@@ -126,15 +131,25 @@ class CasesController extends Controller
     {
         $doctor = $this->currentDoctor();
         $doctor->loadMissing('practice:id,name');
-        $practiceId = currentPractice()->id;
 
         $case = CaseModel::with(['prescription.toothRestrictions', 'media', 'patient', 'additionalInfo', 'shippingAddress'])
             ->where('doctor_id', $doctor->id)
-            ->where('practice_id', $practiceId)
             ->findOrFail($id);
+
+        // Align the active practice to the case's practice so the topbar,
+        // form, and case-list scope all match what the doctor is editing.
+        // ActivePractice::set() returns false if the doctor doesn't have
+        // an APPROVED link to that practice — in that case they have no
+        // access to this case anymore (e.g., they LEFT the practice).
+        if ((int) $case->practice_id !== (int) (currentPractice()?->id)) {
+            if (! ActivePractice::set((int) $case->practice_id)) {
+                abort(404);
+            }
+        }
 
         return view('content.cases.add-case', [
             'id' => $case->id,
+            'caseStatus' => $case->status,
             'prescriptionPrefill' => $this->serializePrescription($case->prescription),
             'caseDoctor' => $doctor,
             'scanners' => $this->activeScanners(),
@@ -142,16 +157,21 @@ class CasesController extends Controller
             'patientPrefill' => $this->serializePatient($case->patient),
             'additionalInfoPrefill' => $case->additionalInfo?->data,
             'shippingAddressPrefill' => $this->serializeShipping($case->shippingAddress),
+            'doctorSavedAddresses' => $this->serializeDoctorSavedAddresses($doctor),
             'impressionsPrefill' => [
                 'impressionMethod' => $case->impression_method ? strtolower($case->impression_method) : null,
                 'scannerId' => $case->scanner_id,
             ],
+            'photographsPrefill' => ['dateOfPhotos' => $case->photos_date?->format('Y-m-d')],
+            'xraysPrefill'       => ['dateOfXrays'  => $case->xrays_date?->format('Y-m-d')],
+            'submitOrderPrefill' => $this->serializeSubmitOrder($case),
         ]);
     }
 
     public function saveShipping(Request $request, int $id)
     {
         $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+        $this->abortIfNotDraft($case);
 
         $case->shippingAddress()->updateOrCreate(
             ['case_id' => $case->id],
@@ -173,6 +193,7 @@ class CasesController extends Controller
     public function saveImpressions(Request $request, int $id)
     {
         $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+        $this->abortIfNotDraft($case);
 
         $case->update([
             'impression_method' => strtoupper($request->input('impressionMethod')),
@@ -185,6 +206,7 @@ class CasesController extends Controller
     public function saveAdditionalInfo(AdditionalInformationRequest $request, int $id)
     {
         $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+        $this->abortIfNotDraft($case);
 
         $case->additionalInfo()->updateOrCreate(
             ['case_id' => $case->id],
@@ -194,15 +216,65 @@ class CasesController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function submit(int $id)
+    public function saveSubmitOrder(Request $request, int $id)
+    {
+        $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+
+        // Lenient draft validation — accept empty or partial input.
+        // The submit endpoint enforces the strict 2-5 letter regex.
+        $initials = trim((string) $request->input('submitterInitials', ''));
+        $case->update([
+            'submitter_initials' => $initials !== '' ? $initials : null,
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function savePhotographsDate(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'dateOfPhotos' => 'nullable|date|before_or_equal:today',
+        ]);
+
+        $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+        $case->update(['photos_date' => $data['dateOfPhotos'] ?? null]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function saveXraysDate(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'dateOfXrays' => 'nullable|date|before_or_equal:today',
+        ]);
+
+        $case = CaseModel::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+        $case->update(['xrays_date' => $data['dateOfXrays'] ?? null]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function submit(Request $request, int $id)
     {
         $doctor = $this->currentDoctor();
-        $practiceId = currentPractice()->id;
 
         $case = CaseModel::with('prescription.toothRestrictions')
             ->where('doctor_id', $doctor->id)
-            ->where('practice_id', $practiceId)
             ->findOrFail($id);
+
+        if ((int) $case->practice_id !== (int) (currentPractice()?->id)) {
+            if (! ActivePractice::set((int) $case->practice_id)) {
+                abort(404);
+            }
+        }
+
+        if ($case->status !== 'DRAFT') {
+            return response()->json([
+                'ok'       => true,
+                'redirect' => route('doctor.cases.index'),
+                'message'  => 'Case already submitted.',
+            ]);
+        }
 
         if (! $case->prescription) {
             return response()->json([
@@ -219,9 +291,45 @@ class CasesController extends Controller
             ], 422);
         }
 
+        // Submitter initials are an attestation: 2-5 letters, mixed case
+        // explicitly allowed (help text says "ABcd" is valid). Stored as
+        // typed — uppercasing here would silently rewrite the user's input
+        // and violate the stated UI contract.
+        $initials = trim((string) $request->input('submitter_initials', ''));
+        if (! preg_match('/^[A-Za-z]{2,5}$/', $initials)) {
+            return response()->json([
+                'ok'      => false,
+                'error'   => 'initials_required',
+                'message' => 'Submitter initials are required (2-5 letters).',
+            ], 422);
+        }
+
+        // Refresh in case the saveDraft() flush from add-case-submit.js
+        // wrote xrays_date / photos_date microseconds before this request landed.
+        $case->refresh();
+        if (! $case->xrays_date) {
+            return response()->json([
+                'ok'      => false,
+                'error'   => 'xrays_date_required',
+                'message' => 'Date of X-Rays is required before submit.',
+            ], 422);
+        }
+
+        // photos_date required before submission — same rule as xrays_date.
+        // Ensures the case has dated media records before it reaches the admin.
+        // See Docs/case-workflow.md.
+        if (! $case->photos_date) {
+            return response()->json([
+                'ok'      => false,
+                'error'   => 'photos_date_required',
+                'message' => 'Date of Photos is required before submit.',
+            ], 422);
+        }
+
         $case->update([
             'status' => 'SUBMITTED',
             'submitted_at' => now(),
+            'submitter_initials' => $initials,
         ]);
 
         return response()->json([
@@ -250,9 +358,7 @@ class CasesController extends Controller
     }
 
     /**
-     * Shape a Patient for the case wizard's hydration. Field names match
-     * what patient-information.js previously read from MOCK_PATIENTS so the
-     * JS consumer can swap-in cleanly.
+     * Shape a Patient for the case wizard's hydration.
      */
     private function serializePatient(?\App\Models\Patient $patient): ?array
     {
@@ -371,18 +477,76 @@ class CasesController extends Controller
         };
     }
 
+    private function serializeSubmitOrder(?CaseModel $case): ?array
+    {
+        if (! $case) return null;
+        return [
+            'submitterInitials' => $case->submitter_initials,
+        ];
+    }
+
     private function serializeShipping(?CaseShippingAddress $addr): ?array
     {
         if (! $addr) return null;
+        // loadMissing() ensures sub-relations are loaded for text resolution.
+        // The caller loads shippingAddress but not its sub-relations.
+        // No-op if already eager-loaded.
+        $addr->loadMissing(['zip', 'city', 'state', 'country']);
         return [
             'practice'       => $addr->practice_name,
             'doctorName'     => $addr->doctor_name,
             'streetAddress'  => $addr->street_address_1,
             'streetAddress2' => $addr->street_address_2,
             'zipId'          => $addr->zip_id,
+            'zipCode'        => $addr->zip?->code,
             'cityId'         => $addr->city_id,
+            'city'           => $addr->city?->name,
             'stateId'        => $addr->state_id,
+            'state'          => $addr->state?->name,
             'countryId'      => $addr->country_id,
+            // country holds the ISO code (e.g. "US"), not the display name —
+            // matches the ZipcodeSearchController cascade payload and the
+            // <select> options keyed by Country.country_code.
+            'country'        => $addr->country?->country_code,
         ];
+    }
+
+    private function serializeDoctorSavedAddresses(Doctor $doctor): array
+    {
+        return $doctor->shippingAddresses()
+            ->with(['zipcode', 'city', 'state', 'country'])
+            ->orderByDesc('is_default')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (\App\Models\DoctorAddress $a) => [
+                'id'             => (string) $a->id,
+                'isDefault'      => (bool) $a->is_default,
+                'label'          => $this->buildAddressLabel($a),
+                'streetAddress'  => $a->street_address_1,
+                'streetAddress2' => $a->street_address_2,
+                'zipId'          => $a->zip_id,
+                'zipCode'        => $a->zipcode?->code,
+                'cityId'         => $a->city_id,
+                'city'           => $a->city?->name,
+                'stateId'        => $a->state_id,
+                'state'          => $a->state?->name,
+                'countryId'      => $a->country_id,
+                // ISO code, not display name — matches serializeShipping.
+                'country'        => $a->country?->country_code,
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function buildAddressLabel(\App\Models\DoctorAddress $a): string
+    {
+        $parts = array_filter([
+            $a->street_address_1,
+            $a->city?->name,
+            $a->state?->name,
+            $a->zipcode?->code,
+        ], fn ($v) => filled($v));
+        $base = $parts ? implode(', ', $parts) : ('Address #' . $a->id);
+        return $a->is_default ? $base . ' (Default)' : $base;
     }
 }

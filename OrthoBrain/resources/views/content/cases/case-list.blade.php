@@ -161,7 +161,7 @@
         </thead>
         <tbody>
           @forelse($cases as $case)
-            <tr>
+            <tr data-row-href="{{ route('doctor.cases.edit', $case->id) }}" style="cursor:pointer;">
               <td><span class="fw-bolder">#{{ $case->id }}</span></td>
               <td>
                 @if($case->patient)
@@ -221,6 +221,30 @@
 
 @push('scripts')
 <script>
+document.addEventListener('click', function (e) {
+  var tr = e.target.closest('tr[data-row-href]')
+  if (!tr) return
+  if (e.target.closest('a, button, form, input, select, textarea, label, [data-no-row-click]')) return
+  if (window.getSelection && String(window.getSelection())) return
+  var href = tr.getAttribute('data-row-href')
+  if (!href) return
+  if (e.ctrlKey || e.metaKey) {
+    window.open(href, '_blank', 'noopener')
+  } else {
+    window.location.href = href
+  }
+})
+document.addEventListener('auxclick', function (e) {
+  if (e.button !== 1) return
+  var tr = e.target.closest('tr[data-row-href]')
+  if (!tr) return
+  if (e.target.closest('a, button, form, input, select, textarea, label, [data-no-row-click]')) return
+  var href = tr.getAttribute('data-row-href')
+  if (!href) return
+  e.preventDefault()
+  window.open(href, '_blank', 'noopener')
+})
+
 document.addEventListener('DOMContentLoaded', function () {
   var form = document.getElementById('casesSearchForm')
   if (form) {

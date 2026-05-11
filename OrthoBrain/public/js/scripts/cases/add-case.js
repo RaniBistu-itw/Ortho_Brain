@@ -16,6 +16,8 @@
     lastSavedAt: null,
     hasAttemptedSubmit: false,
     isDirty: false,
+    isReadOnly: window.__isReadOnly === true,
+    caseStatus: window.__caseStatus || 'DRAFT',
     sections: {},
   };
 
@@ -35,6 +37,12 @@
   if (window.__additionalInfoPrefill) state.additionalInformation = window.__additionalInfoPrefill;
   if (window.__shippingAddressPrefill) state.shippingAddress = window.__shippingAddressPrefill;
   if (window.__impressionsPrefill) state.impressions = window.__impressionsPrefill;
+  if (window.__photographsPrefill && window.__photographsPrefill.dateOfPhotos) {
+    state.photographs = Object.assign({}, state.photographs, { dateOfPhotos: window.__photographsPrefill.dateOfPhotos });
+  }
+  if (window.__xraysPrefill && window.__xraysPrefill.dateOfXrays) {
+    state.xrays = Object.assign({}, state.xrays, { dateOfXrays: window.__xraysPrefill.dateOfXrays });
+  }
 
   // ─── Autosave indicator ───────────────────────────────────────────────────
 
@@ -79,6 +87,16 @@
         window.CaseImageStore.rekey(oldCaseId, caseId)
           .catch(function (e) { console.warn('CaseImageStore.rekey failed', e); });
       }
+
+      // Flush any media uploaded while caseId was 'new' — _persistTile skips
+      // those, leaving blobs stranded client-side. X-rays especially: they
+      // have no IDB fallback, so without this they're lost on first save.
+      if (window.PhotographsSection && typeof window.PhotographsSection.flushUnsynced === 'function') {
+        window.PhotographsSection.flushUnsynced();
+      }
+      if (window.XRaysSection && typeof window.XRaysSection.flushUnsynced === 'function') {
+        window.XRaysSection.flushUnsynced();
+      }
     });
   }
 
@@ -89,7 +107,12 @@
 
   function persistShipping() {
     if (!window.CaseApi || !state.shippingAddress || caseId === 'new') return Promise.resolve();
-    return window.CaseApi.saveShipping(caseId, state.shippingAddress);
+    // autosave: true signals the admin controller to skip CaseEditedByAdminNotification
+    // on background saves — only intentional manual edits should notify the doctor.
+    return window.CaseApi.saveShipping(
+      caseId,
+      Object.assign({}, state.shippingAddress, { autosave: true })
+    );
   }
 
   function persistImpressions() {
@@ -97,14 +120,41 @@
     var imp = state.impressions;
     var payload = {
       impressionMethod: imp.impressionMethodId === 'pvs' ? 'physical' : 'digital',
-      scannerId: imp.impressionMethodId === 'pvs' ? null : (parseInt(imp.impressionMethodId) || null)
+      scannerId: imp.impressionMethodId === 'pvs' ? null : (parseInt(imp.impressionMethodId) || null),
+      autosave: true,
     };
     return window.CaseApi.saveImpressions(caseId, payload);
   }
 
   function persistAdditionalInfo() {
     if (!window.CaseApi || !state.additionalInformation || caseId === 'new') return Promise.resolve();
-    return window.CaseApi.saveAdditionalInfo(caseId, state.additionalInformation);
+    return window.CaseApi.saveAdditionalInfo(
+      caseId,
+      Object.assign({}, state.additionalInformation, { autosave: true })
+    );
+  }
+
+  function persistSubmitOrder() {
+    if (!window.CaseApi || caseId === 'new') return Promise.resolve();
+    var so = state.submitOrder;
+    if (!so) return Promise.resolve();
+    return window.CaseApi.saveSubmitOrder(caseId, {
+      submitterInitials: so.submitterInitials || null,
+    });
+  }
+
+  function persistPhotographsDate() {
+    if (!window.CaseApi || caseId === 'new') return Promise.resolve();
+    var date = state.photographs && state.photographs.dateOfPhotos;
+    if (!date) return Promise.resolve();
+    return window.CaseApi.savePhotographsDate(caseId, date);
+  }
+
+  function persistXraysDate() {
+    if (!window.CaseApi || caseId === 'new') return Promise.resolve();
+    var date = state.xrays && state.xrays.dateOfXrays;
+    if (!date) return Promise.resolve();
+    return window.CaseApi.saveXraysDate(caseId, date);
   }
 
   // Persist patient identity (firstName, lastName, DOB, gender, chartId,
@@ -162,6 +212,12 @@
   // ─── Save Draft ────────────────────────────────────────────────────────────
 
   function saveDraft() {
+    // B-1b follow-up: skip auto-save on read-only cases. The 7 doctor
+    // section-save endpoints all 403 (B-1a gate) on non-DRAFT cases — firing
+    // them would just produce a "Saved 0 of 7 — ... failed" toast and a
+    // burst of doomed POSTs. Returning early avoids the failure cascade.
+    // This guard also covers PR #126's flushNow() since it calls saveDraft.
+    if (state.isReadOnly) return Promise.resolve();
     if (!state.isDirty) return Promise.resolve();
     state.isSaving = true;
     state.isDirty = false;
@@ -181,19 +237,25 @@
     }
 
     var LABELS = {
-      prescription: 'Prescription',
-      patient:      'Patient',
-      shipping:     'Shipping',
-      impressions:  'Impressions',
-      additionalInfo: 'Additional Info',
+      prescription:    'Prescription',
+      patient:         'Patient',
+      shipping:        'Shipping',
+      impressions:     'Impressions',
+      additionalInfo:  'Additional Info',
+      submitOrder:     'Submit Order',
+      photographsDate: 'Date of Photos',
+      xraysDate:       'Date of X-Rays',
     };
 
     return ensureShellCreated()
-      .then(shield('prescription',   persistPrescription))
-      .then(shield('patient',        persistPatient))
-      .then(shield('shipping',       persistShipping))
-      .then(shield('impressions',    persistImpressions))
-      .then(shield('additionalInfo', persistAdditionalInfo))
+      .then(shield('prescription',     persistPrescription))
+      .then(shield('patient',          persistPatient))
+      .then(shield('shipping',         persistShipping))
+      .then(shield('impressions',      persistImpressions))
+      .then(shield('additionalInfo',   persistAdditionalInfo))
+      .then(shield('submitOrder',      persistSubmitOrder))
+      .then(shield('photographsDate',  persistPhotographsDate))
+      .then(shield('xraysDate',        persistXraysDate))
       .then(function () {
         try { localStorage.setItem(draftKey, JSON.stringify(state)); } catch (e) { /* ignore quota */ }
         state.lastSavedAt = new Date().toISOString();
@@ -227,6 +289,12 @@
   var autosaveTimer = null;
 
   function scheduleAutosave() {
+    // B-1b follow-up: skip scheduling on read-only cases. Sections call
+    // syncToState() during hydration which calls markDirty (this function).
+    // Without this guard, every read-only page load would schedule a 30s
+    // autosave that ultimately runs saveDraft → 7×403s. saveDraft also
+    // guards, but skipping here avoids dirtying state.isDirty for nothing.
+    if (state.isReadOnly) return;
     state.isDirty = true;
     clearTimeout(autosaveTimer);
     autosaveTimer = setTimeout(saveDraft, AUTOSAVE_DELAY_MS);
@@ -239,6 +307,14 @@
   }
 
   window.addEventListener('beforeunload', function () {
+    // Last-ditch backup: if the user navigates away with typing still in
+    // memory (closed tab, browser back, deep-link click), persist to
+    // localStorage so the next visit can rehydrate. The practice switcher
+    // uses the awaitable `flushNow()` for a real server save.
+    if (state.isDirty) {
+      try { localStorage.setItem(draftKey, JSON.stringify(state)); }
+      catch (e) { /* ignore quota */ }
+    }
     clearTimeout(autosaveTimer);
   });
 
@@ -359,6 +435,27 @@
       updateAutosaveIndicator();
     },
     currentCaseId: function () { return caseId; },
+
+    // Flush any pending autosave immediately. Returns a Promise that
+    // resolves when every section has been acknowledged by the server (or
+    // no-ops if the form is clean — saveDraft early-returns on !isDirty).
+    // Called by the practice switcher to guarantee no data loss across
+    // a mid-form switch.
+    flushNow: function () {
+      clearTimeout(autosaveTimer);
+      return saveDraft();
+    },
+
+    // Immediate (non-debounced) save for the X-Rays date input. The 30s
+    // autosave debounce + saveDraft's isDirty early-return + the
+    // change-vs-click ordering on <input type="date"> together make it
+    // possible for a typed date to never reach the DB before submit fires.
+    // Saving on @change closes that race.
+    saveXraysDateNow: function (date) {
+      if (!window.CaseApi || caseId === 'new' || !date) return;
+      return window.CaseApi.saveXraysDate(caseId, date)
+        .catch(function (e) { console.warn('saveXraysDateNow failed', e); });
+    },
   };
 
   // ─── Init ─────────────────────────────────────────────────────────────────

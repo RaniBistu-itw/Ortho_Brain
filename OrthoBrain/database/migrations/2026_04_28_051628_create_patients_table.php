@@ -7,10 +7,9 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Real persistence layer for case patients. Replaces the long-standing
-     * mock-patients.js fixture, which was the reason patient identity didn't
-     * survive across browsers. Scoped to (doctor, practice) so a doctor's
-     * patient roster is per-practice, matching the multi-practice model.
+     * Real persistence layer for case patients. Scoped to (doctor, practice)
+     * so a doctor's patient roster is per-practice, matching the
+     * multi-practice model.
      *
      * The chart_id is intentionally NOT a hard unique constraint — empty
      * strings would collide and partial-unique indexes are MariaDB-quirky.

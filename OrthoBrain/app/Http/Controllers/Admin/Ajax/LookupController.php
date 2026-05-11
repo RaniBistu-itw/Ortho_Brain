@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Doctor;
 use App\Models\Patient;
+use App\Models\Practice;
 use App\Models\ProductSubcategory;
 use App\Models\State;
 use Illuminate\Http\JsonResponse;
@@ -91,6 +92,26 @@ class LookupController extends Controller
                 'id'   => $p->id,
                 'text' => trim($p->first_name . ' ' . $p->last_name)
                           . ($p->chart_id ? ' — ' . $p->chart_id : ''),
+            ])->values()
+        );
+    }
+
+    public function practiceSearch(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $query = Practice::query()
+            ->select(['id', 'name'])
+            ->orderBy('name');
+
+        if ($q !== '') {
+            $query->where('name', 'like', '%' . $q . '%');
+        }
+
+        return response()->json(
+            $query->limit(30)->get()->map(fn (Practice $p) => [
+                'id'   => $p->id,
+                'text' => $p->name,
             ])->values()
         );
     }

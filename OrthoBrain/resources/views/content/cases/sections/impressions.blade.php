@@ -11,11 +11,16 @@
         Impression Method <span class="text-danger">*</span>
       </label>
       {{-- Sourced from the scanners master table (admin-managed at /admin/scanners). --}}
+      {{-- B-1b: isReadOnly inherited from impressionsSection() Alpine scope.
+           Disables the scanner-method select when the case is not editable
+           for the current doctor (any non-DRAFT status).
+           See Docs/case-workflow.md → "Role capabilities > Doctor". --}}
       <select id="imp-method" class="form-select"
               x-model="impressionMethodId"
               @change="onMethodChange()"
               @blur="validateField('impressionMethod')"
-              :class="{ 'is-invalid': errors.impressionMethod }">
+              :class="{ 'is-invalid': errors.impressionMethod }"
+              :disabled="isReadOnly">
         <option value="">Select scanner model or PVS</option>
         @forelse($scanners ?? [] as $s)
           <option value="{{ $s->id }}">{{ $s->name }}</option>

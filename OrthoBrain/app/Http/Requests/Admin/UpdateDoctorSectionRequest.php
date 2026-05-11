@@ -36,7 +36,7 @@ class UpdateDoctorSectionRequest extends FormRequest
             'last_name'                           => ['required', 'string', 'max:100'],
             'preferred_language'                  => ['required', 'string', 'max:50'],
             'doctor_contact_email'                => ['required', 'email', 'max:150'],
-            'doctor_cell_phone'                   => ['nullable', 'string', 'max:20'],
+            'doctor_cell_phone'                   => ['nullable', 'string', 'regex:/^\d{10}$/'],
             'other_email'                         => ['nullable', 'email', 'max:150'],
             'preferred_contact_mode'              => ['required', Rule::in(['DOCTOR_ONLY', 'EMPLOYEE_OFFICE', 'DOCTOR_AND_EMPLOYEE_OFFICE'])],
             'currently_providing_ortho_services'  => ['nullable', 'boolean'],

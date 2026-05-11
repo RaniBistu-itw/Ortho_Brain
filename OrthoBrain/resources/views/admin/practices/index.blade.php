@@ -165,6 +165,7 @@
         color: var(--ob-muted); font-size: 0.76rem; font-weight: 500;
         display: block; margin-top: 0.1rem;
     }
+    .ob-logo-wrap { position: relative; flex: 0 0 auto; }
     .ob-logo {
         width: 40px; height: 40px;
         border-radius: 0.5rem;
@@ -178,6 +179,21 @@
         box-shadow: 0 0 0 2px var(--ob-surface-1), 0 0 0 3px var(--ob-border);
     }
     .ob-logo img { width: 100%; height: 100%; object-fit: cover; }
+    .ob-logo-badge {
+        position: absolute;
+        top: -5px; right: -5px;
+        min-width: 17px; height: 17px;
+        padding: 0 4px;
+        background: #f59e0b;
+        color: #fff;
+        border: 2px solid var(--ob-surface-1);
+        border-radius: 999px;
+        font-size: 0.6rem;
+        font-weight: 800;
+        line-height: 1;
+        display: flex; align-items: center; justify-content: center;
+        pointer-events: none;
+    }
 
     .ob-contact-line {
         display: inline-flex; align-items: center; gap: 0.4rem;
@@ -208,23 +224,6 @@
     .pr-status::before { content: ''; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
     .pr-status--active   { background: rgba(var(--bs-success-rgb), .14); color: var(--bs-success); }
     .pr-status--inactive { background: rgba(var(--bs-danger-rgb), .14);  color: var(--bs-danger); }
-
-    .ob-pending-pill {
-        display: inline-block;
-        margin-left: 0.45rem;
-        padding: 0.15rem 0.55rem;
-        background: var(--ob-warning-soft);
-        color: #b9681a;
-        border: 1px solid #ffdcaf;
-        border-radius: 999px;
-        font-size: 0.66rem;
-        font-weight: 700;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        text-decoration: none;
-        vertical-align: middle;
-    }
-    .ob-pending-pill:hover { background: rgba(255, 159, 67, 0.22); color: #9c560e; }
 
     .ob-when { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--ob-text); }
     .ob-when svg { width: 13px; height: 13px; color: var(--ob-text-muted); }
@@ -264,11 +263,8 @@
 
 @section('content')
 @php
-    $selectedCountry = request('country_id')
-        ? optional($countries->firstWhere('id', (int) request('country_id')))->name
-        : null;
     $searchTerm = trim((string) request('search', ''));
-    $hasActiveFilters = $selectedCountry || $searchTerm !== '';
+    $hasActiveFilters = $searchTerm !== '';
 
     $queryWithout = function (array $remove) {
         $q = request()->query();
@@ -304,22 +300,14 @@
                         <option value="INACTIVE" @selected(request('status') === 'INACTIVE')>Inactive</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <select name="country_id" class="js-searchable form-select">
-                        <option value="">All countries</option>
-                        @foreach ($countries as $c)
-                            <option value="{{ $c->id }}" @selected(request('country_id') == $c->id)>{{ $c->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
+                <div class="col-md-5">
                     <div class="ob-input-icon">
                         <i data-feather="search"></i>
-                        <input type="text" name="search" placeholder="Search by name, website, or phone"
+                        <input type="text" name="search" placeholder="Search by name, address, city, state, country, website, or phone"
                                value="{{ $searchTerm }}" class="form-control">
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <select name="order" class="form-select" aria-label="Sort order">
                         <option value="newest" @selected(request('order', 'newest') === 'newest')>Newest first</option>
                         <option value="oldest" @selected(request('order') === 'oldest')>Oldest first</option>
@@ -338,12 +326,6 @@
                         <span class="ob-chip">
                             <span class="ob-chip-label">Search:</span> {{ $searchTerm }}
                             <a href="{{ $queryWithout(['search']) }}" title="Remove filter"><i data-feather="x"></i></a>
-                        </span>
-                    @endif
-                    @if ($selectedCountry)
-                        <span class="ob-chip">
-                            <span class="ob-chip-label">Country:</span> {{ $selectedCountry }}
-                            <a href="{{ $queryWithout(['country_id']) }}" title="Remove filter"><i data-feather="x"></i></a>
                         </span>
                     @endif
                 </div>
@@ -383,25 +365,26 @@
                         <tr data-row-href="{{ route('admin.practices.show', $practice) }}">
                             <td>
                                 <div class="ob-practice-cell">
-                                    <span class="ob-logo">
-                                        @if ($logoUrl)
-                                            <img src="{{ $logoUrl }}" alt="{{ $practice->name }}"
-                                                 data-preview-src="{{ $logoUrl }}" data-preview-size="lg">
-                                        @else
-                                            {{ $initials ?: 'P' }}
-                                        @endif
-                                    </span>
-                                    <div>
-                                        <span class="ob-practice-name">
-                                            {{ $practice->name }}
-                                            @if (($practice->pending_pivot_count ?? 0) > 0)
-                                                <a href="{{ route('admin.practices.show', $practice) }}"
-                                                   class="ob-pending-pill"
-                                                   title="{{ $practice->pending_pivot_count }} pending doctor {{ \Illuminate\Support\Str::plural('approval', $practice->pending_pivot_count) }}">
-                                                    {{ $practice->pending_pivot_count }} pending
-                                                </a>
+                                    <div class="ob-logo-wrap"
+                                         @if (($practice->pending_pivot_count ?? 0) > 0)
+                                             data-bs-toggle="tooltip"
+                                             data-bs-placement="top"
+                                             title="{{ $practice->pending_pivot_count }} pending doctor {{ \Illuminate\Support\Str::plural('approval', $practice->pending_pivot_count) }}"
+                                         @endif>
+                                        <span class="ob-logo">
+                                            @if ($logoUrl)
+                                                <img src="{{ $logoUrl }}" alt="{{ $practice->name }}"
+                                                     data-preview-src="{{ $logoUrl }}" data-preview-size="lg">
+                                            @else
+                                                {{ $initials ?: 'P' }}
                                             @endif
                                         </span>
+                                        @if (($practice->pending_pivot_count ?? 0) > 0)
+                                            <span class="ob-logo-badge">{{ $practice->pending_pivot_count }}</span>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <span class="ob-practice-name">{{ $practice->name }}</span>
                                         @if ($practice->street_address_1)
                                             <span class="ob-practice-sub">{{ $practice->street_address_1 }}</span>
                                         @endif

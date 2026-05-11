@@ -33,6 +33,13 @@
       X-rays are required to proceed with this submission. X-rays provide the orthodontist with essential information needed to properly diagnose and plan orthodontic care. The orthodontist cannot Perfect Smile Plan without updated x-rays (taken within the last year). Please upload either a panoramic x-ray or a full mouth series (as one image/file). A lateral cephalogram is optional. We recommend uploading all of the corresponding images that you have for the patient. Files should be formatted as JPG, BMP, TIF, HEIC or PNG.
     </p>
 
+    {{-- B-1b: isReadOnly inherited from xraysSection() Alpine scope.
+         Disables date input + bulk file input, hides the bulk Upload Images
+         button, when the case is not editable for the current doctor.
+         Per-tile buttons (Replace/Remove/Crop) live in the shared media-tile
+         component and are gated there via the same getter (parent Alpine
+         scope).
+         See Docs/case-workflow.md → "Role capabilities > Doctor". --}}
     {{-- Date of X-Rays --}}
     <div class="mb-1">
       <label class="form-label fw-semibold" for="xray-date">
@@ -44,7 +51,8 @@
                class="form-control case-date-input"
                id="xray-date"
                x-model="dateOfXrays"
-               @change="validateField('dateOfXrays'); syncToState()">
+               @change="validateField('dateOfXrays'); syncToState(); window.AddCaseSave?.saveXraysDateNow?.(dateOfXrays)"
+               :disabled="isReadOnly">
       </div>
       <div class="small text-danger mt-25"
            x-show="errors.dateOfXrays"
@@ -80,7 +88,7 @@
 
     {{-- Bulk upload --}}
     <div class="mb-1">
-      <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-50" @click="openBulkPicker()">
+      <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-50" @click="openBulkPicker()" x-show="!isReadOnly">
         <i data-feather="upload"></i>
         Upload Images
       </button>
@@ -89,7 +97,8 @@
              class="media-bulk-input"
              multiple
              accept="image/jpeg,image/bmp,image/tiff,image/heic,image/png"
-             @change="onBulkInputChange()">
+             @change="onBulkInputChange()"
+             :disabled="isReadOnly">
     </div>
 
     {{-- Bottom note banner --}}
@@ -116,9 +125,9 @@
                  style="max-height:55vh; display:none;">
           </div>
           <div class="modal-footer flex-wrap gap-50">
-            <button type="button" class="btn btn-outline-primary btn-sm" @click="replaceTile()">Replace</button>
-            <button type="button" class="btn btn-outline-danger btn-sm" @click="removeTile()">Remove</button>
-            <button type="button" class="btn btn-outline-secondary btn-sm" @click="cropTile()">Crop</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" @click="replaceTile()" x-show="!isReadOnly">Replace</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" @click="removeTile()" x-show="!isReadOnly">Remove</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" @click="cropTile()" x-show="!isReadOnly">Crop</button>
             <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
                     @click="_pendingReplaceTileId = null">Close</button>
           </div>

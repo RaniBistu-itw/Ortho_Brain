@@ -351,18 +351,6 @@
             .sup-error-banner ul { margin: 0.4rem 0 0 1.2rem; padding: 0; }
             .sup-error-banner strong { font-weight: 700; }
 
-            .sup-success-banner {
-                background: #ecfdf5;
-                border: 1px solid #a7f3d0;
-                color: #065f46;
-                padding: 0.85rem 1rem;
-                border-radius: 10px;
-                margin-bottom: 1rem;
-                font-size: 0.9rem;
-                display: flex; align-items: center; gap: 0.6rem;
-            }
-            .sup-success-banner i { font-size: 1.1rem; }
-
             /* Required-fields callout */
             .sup-required-note {
                 margin-top: 0.85rem;
@@ -505,13 +493,6 @@
                     <p>Have questions or need help? Reach out to our team.</p>
                 </header>
 
-                @if(session('success'))
-                    <div class="sup-success-banner">
-                        <i class="bi bi-check-circle-fill"></i>
-                        <span>{{ session('success') }}</span>
-                    </div>
-                @endif
-
                 @if($errors->any())
                     <div class="sup-error-banner" id="sup-server-banner">
                         <strong>Please fix the following before continuing:</strong>
@@ -584,7 +565,7 @@
                         <a href="{{ url('/login') }}" class="sup-back-link">
                             <i class="bi bi-arrow-left"></i> Back to Login
                         </a>
-                        <button type="submit" id="sup-submit" class="sup-btn-primary-grad" disabled>
+                        <button type="submit" id="sup-submit" class="sup-btn-primary-grad">
                             Send Message <i class="bi bi-send"></i>
                         </button>
                     </div>
@@ -726,21 +707,13 @@
                 else _clearUI(id);
                 const v = VALIDATORS[id];
                 if (v && !v(_val(id))) dismissServerBannerFor(id);
-                refreshSubmitEnabled();
-            }
-            function refreshSubmitEnabled() {
-                // Enable Send only when every required field has a non-empty value.
-                // Format-level validity is enforced server-side and inline on blur/submit;
-                // the gate here is just a "don't let me submit obviously empty fields" guard.
-                const allFilled = ['name', 'email', 'subject', 'message'].every(id => _val(id).length > 0);
-                document.getElementById('sup-submit').disabled = !allFilled;
             }
 
             document.addEventListener('DOMContentLoaded', () => {
                 Object.keys(VALIDATORS).forEach(id => {
                     const el = document.getElementById('in-' + id);
                     if (!el) return;
-                    el.addEventListener('blur', () => { touched.add(id); validateField(id); refreshSubmitEnabled(); });
+                    el.addEventListener('blur', () => { touched.add(id); validateField(id); });
                 });
 
                 // Surface server-side errors inline (matches register's behaviour).
@@ -749,8 +722,6 @@
                     const fid = SERVER_FIELD_MAP[key];
                     if (fid && msgs && msgs.length) { touched.add(fid); showError(fid, msgs[0]); }
                 });
-
-                refreshSubmitEnabled();
 
                 // Final submit gate — run all validators; refuse if any fail.
                 document.getElementById('supportForm').addEventListener('submit', (e) => {

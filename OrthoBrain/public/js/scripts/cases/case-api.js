@@ -83,7 +83,7 @@
       return request('POST', base() + '/' + encodeURIComponent(caseId) + '/prescription', payload);
     },
 
-    // Patient identity persistence — replaces mock-patients.js. Body must
+    // Patient identity persistence. Body must
     // satisfy PatientInformationRequest (firstName, lastName, dateOfBirth,
     // biologicalGender, chiefComplaint required). Optional: email, phone,
     // patientChartId, biologicalGenderOther, selectedPatientId.
@@ -100,12 +100,15 @@
       return request('GET', url, undefined);
     },
 
-    submitCase: function (caseId) {
-      return request('POST', '/dev/cases/' + encodeURIComponent(caseId) + '/submit', {});
+    // payload: object passed to submit endpoint. Currently { submitter_initials }.
+    // Future fields go here without changing the function signature.
+    submitCase: function (caseId, payload) {
+      return request('POST', '/dev/cases/' + encodeURIComponent(caseId) + '/submit', payload || {});
     },
 
-    updateStatus: function (caseId, status) {
-      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/status', { status: status });
+    updateStatus: function (caseId, status, extras) {
+      var body = Object.assign({ status: status }, extras || {});
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/status', body);
     },
 
     // AI — real-time photo QC after upload. Non-blocking caller-side.
@@ -148,6 +151,18 @@
 
     saveAdditionalInfo: function (caseId, payload) {
       return request('POST', base() + '/' + encodeURIComponent(caseId) + '/additional', payload);
+    },
+
+    saveSubmitOrder: function (caseId, payload) {
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/submit-order', payload);
+    },
+
+    savePhotographsDate: function (caseId, dateOfPhotos) {
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/photographs/date', { dateOfPhotos: dateOfPhotos });
+    },
+
+    saveXraysDate: function (caseId, dateOfXrays) {
+      return request('POST', base() + '/' + encodeURIComponent(caseId) + '/xrays/date', { dateOfXrays: dateOfXrays });
     },
   };
 })();

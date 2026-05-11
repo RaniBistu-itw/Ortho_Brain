@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Models\Country;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -17,16 +18,20 @@ class ProfileController extends Controller
             ['first_name' => 'Admin', 'last_name' => '']
         );
 
-        return view('admin.profile.index', compact('admin'));
+        $phoneCodes = Country::where('status', 'ACTIVE')
+            ->select('phone_code')->distinct()->orderBy('phone_code')->pluck('phone_code')->all();
+
+        return view('admin.profile.index', compact('admin', 'phoneCodes'));
     }
 
     public function update(Request $request)
     {
         $request->validate([
-            'first_name' => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
-            'last_name'  => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
-            'email'      => 'required|email|max:150|unique:users,email,' . Auth::id(),
-            'phone'      => 'nullable|string|max:20',
+            'first_name'         => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
+            'last_name'          => 'required|string|max:100|regex:/^[A-Za-z\s\-]+$/',
+            'email'              => 'required|email|max:150|unique:users,email,' . Auth::id(),
+            'phone_country_code' => 'nullable|string|max:10',
+            'phone_number'       => 'nullable|string|regex:/^\d{10}$/',
         ], [
             'first_name.regex' => 'First name may only contain letters, spaces and hyphens.',
             'last_name.regex'  => 'Last name may only contain letters, spaces and hyphens.',
@@ -37,9 +42,12 @@ class ProfileController extends Controller
         $user->save();
 
         $admin = Admin::firstOrNew(['user_id' => $user->id]);
-        $admin->first_name = $request->first_name;
-        $admin->last_name  = $request->last_name;
-        $admin->phone      = $request->phone;
+        $admin->first_name         = $request->first_name;
+        $admin->last_name          = $request->last_name;
+        $admin->phone_country_code = $request->phone_country_code;
+        $admin->phone_number       = $request->phone_number
+            ? preg_replace('/\D/', '', $request->phone_number)
+            : null;
         $admin->save();
 
         return back()->with('success', 'Account information updated successfully.');

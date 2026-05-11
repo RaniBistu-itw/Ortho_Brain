@@ -89,23 +89,34 @@
             <div class="ob-image-gallery-empty" id="ob-image-gallery-empty">No images yet. Add up to {{ $maxImages }} below.</div>
         @endif
 
-        {{-- File input (hidden — populated from the cropper modal) --}}
-        <input id="images" name="images[]" type="file" multiple accept=".jpg,.jpeg,.png"
-               class="@error('images') is-invalid @enderror" hidden>
+        {{-- Hidden file input — clicked programmatically by the Add button; synced via DataTransfer. --}}
+        <input id="images"
+       name="images[]"
+       type="file"
+       multiple
+       accept="image/jpeg,image/png"
+       class="@error('images') is-invalid @enderror"
+       tabindex="-1"
+       aria-hidden="true"
+       style="
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            overflow: hidden;
+       ">
 
-        {{-- Add-image trigger: opens the cropper modal --}}
+        {{-- Add-image trigger --}}
         <div class="mt-1">
-            <button type="button" id="ob-add-image-btn" class="btn btn-outline-primary"
-                    onclick="openPhotoEditor('product-image-editor')">
+            <button type="button" id="ob-add-image-btn" class="btn btn-outline-primary">
                 <i data-feather="plus"></i> Add image
             </button>
             <small class="text-muted d-block mt-25">
-                Up to {{ $maxImages }} images. JPG or PNG, max 2 MB each. Crop/rotate each image before saving. The first image is used as the cover.
+                Up to {{ $maxImages }} images. JPG or PNG, max 2 MB each. The first image is used as the cover.
             </small>
         </div>
-
-        {{-- Chip list: one chip per pending new file --}}
-        <div id="ob-file-chip-list" class="ob-file-chip-list mt-1"></div>
 
         @error('images')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
         @error('images.*')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
@@ -125,14 +136,6 @@
     <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary">Cancel</a>
 </div>
 
-{{-- Cropper modal — pushes cropped File into the pending-files buffer. --}}
-@include('partials._photo-editor', [
-    'id'        => 'product-image-editor',
-    'title'     => 'Edit Product Image',
-    'callback'  => 'onProductImageCropped',
-    'aspect'    => null,
-    'enableCam' => false,
-])
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('vuexy/vendors/css/extensions/dragula.min.css') }}">
@@ -140,7 +143,7 @@
 
 @push('scripts')
 <script src="{{ asset('vuexy/vendors/js/extensions/dragula.min.js') }}"></script>
-<script src="https://cdn.ckeditor.com/ckeditor5/41.3.1/classic/ckeditor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ckeditor/ckeditor5-build-classic@41.3.1/build/ckeditor.js"></script>
 <script>
 obCascade({ parent:'#category_id', child:'#subcategory_id', url:'{{ route('admin.ajax.subcategories') }}', paramName:'category_id', placeholder:'Select sub category', preselectId: @json($selSubcategory) });
 ClassicEditor.create(document.querySelector('#description'), {
@@ -148,152 +151,192 @@ ClassicEditor.create(document.querySelector('#description'), {
 }).catch(err => console.error(err));
 
 (function () {
-    const MAX_IMAGES   = {{ $maxImages }};
-    const MAX_FILE     = 2 * 1024 * 1024;
+    const MAX_IMAGES  = {{ $maxImages }};
+    const MAX_FILE    = 2 * 1024 * 1024;
+    const MIME_MAP    = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' };
 
-    const $input        = $('#images');
-    const $chipList     = $('#ob-file-chip-list');
-    const $gallery      = $('#ob-image-gallery');
-    const $hiddenInputs = $('#ob-image-hidden-inputs');
-    const $count        = $('#ob-image-count');
-    const $addBtn       = $('#ob-add-image-btn');
+    const fileInput    = document.getElementById('images');
+    const gallery      = document.getElementById('ob-image-gallery');
+    const hiddenInputs = document.getElementById('ob-image-hidden-inputs');
+    const countEl      = document.getElementById('ob-image-count');
+    const addBtn       = document.getElementById('ob-add-image-btn');
+    const emptyMsg     = document.getElementById('ob-image-gallery-empty');
 
-    // Own buffer of pending files (FileList is readonly; we sync to input via DataTransfer).
-    let pendingFiles = [];   // File[]
-    let removedIds   = [];   // number[] — ids of existing images queued for deletion
-    let nextSeq      = 1;    // for unique filenames from cropper
+    // uid → { file: File, objectUrl: string }
+    let pendingMap = new Map();
+    let removedIds = [];
+    let uidCounter = 0;
 
-    function formatSize(bytes) {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
-        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    function nextUid() { return 'p' + (++uidCounter); }
+
+    function existingCount() {
+        return gallery.querySelectorAll('.ob-image-gallery-item[data-image-id]').length;
     }
 
-    function remainingExisting() {
-        return $gallery.find('.ob-image-gallery-item').length;
-    }
-
-    function totalAfterSave() {
-        return remainingExisting() + pendingFiles.length;
+    function totalCount() {
+        return existingCount() + pendingMap.size;
     }
 
     function syncInputFiles() {
-        const dt = new DataTransfer();
-        pendingFiles.forEach(f => dt.items.add(f));
-        $input[0].files = dt.files;
+        try {
+            const dt = new DataTransfer();
+            pendingMap.forEach(({ file }) => dt.items.add(file));
+            fileInput.files = dt.files;
+        } catch (_) {}
     }
 
     function renderHiddenInputs() {
         const parts = [];
-        removedIds.forEach(id => {
-            parts.push('<input type="hidden" name="remove_image_ids[]" value="' + id + '">');
-        });
-        $gallery.find('.ob-image-gallery-item').each(function (idx) {
-            const id = $(this).data('image-id');
-            parts.push('<input type="hidden" name="image_order[]" value="' + id + '">');
-        });
-        $hiddenInputs.html(parts.join(''));
-    }
-
-    function renderChips() {
-        const html = pendingFiles.map((f, idx) => `
-            <div class="ob-file-chip" data-idx="${idx}">
-                <span class="ob-file-chip-icon"><i data-feather="image"></i></span>
-                <span class="ob-file-chip-meta">
-                    <span class="ob-file-chip-name">${$('<div>').text(f.name).html()}</span>
-                    <span class="ob-file-chip-size">${formatSize(f.size)}</span>
-                </span>
-                <button type="button" class="ob-file-chip-remove js-remove-pending-file"
-                        aria-label="Remove selected file" title="Remove">
-                    <i data-feather="x"></i>
-                </button>
-            </div>
-        `).join('');
-        $chipList.html(html);
-        if (window.feather) feather.replace();
+        removedIds.forEach(id =>
+            parts.push(`<input type="hidden" name="remove_image_ids[]" value="${id}">`)
+        );
+        gallery.querySelectorAll('.ob-image-gallery-item[data-image-id]').forEach(el =>
+            parts.push(`<input type="hidden" name="image_order[]" value="${el.dataset.imageId}">`)
+        );
+        hiddenInputs.innerHTML = parts.join('');
     }
 
     function refreshCoverBadge() {
-        $gallery.find('.ob-image-cover-badge').hide();
-        $gallery.find('.ob-image-gallery-item').first().find('.ob-image-cover-badge').show();
-    }
-
-    function refreshAddButton() {
-        const atMax = totalAfterSave() >= MAX_IMAGES;
-        $addBtn.prop('disabled', atMax);
-        $addBtn.attr('title', atMax ? 'Maximum of ' + MAX_IMAGES + ' images reached' : '');
+        gallery.querySelectorAll('.ob-image-gallery-item').forEach((el, i) => {
+            const badge = el.querySelector('.ob-image-cover-badge');
+            if (badge) badge.style.display = i === 0 ? '' : 'none';
+        });
     }
 
     function refreshCount() {
-        const n = totalAfterSave();
-        $count.text(n + ' / ' + MAX_IMAGES);
-        $count.toggleClass('is-full', n >= MAX_IMAGES);
-        $count.toggleClass('is-over', n > MAX_IMAGES);
-        const empty = remainingExisting() === 0 && pendingFiles.length === 0;
-        $('#ob-image-gallery-empty').toggle(empty);
-        refreshAddButton();
+        const n = totalCount();
+        countEl.textContent = n + ' / ' + MAX_IMAGES;
+        countEl.classList.toggle('is-full', n >= MAX_IMAGES);
+        countEl.classList.toggle('is-over', n > MAX_IMAGES);
+        const isEmpty = gallery.querySelectorAll('.ob-image-gallery-item').length === 0;
+        if (emptyMsg) emptyMsg.style.display = isEmpty ? '' : 'none';
+        addBtn.disabled = n >= MAX_IMAGES;
+        addBtn.title = n >= MAX_IMAGES ? `Maximum of ${MAX_IMAGES} images reached` : '';
     }
 
     function warn(title, text) {
         Swal.fire({
-            title: title, text: text, icon: 'warning',
+            title, text, icon: 'warning',
             confirmButtonText: 'Got it',
             customClass: { confirmButton: 'btn btn-primary' },
             buttonsStyling: false
         });
     }
 
-    // Global callback invoked by the photo-editor modal once a crop is saved.
-    window.onProductImageCropped = function (file) {
-        if (totalAfterSave() >= MAX_IMAGES) {
-            warn('Too many images',
-                 'You can have at most ' + MAX_IMAGES + ' images per product. Remove one before adding another.');
-            return;
-        }
-        if (file.size > MAX_FILE) {
-            warn('Image is too large',
-                 'The cropped image is ' + formatSize(file.size) + ' — the limit is 2 MB per image.');
-            return;
-        }
-        // Re-name so chips are distinct and uploads don't collide server-side.
-        const stamped = new File([file], 'product-image-' + Date.now() + '-' + (nextSeq++) + '.jpg',
-                                 { type: file.type || 'image/jpeg' });
-        pendingFiles.push(stamped);
-        syncInputFiles();
-        renderChips();
-        refreshCount();
-    };
+    function safeText(str) {
+        return document.createTextNode(str).nodeValue
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
 
-    // Remove a pending (not-yet-uploaded) file from the chip list.
-    $chipList.on('click', '.js-remove-pending-file', function () {
-        const idx = parseInt($(this).closest('.ob-file-chip').data('idx'), 10);
-        pendingFiles.splice(idx, 1);
+    function addPendingTile(uid, objectUrl) {
+        const div = document.createElement('div');
+        div.className = 'ob-image-gallery-item ob-image-gallery-item--pending';
+        div.dataset.pendingUid = uid;
+        div.innerHTML = `
+            <img src="${safeText(objectUrl)}" alt="" class="ob-image-gallery-img">
+            <span class="ob-image-cover-badge" title="Cover image" style="display:none;">Cover</span>
+            <span class="ob-image-pending-badge">New</span>
+            <button type="button" class="ob-image-gallery-remove js-remove-pending"
+                    aria-label="Remove image" title="Remove image"><i data-feather="x"></i></button>
+            <span class="ob-image-drag-hint" title="Drag to reorder"><i data-feather="move"></i></span>
+        `;
+        gallery.appendChild(div);
+        if (window.feather) feather.replace();
+    }
+
+    // Click the native file input synchronously — must stay in the same user-gesture tick.
+    addBtn.addEventListener('click', function () {
+        if (addBtn.disabled) return;
+        fileInput.value = '';
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function () {
+        const files = Array.from(fileInput.files || []);
+        if (!files.length) return;
+
+        let added = 0;
+        files.forEach(function (rawFile) {
+            if (totalCount() + added >= MAX_IMAGES) {
+                if (added === 0) {
+                    warn('Too many images',
+                        `You can have at most ${MAX_IMAGES} images per product. Remove one before adding another.`);
+                }
+                return;
+            }
+            if (rawFile.size > MAX_FILE) {
+                warn('Image is too large', `${rawFile.name} exceeds the 2 MB limit.`);
+                return;
+            }
+            const ext      = (rawFile.name.split('.').pop() || 'jpg').toLowerCase();
+            const mimeType = rawFile.type || MIME_MAP[ext] || 'image/jpeg';
+            const uid      = nextUid();
+            const stamped  = new File(
+                [rawFile],
+                `product-image-${Date.now()}-${uidCounter}.${ext}`,
+                { type: mimeType }
+            );
+            const objectUrl = URL.createObjectURL(stamped);
+            pendingMap.set(uid, { file: stamped, objectUrl });
+            addPendingTile(uid, objectUrl);
+            added++;
+        });
+
+        if (added > 0) {
+            syncInputFiles();
+            refreshCoverBadge();
+            refreshCount();
+        }
+    });
+
+    // Remove a pending tile.
+    gallery.addEventListener('click', function (e) {
+        const btn = e.target.closest('.js-remove-pending');
+        if (!btn) return;
+        const tile = btn.closest('[data-pending-uid]');
+        if (!tile) return;
+        const uid = tile.dataset.pendingUid;
+        const entry = pendingMap.get(uid);
+        if (entry) URL.revokeObjectURL(entry.objectUrl);
+        pendingMap.delete(uid);
+        tile.remove();
         syncInputFiles();
-        renderChips();
+        refreshCoverBadge();
         refreshCount();
     });
 
-    // Remove an existing (already-saved) image: drop its tile, queue its id.
-    $gallery.on('click', '.js-remove-existing-image', function () {
-        const $tile = $(this).closest('.ob-image-gallery-item');
-        const id = $tile.data('image-id');
+    // Remove an existing (already-saved) image: queue its id for deletion.
+    gallery.addEventListener('click', function (e) {
+        const btn = e.target.closest('.js-remove-existing-image');
+        if (!btn) return;
+        const tile = btn.closest('[data-image-id]');
+        if (!tile) return;
+        const id = tile.dataset.imageId;
         if (id) removedIds.push(id);
-        $tile.remove();
+        tile.remove();
         refreshCoverBadge();
         refreshCount();
         renderHiddenInputs();
     });
 
-    // Dragula: reorder existing-image tiles.
-    if (window.dragula && $gallery.length) {
-        const drake = dragula([$gallery[0]], {
-            moves: function (el, source, handle, sibling) {
-                return el.classList.contains('ob-image-gallery-item');
-            }
+    // Dragula: reorder all tiles (existing + pending).
+    if (window.dragula && gallery) {
+        const drake = dragula([gallery], {
+            moves: el => el.classList.contains('ob-image-gallery-item')
         });
-        drake.on('drag',  el => el.classList.add('is-dragging'));
+        drake.on('drag',    el => el.classList.add('is-dragging'));
         drake.on('dragend', el => el.classList.remove('is-dragging'));
-        drake.on('drop',  () => { refreshCoverBadge(); renderHiddenInputs(); });
+        drake.on('drop',    ()  => { refreshCoverBadge(); renderHiddenInputs(); });
+    }
+
+    // Fallback: inject pending files into FormData at submit time (older Safari / mobile).
+    const form = fileInput.closest('form');
+    if (form && typeof FormDataEvent !== 'undefined') {
+        form.addEventListener('formdata', function (e) {
+            if (!pendingMap.size) return;
+            e.formData.delete('images[]');
+            pendingMap.forEach(({ file }) => e.formData.append('images[]', file));
+        });
     }
 
     // Initial paint.

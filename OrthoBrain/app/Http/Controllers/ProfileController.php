@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Models\BuccalCorridorOption;
@@ -39,15 +40,6 @@ class ProfileController extends Controller
         $selectedTreatmentModalityIds= $doctor ? $doctor->treatmentModalities()->pluck('treatment_modalities.id')->all() : [];
         $selectedBuccalCorridorIds   = $doctor ? $doctor->buccalCorridorOptions()->pluck('buccal_corridor_options.id')->all() : [];
 
-        // Zipcodes needed when rendering the "Request Another Practice → new" form.
-        $zipcodes = $tab === 'practices'
-            ? Zipcode::with('city.state.country')
-                ->where('status', 'ACTIVE')
-                ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
-                ->orderBy('code')
-                ->get()
-            : collect();
-
         // Distinct phone codes from the active countries — drives every phone-code <select> in the page.
         $phoneCodes = Country::where('status', 'ACTIVE')
             ->select('phone_code')->distinct()->orderBy('phone_code')->pluck('phone_code')->all();
@@ -56,7 +48,7 @@ class ProfileController extends Controller
             'tab', 'doctor', 'activePractice', 'addresses',
             'modalitiesList', 'specialtiesList', 'treatmentModalitiesList', 'buccalCorridorsList',
             'selectedModalityIds', 'selectedSpecialtyIds', 'selectedTreatmentModalityIds', 'selectedBuccalCorridorIds',
-            'zipcodes', 'phoneCodes'
+            'phoneCodes'
         ));
     }
 
@@ -89,7 +81,7 @@ class ProfileController extends Controller
         if ($tab === 'practice') {
             $request->validate([
                 'practice_name'         => 'required|string|max:200',
-                'practice_phone_number' => 'required|string|max:30',
+                'practice_phone_number' => 'required|string|regex:/^\d{10}$/',
                 'website'               => 'required|string|max:500',
                 'language'              => 'nullable|string|max:50',
             ]);
@@ -135,7 +127,6 @@ class ProfileController extends Controller
             'doctor'         => $doctor,
             'activePractice' => currentPractice(),
             'address'        => null,
-            'zipcodes'       => $this->activeZipcodes(),
         ]);
     }
 
@@ -148,7 +139,6 @@ class ProfileController extends Controller
             'doctor'         => $address->doctor,
             'activePractice' => currentPractice(),
             'address'        => $address->load('zipcode', 'city', 'state', 'country'),
-            'zipcodes'       => $this->activeZipcodes(),
         ]);
     }
 
@@ -161,7 +151,6 @@ class ProfileController extends Controller
             'doctor'         => $address->doctor,
             'activePractice' => currentPractice(),
             'address'        => $address->load('zipcode', 'city', 'state', 'country'),
-            'zipcodes'       => $this->activeZipcodes(),
         ]);
     }
 
@@ -179,11 +168,62 @@ class ProfileController extends Controller
             'billing_email'    => ($address->type === 'billing' ? 'required|' : 'nullable|') . 'email|max:150',
         ]);
 
+        $duplicate = DoctorAddress::where('doctor_id', $address->doctor_id)
+            ->where('type', $address->type)
+            ->where('id', '!=', $address->id)
+            ->where('street_address_1', $data['street_address_1'])
+            ->where('zip_id', $data['zip_id'])
+            ->where('city_id', $data['city_id'])
+            ->where('state_id', $data['state_id'])
+            ->where('country_id', $data['country_id'])
+            ->exists();
+
+        if ($duplicate) {
+            return back()
+                ->withErrors(['street_address_1' => 'This address already exists in your ' . $address->type . ' addresses.'])
+                ->withInput();
+        }
+
         $address->update($data);
 
         return redirect()
             ->route('doctor.profile.index', ['tab' => $address->type])
             ->with('success', ucfirst($address->type) . ' address updated successfully.');
+    }
+
+    public function addressDestroy(DoctorAddress $address)
+    {
+        $this->authorizeAddress($address);
+
+        if ($address->is_default) {
+            return redirect()
+                ->route('doctor.profile.index', ['tab' => $address->type])
+                ->with('error', 'Cannot delete your default ' . $address->type . ' address. Set another address as default first.');
+        }
+
+        $type = $address->type;
+        $address->delete();
+
+        return redirect()
+            ->route('doctor.profile.index', ['tab' => $type])
+            ->with('success', ucfirst($type) . ' address deleted.');
+    }
+
+    public function addressSetDefault(DoctorAddress $address)
+    {
+        $this->authorizeAddress($address);
+
+        DB::transaction(function () use ($address) {
+            DoctorAddress::where('doctor_id', $address->doctor_id)
+                ->where('type', $address->type)
+                ->where('id', '!=', $address->id)
+                ->update(['is_default' => false]);
+            $address->update(['is_default' => true]);
+        });
+
+        return redirect()
+            ->route('doctor.profile.index', ['tab' => $address->type])
+            ->with('success', 'Default ' . $address->type . ' address updated.');
     }
 
     public function updateAdditional(Request $request)
@@ -215,15 +255,6 @@ class ProfileController extends Controller
     {
         $doctor = Doctor::where('user_id', Auth::id())->first();
         abort_unless($doctor && $address->doctor_id === $doctor->id, 403);
-    }
-
-    private function activeZipcodes()
-    {
-        return Zipcode::with('city.state.country')
-            ->where('status', 'ACTIVE')
-            ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
-            ->orderBy('code')
-            ->get();
     }
 
     public function addressZipLookup(Request $request)
@@ -264,6 +295,21 @@ class ProfileController extends Controller
         ]);
 
         $doctor = Doctor::where('user_id', Auth::id())->firstOrFail();
+
+        $duplicate = $doctor->addresses()
+            ->where('type', $data['type'])
+            ->where('street_address_1', $data['street_address_1'])
+            ->where('zip_id', $data['zip_id'])
+            ->where('city_id', $data['city_id'])
+            ->where('state_id', $data['state_id'])
+            ->where('country_id', $data['country_id'])
+            ->exists();
+
+        if ($duplicate) {
+            return back()
+                ->withErrors(['street_address_1' => 'This address already exists in your ' . $data['type'] . ' addresses.'])
+                ->withInput();
+        }
 
         $isFirst = ! $doctor->addresses()->where('type', $data['type'])->exists();
 

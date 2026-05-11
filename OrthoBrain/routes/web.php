@@ -56,8 +56,9 @@ Route::post('/verify-email/resend',          [EmailVerificationController::class
     ->middleware('throttle:resend-verification')
     ->name('verify-email.resend');
 
-Route::get('/contact-support',  [\App\Http\Controllers\SupportController::class, 'show'])->name('support.show');
-Route::post('/contact-support', [\App\Http\Controllers\SupportController::class, 'store'])->name('support.send');
+Route::get('/contact-support',         [\App\Http\Controllers\SupportController::class, 'show'])->name('support.show');
+Route::post('/contact-support',        [\App\Http\Controllers\SupportController::class, 'store'])->name('support.send');
+Route::get('/contact-support/thanks',  [\App\Http\Controllers\SupportController::class, 'thanks'])->name('support.thanks');
 
 Route::redirect('/admin/login', '/login');
 
@@ -69,6 +70,9 @@ Route::post('/reset-password',         [ForgotPasswordController::class, 'reset'
 
 // Public practice-search (used by the register page autocomplete on Practice Name)
 Route::get('/practice-search', [PracticeController::class, 'search'])->name('practice.search');
+
+// Public ZIP/postal lookup — used by the registration page's zip autocomplete.
+Route::get('/zipcodes/search', [ZipcodeSearchController::class, 'search'])->name('zipcodes.search');
 
 // ─── Doctor area (authenticated) ──────────────────────────
 Route::middleware(['web', 'auth'])
@@ -122,6 +126,9 @@ Route::middleware(['web', 'auth'])
             Route::post('/cases/{case}/shipping',   [CasesController::class, 'saveShipping'])->name('cases.shipping.save');
             Route::post('/cases/{case}/impressions',[CasesController::class, 'saveImpressions'])->name('cases.impressions.save');
             Route::post('/cases/{case}/additional', [CasesController::class, 'saveAdditionalInfo'])->name('cases.additional.save');
+            Route::post('/cases/{case}/submit-order', [CasesController::class, 'saveSubmitOrder'])->name('cases.submit-order.save');
+            Route::post('/cases/{case}/photographs/date', [CasesController::class, 'savePhotographsDate'])->name('cases.photographs.date.save');
+            Route::post('/cases/{case}/xrays/date',       [CasesController::class, 'saveXraysDate'])->name('cases.xrays.date.save');
             Route::post('/cases/{case}/prescription',[PrescriptionController::class, 'update'])->name('cases.prescription.update');
             Route::post('/cases/{case}/patient',     [PatientController::class, 'upsert'])->name('cases.patient.upsert');
             Route::match(['get', 'post'], '/cases/{case}/export.pdf', [CasePdfController::class, 'export'])->name('cases.export.pdf');
@@ -143,14 +150,14 @@ Route::middleware(['web', 'auth'])
             Route::post('/cases/{case}/media/{section}/{tile_id}/destroy', [CaseMediaController::class, 'destroy'])
                 ->where('section', 'photograph|xray')
                 ->name('cases.media.destroy');
+            Route::post('/cases/{case}/media/reorder', [CaseMediaController::class, 'reorder'])
+                ->middleware('throttle:60,1')
+                ->name('cases.media.reorder');
 
-            // AI vision — photo QC + Perfect Smile Plan generation. Throttled per user
-            // to keep accidental retry loops from blowing through the free-tier quota.
+            // AI vision — photo QC + Perfect Smile Plan generation.
             Route::post('/cases/{case}/photos/classify',      [ImageAnalysisController::class, 'classify'])
-                ->middleware('throttle:30,60')
                 ->name('cases.photos.classify');
             Route::post('/cases/{case}/smile-plan/generate',  [ImageAnalysisController::class, 'smilePlan'])
-                ->middleware('throttle:10,60')
                 ->name('cases.smile-plan.generate');
 
             // AI image-edit — before/after smile visualisation. Rate-limited to protect free-tier quota.
@@ -178,6 +185,8 @@ Route::middleware(['web', 'auth'])
         Route::get('/profile/address/{address}',     [ProfileController::class, 'addressShow'])->name('profile.address.show');
         Route::get('/profile/address/{address}/edit',[ProfileController::class, 'addressEdit'])->name('profile.address.edit');
         Route::put('/profile/address/{address}',     [ProfileController::class, 'addressUpdate'])->name('profile.address.update');
+        Route::delete('/profile/address/{address}',  [ProfileController::class, 'addressDestroy'])->name('profile.address.destroy');
+        Route::post('/profile/address/{address}/set-default', [ProfileController::class, 'addressSetDefault'])->name('profile.address.set-default');
     });
 
 // ─── Admin area ───────────────────────────────────────────
@@ -255,6 +264,22 @@ Route::middleware(['web', 'admin'])
             [SmilePreviewController::class, 'generate']
         )->middleware('throttle:5,1')->name('cases.smile-preview.generate');
 
+        // Admin media — upload / destroy / reorder for photographs and x-rays
+        Route::post('/cases/{case}/media/upload',                                   [\App\Http\Controllers\Admin\CaseMediaController::class, 'upload'])->name('cases.media.upload');
+        Route::post('/cases/{case}/media/{section}/{tile_id}/destroy',              [\App\Http\Controllers\Admin\CaseMediaController::class, 'destroy'])->where('section', 'photograph|xray')->name('cases.media.destroy');
+        Route::post('/cases/{case}/media/reorder',                                  [\App\Http\Controllers\Admin\CaseMediaController::class, 'reorder'])->name('cases.media.reorder');
+
+        // Admin section-save routes — admin edits cases on doctor's behalf.
+        // No doctor/practice scope needed; no abortIfNotDraft guard (admin can
+        // edit SUBMITTED + IN_REVIEW). Identity fields (first/last/dob) are
+        // locked client-side and excluded server-side in savePatient().
+        // See Docs/case-workflow.md — Admin locked fields.
+        Route::post('/cases/{case}/shipping',     [AdminCasesController::class, 'saveShipping'])->name('cases.shipping.save');
+        Route::post('/cases/{case}/impressions',  [AdminCasesController::class, 'saveImpressions'])->name('cases.impressions.save');
+        Route::post('/cases/{case}/additional',   [AdminCasesController::class, 'saveAdditionalInfo'])->name('cases.additional.save');
+        Route::post('/cases/{case}/patient',      [AdminCasesController::class, 'savePatient'])->name('cases.patient.save');
+        Route::post('/cases/{case}/submit-order', [AdminCasesController::class, 'saveSubmitOrder'])->name('cases.submit-order.save');
+
         // Admin Doctors — review + approve/reject/suspend (PR #17)
         Route::resource('doctors', AdminDoctorController::class)
             ->only(['index', 'create', 'store', 'show', 'update', 'destroy']);
@@ -321,6 +346,10 @@ Route::middleware(['web', 'admin'])
             ->only(['index', 'show', 'destroy']);
 
         // Zipcodes — AJAX drawer endpoints
+        // Lightweight ZIP/postal lookup — must be before the resource so that
+        // "search" is not swallowed as a {zipcode} wildcard parameter.
+        Route::get('zipcodes/search', [ZipcodeSearchController::class, 'search'])
+            ->name('zipcodes.search');
         Route::post('zipcodes/ajax', [ZipcodeController::class, 'ajaxStore'])
             ->name('zipcodes.ajax.store');
         Route::post('zipcodes/ajax/check-unique', [ZipcodeController::class, 'ajaxCheckUnique'])
@@ -336,7 +365,8 @@ Route::middleware(['web', 'admin'])
             Route::get('states',         [LookupController::class, 'statesByCountry'])->name('states');
             Route::get('cities',         [LookupController::class, 'citiesByState'])->name('cities');
             Route::get('subcategories',  [LookupController::class, 'subcategoriesByCategory'])->name('subcategories');
-            Route::get('doctors/search', [LookupController::class, 'doctorSearch'])->name('doctors-search');
-            Route::get('patients/search', [LookupController::class, 'patientSearch'])->name('patients-search');
+            Route::get('doctors/search',   [LookupController::class, 'doctorSearch'])->name('doctors-search');
+            Route::get('patients/search',  [LookupController::class, 'patientSearch'])->name('patients-search');
+            Route::get('practices/search', [LookupController::class, 'practiceSearch'])->name('practices-search');
         });
     });

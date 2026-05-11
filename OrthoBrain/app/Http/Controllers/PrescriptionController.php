@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\GuardsCaseStatus;
 use App\Models\CaseModel;
 use App\Models\Doctor;
 use App\Models\Prescription;
 use App\Models\PrescriptionToothRestriction;
+use App\Notifications\CaseEditedByAdminNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PrescriptionController extends Controller
 {
+    use GuardsCaseStatus;
+
     public function update(Request $request, int $id)
     {
         $user = Auth::user();
@@ -29,6 +33,7 @@ class PrescriptionController extends Controller
             $case = CaseModel::where('doctor_id', $doctor->id)
                 ->where('practice_id', currentPractice()->id)
                 ->findOrFail($id);
+            $this->abortIfNotDraft($case);
         }
 
         $payload = $request->validate([
@@ -78,6 +83,15 @@ class PrescriptionController extends Controller
 
             return now()->toIso8601String();
         });
+
+        // Notify doctor when admin edits prescription.
+        // Guarded to admin-only — doctor edits do not self-notify.
+        if ($user->role === 'ADMIN') {
+            $case->loadMissing('doctor.user');
+            $case->doctor?->user?->notify(
+                new CaseEditedByAdminNotification($case, 'prescription')
+            );
+        }
 
         return response()->json([
             'ok' => true,

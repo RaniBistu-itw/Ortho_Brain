@@ -2,7 +2,9 @@
   $adminMode = $adminMode ?? false;
   $caseRow = $caseRow ?? null;
   $caseDoctor = $caseDoctor ?? null;
+  $caseStatus = $caseStatus ?? 'DRAFT';
   $scanners = $scanners ?? collect();
+  $doctorSavedAddresses = $doctorSavedAddresses ?? [];
   $statusOptions = $statusOptions ?? ['DRAFT', 'SUBMITTED', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
   $statusLabels = $statusLabels ?? [
       'DRAFT'     => 'Draft',
@@ -40,6 +42,19 @@
     ['id' => 'submit-order',           'label' => 'Submit Order',           'subtitle' => 'Submit Order',             'icon' => 'send',       'placeholder' => false],
   ];
   $sections = array_values(array_filter($sections, fn ($s) => $adminMode || empty($s['adminOnly'])));
+
+  // Country list — needed by both the shipping-address partial (server-rendered
+  // <option> list, avoids the Alpine x-for/x-model render race per CLAUDE.md
+  // Entry 6) and the @push('scripts') block below (window.COUNTRY_ENTRIES).
+  $countryEntries = \App\Models\Country::where('status', 'ACTIVE')
+      ->orderBy('name')
+      ->get(['id', 'name', 'country_code'])
+      ->map(fn ($c) => [
+          'id'   => $c->id,
+          'code' => $c->country_code,
+          'name' => $c->name,
+      ])
+      ->values();
 @endphp
 
 @section('content')
@@ -68,9 +83,19 @@
       <span class="add-case-topbar__autosave text-muted font-small-2" id="autosave-indicator"></span>
 
       @if($adminMode && $caseRow)
+        @php
+          // Show only the current status + the legal next-states the
+          // controller's transition machine accepts. Current status is
+          // prepended so the dropdown reflects where the case is now;
+          // a "transition to self" submit is a no-op handled server-side.
+          $dropdownStatuses = array_values(array_unique(array_merge(
+              [$caseRow->status],
+              $allowedTransitions ?? []
+          )));
+        @endphp
         <div class="d-flex align-items-center gap-50 add-case-topbar__group">
           <select class="form-select form-select-sm" id="admin-status-select" style="width:auto;" aria-label="Case status">
-            @foreach($statusOptions as $s)
+            @foreach($dropdownStatuses as $s)
               <option value="{{ $s }}" @selected($caseRow->status === $s)>{{ $statusLabels[$s] ?? $s }}</option>
             @endforeach
           </select>
@@ -88,16 +113,18 @@
         <i data-feather="file-text"></i> Export PDF
       </button>
 
-      <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-25" id="btn-save-draft" title="Save draft now">
-        <i data-feather="save"></i> Save Draft
-      </button>
+      @if($adminMode || $caseStatus === 'DRAFT')
+        <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-25" id="btn-save-draft" title="Save draft now">
+          <i data-feather="save"></i> Save Draft
+        </button>
+      @endif
 
-      @unless($adminMode)
+      @if(!$adminMode && $caseStatus === 'DRAFT')
         <button type="button" class="btn btn-success btn-sm d-flex align-items-center gap-25" id="btn-submit" title="Submit case for review"
                 onclick="window.AddCaseSubmit.submit()">
           <i data-feather="check"></i> Submit
         </button>
-      @endunless
+      @endif
     </div>
   </div>
 
@@ -153,6 +180,11 @@
 
       {{-- Submit confirmation modal — rendered once, managed by AddCaseSubmit --}}
       @include('content.cases.components.submit-confirm-modal')
+
+      {{-- Admin rejection modal — top-level placement avoids the sticky topbar's stacking context (z-index trap). --}}
+      @if($adminMode && $caseRow)
+        @include('content.cases.components.reject-modal')
+      @endif
     </main>
 
   </div>
@@ -185,19 +217,11 @@
         'country'        => $activePractice->country?->country_code,
     ] : null;
 
-    // Country list stays inlined — small (< 30 rows) and used by the
-    // country dropdown immediately on render. The Zipcode list, which
-    // used to ship here too (~600 rows / 102 KB), now lazy-loads via
-    // GET /dev/zipcodes/search?q=... — see shipping-address.js.
-    $countryEntries = \App\Models\Country::where('status', 'ACTIVE')
-        ->orderBy('name')
-        ->get(['id', 'name', 'country_code'])
-        ->map(fn ($c) => [
-            'id'   => $c->id,
-            'code' => $c->country_code,
-            'name' => $c->name,
-        ])
-        ->values();
+    // $countryEntries lifted to the top-level @php block so the
+    // shipping-address partial can render <option>s server-side; this
+    // block now consumes it. The Zipcode list, which used to ship here
+    // too (~600 rows / 102 KB), lazy-loads via GET /dev/zipcodes/search
+    // — see shipping-address.js.
   @endphp
   <script>
     window.CASE_ID = '{{ $caseId ?? 'new' }}';
@@ -207,9 +231,25 @@
     window.__additionalInfoPrefill = @json($additionalInfoPrefill ?? null);
     window.__shippingAddressPrefill = @json($shippingAddressPrefill ?? null);
     window.__impressionsPrefill = @json($impressionsPrefill ?? null);
+    window.__photographsPrefill = @json($photographsPrefill ?? null);
+    window.__xraysPrefill = @json($xraysPrefill ?? null);
+    window.__submitOrderPrefill = @json($submitOrderPrefill ?? null);
     window.CASE_API_BASE = @json($apiBase);
     window.CASE_ADMIN_MODE = @json((bool) $adminMode);
+    window.__caseStatus = @json($caseStatus);
+    {{-- isReadOnly formula:
+         Doctor: read-only on any non-DRAFT status.
+         Admin: read-only only on APPROVED or REJECTED.
+           SUBMITTED + IN_REVIEW are fully editable for admin.
+           APPROVED requires status change → IN_REVIEW first,
+           then page reloads and form becomes editable.
+         See Docs/case-workflow.md — Role capabilities. --}}
+    window.__isReadOnly = window.CASE_ADMIN_MODE
+      ? (window.__caseStatus === 'APPROVED'
+         || window.__caseStatus === 'REJECTED')
+      : (window.__caseStatus !== 'DRAFT');
     window.ACTIVE_PRACTICE_ADDRESS = @json($activePracticeAddress);
+    window.DOCTOR_SAVED_ADDRESSES = @json($doctorSavedAddresses);
     window.COUNTRY_ENTRIES = @json($countryEntries);
   </script>
   {{-- Alpine.js is bundled with @livewireScripts (Livewire 3); loading the
@@ -235,10 +275,10 @@
     $cropModalVer  = @filemtime(public_path('js/scripts/cases/sections/crop-modal.js')) ?: time();
     $photographsVer = @filemtime(public_path('js/scripts/cases/sections/photographs.js')) ?: time();
     $xraysVer      = @filemtime(public_path('js/scripts/cases/sections/xrays.js')) ?: time();
+    $mediaHelpersVer = @filemtime(public_path('js/scripts/cases/sections/media-tile-helpers.js')) ?: time();
     $smilePlanVer  = @filemtime(public_path('js/scripts/cases/sections/perfect-smile-plan.js')) ?: time();
   @endphp
   <script src="{{ asset('js/scripts/cases/voice-input.js') }}?v={{ $voiceInputVer }}"></script>
-  <script src="{{ asset('js/scripts/cases/mock-patients.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/mock-preferences.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/tooth-layout.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/patient-information.js') }}?v={{ @filemtime(public_path('js/scripts/cases/sections/patient-information.js')) ?: time() }}"></script>
@@ -251,7 +291,7 @@
   <script src="{{ asset('js/scripts/cases/sections/submit-order.js') }}"></script>
   <script src="{{ asset('js/scripts/cases/add-case.js') }}?v={{ @filemtime(public_path('js/scripts/cases/add-case.js')) ?: time() }}"></script>
   {{-- Phase 6: shared media helpers must load before section scripts --}}
-  <script src="{{ asset('js/scripts/cases/sections/media-tile-helpers.js') }}"></script>
+  <script src="{{ asset('js/scripts/cases/sections/media-tile-helpers.js') }}?v={{ $mediaHelpersVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/crop-modal.js') }}?v={{ $cropModalVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/photographs.js') }}?v={{ $photographsVer }}"></script>
   <script src="{{ asset('js/scripts/cases/sections/xrays.js') }}?v={{ $xraysVer }}"></script>
@@ -269,20 +309,63 @@
 
       // Admin: save-status button
       var btnAdminStatus = document.getElementById('btn-admin-save-status');
+      var rejectModalEl  = document.getElementById('rejectCaseModal');
+      var rejectForm     = document.getElementById('rejectCaseForm');
+      var rejectReason   = document.getElementById('reject_case_reason');
+      var rejectError    = document.getElementById('reject_case_reason_error');
+
+      function performStatusUpdate(status, extras) {
+        if (btnAdminStatus) btnAdminStatus.disabled = true;
+        return window.CaseApi.updateStatus(window.CASE_ID, status, extras || {})
+          .then(function (res) {
+            // Toast then reload: gives brief feedback before page
+            // refreshes to reflect new status and form editability.
+            // MediaTileHelpers.showToast is already wired — no new lib.
+            if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+              window.MediaTileHelpers.showToast(
+                'Status updated to ' + res.status + '.', 1200);
+            }
+            setTimeout(function () {
+              window.location.reload();
+            }, 1300);
+          })
+          .catch(function (err) {
+            console.error('Status update failed', err);
+            var msg = (err && err.data && err.data.error) || 'Failed to update status.';
+            alert(msg);
+          })
+          .finally(function () { if (btnAdminStatus) btnAdminStatus.disabled = false; });
+      }
+
       if (btnAdminStatus) {
         btnAdminStatus.addEventListener('click', function () {
           var sel = document.getElementById('admin-status-select');
           if (!sel || !window.CASE_ID || window.CASE_ID === 'new') return;
-          btnAdminStatus.disabled = true;
-          window.CaseApi.updateStatus(window.CASE_ID, sel.value)
-            .then(function (res) {
-              alert('Status updated to ' + res.status + '.');
-            })
-            .catch(function (err) {
-              console.error('Status update failed', err);
-              alert('Failed to update status.');
-            })
-            .finally(function () { btnAdminStatus.disabled = false; });
+
+          if (sel.value === 'REJECTED' && rejectModalEl && window.bootstrap) {
+            if (rejectError) { rejectError.textContent = ''; rejectError.style.display = 'none'; }
+            new bootstrap.Modal(rejectModalEl).show();
+            return;
+          }
+
+          performStatusUpdate(sel.value);
+        });
+      }
+
+      if (rejectForm) {
+        rejectForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var reason = (rejectReason && rejectReason.value || '').trim();
+          if (reason.length < 10) {
+            if (rejectError) {
+              rejectError.textContent = 'Minimum 10 characters.';
+              rejectError.style.display = '';
+            }
+            return;
+          }
+          var modal = window.bootstrap ? bootstrap.Modal.getInstance(rejectModalEl) : null;
+          if (modal) modal.hide();
+          performStatusUpdate('REJECTED', { rejection_reason: reason });
         });
       }
 

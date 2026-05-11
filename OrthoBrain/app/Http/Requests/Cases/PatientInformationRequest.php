@@ -21,6 +21,8 @@ class PatientInformationRequest extends FormRequest
             'biologicalGenderOther'  => 'required_if:biologicalGender,Self-describe/Other|nullable|string|max:100',
             'patientChartId'         => 'nullable|string|max:50',
             'chiefComplaint'         => 'required|string|max:5000',
+            'email'                  => ['nullable', 'email', 'max:150'],
+            'phone'                  => ['nullable', 'string', 'max:30'],
         ];
     }
 }

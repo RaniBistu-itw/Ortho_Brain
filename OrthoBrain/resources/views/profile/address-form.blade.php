@@ -20,6 +20,14 @@
     $cityName  = $address?->city?->name ?? '';
     $stateName = $address?->state?->name ?? '';
     $countryName = $address?->country?->name ?? '';
+
+    // Display label for the pre-selected zip (edit / view mode only).
+    $zipDisplayText = '';
+    if ($selZipId) {
+        $zCode  = $address?->zipcode?->code ?? '';
+        $zState = $address?->state?->state_code ?? '';
+        $zipDisplayText = implode(' — ', array_filter([$zCode, $cityName, $zState]));
+    }
 @endphp
 
 @section('title', $heading)
@@ -262,6 +270,54 @@
             color .25s ease,
             box-shadow .25s ease;
     }
+
+    /* ── Select2 ZIP field — matches .addr-form-card form-control style ── */
+    .addr-form-card .select2-container { width: 100% !important; }
+    .addr-form-card .select2-selection--single {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        height: auto !important;
+        padding: .65rem .85rem !important;
+        font-size: .92rem;
+        color: #0F172A;
+        background-color: #ffffff;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .addr-form-card .select2-selection--single:hover { border-color: #cbd5e1 !important; }
+    .addr-form-card .select2-container--focus .select2-selection--single,
+    .addr-form-card .select2-container--open  .select2-selection--single {
+        border-color: #3B82F6 !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12) !important;
+        outline: none;
+    }
+    .addr-form-card .select2-selection__rendered {
+        padding: 0 !important;
+        line-height: 1.5 !important;
+        color: #0F172A;
+    }
+    .addr-form-card .select2-selection__placeholder { color: #94A3B8 !important; }
+    .addr-form-card .select2-selection__arrow {
+        height: 100% !important;
+        right: .85rem !important;
+        top: 0 !important;
+    }
+    /* is-invalid: propagate from hidden <select> to Select2 container */
+    .addr-form-card select.is-invalid + .select2-container .select2-selection--single {
+        border-color: #DC2626 !important;
+        box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.10) !important;
+    }
+    /* Dark mode */
+    .dark-layout .addr-form-card .select2-selection--single {
+        background-color: #283046 !important;
+        border-color: #404656 !important;
+    }
+    .dark-layout .addr-form-card .select2-selection__rendered { color: #d0d2d6 !important; }
+    .dark-layout .addr-form-card .select2-container--focus .select2-selection--single,
+    .dark-layout .addr-form-card .select2-container--open  .select2-selection--single {
+        border-color: #3B82F6 !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18) !important;
+        background-color: #283046 !important;
+    }
 </style>
 @endpush
 
@@ -346,25 +402,16 @@
                 </div>
 
                 <div class="col-md-6 mb-1">
-                    <label for="in-zip" class="form-label">Zip<span class="text-danger">*</span></label>
-                    <select id="in-zip" name="zip_id" class="form-select js-searchable {{ $isView ? 'bg-light-secondary' : '' }}" {{ $isView ? 'disabled' : '' }}>
-                        <option value="" disabled {{ $selZipId ? '' : 'selected' }}>Select zip code</option>
-                        @foreach($zipcodes as $z)
-                            <option value="{{ $z->id }}"
-                                    data-code="{{ $z->code }}"
-                                    data-city-id="{{ $z->city?->id }}"
-                                    data-city="{{ $z->city?->name }}"
-                                    data-state-id="{{ $z->city?->state?->id }}"
-                                    data-state="{{ $z->city?->state?->name }}"
-                                    data-country-id="{{ $z->city?->state?->country?->id }}"
-                                    data-country="{{ $z->city?->state?->country?->name }}"
-                                    {{ (string) $selZipId === (string) $z->id ? 'selected' : '' }}>
-                                {{ $z->code }} — {{ $z->city?->name }}, {{ $z->city?->state?->state_code }}
-                            </option>
-                        @endforeach
+                    <label for="in-zip" class="form-label">ZIP / Postal Code<span class="text-danger">*</span></label>
+                    <select id="in-zip" name="zip_id"
+                            class="form-select {{ $isView ? 'bg-light-secondary' : '' }}"
+                            {{ $isView ? 'disabled' : '' }}>
+                        <option value="">Select zip code</option>
+                        @if($selZipId && $zipDisplayText)
+                            <option value="{{ $selZipId }}" selected>{{ $zipDisplayText }}</option>
+                        @endif
                     </select>
                     @if($isView)
-                        {{-- Disabled selects don't submit; keep a hidden copy for any downstream logic --}}
                         <input type="hidden" name="zip_id" value="{{ $selZipId }}">
                     @endif
                     <small id="err-zip" class="text-danger d-none"></small>
@@ -411,46 +458,20 @@
 
 @push('scripts')
 <script>
-    const ZIP_LOOKUP_URL = @json(route('doctor.profile.address.zip-lookup'));
-    const FORM_MODE = @json($mode);
+    const FORM_MODE      = @json($mode);
+    const ZIP_SEARCH_URL = @json(route('zipcodes.search'));
 
-    function applyZipData(d) {
-        document.getElementById('in-city').value     = d.city    || '';
-        document.getElementById('in-state').value    = d.state   || '';
-        document.getElementById('in-country').value  = d.country || '';
-        document.getElementById('hid-city').value    = d.city_id    || '';
-        document.getElementById('hid-state').value   = d.state_id   || '';
-        document.getElementById('hid-country').value = d.country_id || '';
+    function applyZipData(z) {
+        document.getElementById('in-city').value     = z.city    || '';
+        document.getElementById('in-state').value    = z.state   || '';
+        document.getElementById('in-country').value  = z.country || '';
+        document.getElementById('hid-city').value    = z.cityId    || '';
+        document.getElementById('hid-state').value   = z.stateId   || '';
+        document.getElementById('hid-country').value = z.countryId || '';
     }
     function clearZipData() {
         ['in-city','in-state','in-country','hid-city','hid-state','hid-country']
             .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-    }
-
-    async function onZipChange() {
-        const sel = document.getElementById('in-zip');
-        const opt = sel.options[sel.selectedIndex];
-        if (!opt || !opt.value) { clearZipData(); return; }
-
-        if (opt.dataset.city) {
-            applyZipData({
-                city: opt.dataset.city,   city_id:    opt.dataset.cityId,
-                state: opt.dataset.state, state_id:   opt.dataset.stateId,
-                country: opt.dataset.country, country_id: opt.dataset.countryId,
-            });
-            return;
-        }
-
-        try {
-            const res = await fetch(ZIP_LOOKUP_URL + '?zip_id=' + encodeURIComponent(opt.value), {
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!res.ok) throw new Error('lookup failed');
-            const data = await res.json();
-            if (data.ok) applyZipData(data);
-        } catch (e) {
-            console.error('zip lookup error', e);
-        }
     }
 
     // ── Live validation (create/edit only) ──
@@ -497,33 +518,51 @@
             addrTouched.add(id);
             if (!addrValidateField(id)) ok = false;
         });
-        if (ok && document.getElementById('in-zip').value && !document.getElementById('hid-city').value) {
-            _addrSetError('zip', 'Zip lookup failed. Please reselect the zip code.');
-            ok = false;
-        }
         if (ok) document.getElementById('addressForm').submit();
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    // ── Select2 AJAX for ZIP ──
+    function bindAddressFormHandlers() {
         if (FORM_MODE === 'view') return;
+        if ($('#in-zip').data('select2')) return; // idempotent
 
-        // Text inputs: validate on blur, re-validate on input after first blur
+        $('#in-zip').select2({
+            ajax: {
+                url: ZIP_SEARCH_URL,
+                dataType: 'json',
+                delay: 250,
+                data: params => ({ q: params.term }),
+                processResults: data => ({
+                    results: data.map(z => ({ id: z.id, text: z.displayLabel, zipData: z }))
+                }),
+                cache: true,
+            },
+            minimumInputLength: 2,
+            placeholder: 'Search ZIP or postal code…',
+            allowClear: false,
+            width: '100%',
+        });
+
+        $('#in-zip').on('select2:select', function (e) {
+            applyZipData(e.params.data.zipData);
+            addrTouched.add('zip');
+            addrValidateField('zip');
+        });
+
+        // Text inputs: validate on blur, re-validate on input after first blur.
         ['address1', 'billing-email'].forEach(id => {
             const el = document.getElementById('in-' + id);
             if (!el) return;
-            el.addEventListener('blur', () => { addrTouched.add(id); addrValidateField(id); });
+            el.addEventListener('blur',  () => { addrTouched.add(id); addrValidateField(id); });
             el.addEventListener('input', () => { if (addrTouched.has(id)) addrValidateField(id); });
         });
+    }
 
-        // Zip has extra auto-fill behavior
-        const zipEl = document.getElementById('in-zip');
-        if (zipEl) {
-            zipEl.addEventListener('change', () => {
-                addrTouched.add('zip');
-                addrValidateField('zip');
-                onZipChange();
-            });
-        }
-    });
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindAddressFormHandlers);
+    } else {
+        bindAddressFormHandlers();
+    }
+    document.addEventListener('livewire:navigated', bindAddressFormHandlers);
 </script>
 @endpush

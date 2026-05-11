@@ -17,6 +17,12 @@ $lowerPrimary = ['T','S','R','Q','P', null, 'O','N','M','L','K'];
 
   <div class="tooth-picker__arch-label text-muted text-center mb-25">Upper (Maxillary)</div>
 
+  {{-- Tooth toggles read-only when case is not editable.
+       Picker runs in its own Alpine root so reads isReadOnly
+       from window.AddCaseState directly, not from parent
+       prescriptionSection() scope.
+       See Docs/case-workflow.md --}}
+
   {{-- Upper primary --}}
   <div class="tooth-picker__row tooth-picker__row--primary">
     @foreach($upperPrimary as $tooth)
@@ -25,6 +31,7 @@ $lowerPrimary = ['T','S','R','Q','P', null, 'O','N','M','L','K'];
       @else
         <button type="button" class="tooth-picker__tooth"
                 :class="{ 'tooth-picker__tooth--selected': isSelected('{{ $tooth }}') }"
+                :disabled="window.AddCaseState && window.AddCaseState.isReadOnly"
                 @click="toggle('{{ $tooth }}')">{{ $tooth }}</button>
       @endif
     @endforeach
@@ -38,6 +45,7 @@ $lowerPrimary = ['T','S','R','Q','P', null, 'O','N','M','L','K'];
       @else
         <button type="button" class="tooth-picker__tooth"
                 :class="{ 'tooth-picker__tooth--selected': isSelected('{{ $tooth }}') }"
+                :disabled="window.AddCaseState && window.AddCaseState.isReadOnly"
                 @click="toggle('{{ $tooth }}')">{{ $tooth }}</button>
       @endif
     @endforeach
@@ -53,6 +61,7 @@ $lowerPrimary = ['T','S','R','Q','P', null, 'O','N','M','L','K'];
       @else
         <button type="button" class="tooth-picker__tooth"
                 :class="{ 'tooth-picker__tooth--selected': isSelected('{{ $tooth }}') }"
+                :disabled="window.AddCaseState && window.AddCaseState.isReadOnly"
                 @click="toggle('{{ $tooth }}')">{{ $tooth }}</button>
       @endif
     @endforeach
@@ -66,6 +75,7 @@ $lowerPrimary = ['T','S','R','Q','P', null, 'O','N','M','L','K'];
       @else
         <button type="button" class="tooth-picker__tooth"
                 :class="{ 'tooth-picker__tooth--selected': isSelected('{{ $tooth }}') }"
+                :disabled="window.AddCaseState && window.AddCaseState.isReadOnly"
                 @click="toggle('{{ $tooth }}')">{{ $tooth }}</button>
       @endif
     @endforeach

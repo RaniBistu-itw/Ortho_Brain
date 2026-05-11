@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\GuardsCaseStatus;
 use App\Models\CaseMedia;
 use App\Models\CaseModel;
 use App\Models\Doctor;
 use App\Services\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -20,6 +22,8 @@ use Illuminate\Support\Str;
  */
 class CaseMediaController extends Controller
 {
+    use GuardsCaseStatus;
+
     private const SECTIONS = ['photograph', 'xray'];
 
     public function __construct(private ImageUploadService $images) {}
@@ -37,11 +41,12 @@ class CaseMediaController extends Controller
         'image/tiff', 'image/bmp', 'image/heic', 'image/heif',
     ];
 
-    private const MAX_BYTES = 10 * 1024 * 1024; // 10 MB — generous; client cap is 5 MB.
+    private const MAX_BYTES = 5 * 1024 * 1024; // 5 MB — matches client cap in media-tile-helpers.js.
 
     public function upload(Request $request, int $caseId)
     {
         $case = $this->resolveCaseForDoctor($caseId);
+        $this->abortIfNotDraft($case);
 
         $payload = $request->validate([
             'section'     => 'required|in:' . implode(',', self::SECTIONS),
@@ -117,9 +122,70 @@ class CaseMediaController extends Controller
         ]);
     }
 
+    /**
+     * Swap or move a tile's image to another tile slot without re-uploading
+     * the file. Used when the doctor drag-rearranges already-saved photos —
+     * the old destroy+upload flow nuked records that had no client-side blob,
+     * causing silent data loss.
+     *
+     * Body: { section, source_tile_id, target_tile_id }
+     *   - If a row exists at source and at target → swap their tile_ids
+     *     (uses a placeholder dance to dodge the (case_id, section, tile_id)
+     *     unique index)
+     *   - If only source exists → rename source → target
+     *   - If source has no row → idempotent 200 (nothing to reorder)
+     */
+    public function reorder(Request $request, int $caseId)
+    {
+        $case = $this->resolveCaseForDoctor($caseId);
+        $this->abortIfNotDraft($case);
+
+        $payload = $request->validate([
+            'section'        => 'required|in:' . implode(',', self::SECTIONS),
+            'source_tile_id' => 'required|string|max:40|different:target_tile_id',
+            'target_tile_id' => 'required|string|max:40',
+        ]);
+
+        $this->assertTileBelongsToSection($payload['section'], $payload['source_tile_id']);
+        $this->assertTileBelongsToSection($payload['section'], $payload['target_tile_id']);
+
+        DB::transaction(function () use ($case, $payload) {
+            $where = function () use ($case, $payload) {
+                return CaseMedia::where('case_id', $case->id)
+                    ->where('section', $payload['section']);
+            };
+
+            $src = $where()->where('tile_id', $payload['source_tile_id'])->first();
+            $tgt = $where()->where('tile_id', $payload['target_tile_id'])->first();
+
+            if (! $src) {
+                return; // Idempotent — nothing to reorder.
+            }
+
+            if ($tgt) {
+                // Swap via placeholder to dodge the unique index.
+                $where()->where('tile_id', $payload['source_tile_id'])
+                    ->update(['tile_id' => '__swap__']);
+                $where()->where('tile_id', $payload['target_tile_id'])
+                    ->update(['tile_id' => $payload['source_tile_id']]);
+                $where()->where('tile_id', '__swap__')
+                    ->update(['tile_id' => $payload['target_tile_id']]);
+            } else {
+                // Move: rename source row to target tile_id.
+                $where()->where('tile_id', $payload['source_tile_id'])
+                    ->update(['tile_id' => $payload['target_tile_id']]);
+            }
+        });
+
+        $case->touch();
+
+        return response()->json(['ok' => true]);
+    }
+
     public function destroy(int $caseId, string $section, string $tileId)
     {
         $case = $this->resolveCaseForDoctor($caseId);
+        $this->abortIfNotDraft($case);
 
         if (! in_array($section, self::SECTIONS, true)) {
             abort(404);
@@ -148,7 +214,7 @@ class CaseMediaController extends Controller
      * controllers: doctor must own the case AND the case must belong to
      * their currently active practice.
      */
-    private function resolveCaseForDoctor(int $caseId): CaseModel
+    protected function resolveCaseForDoctor(int $caseId): CaseModel
     {
         $user = Auth::user();
         if (! $user) {

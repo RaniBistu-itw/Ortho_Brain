@@ -20,6 +20,15 @@
   window.xraysSection = function () {
     return {
 
+      // B-1b: read-only mode for non-DRAFT cases. See prescription.js comment
+      // for context. Bound to :disabled on the date input + bulk file input,
+      // and to x-show on the bulk Upload Images button. Per-tile buttons
+      // (Replace/Remove/Crop) live in the shared media-tile component and
+      // are gated there via the same getter (parent Alpine scope).
+      get isReadOnly() {
+        return !!(window.AddCaseState && window.AddCaseState.isReadOnly);
+      },
+
       // ── Pre-declared reactive state ─────────────────────────────────────────
       dateOfXrays: '',
 
@@ -64,17 +73,36 @@
           });
         }
 
-        var draft = window.AddCaseState && window.AddCaseState.xrays;
-        if (draft) {
-          this._hydrate(draft);
-        }
+        // Always run _hydrate — server prefill (window.__caseMediaPrefill) is
+        // the source of truth and lives outside the local AddCaseState draft.
+        // Same parity fix as photographs.js: gating on the draft hid server
+        // data on fresh page loads / cleared localStorage / different browsers.
+        var draft = (window.AddCaseState && window.AddCaseState.xrays) || {};
+        this._hydrate(draft);
 
         window.XRaysSection = {
           validateAll: function () { return self.validateAll(); },
           hydrate: function (d) { self._hydrate(d); },
+          flushUnsynced: function () { self._flushUnsynced(); },
         };
 
         this.syncToState();
+      },
+
+      // Re-upload any x-ray tiles whose blobs are in memory but never reached
+      // the server (typically because _persistTile skipped while caseId was
+      // 'new'). X-rays have NO IDB fallback, so without this they're lost on
+      // first save-draft. Called from add-case.js after shell creation.
+      _flushUnsynced: function () {
+        var caseId = this._getCaseId();
+        if (!window.CaseMediaApi || !caseId || caseId === 'new') return;
+        var self = this;
+        XRAY_TILE_ORDER.forEach(function (id) {
+          var tile = self.tiles[id];
+          if (!tile || !tile.filled) return;
+          var blob = tile.croppedBlob || tile.originalFile;
+          if (blob) self._persistTile(id, blob);
+        });
       },
 
       // ── Draft hydration ─────────────────────────────────────────────────────
@@ -126,20 +154,61 @@
         var caseId = this._getCaseId();
         if (window.CaseMediaApi && caseId && caseId !== 'new') {
           var cropParams = this.tiles[tileId] && this.tiles[tileId].cropParams;
+          var self = this;
           window.CaseMediaApi.upload(caseId, 'xray', tileId, blob, {
             filename: 'xray-' + tileId,
             cropParams: cropParams,
           }).catch(function (err) {
             console.warn('CaseMediaApi.upload (xray) failed', tileId, err);
+            self._handleUploadFailure(tileId, err);
           });
         }
+      },
+
+      // On upload rejection: clear the tile so the user doesn't see a
+      // "filled" preview that the server hasn't accepted. X-rays have no
+      // IDB fallback (unlike photographs), so the local blob would
+      // disappear on refresh anyway — surfacing the failure tells the user
+      // what happened and to retry.
+      _handleUploadFailure: function (tileId, err) {
+        var self = this;
+        // 429: server is rate-limiting uploads. The local preview + IDB blob are
+        // still valid — preserve the tile so the user can retry without re-selecting.
+        if (err && err.status === 429) {
+          var msg429 = window.MediaTileHelpers.upgradeUploadError(err, this.getTileLabel(tileId));
+          this.bulkError = msg429;
+          setTimeout(function () { self.bulkError = null; }, 6000);
+          return;
+        }
+        if (this.tiles[tileId].previewUrl) {
+          URL.revokeObjectURL(this.tiles[tileId].previewUrl);
+        }
+        this.tiles[tileId].filled = false;
+        this.tiles[tileId].originalFile = null;
+        this.tiles[tileId].croppedBlob = null;
+        this.tiles[tileId].previewUrl = null;
+        this.tiles[tileId].cropParams = null;
+        this.syncToState();
+
+        var msg = window.MediaTileHelpers.upgradeUploadError(err, this.getTileLabel(tileId));
+        this.bulkError = msg;
+        setTimeout(function () { self.bulkError = null; }, 6000);
       },
 
       _forgetTile: function (tileId) {
         var caseId = this._getCaseId();
         if (window.CaseMediaApi && caseId && caseId !== 'new') {
+          var self = this;
           window.CaseMediaApi.destroy(caseId, 'xray', tileId)
-            .catch(function (err) { console.warn('CaseMediaApi.destroy (xray) failed', tileId, err); });
+            .catch(function (err) {
+              console.warn('CaseMediaApi.destroy (xray) failed', tileId, err);
+              // Destroy failure means the tile is locally cleared but the
+              // server still holds the row — next reload would re-populate
+              // it. Surface so the user knows the removal didn't stick.
+              var msg = window.MediaTileHelpers.upgradeUploadError(err, self.getTileLabel(tileId));
+              self.bulkError = msg;
+              setTimeout(function () { self.bulkError = null; }, 6000);
+            });
         }
       },
 
@@ -174,6 +243,10 @@
       // ── File processing ─────────────────────────────────────────────────────
 
       _processFile: async function (tileId, file) {
+        // B-1b follow-up: defense-in-depth read-only guard. See photographs.js
+        // for the full rationale — _processFile is the chokepoint for media
+        // writes and is reached via several entry points.
+        if (this.isReadOnly) return;
         var result = window.MediaTileHelpers.validateFile(file, XRAY_CONFIG);
         if (!result.valid) {
           this.bulkError = result.error;
@@ -251,6 +324,8 @@
       },
 
       replaceTile: function () {
+        // B-1b follow-up: read-only guard. See photographs.js comment.
+        if (this.isReadOnly) return;
         var tileId = this.tileModal.activeTileId;
         if (!tileId) return;
         // Bypass the post-change recency guard from PR #78 — user explicitly
@@ -262,6 +337,8 @@
       },
 
       removeTile: function (tileId) {
+        // B-1b follow-up: read-only guard. See photographs.js comment.
+        if (this.isReadOnly) return;
         var id = tileId || this.tileModal.activeTileId;
         if (!id || !this.tiles[id].filled) return;
 
@@ -319,28 +396,60 @@
 
         this._closeTileModal();
 
-        var originalFile = this.tiles[tileId].originalFile;
         var self = this;
 
-        setTimeout(function () {
-          window.MediaTileHelpers.createPreviewUrl(originalFile).then(function (preview) {
-            window.CropModalController.open({
-              imageUrl: preview.url,
-              onApply: function (croppedBlob, cropParams) {
-                URL.revokeObjectURL(preview.url);
-                if (self.tiles[tileId].previewUrl) {
-                  URL.revokeObjectURL(self.tiles[tileId].previewUrl);
-                }
-                self.tiles[tileId].croppedBlob = croppedBlob;
-                self.tiles[tileId].previewUrl = URL.createObjectURL(croppedBlob);
-                self.tiles[tileId].cropParams = cropParams;
-                self.syncToState();
-                self._persistTile(tileId, croppedBlob);
-              },
-              onCancel: function () {
-                URL.revokeObjectURL(preview.url);
-              },
-            });
+        // Same URL→blob fetch pattern as photographs.js cropTile — see the
+        // comment there for the full rationale. X-rays share the same
+        // hydration shape (originalFile null after server prefill) and the
+        // same fix applies. No AI re-classify call here (xrays has no AI).
+        setTimeout(async function () {
+          var blob = self.tiles[tileId].originalFile;
+
+          if (!blob && self.tiles[tileId].previewUrl) {
+            try {
+              var res = await fetch(self.tiles[tileId].previewUrl, { credentials: 'same-origin' });
+              if (!res.ok) throw { status: res.status, body: {} };
+              var rawBlob = await res.blob();
+              // Wrap as File — see photographs.js cropTile for rationale.
+              blob = new File([rawBlob], tileId, { type: rawBlob.type });
+              self.tiles[tileId].originalFile = blob;
+            } catch (err) {
+              var msg = window.MediaTileHelpers.upgradeCropFetchError(err, self.getTileLabel(tileId));
+              self.bulkError = msg;
+              setTimeout(function () { self.bulkError = null; }, 6000);
+              return;
+            }
+          }
+
+          if (!blob) {
+            console.warn('cropTile (xray): tile filled but has no blob and no URL', tileId);
+            return;
+          }
+
+          var preview = await window.MediaTileHelpers.createPreviewUrl(blob);
+          window.CropModalController.open({
+            imageUrl: preview.url,
+            onApply: function (croppedBlob, cropParams) {
+              URL.revokeObjectURL(preview.url);
+              // Validate size BEFORE overwriting tile state — same rationale
+              // as photographs.js cropTile: canvas re-encode can inflate blobs.
+              if (croppedBlob.size > XRAY_CONFIG.maxSizeBytes) {
+                self.bulkError = 'Cropped image exceeds 5 MB. Try a smaller selection or use the original.';
+                setTimeout(function () { self.bulkError = null; }, 6000);
+                return;
+              }
+              if (self.tiles[tileId].previewUrl) {
+                URL.revokeObjectURL(self.tiles[tileId].previewUrl);
+              }
+              self.tiles[tileId].croppedBlob = croppedBlob;
+              self.tiles[tileId].previewUrl = URL.createObjectURL(croppedBlob);
+              self.tiles[tileId].cropParams = cropParams;
+              self.syncToState();
+              self._persistTile(tileId, croppedBlob);
+            },
+            onCancel: function () {
+              URL.revokeObjectURL(preview.url);
+            },
           });
         }, 400);
       },
@@ -367,6 +476,9 @@
       },
 
       onTileDrop: async function (event, targetTileId) {
+        // B-1b follow-up: read-only guard. See photographs.js comment for
+        // the desktop-file-drop gap that this closes.
+        if (this.isReadOnly) return;
         this.tiles[targetTileId].isDragOver = false;
 
         var sourceTileId = event.dataTransfer.getData('text/x-tile-id');
@@ -382,9 +494,49 @@
         }
       },
 
-      _swapOrMoveTiles: function (sourceId, targetId) {
+      _swapOrMoveTiles: async function (sourceId, targetId) {
         var src = this.tiles[sourceId];
         var tgt = this.tiles[targetId];
+
+        // Capture pre-swap state — drives persistence strategy below. When a
+        // tile holds only a server-side previewUrl (no blob), the old code
+        // would skip the reorder call, silently leaving server state stale.
+        // Detect that and route to the reorder endpoint instead.
+        var srcHadBlob   = !!(src.croppedBlob || src.originalFile);
+        var tgtHadBlob   = !!(tgt.croppedBlob || tgt.originalFile);
+        var srcWasFilled = src.filled;
+        var tgtWasFilled = tgt.filled;
+
+        // Mixed-case guard: when both tiles aren't URL-only, the destroy+upload
+        // path runs below. If ONE tile is URL-only, _forgetTile would DELETE
+        // its server record. Fetch URL-only sides into blobs pre-swap so every
+        // re-persist has actual content. (Both-URL-only is the fast path below.)
+        var bothUrlOnly = srcWasFilled && !srcHadBlob && tgtWasFilled && !tgtHadBlob;
+        var moveUrlOnly = srcWasFilled && !srcHadBlob && !tgtWasFilled;
+        if (!bothUrlOnly && !moveUrlOnly) {
+          try {
+            if (srcWasFilled && !srcHadBlob && src.previewUrl) {
+              var srcRes = await fetch(src.previewUrl, { credentials: 'same-origin' });
+              if (!srcRes.ok) throw new Error('source URL fetch ' + srcRes.status);
+              src.originalFile = await srcRes.blob();
+              // Re-anchor preview to the blob — the destroy+upload below
+              // invalidates the original server URL, which would otherwise
+              // appear as a broken image on the OTHER tile after the swap.
+              src.previewUrl = URL.createObjectURL(src.originalFile);
+              srcHadBlob = true;
+            }
+            if (tgtWasFilled && !tgtHadBlob && tgt.previewUrl) {
+              var tgtRes = await fetch(tgt.previewUrl, { credentials: 'same-origin' });
+              if (!tgtRes.ok) throw new Error('target URL fetch ' + tgtRes.status);
+              tgt.originalFile = await tgtRes.blob();
+              tgt.previewUrl = URL.createObjectURL(tgt.originalFile);
+              tgtHadBlob = true;
+            }
+          } catch (e) {
+            console.warn('xrays: pre-swap URL→blob fetch failed, aborting swap', e);
+            return;
+          }
+        }
 
         if (tgt.filled) {
           var tmpFilled    = src.filled;
@@ -418,6 +570,26 @@
           this.tiles[sourceId].cropParams   = null;
         }
         this.syncToState();
+
+        // URL-only swap/move → server-side reorder so the in-memory swap is
+        // mirrored on disk. Without this, reopening the case shows x-rays in
+        // their original slots.
+        var caseId = this._getCaseId();
+        if (bothUrlOnly || moveUrlOnly) {
+          if (window.CaseMediaApi && caseId && caseId !== 'new') {
+            var self = this;
+            window.CaseMediaApi.reorder(caseId, 'xray', sourceId, targetId)
+              .catch(function (err) {
+                console.warn('CaseMediaApi.reorder failed', err);
+                // Reorder failure means tiles are locally swapped but the
+                // server still has the original layout — silent state
+                // divergence on next reload. Surface so the user knows.
+                var msg = window.MediaTileHelpers.upgradeUploadError(err, self.getTileLabel(targetId));
+                self.bulkError = msg;
+                setTimeout(function () { self.bulkError = null; }, 6000);
+              });
+          }
+        }
       },
 
       // ── Bulk upload ─────────────────────────────────────────────────────────

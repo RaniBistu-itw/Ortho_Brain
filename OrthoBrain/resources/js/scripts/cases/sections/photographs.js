@@ -29,6 +29,15 @@
   window.photographsSection = function () {
     return {
 
+      // B-1b: read-only mode for non-DRAFT cases. See prescription.js comment
+      // for context. Bound to :disabled on the date input + bulk file input,
+      // and to x-show on the bulk Upload Images button. Per-tile buttons
+      // (Replace/Remove/Crop/Camera) live in the shared media-tile component
+      // and are gated there via the same getter (parent Alpine scope).
+      get isReadOnly() {
+        return !!(window.AddCaseState && window.AddCaseState.isReadOnly);
+      },
+
       // ── Pre-declared reactive state ─────────────────────────────────────────
       dateOfPhotos: '',
 
@@ -116,17 +125,37 @@
           }
         }
 
-        var draft = window.AddCaseState && window.AddCaseState.photographs;
-        if (draft) {
-          this._hydrate(draft);
-        }
+        // Always run _hydrate — server prefill (window.__caseMediaPrefill via
+        // CaseMediaApi.prefill) is the source of truth and lives outside the
+        // local AddCaseState draft. Gating on the draft skipped server data
+        // for fresh page loads / cleared localStorage / different browsers.
+        var draft = (window.AddCaseState && window.AddCaseState.photographs) || {};
+        this._hydrate(draft);
 
         window.PhotographsSection = {
           validateAll: function () { return self.validateAll(); },
           hydrate: function (d) { self._hydrate(d); },
+          flushUnsynced: function () { self._flushUnsynced(); },
         };
 
         this.syncToState();
+      },
+
+      // Re-upload any tiles whose blobs are in memory/IDB but never reached
+      // the server (typically because _persistTile skipped while caseId was
+      // 'new'). Called from add-case.js after ensureShellCreated() mints a
+      // real case ID — without this, media uploaded before the first Save
+      // Draft is stranded client-side.
+      _flushUnsynced: function () {
+        var caseId = this._getCaseId();
+        if (!window.CaseMediaApi || !caseId || caseId === 'new') return;
+        var self = this;
+        PHOTO_TILE_ORDER.forEach(function (id) {
+          var tile = self.tiles[id];
+          if (!tile || !tile.filled) return;
+          var blob = tile.croppedBlob || tile.originalFile;
+          if (blob) self._persistTile(id, blob);
+        });
       },
 
       // ── Draft hydration ─────────────────────────────────────────────────────
@@ -214,6 +243,11 @@
       // ── File processing ─────────────────────────────────────────────────────
 
       _processFile: async function (tileId, file) {
+        // B-1b follow-up: defense-in-depth read-only guard. _processFile is
+        // reached via multiple paths (bulk picker, tile replace, camera
+        // capture, drop). Each entry point should also guard, but a single
+        // catch here ensures no path can write through.
+        if (this.isReadOnly) return;
         var result = window.MediaTileHelpers.validateFile(file, PHOTO_CONFIG);
         if (!result.valid) {
           this.bulkError = result.error;
@@ -261,13 +295,45 @@
         // is already showing, so user doesn't wait on the network.
         if (window.CaseMediaApi && caseId && caseId !== 'new') {
           var cropParams = this.tiles[tileId] && this.tiles[tileId].cropParams;
+          var self = this;
           window.CaseMediaApi.upload(caseId, 'photograph', tileId, blob, {
             filename: 'photograph-' + tileId,
             cropParams: cropParams,
           }).catch(function (err) {
             console.warn('CaseMediaApi.upload failed', tileId, err);
+            self._handleUploadFailure(tileId, err);
           });
         }
+      },
+
+      // On upload rejection: roll the tile back to its empty state so the
+      // user doesn't see a "filled" tile that the server doesn't know about.
+      // Without this, a refresh would replace the local preview with the
+      // server's empty record (or the previous image).
+      _handleUploadFailure: function (tileId, err) {
+        var self = this;
+        // 429: server is rate-limiting uploads. The local preview + IDB blob are
+        // still valid — preserve the tile so the user can retry without re-selecting.
+        if (err && err.status === 429) {
+          var msg429 = window.MediaTileHelpers.upgradeUploadError(err, this.getTileLabel(tileId));
+          this.bulkError = msg429;
+          setTimeout(function () { self.bulkError = null; }, 6000);
+          return;
+        }
+        if (this.tiles[tileId].previewUrl) {
+          URL.revokeObjectURL(this.tiles[tileId].previewUrl);
+        }
+        this.tiles[tileId].filled = false;
+        this.tiles[tileId].originalFile = null;
+        this.tiles[tileId].croppedBlob = null;
+        this.tiles[tileId].previewUrl = null;
+        this.tiles[tileId].cropParams = null;
+        this._resetTileAi(tileId);
+        this.syncToState();
+
+        var msg = window.MediaTileHelpers.upgradeUploadError(err, this.getTileLabel(tileId));
+        this.bulkError = msg;
+        setTimeout(function () { self.bulkError = null; }, 6000);
       },
 
       // Ask the AI whether `blob` matches the pose for `tileId`. Non-blocking.
@@ -320,8 +386,17 @@
             .catch(function (e) { console.warn('CaseImageStore.remove failed', tileId, e); });
         }
         if (window.CaseMediaApi && caseId && caseId !== 'new') {
+          var self = this;
           window.CaseMediaApi.destroy(caseId, 'photograph', tileId)
-            .catch(function (err) { console.warn('CaseMediaApi.destroy failed', tileId, err); });
+            .catch(function (err) {
+              console.warn('CaseMediaApi.destroy failed', tileId, err);
+              // Destroy failure means the tile is locally cleared but the
+              // server still holds the row — next reload would re-populate
+              // it. Surface so the user knows the removal didn't stick.
+              var msg = window.MediaTileHelpers.upgradeUploadError(err, self.getTileLabel(tileId));
+              self.bulkError = msg;
+              setTimeout(function () { self.bulkError = null; }, 6000);
+            });
         }
       },
 
@@ -387,6 +462,10 @@
       },
 
       replaceTile: function () {
+        // B-1b follow-up: read-only guard. The Replace button is hidden via
+        // x-show="!isReadOnly", but the underlying handler should still
+        // refuse to act if reached programmatically.
+        if (this.isReadOnly) return;
         var tileId = this.tileModal.activeTileId;
         if (!tileId) return;
         // User explicitly asked to replace — bypass the post-change recency
@@ -399,6 +478,11 @@
       },
 
       removeTile: function (tileId) {
+        // B-1b follow-up: read-only guard. The Remove buttons (modal +
+        // hover overlay) are hidden via x-show="!isReadOnly", but the
+        // underlying handler should still refuse to act if reached
+        // programmatically.
+        if (this.isReadOnly) return;
         var id = tileId || this.tileModal.activeTileId;
         if (!id || !this.tiles[id].filled) return;
 
@@ -468,31 +552,71 @@
 
         this._closeTileModal();
 
-        // Always crop from original file so re-crop stays non-destructive
-        var originalFile = this.tiles[tileId].originalFile;
         var self = this;
 
-        setTimeout(function () {
-          window.MediaTileHelpers.createPreviewUrl(originalFile).then(function (preview) {
-            window.CropModalController.open({
-              imageUrl: preview.url,
-              onApply: function (croppedBlob, cropParams) {
-                URL.revokeObjectURL(preview.url);
-                if (self.tiles[tileId].previewUrl) {
-                  URL.revokeObjectURL(self.tiles[tileId].previewUrl);
-                }
-                self.tiles[tileId].croppedBlob = croppedBlob;
-                self.tiles[tileId].previewUrl = URL.createObjectURL(croppedBlob);
-                self.tiles[tileId].cropParams = cropParams;
-                self.syncToState();
-                self._persistTile(tileId, croppedBlob);
-                // Cropped blob can change what the AI sees — re-classify.
-                self._classifyTile(tileId, croppedBlob);
-              },
-              onCancel: function () {
-                URL.revokeObjectURL(preview.url);
-              },
-            });
+        // Always crop from the source blob so re-crop stays non-destructive.
+        // For server-hydrated tiles, originalFile is null (only previewUrl is
+        // set by _hydrate) — fetch the URL into a blob first, mirroring the
+        // pattern already used by _swapOrMoveTiles for URL-only tiles.
+        // Cache the result on tile.originalFile so subsequent crops in the
+        // same session don't re-fetch.
+        setTimeout(async function () {
+          var blob = self.tiles[tileId].originalFile;
+
+          if (!blob && self.tiles[tileId].previewUrl) {
+            try {
+              var res = await fetch(self.tiles[tileId].previewUrl, { credentials: 'same-origin' });
+              if (!res.ok) throw { status: res.status, body: {} };
+              var rawBlob = await res.blob();
+              // Wrap as File so MediaTileHelpers.createPreviewUrl's .name
+              // access works. The synthetic name is decorative — the real
+              // original_name lives server-side. HEIC detection still works
+              // via the helper's blob.type check.
+              blob = new File([rawBlob], tileId, { type: rawBlob.type });
+              self.tiles[tileId].originalFile = blob;
+            } catch (err) {
+              var msg = window.MediaTileHelpers.upgradeCropFetchError(err, self.getTileLabel(tileId));
+              self.bulkError = msg;
+              setTimeout(function () { self.bulkError = null; }, 6000);
+              return;
+            }
+          }
+
+          if (!blob) {
+            // Defensive — a filled tile should always have either a blob or a URL.
+            console.warn('cropTile: tile filled but has no blob and no URL', tileId);
+            return;
+          }
+
+          var preview = await window.MediaTileHelpers.createPreviewUrl(blob);
+          window.CropModalController.open({
+            imageUrl: preview.url,
+            onApply: function (croppedBlob, cropParams) {
+              URL.revokeObjectURL(preview.url);
+              // Validate size BEFORE overwriting tile state. Cropper.js
+              // re-encodes the canvas at browser-default JPEG quality (~0.92),
+              // which can produce a larger blob than the original server image
+              // (e.g. a q=0.6 camera JPEG inflates when re-encoded at q=0.92).
+              // Rejecting here keeps the original image intact in the tile.
+              if (croppedBlob.size > PHOTO_CONFIG.maxSizeBytes) {
+                self.bulkError = 'Cropped image exceeds 5 MB. Try a smaller selection or use the original.';
+                setTimeout(function () { self.bulkError = null; }, 6000);
+                return;
+              }
+              if (self.tiles[tileId].previewUrl) {
+                URL.revokeObjectURL(self.tiles[tileId].previewUrl);
+              }
+              self.tiles[tileId].croppedBlob = croppedBlob;
+              self.tiles[tileId].previewUrl = URL.createObjectURL(croppedBlob);
+              self.tiles[tileId].cropParams = cropParams;
+              self.syncToState();
+              self._persistTile(tileId, croppedBlob);
+              // Cropped blob can change what the AI sees — re-classify.
+              self._classifyTile(tileId, croppedBlob);
+            },
+            onCancel: function () {
+              URL.revokeObjectURL(preview.url);
+            },
           });
         }, 400);
       },
@@ -519,6 +643,11 @@
       },
 
       onTileDrop: async function (event, targetTileId) {
+        // B-1b follow-up: block all drop operations when case is not editable.
+        // The :draggable binding gates outgoing drags from a tile, but does
+        // NOT gate incoming desktop file drops — those still fire @drop and
+        // would call _processFile here. Closes that gap.
+        if (this.isReadOnly) return;
         this.tiles[targetTileId].isDragOver = false;
 
         var sourceTileId = event.dataTransfer.getData('text/x-tile-id');
@@ -536,9 +665,49 @@
         }
       },
 
-      _swapOrMoveTiles: function (sourceId, targetId) {
+      _swapOrMoveTiles: async function (sourceId, targetId) {
         var src = this.tiles[sourceId];
         var tgt = this.tiles[targetId];
+
+        // Capture pre-swap state — drives persistence strategy below. When a
+        // tile holds only a server-side previewUrl (no blob), the old code
+        // would call _forgetTile() during persistence, silently DELETING the
+        // record. Detect that and route to the reorder endpoint instead.
+        var srcHadBlob   = !!(src.croppedBlob || src.originalFile);
+        var tgtHadBlob   = !!(tgt.croppedBlob || tgt.originalFile);
+        var srcWasFilled = src.filled;
+        var tgtWasFilled = tgt.filled;
+
+        // Mixed-case guard: when both tiles aren't URL-only, the destroy+upload
+        // path runs below. If ONE tile is URL-only, _forgetTile would DELETE
+        // its server record. Fetch URL-only sides into blobs pre-swap so every
+        // re-persist has actual content. (Both-URL-only is the fast path below.)
+        var bothUrlOnly = srcWasFilled && !srcHadBlob && tgtWasFilled && !tgtHadBlob;
+        var moveUrlOnly = srcWasFilled && !srcHadBlob && !tgtWasFilled;
+        if (!bothUrlOnly && !moveUrlOnly) {
+          try {
+            if (srcWasFilled && !srcHadBlob && src.previewUrl) {
+              var srcRes = await fetch(src.previewUrl, { credentials: 'same-origin' });
+              if (!srcRes.ok) throw new Error('source URL fetch ' + srcRes.status);
+              src.originalFile = await srcRes.blob();
+              // Re-anchor preview to the blob — the destroy+upload below
+              // invalidates the original server URL, which would otherwise
+              // appear as a broken image on the OTHER tile after the swap.
+              src.previewUrl = URL.createObjectURL(src.originalFile);
+              srcHadBlob = true;
+            }
+            if (tgtWasFilled && !tgtHadBlob && tgt.previewUrl) {
+              var tgtRes = await fetch(tgt.previewUrl, { credentials: 'same-origin' });
+              if (!tgtRes.ok) throw new Error('target URL fetch ' + tgtRes.status);
+              tgt.originalFile = await tgtRes.blob();
+              tgt.previewUrl = URL.createObjectURL(tgt.originalFile);
+              tgtHadBlob = true;
+            }
+          } catch (e) {
+            console.warn('photographs: pre-swap URL→blob fetch failed, aborting swap', e);
+            return;
+          }
+        }
 
         if (tgt.filled) {
           // Swap both tiles
@@ -574,6 +743,29 @@
           this.tiles[sourceId].cropParams   = null;
         }
         this.syncToState();
+
+        // URL-only swaps/moves (server-loaded tiles with no client blob) need
+        // the server to rename the tile_id on existing rows. Calling
+        // destroy+upload here would delete the rows. (bothUrlOnly / moveUrlOnly
+        // were captured pre-swap above — see the mixed-case fetch guard.)
+        var caseId = this._getCaseId();
+        if (bothUrlOnly || moveUrlOnly) {
+          if (window.CaseMediaApi && caseId && caseId !== 'new') {
+            var self = this;
+            window.CaseMediaApi.reorder(caseId, 'photograph', sourceId, targetId)
+              .catch(function (err) {
+                console.warn('CaseMediaApi.reorder failed', err);
+                // Reorder failure means tiles are locally swapped but the
+                // server still has the original layout — silent state
+                // divergence on next reload. Surface so the user knows.
+                var msg = window.MediaTileHelpers.upgradeUploadError(err, self.getTileLabel(targetId));
+                self.bulkError = msg;
+                setTimeout(function () { self.bulkError = null; }, 6000);
+              });
+          }
+          // Same content, just moved — no AI re-classify needed.
+          return;
+        }
 
         // Re-write IDB so blobs follow their new tile slots after the swap/move.
         var newSrcBlob = this.tiles[sourceId].croppedBlob || this.tiles[sourceId].originalFile;

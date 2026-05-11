@@ -147,9 +147,8 @@
   // Strip non-digits — lets users search by phone with or without formatting
   function digitsOnly(s) { return (s || '').replace(/[^0-9]/g, ''); }
 
-  // Server-backed autocomplete. Replaces the previous MOCK_PATIENTS filter.
-  // The server (PatientController::search) handles name / email / chart_id /
-  // phone-digits matching identically; nothing else in this file changes.
+  // Server-backed autocomplete via PatientController::search. Matches across
+  // name / email / chart_id / phone-digits.
   // Cancellation: if the user is mid-fetch when they type again, drop the
   // older request's result by checking the seq counter at resolve time.
   var _searchSeq = 0;
@@ -512,6 +511,38 @@
     hydrate();
     // Re-init feather icons inside this section
     if (typeof feather !== 'undefined') feather.replace({ width: 14, height: 14 });
+
+    // B-1b: apply read-only state imperatively. This section is vanilla JS,
+    // not Alpine, so :disabled bindings aren't available. When the case is
+    // not editable for the doctor (any non-DRAFT status), every input in
+    // this section is disabled at init time. See Docs/case-workflow.md →
+    // "Role capabilities > Doctor".
+    if (window.AddCaseState && window.AddCaseState.isReadOnly) {
+      var fields = [
+        'pi-search-patient',
+        'pi-first-name',
+        'pi-last-name',
+        'pi-dob',
+        'pi-gender',
+        'pi-gender-other',
+        'pi-chart-id',
+        'pi-chief-complaint'
+      ];
+      fields.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.disabled = true;
+      });
+    }
+    // Admin locked fields: first_name, last_name, dob are never
+    // editable by admin regardless of case status or isReadOnly.
+    // Workflow rule: admin acts on doctor's behalf but cannot
+    // alter patient identity. See Docs/case-workflow.md.
+    if (window.CASE_ADMIN_MODE) {
+      ['pi-first-name', 'pi-last-name', 'pi-dob'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.disabled = true;
+      });
+    }
   }
 
   // ─── Expose module ────────────────────────────────────────────────────────

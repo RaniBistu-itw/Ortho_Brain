@@ -101,6 +101,39 @@
     },
 
     /**
+     * Swap or move a tile's existing image to another tile slot without
+     * re-uploading. Used when a doctor drag-rearranges photos that were
+     * already persisted server-side (so the client only has the URL, not a
+     * blob). Calling destroy+upload here would silently delete the rows.
+     */
+    reorder: function (caseId, section, sourceTileId, targetTileId) {
+      if (!isUploadable(caseId)) {
+        return Promise.resolve({ ok: true, message: 'no-case-id' });
+      }
+      return fetch(apiBase() + '/' + encodeURIComponent(caseId) + '/media/reorder', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRF-TOKEN': csrfToken(),
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          section: section,
+          source_tile_id: sourceTileId,
+          target_tile_id: targetTileId,
+        }),
+      }).then(function (res) {
+        if (!res.ok) {
+          return res.json().catch(function () { return {}; }).then(function (body) {
+            return Promise.reject({ status: res.status, body: body });
+          });
+        }
+        return res.json();
+      });
+    },
+
+    /**
      * Read the prefill that the Blade inlined on page render. Returns an
      * array shaped [{section, tileId, url, mime, size, cropParams}, ...].
      */

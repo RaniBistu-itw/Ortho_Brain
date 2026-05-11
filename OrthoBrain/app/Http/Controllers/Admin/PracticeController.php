@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\Doctor;
 use App\Models\Practice;
+use App\Models\User;
 use App\Models\Zipcode;
 use App\Notifications\PracticeActivatedNotification;
 use App\Notifications\PracticeDeactivatedNotification;
@@ -14,6 +15,7 @@ use App\Notifications\PracticeRequestRejected;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class PracticeController extends Controller
@@ -68,30 +70,28 @@ class PracticeController extends Controller
             ->withCount('members')
             ->withCount(['doctors as pending_pivot_count' => function ($q) {
                 $q->where('doctor_practice.approval_status', 'PENDING');
-            }]);
+            }])
+            ->leftJoin('countries', 'countries.id', '=', 'practices.country_id')
+            ->leftJoin('states', 'states.id', '=', 'practices.state_id')
+            ->leftJoin('cities', 'cities.id', '=', 'practices.city_id');
 
         // Always float practices with pending doctor approvals to the top.
-        $query->orderByDesc('pending_pivot_count');
-
-        if ($sortKey === 'location') {
-            $query->leftJoin('countries', 'countries.id', '=', 'practices.country_id')
-                  ->orderBy($sortCol, $dir);
-        } else {
-            $query->orderBy($sortCol, $dir);
-        }
+        $query->orderByDesc('pending_pivot_count')
+              ->orderBy($sortCol, $dir);
 
         $practices = $query
             ->when($status, fn ($q) => $q->where('practices.status', $status))
-            ->when(
-                $request->filled('country_id'),
-                fn ($q) => $q->where('practices.country_id', $request->integer('country_id'))
-            )
             ->when($search !== '', function ($q) use ($search) {
                 $like = '%' . $search . '%';
                 $q->where(function ($w) use ($like) {
                     $w->where('practices.name', 'like', $like)
                       ->orWhere('practices.website', 'like', $like)
-                      ->orWhere('practices.phone_number', 'like', $like);
+                      ->orWhere('practices.phone_number', 'like', $like)
+                      ->orWhere('practices.street_address_1', 'like', $like)
+                      ->orWhere('practices.street_address_2', 'like', $like)
+                      ->orWhere('cities.name', 'like', $like)
+                      ->orWhere('states.name', 'like', $like)
+                      ->orWhere('countries.name', 'like', $like);
                 });
             })
             ->paginate(15)
@@ -104,7 +104,6 @@ class PracticeController extends Controller
 
         return view('admin.practices.index', [
             'practices'     => $practices,
-            'countries'     => Country::orderBy('name')->get(['id', 'name']),
             'currentStatus' => $status,
             'statusCounts'  => $statusCounts,
             'totalCount'    => $statusCounts->sum(),
@@ -130,13 +129,19 @@ class PracticeController extends Controller
 
     public function edit(Practice $practice)
     {
-        $practice->load(['city', 'state', 'country', 'zipcode']);
+        $practice->load(['city', 'state', 'country', 'zipcode.city.state.country']);
 
-        $zipcodes = Zipcode::with('city.state.country')
-            ->where('status', 'ACTIVE')
-            ->whereHas('city', fn ($q) => $q->where('status', 'ACTIVE'))
-            ->orderBy('code')
-            ->get();
+        // On a validation bounce, old('zip_id') may differ from the practice's saved zip.
+        // Load just that one record so the select can pre-render a single option instead
+        // of fetching the entire zipcodes table upfront.
+        $oldZipId = session()->getOldInput('zip_id');
+        if ($oldZipId && (int) $oldZipId !== (int) $practice->zip_id) {
+            $selectedZip = Zipcode::with('city.state.country')
+                ->where('status', 'ACTIVE')
+                ->find((int) $oldZipId);
+        } else {
+            $selectedZip = $practice->zipcode;
+        }
 
         $phoneCodes = Country::where('status', 'ACTIVE')
             ->select('phone_code')
@@ -146,9 +151,9 @@ class PracticeController extends Controller
             ->all();
 
         return view('admin.practices.edit', [
-            'practice'   => $practice,
-            'zipcodes'   => $zipcodes,
-            'phoneCodes' => $phoneCodes,
+            'practice'    => $practice,
+            'selectedZip' => $selectedZip,
+            'phoneCodes'  => $phoneCodes,
         ]);
     }
 
@@ -239,23 +244,26 @@ class PracticeController extends Controller
             }
         });
 
-        // Send notifications outside the transaction so mail failures never roll back DB changes.
+        // Notifications fire after the response is sent so the admin never waits on mail.
         foreach ($pendingDoctors as $doctor) {
-            try { $doctor->user?->notify(new PracticeRequestApproved($practice)); } catch (\Throwable) {}
-            usleep(600000);
+            if ($doctor->user) {
+                $this->notifyAfterResponse($doctor->user, new PracticeRequestApproved($practice));
+            }
         }
         foreach ($approvedDoctors as $doctor) {
-            try { $doctor->user?->notify(new PracticeActivatedNotification($practice)); } catch (\Throwable) {}
-            usleep(600000);
+            if ($doctor->user) {
+                $this->notifyAfterResponse($doctor->user, new PracticeActivatedNotification($practice));
+            }
         }
         foreach ($deactivatedDoctors as $doctor) {
-            try { $doctor->user?->notify(new PracticeDeactivatedNotification($practice)); } catch (\Throwable) {}
-            usleep(600000);
+            if ($doctor->user) {
+                $this->notifyAfterResponse($doctor->user, new PracticeDeactivatedNotification($practice));
+            }
         }
 
         return response()->json([
             'ok'     => true,
-            'status' => $practice->fresh()->status,
+            'status' => $data['status'],
         ]);
     }
 
@@ -320,16 +328,29 @@ class PracticeController extends Controller
         $doctors = Doctor::with('user')->whereIn('id', $doctorIds)->get();
         foreach ($doctors as $doctor) {
             if (! $doctor->user) continue;
-            try {
-                $doctor->user->notify(
-                    $data['action'] === 'APPROVE'
-                        ? new PracticeRequestApproved($practice)
-                        : new PracticeRequestRejected($practice, $data['reason'])
-                );
-            } catch (\Throwable) {}
-            usleep(600000);
+            $this->notifyAfterResponse(
+                $doctor->user,
+                $data['action'] === 'APPROVE'
+                    ? new PracticeRequestApproved($practice)
+                    : new PracticeRequestRejected($practice, $data['reason'])
+            );
         }
 
         return response()->json(['ok' => true, 'count' => $count]);
+    }
+
+    private function notifyAfterResponse(User $notifiable, \Illuminate\Notifications\Notification $notification): void
+    {
+        dispatch(function () use ($notifiable, $notification) {
+            try {
+                $notifiable->notify($notification);
+            } catch (\Throwable $e) {
+                Log::error('Practice notification failed', [
+                    'notifiable_id' => $notifiable->getKey(),
+                    'notification'  => get_class($notification),
+                    'error'         => $e->getMessage(),
+                ]);
+            }
+        })->afterResponse();
     }
 }
