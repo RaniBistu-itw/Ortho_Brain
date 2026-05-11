@@ -236,6 +236,9 @@ class DoctorController extends Controller
     public function approve(Doctor $doctor)
     {
         if ($doctor->approval_status === 'APPROVED') {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => 'Doctor is already approved.'], 422);
+            }
             return back()->with('error', 'Doctor is already approved.');
         }
 
@@ -246,6 +249,9 @@ class DoctorController extends Controller
             'rejection_reason' => null,
         ]);
 
+        if (request()->expectsJson()) {
+            return response()->json(['ok' => true, 'status' => 'APPROVED']);
+        }
         return redirect()
             ->route('admin.doctors.show', $doctor)
             ->with('success', 'Doctor approved.');
@@ -254,6 +260,9 @@ class DoctorController extends Controller
     public function reject(RejectDoctorRequest $request, Doctor $doctor)
     {
         if ($doctor->approval_status === 'REJECTED') {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => 'Doctor is already rejected.'], 422);
+            }
             return back()->with('error', 'Doctor is already rejected.');
         }
 
@@ -264,6 +273,9 @@ class DoctorController extends Controller
             'approved_by_admin_id' => $this->currentAdminId(),
         ]);
 
+        if (request()->expectsJson()) {
+            return response()->json(['ok' => true, 'status' => 'REJECTED']);
+        }
         return redirect()
             ->route('admin.doctors.show', $doctor)
             ->with('success', 'Doctor rejected.');
@@ -272,11 +284,17 @@ class DoctorController extends Controller
     public function suspend(Doctor $doctor)
     {
         if ($doctor->approval_status !== 'APPROVED') {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => 'Only approved doctors can be suspended.'], 422);
+            }
             return back()->with('error', 'Only approved doctors can be suspended.');
         }
 
         $doctor->update(['approval_status' => 'SUSPENDED']);
 
+        if (request()->expectsJson()) {
+            return response()->json(['ok' => true, 'status' => 'SUSPENDED']);
+        }
         return redirect()
             ->route('admin.doctors.show', $doctor)
             ->with('success', 'Doctor suspended.');
@@ -285,6 +303,9 @@ class DoctorController extends Controller
     public function reactivate(Doctor $doctor)
     {
         if ($doctor->approval_status !== 'SUSPENDED') {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => 'Only suspended doctors can be reactivated.'], 422);
+            }
             return back()->with('error', 'Only suspended doctors can be reactivated.');
         }
 
@@ -294,6 +315,9 @@ class DoctorController extends Controller
             'approved_by_admin_id' => $this->currentAdminId(),
         ]);
 
+        if (request()->expectsJson()) {
+            return response()->json(['ok' => true, 'status' => 'APPROVED']);
+        }
         return redirect()
             ->route('admin.doctors.show', $doctor)
             ->with('success', 'Doctor reactivated.');
