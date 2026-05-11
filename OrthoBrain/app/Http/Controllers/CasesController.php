@@ -305,13 +305,24 @@ class CasesController extends Controller
         }
 
         // Refresh in case the saveDraft() flush from add-case-submit.js
-        // wrote xrays_date microseconds before this request landed.
+        // wrote xrays_date / photos_date microseconds before this request landed.
         $case->refresh();
         if (! $case->xrays_date) {
             return response()->json([
                 'ok'      => false,
                 'error'   => 'xrays_date_required',
                 'message' => 'Date of X-Rays is required before submit.',
+            ], 422);
+        }
+
+        // photos_date required before submission — same rule as xrays_date.
+        // Ensures the case has dated media records before it reaches the admin.
+        // See Docs/case-workflow.md.
+        if (! $case->photos_date) {
+            return response()->json([
+                'ok'      => false,
+                'error'   => 'photos_date_required',
+                'message' => 'Date of Photos is required before submit.',
             ], 422);
         }
 
