@@ -11,6 +11,8 @@ use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\Practice;
 use App\Models\Scanner;
+use App\Notifications\CaseApprovedNotification;
+use App\Notifications\CaseRejectedNotification;
 use Illuminate\Http\Request;
 
 class CasesController extends Controller
@@ -264,8 +266,25 @@ class CasesController extends Controller
 
         $case->update($updates);
 
-        // TODO B-4: dispatch CaseRejectedNotification / CaseApprovedNotification
-        // with rejection_reason in payload for the rejected variant.
+        // Eager-load to avoid N+1 inside notification pipeline.
+        $case->loadMissing('doctor.user');
+
+        // Dispatch case lifecycle notifications to the doctor.
+        // Only APPROVED and REJECTED transitions notify the doctor.
+        // Other transitions (→IN_REVIEW, →SUBMITTED) are admin-internal.
+        // See Docs/case-workflow.md — Notifications.
+        if ($next === 'APPROVED') {
+            $case->doctor?->user?->notify(
+                new CaseApprovedNotification($case)
+            );
+        } elseif ($next === 'REJECTED') {
+            $case->doctor?->user?->notify(
+                new CaseRejectedNotification($case, $case->rejection_reason)
+            );
+        }
+
+        // TODO B-4b: dispatch CaseEditedByAdminNotification from
+        // admin section-save endpoints once B-4b is implemented.
 
         return response()->json([
             'ok' => true,
