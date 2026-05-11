@@ -21,6 +21,9 @@ class DatabaseSeeder extends Seeder
             // "Patient Name" column on admin + doctor case lists).
             PatientsDemoSeeder::class,
             CaseDashboardSeeder::class,
+            // Fills scanner/impressions/shipping/additional-info/initials/rejection
+            // data for cases created above. Must run after CaseDashboardSeeder.
+            CaseSectionDataSeeder::class,
             CaseMediaDemoSeeder::class,
             // PerformanceTestSeeder::class, // run on-demand: php artisan db:seed --class=PerformanceTestSeeder
         ]);
