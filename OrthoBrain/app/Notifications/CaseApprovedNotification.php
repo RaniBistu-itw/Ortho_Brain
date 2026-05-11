@@ -23,7 +23,9 @@ class CaseApprovedNotification extends Notification
         return [
             'kind'  => 'approved',
             'title' => 'Case approved',
-            'body'  => 'Your case #' . $this->case->case_code . ' has been approved.',
+            // case_code is nullable on legacy rows — fall back to
+            // the numeric ID so the notification body is never blank.
+            'body'  => 'Your case #' . ($this->case->case_code ?? 'Case #' . $this->case->id) . ' has been approved.',
             'url'   => route('doctor.cases.edit', $this->case),
         ];
     }

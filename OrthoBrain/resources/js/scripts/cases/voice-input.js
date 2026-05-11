@@ -13,7 +13,13 @@
   'use strict';
 
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  var supported = !!SR;
+  // Voice input requires HTTPS — Chrome exposes the API on HTTP
+  // but fires 'not-allowed' silently when .start() is called.
+  // ngrok and production are HTTPS; local dev http:// is not.
+  var isSecure = location.protocol === 'https:'
+                 || location.hostname === 'localhost'
+                 || location.hostname === '127.0.0.1';
+  var supported = !!SR && isSecure;
 
   function showUnsupportedToast() {
     var existing = document.getElementById('voice-input-toast');
@@ -32,6 +38,10 @@
   }
 
   function attach(textarea) {
+    // Do not attach mic button if voice input is unsupported.
+    // Buttons are built dynamically here — returning early
+    // means no broken/disabled UI is ever inserted into the DOM.
+    if (!supported) return;
     if (!textarea || textarea._voiceAttached) return;
     textarea._voiceAttached = true;
 
@@ -96,6 +106,23 @@
       recognition.onerror = function (evt) {
         console.warn('[VoiceInput] recognition error:', evt.error);
         finishRecording();
+        // Surface actionable errors to the user — silent
+        // failures leave the mic button in a broken state.
+        if (evt.error === 'not-allowed') {
+          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+            window.MediaTileHelpers.showToast(
+              'Microphone access denied — check browser permissions.',
+              3000
+            );
+          }
+        } else if (evt.error === 'network') {
+          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+            window.MediaTileHelpers.showToast(
+              'Voice input requires an internet connection.',
+              3000
+            );
+          }
+        }
       };
       return recognition;
     }
