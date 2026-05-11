@@ -2,7 +2,7 @@
 
 Source of truth for the case state machine, role capabilities, and notification expectations. Plain-English, written for the team (product, QA, engineering onboarding) and for Claude during pre-flight.
 
-Last verified: 2026-05-08 against feat/b2-admin-parity-reload @ `266d312` (B-2 implemented — admin section-save routes, widened __isReadOnly formula, page reload after status change).
+Last verified: 2026-05-11 against origin/dev @ `a0fa974` (B-4a merged — CaseApprovedNotification + CaseRejectedNotification shipped; B-4b open in PR #133 — CaseEditedByAdminNotification).
 
 ## Statuses
 
@@ -130,13 +130,18 @@ Rationale: HIPAA-aligned. No automatic patient sharing across providers. Each do
 
 ## Notifications
 
-Three case-related database notifications, surfaced via the existing bell + modal infrastructure:
+Three case-related database notifications, surfaced via the existing bell + modal infrastructure. All shipped.
 
-| Class | Trigger | Body |
-|---|---|---|
-| `CaseApprovedNotification` | IN_REVIEW → APPROVED | "Your case [ID] has been approved." |
-| `CaseRejectedNotification` | IN_REVIEW → REJECTED | "Your case [ID] has been unapproved.[Reason: {reason}.]" |
-| `CaseEditedByAdminNotification` | Admin saves any case edit | "Admin edited your case [ID]: [section list]." |
+| Class | Trigger | Body | Status |
+|---|---|---|---|
+| `CaseApprovedNotification` | IN_REVIEW → APPROVED | "Your case #[code] has been approved." | **Shipped PR #132** |
+| `CaseRejectedNotification` | IN_REVIEW → REJECTED | "Your case #[code] has been unapproved.[Reason: {reason}.]" | **Shipped PR #132** |
+| `CaseEditedByAdminNotification` | Admin saves any section or media | "An admin updated the [section] section of your case #[code]." | **Shipped PR #133** |
+
+Bell dropdown icon mapping (in `doctor-header.blade.php`):
+- `kind=approved` → `bi-check-circle` (green)
+- `kind=rejected` → `bi-x-circle` (red)
+- `kind=info` → `bi-info-circle` (sky blue) — used by `CaseEditedByAdminNotification`
 
 Out of scope (no notification fires):
 
@@ -156,7 +161,8 @@ As of 2026-05-07, the following gaps exist between this design and the current c
 | Admin write parity (8 routes for media/section saves) | NOT shipped (admin clicks → 404 silently) | Sprint B-2 |
 | Patient identity locked fields | NOT enforced (admin path doesn't have edit endpoints to gate) | Sprint B-2 |
 | Rejection reason field + modal | NOT shipped (no `cases.rejection_reason` column) | Sprint B-3 |
-| Case event notifications | NOT shipped (no notification classes for case events) | Sprint B-4 |
+| Case event notifications (B-4a) | **SHIPPED** — `CaseApprovedNotification` + `CaseRejectedNotification` | PR #132 |
+| Case event notifications (B-4b) | **SHIPPED** — `CaseEditedByAdminNotification` (pending merge) | PR #133 |
 | Removal of dead mock-patients.js | NOT shipped (vestigial) | Hygiene PR |
 
 Sprint sequence is documented in the team's project tracker.

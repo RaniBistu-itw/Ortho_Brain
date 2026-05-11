@@ -407,6 +407,8 @@
                         $title = $d['title'] ?? 'Notification';
                         $body  = $d['body']  ?? '';
                         $url   = $d['url']   ?? route('doctor.profile.index', ['tab' => 'practices']);
+                        // Icon mapping: rejected=x-circle, info/edited=info-circle,
+                        // everything else (approved etc.)=check-circle.
                         $icon  = match($d['kind'] ?? '') {
                             'rejected' => 'x-circle',
                             'info'     => 'info-circle',
@@ -882,6 +884,8 @@
                         </button>
                     </a>`;
             }
+            // Icon mapping mirrors Blade: rejected=x-circle,
+            // info/edited=info-circle, default=check-circle.
             const icon = n.kind === 'rejected' ? 'x-circle'
                        : n.kind === 'info'     ? 'info-circle'
                        : 'check-circle';

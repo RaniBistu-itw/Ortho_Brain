@@ -1,6 +1,6 @@
 # Notifications — Architecture
 
-Last verified: 2026-05-07 (audited; design locked).
+Last verified: 2026-05-11 against origin/dev @ `a0fa974` (B-4a merged — CaseApprovedNotification + CaseRejectedNotification shipped; B-4b open in PR #133).
 
 ## Existing infrastructure
 
@@ -21,36 +21,49 @@ Database-backed notifications via Laravel's standard `Illuminate\Notifications` 
 | `PracticeRequestApproved` | Practice membership |
 | `PracticeRequestRejected` | Practice membership |
 | `PracticeRequestSuspended` | Practice membership |
-
-All approval/registration related. None case-related as of 2026-05-07.
+| `CaseApprovedNotification` | Case lifecycle — **shipped PR #132** |
+| `CaseRejectedNotification` | Case lifecycle — **shipped PR #132** |
+| `CaseEditedByAdminNotification` | Case lifecycle — **shipped PR #133** |
 
 ## Case event notifications (Sprint B-4)
 
-Three new classes to add:
+All three classes shipped. `toArray()` shape: `kind`, `title`, `body`, `url`.
 
-### `CaseApprovedNotification`
+### `CaseApprovedNotification` — **shipped PR #132**
 
-- **Trigger:** `Admin/CasesController::updateStatus()` when transitioning IN_REVIEW → APPROVED
-- **Recipient:** `case.doctor` (the doctor who owns the case)
-- **Body:** "Your case {{ $case->id }} has been approved."
-- **Channels:** `via(['database'])`
+- **File:** `app/Notifications/CaseApprovedNotification.php`
+- **Trigger:** `Admin/CasesController::updateStatus()` — IN_REVIEW → APPROVED only
+- **Recipient:** `case->doctor->user` (eager-loaded via `loadMissing('doctor.user')`)
+- **kind:** `'approved'` → renders `bi-check-circle` (green) in bell dropdown
+- **Body:** "Your case #{{ $case->case_code }} has been approved."
+- **URL:** `route('doctor.cases.edit', $case)`
+- **Channels:** `['database']`
 
-### `CaseRejectedNotification`
+### `CaseRejectedNotification` — **shipped PR #132**
 
-- **Trigger:** `Admin/CasesController::updateStatus()` when transitioning IN_REVIEW → REJECTED
-- **Recipient:** `case.doctor`
-- **Body (no reason):** "Your case {{ $case->id }} has been unapproved."
-- **Body (with reason):** "Your case {{ $case->id }} has been unapproved. Reason: {{ $reason }}."
-- **Channels:** `via(['database'])`
-- **Note:** depends on Sprint B-3 having shipped the `cases.rejection_reason` column
+- **File:** `app/Notifications/CaseRejectedNotification.php`
+- **Trigger:** `Admin/CasesController::updateStatus()` — IN_REVIEW → REJECTED only
+- **Recipient:** `case->doctor->user`
+- **kind:** `'rejected'` → renders `bi-x-circle` (red) in bell dropdown
+- **Body (no reason):** "Your case #{{ $case->case_code }} has been unapproved."
+- **Body (with reason):** "Your case #{{ $case->case_code }} has been unapproved. Reason: {{ $reason }}."
+- **URL:** `route('doctor.cases.edit', $case)`
+- **Channels:** `['database']`
+- **Note:** `rejection_reason` is read from `$case->rejection_reason` after `$case->update()` has already persisted it; requires B-3's `cases.rejection_reason` column (shipped).
 
-### `CaseEditedByAdminNotification`
+### `CaseEditedByAdminNotification` — **shipped PR #133**
 
-- **Trigger:** Admin section-save endpoints (Sprint B-2). Dispatched once per Save Draft action — single notification listing changed sections, not one per section.
-- **Recipient:** `case.doctor`
-- **Body:** "Admin edited your case {{ $case->id }}: {{ $sectionList }}." (e.g., "Admin edited your case 42: prescription, photographs.")
-- **Channels:** `via(['database'])`
-- **Note:** section-level granularity, not field-level. Detail tracking lives in audit log (when shipped), not in the notification body.
+- **File:** `app/Notifications/CaseEditedByAdminNotification.php`
+- **Trigger:** dispatched from every admin section-save endpoint. One notification per save action (not batched per session).
+  - `Admin/CasesController`: `saveShipping`, `saveImpressions`, `saveAdditionalInfo`, `savePatient`, `saveSubmitOrder`
+  - `Admin/CaseMediaController`: `upload`, `destroy`, `reorder` (overrides that call `parent::` then notify)
+  - `PrescriptionController::update()`: admin branch only (`$user->role === 'ADMIN'` guard — doctor saves do not self-notify)
+- **Recipient:** `case->doctor->user`
+- **kind:** `'info'` → renders `bi-info-circle` (sky blue `#0ea5e9`) in bell dropdown
+- **section names:** `'shipping'`, `'impressions'`, `'additional information'`, `'patient'`, `'submit order'`, `'prescription'`, `'media'`
+- **Body:** "An admin updated the {{ $section }} section of your case #{{ $case->case_code }}."
+- **URL:** `route('doctor.cases.edit', $case)`
+- **Channels:** `['database']`
 
 ## Out-of-scope events (no notification fires)
 
@@ -68,36 +81,35 @@ If product requirements change and intermediate transitions need notifications, 
 ```php
 namespace App\Notifications;
 
+use App\Models\CaseModel;
 use Illuminate\Notifications\Notification;
-use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Messages\DatabaseMessage;
 
 class CaseApprovedNotification extends Notification
 {
-    use Queueable;
-    
-    public function __construct(public CaseModel $case) {}
-    
+    public function __construct(private CaseModel $case) {}
+
     public function via($notifiable): array
     {
         return ['database'];
     }
-    
-    public function toDatabase($notifiable): array
+
+    public function toArray($notifiable): array
     {
         return [
-            'type' => 'case_approved',
-            'case_id' => $this->case->id,
-            'message' => "Your case {$this->case->id} has been approved.",
+            'kind'  => 'approved',
+            'title' => 'Case approved',
+            'body'  => 'Your case #' . $this->case->case_code . ' has been approved.',
+            'url'   => route('doctor.cases.edit', $this->case),
         ];
     }
 }
 ```
 
-2. Dispatch from controller:
+2. Dispatch from controller (eager-load to avoid N+1):
 
 ```php
-$case->doctor->notify(new CaseApprovedNotification($case));
+$case->loadMissing('doctor.user');
+$case->doctor?->user?->notify(new CaseApprovedNotification($case));
 ```
 
 3. Bell dropdown + modal pick it up automatically via `NotificationController`.
