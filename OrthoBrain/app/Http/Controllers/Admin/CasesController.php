@@ -11,6 +11,7 @@ use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\Practice;
 use App\Models\Scanner;
+use App\Notifications\CaseEditedByAdminNotification;
 use Illuminate\Http\Request;
 
 class CasesController extends Controller
@@ -303,6 +304,13 @@ class CasesController extends Controller
                 'country_id'       => $request->input('countryId'),
             ]
         );
+        // Notify doctor that admin edited this section.
+        // loadMissing avoids N+1 in the notification pipeline.
+        // See Docs/case-workflow.md — Notifications.
+        $case->loadMissing('doctor.user');
+        $case->doctor?->user?->notify(
+            new CaseEditedByAdminNotification($case, 'shipping')
+        );
         return response()->json(['ok' => true]);
     }
 
@@ -314,6 +322,13 @@ class CasesController extends Controller
             'impression_method' => strtoupper($request->input('impressionMethod', '')),
             'scanner_id'        => $request->input('scannerId'),
         ]);
+        // Notify doctor that admin edited this section.
+        // loadMissing avoids N+1 in the notification pipeline.
+        // See Docs/case-workflow.md — Notifications.
+        $case->loadMissing('doctor.user');
+        $case->doctor?->user?->notify(
+            new CaseEditedByAdminNotification($case, 'impressions')
+        );
         return response()->json(['ok' => true]);
     }
 
@@ -326,6 +341,13 @@ class CasesController extends Controller
         $case->additionalInfo()->updateOrCreate(
             ['case_id' => $case->id],
             ['data' => $request->validated()]
+        );
+        // Notify doctor that admin edited this section.
+        // loadMissing avoids N+1 in the notification pipeline.
+        // See Docs/case-workflow.md — Notifications.
+        $case->loadMissing('doctor.user');
+        $case->doctor?->user?->notify(
+            new CaseEditedByAdminNotification($case, 'additional information')
         );
         return response()->json(['ok' => true]);
     }
@@ -346,6 +368,13 @@ class CasesController extends Controller
                 'phone'                   => $request->input('phone'),
             ]);
         }
+        // Notify doctor that admin edited this section.
+        // loadMissing avoids N+1 in the notification pipeline.
+        // See Docs/case-workflow.md — Notifications.
+        $case->loadMissing('doctor.user');
+        $case->doctor?->user?->notify(
+            new CaseEditedByAdminNotification($case, 'patient')
+        );
         return response()->json(['ok' => true]);
     }
 
@@ -357,6 +386,13 @@ class CasesController extends Controller
         $case->update([
             'submitter_initials' => $initials !== '' ? $initials : null,
         ]);
+        // Notify doctor that admin edited this section.
+        // loadMissing avoids N+1 in the notification pipeline.
+        // See Docs/case-workflow.md — Notifications.
+        $case->loadMissing('doctor.user');
+        $case->doctor?->user?->notify(
+            new CaseEditedByAdminNotification($case, 'submit order')
+        );
         return response()->json(['ok' => true]);
     }
 }
