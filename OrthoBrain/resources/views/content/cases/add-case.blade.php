@@ -237,7 +237,17 @@
     window.CASE_API_BASE = @json($apiBase);
     window.CASE_ADMIN_MODE = @json((bool) $adminMode);
     window.__caseStatus = @json($caseStatus);
-    window.__isReadOnly = window.__caseStatus !== 'DRAFT' && !@json((bool) $adminMode);
+    {{-- isReadOnly formula:
+         Doctor: read-only on any non-DRAFT status.
+         Admin: read-only only on APPROVED or REJECTED.
+           SUBMITTED + IN_REVIEW are fully editable for admin.
+           APPROVED requires status change → IN_REVIEW first,
+           then page reloads and form becomes editable.
+         See Docs/case-workflow.md — Role capabilities. --}}
+    window.__isReadOnly = window.CASE_ADMIN_MODE
+      ? (window.__caseStatus === 'APPROVED'
+         || window.__caseStatus === 'REJECTED')
+      : (window.__caseStatus !== 'DRAFT');
     window.ACTIVE_PRACTICE_ADDRESS = @json($activePracticeAddress);
     window.DOCTOR_SAVED_ADDRESSES = @json($doctorSavedAddresses);
     window.COUNTRY_ENTRIES = @json($countryEntries);
@@ -308,7 +318,16 @@
         if (btnAdminStatus) btnAdminStatus.disabled = true;
         return window.CaseApi.updateStatus(window.CASE_ID, status, extras || {})
           .then(function (res) {
-            alert('Status updated to ' + res.status + '.');
+            // Toast then reload: gives brief feedback before page
+            // refreshes to reflect new status and form editability.
+            // MediaTileHelpers.showToast is already wired — no new lib.
+            if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+              window.MediaTileHelpers.showToast(
+                'Status updated to ' + res.status + '.', 1200);
+            }
+            setTimeout(function () {
+              window.location.reload();
+            }, 1300);
           })
           .catch(function (err) {
             console.error('Status update failed', err);
@@ -345,8 +364,8 @@
             return;
           }
           var modal = window.bootstrap ? bootstrap.Modal.getInstance(rejectModalEl) : null;
-          performStatusUpdate('REJECTED', { rejection_reason: reason })
-            .then(function () { if (modal) modal.hide(); });
+          if (modal) modal.hide();
+          performStatusUpdate('REJECTED', { rejection_reason: reason });
         });
       }
 

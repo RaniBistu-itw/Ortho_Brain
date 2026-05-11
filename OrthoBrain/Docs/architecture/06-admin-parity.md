@@ -1,4 +1,4 @@
-> _Last verified: against origin/dev @ `a747b50` on 2026-05-07. If editing, update this stamp._
+> _Last verified: against feat/b2-admin-parity-reload @ `e3ea0a4` on 2026-05-11. If editing, update this stamp._
 
 # 06 — Admin / Doctor Parity
 
@@ -98,40 +98,70 @@ Allowed-status / actor-status mismatch checks live in the admin
 controller. Test coverage:
 [tests/Feature/Cases/AdminStatusTransitionTest.php](../../tests/Feature/Cases/AdminStatusTransitionTest.php).
 
-## Write-side parity decision (locked 2026-05-07)
+## Write-side parity — Sprint B-2 (shipped 2026-05-11)
 
-Admin gets full write parity for case data, with two carveouts:
+Admin has full write parity for case data. Implemented in PR #129 + media guard fix.
 
-1. **Status restriction:** Admin can edit cases in SUBMITTED, IN_REVIEW, APPROVED. Cannot edit REJECTED (terminal).
-2. **Patient identity locked fields:** `patient.first_name`, `patient.last_name`, `patient.dob` are read-only in admin edit. All other patient fields editable. Reason: prevents admin from accidentally re-keying a case onto a different patient identity.
+### What shipped
+
+**5 new admin section-save routes** (all in `Admin\CasesController`):
+
+| Route | Method | Notes |
+|---|---|---|
+| `POST /admin/cases/{id}/shipping` | `saveShipping()` | Same payload as doctor; no draft guard |
+| `POST /admin/cases/{id}/impressions` | `saveImpressions()` | Same payload as doctor; no draft guard |
+| `POST /admin/cases/{id}/additional` | `saveAdditionalInfo()` | Reuses `AdditionalInformationRequest`; no draft guard |
+| `POST /admin/cases/{id}/patient` | `savePatient()` | Non-identity fields only (see locked fields below) |
+| `POST /admin/cases/{id}/submit-order` | `saveSubmitOrder()` | Initials save; no draft guard |
+
+`POST /admin/cases/{id}/prescription` was already live via `PrescriptionController` (which has its own `role === 'ADMIN'` branch, no draft guard for admin).
+
+**Admin media routes** (PR #128 + B-2 guard fix):
+
+`Admin\CaseMediaController` extends the base `CaseMediaController`, overrides `resolveCaseForDoctor()` (no doctor scope) and `abortIfNotDraft()` (no-op — admin can edit media on any non-DRAFT case).
+
+### Read-only enforcement (window.__isReadOnly)
+
+The formula in `add-case.blade.php` branches by role:
+
+```js
+window.__isReadOnly = window.CASE_ADMIN_MODE
+  ? (window.__caseStatus === 'APPROVED' || window.__caseStatus === 'REJECTED')
+  : (window.__caseStatus !== 'DRAFT');
+```
+
+- **Doctor:** read-only on any non-DRAFT status.
+- **Admin:** read-only only on APPROVED/REJECTED. To edit an APPROVED case, admin transitions it to IN_REVIEW first — the page reloads and the form becomes editable.
+- **Important:** the server-side section-save endpoints have NO read-only guard for APPROVED/REJECTED. Client-side enforcement is the only layer. A crafted request could bypass it.
+
+### Patient identity locked fields
+
+`patient.first_name`, `patient.last_name`, `patient.date_of_birth` are never editable by admin.
+
+Enforced at **two layers**:
+1. **Client-side:** `patient-information.js` `init()` imperatively sets `el.disabled = true` for `pi-first-name`, `pi-last-name`, `pi-dob` when `window.CASE_ADMIN_MODE = true`, regardless of case status.
+2. **Server-side:** `Admin\CasesController::savePatient()` simply does not include those three fields in the `update()` call — even if sent in the request body they are silently ignored (not a 422).
+
+All other patient fields (`biological_gender`, `biological_gender_other`, `chart_id`, `chief_complaint`, `email`, `phone`) are editable by admin on SUBMITTED/IN_REVIEW cases.
 
 ### Admin acts on doctor's behalf
 
-When admin edits, the case's `doctor_id`, `practice_id`, `submitted_at`, and `submitter_initials` are preserved. Admin's identity is captured in audit context (when audit log lands), not in case ownership.
+Case's `doctor_id`, `practice_id`, `submitted_at`, and `submitter_initials` are preserved on admin edits. Admin identity captured in audit context (when audit log lands).
 
-### Implementation pattern (Sprint B-2)
+### Status change UX
 
-Current state (pre-Sprint-B-2):
-- Admin's case-edit screen has no `/admin/cases/{case}/media/*` routes (upload, destroy, reorder all 404)
-- Admin's case-edit has no section-save endpoints except `/prescription`
-- All admin write operations fail silently due to swallowed errors in `add-case.js`'s shielded chain
-- Admin/CasesController uses Reflection on doctor's serializers for read-side parity (a known smell — see Reflection refactor backlog)
+After any `POST /admin/cases/{id}/status` success, the page shows a brief toast (`MediaTileHelpers.showToast`, 1200ms) then reloads via `window.location.reload()` after 1300ms. This ensures the form's read-only state reflects the new status immediately. Rejection modal dismisses before the toast fires.
 
-Target state (post-Sprint-B-2):
-- Service layer extracted from `CasesController` (e.g., `CaseSectionService`, `CaseMediaService`, `PatientService`)
-- Both `CasesController` and `Admin/CasesController` call services with role context
-- Services enforce locked fields based on role (`acting_as: 'doctor'` vs `'admin'`)
-- 8 new admin routes mirror doctor routes; admin's controller is thin
-- Reflection hack removed; doctor controller's methods are public/protected as appropriate
+### Tests
 
-### Tests required
+[tests/Feature/Cases/AdminViewOnlyTest.php](../../tests/Feature/Cases/AdminViewOnlyTest.php) — 10 tests covering:
+- `window.__isReadOnly` formula shape and `CASE_ADMIN_MODE` seeding for each status
+- All 5 section-save endpoints: 200 + `{ok:true}` on SUBMITTED cases
+- Patient identity lock: `first_name`/`last_name`/`dob` unchanged after `savePatient()`
 
-- Per-endpoint admin parity tests: same input, same output as doctor's equivalent
-- Locked field enforcement tests: admin attempting to update first_name/last_name/dob → 422
-- Status restriction tests: admin attempting to edit REJECTED case → 403
-- Audit attribution tests (when audit log lands): admin's edits show admin identity, not doctor's
-
-Last verified: 2026-05-07 (write-side parity decision locked; pending Sprint B-2 implementation).
+Pending (not yet written):
+- Server-side guard test for APPROVED/REJECTED edit attempts (currently no guard exists)
+- Audit attribution tests (blocked on audit log landing)
 
 ## Other admin-only domains
 
@@ -155,7 +185,7 @@ edits. Drawer-based CRUD is the team's standard for admin masters.
 
 Some doctor routes have no admin equivalent and that's by design:
 - `POST /dev/practices/request` — only doctors can request to join
-- `POST /dev/cases/{case}/patient` — admin patient changes flow through case edit
+- `POST /dev/cases/create` — admin cannot create cases on behalf of a doctor (no doctor session context)
 - `POST /dev/profile/photo` — admins have their own profile photo route
 
 Don't reflexively mirror; mirror what the *case data flow* requires.
