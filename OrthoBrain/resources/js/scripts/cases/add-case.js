@@ -107,7 +107,12 @@
 
   function persistShipping() {
     if (!window.CaseApi || !state.shippingAddress || caseId === 'new') return Promise.resolve();
-    return window.CaseApi.saveShipping(caseId, state.shippingAddress);
+    // autosave: true signals the admin controller to skip CaseEditedByAdminNotification
+    // on background saves — only intentional manual edits should notify the doctor.
+    return window.CaseApi.saveShipping(
+      caseId,
+      Object.assign({}, state.shippingAddress, { autosave: true })
+    );
   }
 
   function persistImpressions() {
@@ -115,14 +120,18 @@
     var imp = state.impressions;
     var payload = {
       impressionMethod: imp.impressionMethodId === 'pvs' ? 'physical' : 'digital',
-      scannerId: imp.impressionMethodId === 'pvs' ? null : (parseInt(imp.impressionMethodId) || null)
+      scannerId: imp.impressionMethodId === 'pvs' ? null : (parseInt(imp.impressionMethodId) || null),
+      autosave: true,
     };
     return window.CaseApi.saveImpressions(caseId, payload);
   }
 
   function persistAdditionalInfo() {
     if (!window.CaseApi || !state.additionalInformation || caseId === 'new') return Promise.resolve();
-    return window.CaseApi.saveAdditionalInfo(caseId, state.additionalInformation);
+    return window.CaseApi.saveAdditionalInfo(
+      caseId,
+      Object.assign({}, state.additionalInformation, { autosave: true })
+    );
   }
 
   function persistSubmitOrder() {

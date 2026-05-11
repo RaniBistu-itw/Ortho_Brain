@@ -12,6 +12,7 @@ use App\Models\Patient;
 use App\Models\Practice;
 use App\Models\Scanner;
 use App\Notifications\CaseApprovedNotification;
+use App\Notifications\CaseEditedByAdminNotification;
 use App\Notifications\CaseRejectedNotification;
 use Illuminate\Http\Request;
 
@@ -283,9 +284,6 @@ class CasesController extends Controller
             );
         }
 
-        // TODO B-4b: dispatch CaseEditedByAdminNotification from
-        // admin section-save endpoints once B-4b is implemented.
-
         return response()->json([
             'ok' => true,
             'status' => $case->status,
@@ -322,6 +320,17 @@ class CasesController extends Controller
                 'country_id'       => $request->input('countryId'),
             ]
         );
+
+        // Only notify doctor on intentional admin edits.
+        // Background autosave (autosave: true in payload) does not
+        // notify — avoids spamming doctor on every 30s save cycle.
+        if (! $request->boolean('autosave')) {
+            $case->loadMissing('doctor.user');
+            $case->doctor?->user?->notify(
+                new CaseEditedByAdminNotification($case, 'shipping')
+            );
+        }
+
         return response()->json(['ok' => true]);
     }
 
@@ -333,6 +342,14 @@ class CasesController extends Controller
             'impression_method' => strtoupper($request->input('impressionMethod', '')),
             'scanner_id'        => $request->input('scannerId'),
         ]);
+
+        if (! $request->boolean('autosave')) {
+            $case->loadMissing('doctor.user');
+            $case->doctor?->user?->notify(
+                new CaseEditedByAdminNotification($case, 'impressions')
+            );
+        }
+
         return response()->json(['ok' => true]);
     }
 
@@ -346,6 +363,14 @@ class CasesController extends Controller
             ['case_id' => $case->id],
             ['data' => $request->validated()]
         );
+
+        if (! $request->boolean('autosave')) {
+            $case->loadMissing('doctor.user');
+            $case->doctor?->user?->notify(
+                new CaseEditedByAdminNotification($case, 'additional information')
+            );
+        }
+
         return response()->json(['ok' => true]);
     }
 
@@ -365,6 +390,14 @@ class CasesController extends Controller
                 'phone'                   => $request->input('phone'),
             ]);
         }
+
+        if (! $request->boolean('autosave')) {
+            $case->loadMissing('doctor.user');
+            $case->doctor?->user?->notify(
+                new CaseEditedByAdminNotification($case, 'patient')
+            );
+        }
+
         return response()->json(['ok' => true]);
     }
 
@@ -376,6 +409,14 @@ class CasesController extends Controller
         $case->update([
             'submitter_initials' => $initials !== '' ? $initials : null,
         ]);
+
+        if (! $request->boolean('autosave')) {
+            $case->loadMissing('doctor.user');
+            $case->doctor?->user?->notify(
+                new CaseEditedByAdminNotification($case, 'submit order')
+            );
+        }
+
         return response()->json(['ok' => true]);
     }
 }

@@ -39,7 +39,13 @@
           hydrate:     function (d) { self._hydrate(d); },
         };
 
+        // _initialized guards _persistToServer from firing during
+        // hydration. Without this, opening a case triggers saves
+        // before the admin has made any change, causing spurious
+        // CaseEditedByAdminNotification dispatches.
+        this._initialized = false;
         this.syncToState();
+        this._initialized = true;
       },
 
       // ── Data loading ────────────────────────────────────────────────────────
@@ -81,8 +87,8 @@
 
         if (window.AddCaseSave) window.AddCaseSave.markDirty();
 
-        // Server-side persistence if case exists
-        if (window.CASE_ID && window.CASE_ID !== 'new') {
+        // Only persist after initialization — skip hydration saves.
+        if (this._initialized && window.CASE_ID && window.CASE_ID !== 'new') {
           this._persistToServer(payload);
         }
       },

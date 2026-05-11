@@ -494,16 +494,49 @@
         }
       },
 
-      _swapOrMoveTiles: function (sourceId, targetId) {
+      _swapOrMoveTiles: async function (sourceId, targetId) {
         var src = this.tiles[sourceId];
         var tgt = this.tiles[targetId];
 
-        // Pre-swap blob state — drives the server-side reorder call below
-        // (parity with photographs.js).
+        // Capture pre-swap state — drives persistence strategy below. When a
+        // tile holds only a server-side previewUrl (no blob), the old code
+        // would skip the reorder call, silently leaving server state stale.
+        // Detect that and route to the reorder endpoint instead.
         var srcHadBlob   = !!(src.croppedBlob || src.originalFile);
         var tgtHadBlob   = !!(tgt.croppedBlob || tgt.originalFile);
         var srcWasFilled = src.filled;
         var tgtWasFilled = tgt.filled;
+
+        // Mixed-case guard: when both tiles aren't URL-only, the destroy+upload
+        // path runs below. If ONE tile is URL-only, _forgetTile would DELETE
+        // its server record. Fetch URL-only sides into blobs pre-swap so every
+        // re-persist has actual content. (Both-URL-only is the fast path below.)
+        var bothUrlOnly = srcWasFilled && !srcHadBlob && tgtWasFilled && !tgtHadBlob;
+        var moveUrlOnly = srcWasFilled && !srcHadBlob && !tgtWasFilled;
+        if (!bothUrlOnly && !moveUrlOnly) {
+          try {
+            if (srcWasFilled && !srcHadBlob && src.previewUrl) {
+              var srcRes = await fetch(src.previewUrl, { credentials: 'same-origin' });
+              if (!srcRes.ok) throw new Error('source URL fetch ' + srcRes.status);
+              src.originalFile = await srcRes.blob();
+              // Re-anchor preview to the blob — the destroy+upload below
+              // invalidates the original server URL, which would otherwise
+              // appear as a broken image on the OTHER tile after the swap.
+              src.previewUrl = URL.createObjectURL(src.originalFile);
+              srcHadBlob = true;
+            }
+            if (tgtWasFilled && !tgtHadBlob && tgt.previewUrl) {
+              var tgtRes = await fetch(tgt.previewUrl, { credentials: 'same-origin' });
+              if (!tgtRes.ok) throw new Error('target URL fetch ' + tgtRes.status);
+              tgt.originalFile = await tgtRes.blob();
+              tgt.previewUrl = URL.createObjectURL(tgt.originalFile);
+              tgtHadBlob = true;
+            }
+          } catch (e) {
+            console.warn('xrays: pre-swap URL→blob fetch failed, aborting swap', e);
+            return;
+          }
+        }
 
         if (tgt.filled) {
           var tmpFilled    = src.filled;
@@ -542,8 +575,6 @@
         // mirrored on disk. Without this, reopening the case shows x-rays in
         // their original slots.
         var caseId = this._getCaseId();
-        var bothUrlOnly = srcWasFilled && !srcHadBlob && tgtWasFilled && !tgtHadBlob;
-        var moveUrlOnly = srcWasFilled && !srcHadBlob && !tgtWasFilled;
         if (bothUrlOnly || moveUrlOnly) {
           if (window.CaseMediaApi && caseId && caseId !== 'new') {
             var self = this;
