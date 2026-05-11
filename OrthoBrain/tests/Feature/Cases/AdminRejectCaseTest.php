@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\User;
+use App\Notifications\CaseRejectedNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 // ─── Admin rejection flow — required reason on REJECTED transitions ─────────
 //
@@ -92,4 +94,48 @@ it('overwrites rejection_reason on second rejection (IN_REVIEW → REJECTED with
         ->assertStatus(200);
 
     expect(DB::table('cases')->where('id', $caseId)->value('rejection_reason'))->toBe($newReason);
+});
+
+it('dispatches CaseRejectedNotification with reason on IN_REVIEW → REJECTED transition', function () {
+    Notification::fake();
+
+    ['caseId' => $caseId, 'user' => $doctorUser] = makeDoctorCase(['status' => 'IN_REVIEW']);
+
+    $reason = 'Photos are out of focus and unusable for treatment planning.';
+    $admin = User::factory()->admin()->create();
+    test()->actingAs($admin)
+        ->postJson("/admin/cases/{$caseId}/status", [
+            'status'           => 'REJECTED',
+            'rejection_reason' => $reason,
+        ])
+        ->assertStatus(200)
+        ->assertJson(['ok' => true]);
+
+    Notification::assertSentTo($doctorUser, CaseRejectedNotification::class);
+});
+
+it('does not dispatch any notification on IN_REVIEW → IN_REVIEW self-transition no-op', function () {
+    Notification::fake();
+
+    ['caseId' => $caseId, 'user' => $doctorUser] = makeDoctorCase(['status' => 'IN_REVIEW']);
+
+    $admin = User::factory()->admin()->create();
+    test()->actingAs($admin)
+        ->postJson("/admin/cases/{$caseId}/status", ['status' => 'IN_REVIEW'])
+        ->assertStatus(200);
+
+    Notification::assertNothingSent();
+});
+
+it('does not dispatch any notification on SUBMITTED → IN_REVIEW transition', function () {
+    Notification::fake();
+
+    ['caseId' => $caseId] = makeDoctorCase(['status' => 'SUBMITTED']);
+
+    $admin = User::factory()->admin()->create();
+    test()->actingAs($admin)
+        ->postJson("/admin/cases/{$caseId}/status", ['status' => 'IN_REVIEW'])
+        ->assertStatus(200);
+
+    Notification::assertNothingSent();
 });
