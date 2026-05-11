@@ -1,4 +1,4 @@
-> _Last verified: against origin/dev @ `a747b50` on 2026-05-07. If editing, update this stamp._
+> _Last verified: against feat/b2-admin-parity-reload @ `e3ea0a4` on 2026-05-11. If editing, update this stamp._
 
 # 04 — Add Case Flow
 
@@ -51,8 +51,8 @@ most aren't. Verified against origin/dev `096aea5`:
 
 | Request | Wired into |
 |---|---|
-| [PatientInformationRequest](../../app/Http/Requests/Cases/PatientInformationRequest.php) | [PatientController](../../app/Http/Controllers/PatientController.php) |
-| [AdditionalInformationRequest](../../app/Http/Requests/Cases/AdditionalInformationRequest.php) | [CasesController::saveAdditionalInfo](../../app/Http/Controllers/CasesController.php) |
+| [PatientInformationRequest](../../app/Http/Requests/Cases/PatientInformationRequest.php) | [PatientController::upsert](../../app/Http/Controllers/PatientController.php) (doctor only) |
+| [AdditionalInformationRequest](../../app/Http/Requests/Cases/AdditionalInformationRequest.php) | [CasesController::saveAdditionalInfo](../../app/Http/Controllers/CasesController.php) AND [Admin\CasesController::saveAdditionalInfo](../../app/Http/Controllers/Admin/CasesController.php) |
 
 ### Defined but not wired
 
@@ -75,21 +75,23 @@ decision) and #1+#2 (silent upload error handling).
 
 ## Persistence endpoints
 
-All POST, all under `/dev/cases/{case}/...` (doctor) or
-`/admin/cases/{case}/...` (admin). See [routes/web.php](../../routes/web.php) and [Docs/api.md](../api.md) for full contracts.
+All POST. Doctor routes under `/dev/cases/{case}/...`; admin routes under `/admin/cases/{case}/...`. See [routes/web.php](../../routes/web.php) and [Docs/api.md](../api.md) for full contracts.
 
-| Endpoint | Controller method | Section |
-|---|---|---|
-| `POST /shipping` | `CasesController::saveShipping` | Shipping |
-| `POST /impressions` | `CasesController::saveImpressions` | Impressions |
-| `POST /additional` | `CasesController::saveAdditionalInfo` | Additional Info |
-| `POST /prescription` | [PrescriptionController](../../app/Http/Controllers/PrescriptionController.php)::update | Prescription |
-| `POST /patient` | [PatientController](../../app/Http/Controllers/PatientController.php)::upsert | Patient |
-| `POST /media/upload` | [CaseMediaController](../../app/Http/Controllers/CaseMediaController.php)::upload | Photos + X-Rays |
-| `POST /media/{section}/{tile_id}/destroy` | `CaseMediaController::destroy` | Photos + X-Rays. **POST not DELETE** — PHP 8.3 gotcha |
-| `POST /media/reorder` | `CaseMediaController::reorder` | Photos + X-Rays drag-rearrange when tiles are URL-only (no client blob). Throttle 60/1. PR #106. |
-| `POST /submit` | `CasesController::submit` | Submit Order |
-| `GET\|POST /export.pdf` | [CasePdfController](../../app/Http/Controllers/CasePdfController.php)::export | Final PDF, dompdf-rendered from [pdf/case-report.blade.php](../../resources/views/content/cases/pdf/case-report.blade.php) |
+Doctor routes have an `abortIfNotDraft` guard — 403 on non-DRAFT. Admin routes have no draft guard (admin edits SUBMITTED/IN_REVIEW freely).
+
+| Endpoint | Doctor controller | Admin controller | Notes |
+|---|---|---|---|
+| `POST /shipping` | `CasesController::saveShipping` | `Admin\CasesController::saveShipping` | |
+| `POST /impressions` | `CasesController::saveImpressions` | `Admin\CasesController::saveImpressions` | |
+| `POST /additional` | `CasesController::saveAdditionalInfo` | `Admin\CasesController::saveAdditionalInfo` | Uses `AdditionalInformationRequest` on both paths |
+| `POST /prescription` | [PrescriptionController](../../app/Http/Controllers/PrescriptionController.php)::update | same controller — branches on `role === 'ADMIN'` | No draft guard for admin |
+| `POST /patient` | [PatientController](../../app/Http/Controllers/PatientController.php)::upsert | `Admin\CasesController::savePatient` | Admin version updates non-identity fields only; first/last/dob silently excluded |
+| `POST /submit-order` | `CasesController::saveSubmitOrder` | `Admin\CasesController::saveSubmitOrder` | Saves `submitter_initials`; no draft guard on either path |
+| `POST /media/upload` | [CaseMediaController](../../app/Http/Controllers/CaseMediaController.php)::upload | [Admin\CaseMediaController](../../app/Http/Controllers/Admin/CaseMediaController.php)::upload | Admin subclass overrides `resolveCaseForDoctor` + `abortIfNotDraft` |
+| `POST /media/{section}/{tile_id}/destroy` | `CaseMediaController::destroy` | `Admin\CaseMediaController::destroy` | **POST not DELETE** — PHP 8.3 gotcha |
+| `POST /media/reorder` | `CaseMediaController::reorder` | `Admin\CaseMediaController::reorder` | URL-only tile reorder (no client blob). PR #106. |
+| `POST /submit` | `CasesController::submit` | n/a — admin cannot submit on doctor's behalf | Doctor-only action |
+| `GET\|POST /export.pdf` | [CasePdfController](../../app/Http/Controllers/CasePdfController.php)::export | same controller | |
 
 ## Components shared across sections
 
