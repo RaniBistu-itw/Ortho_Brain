@@ -217,6 +217,7 @@
     
     .doc-nav__notif-item .bi-check-circle { color: #10b981; margin-top: 0.15rem; }
     .doc-nav__notif-item .bi-x-circle { color: #ef4444; margin-top: 0.15rem; }
+    .doc-nav__notif-item .bi-info-circle { color: #0ea5e9; margin-top: 0.15rem; }
     .doc-nav__notif-item .bi-hourglass-split { color: #f59e0b; margin-top: 0.15rem; }
     .doc-nav__notif-title { font-weight: 700; color: #1e293b; font-size: 0.9rem; line-height: 1.2; display: block; }
     .doc-nav__notif-body  { color: #475569; font-size: 0.82rem; margin-top: 0.25rem; display: block; line-height: 1.4; }
@@ -406,7 +407,13 @@
                         $title = $d['title'] ?? 'Notification';
                         $body  = $d['body']  ?? '';
                         $url   = $d['url']   ?? route('doctor.profile.index', ['tab' => 'practices']);
-                        $icon  = ($d['kind'] ?? '') === 'rejected' ? 'x-circle' : 'check-circle';
+                        // Icon mapping: rejected=x-circle, info/edited=info-circle,
+                        // everything else (approved etc.)=check-circle.
+                        $icon  = match($d['kind'] ?? '') {
+                            'rejected' => 'x-circle',
+                            'info'     => 'info-circle',
+                            default    => 'check-circle',
+                        };
                     @endphp
                     <a class="doc-nav__notif-item {{ $n->read_at ? 'is-read' : '' }}"
                        href="{{ $url }}"
@@ -877,7 +884,11 @@
                         </button>
                     </a>`;
             }
-            const icon = n.kind === 'rejected' ? 'x-circle' : 'check-circle';
+            // Icon mapping mirrors Blade: rejected=x-circle,
+            // info/edited=info-circle, default=check-circle.
+            const icon = n.kind === 'rejected' ? 'x-circle'
+                       : n.kind === 'info'     ? 'info-circle'
+                       : 'check-circle';
             const url  = escapeHtml(n.url || fallbackUrl);
             return `
                 <a class="doc-nav__notif-item ${n.read ? 'is-read' : ''}" href="${url}" data-notif-id="${n.id}">
