@@ -4,6 +4,21 @@
 
 @push('styles')
 <style>
+    .ob-loading-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: inherit;
+        pointer-events: none;
+    }
+    .dark-layout .ob-loading-overlay {
+        background: rgba(40, 48, 70, 0.6);
+    }
+
     #practice-show {
         --ob-primary: #5bc0de;
         --ob-primary-softer: rgba(91, 192, 222, 0.07);
@@ -593,7 +608,122 @@
         });
     }
 
-    // Practice-level ACTIVE/INACTIVE dropdown in the hero card.
+    // Show/hide a spinner overlay on any positioned card or container.
+    function setCardLoading(el, on) {
+        if (!el) return;
+        if (on) {
+            if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+            var ov = document.createElement('div');
+            ov.className = 'ob-loading-overlay';
+            ov.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading…</span></div>';
+            el.appendChild(ov);
+            el.style.pointerEvents = 'none';
+        } else {
+            el.style.pointerEvents = '';
+            var ov = el.querySelector('.ob-loading-overlay');
+            if (ov) ov.remove();
+        }
+    }
+
+    // Swap a button's content with a spinner; restore on done.
+    function setBtnLoading(btn, on) {
+        if (!btn) return;
+        if (on) {
+            btn.dataset.origHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-25" role="status" aria-hidden="true"></span>Working…';
+            btn.disabled = true;
+        } else {
+            if (btn.dataset.origHtml !== undefined) btn.innerHTML = btn.dataset.origHtml;
+            btn.disabled = false;
+            delete btn.dataset.origHtml;
+        }
+    }
+
+    // Transition options available after each status — mirrors PHP $transitions table.
+    var nextTransitions = {
+        APPROVED:  [{ value: 'SUSPENDED', label: 'Suspend' }],
+        REJECTED:  [{ value: 'APPROVED',  label: 'Re-approve' }],
+        SUSPENDED: [{ value: 'APPROVED',  label: 'Re-approve' }],
+    };
+    var toneFor = {
+        APPROVED:  'approved',
+        REJECTED:  'rejected',
+        SUSPENDED: 'suspended',
+        PENDING:   'pending'
+    };
+    var labelFor = {
+        APPROVED:  'Active',
+        REJECTED:  'Rejected',
+        SUSPENDED: 'Suspended',
+        PENDING:   'Pending'
+    };
+
+    // Rebuild a status select's options and CSS after a successful pivot change.
+    function updateDoctorStateSelect(sel, newStatus) {
+        sel.setAttribute('data-current', newStatus);
+        sel.classList.remove('ob-doctor-state--pending', 'ob-doctor-state--approved',
+                             'ob-doctor-state--rejected', 'ob-doctor-state--suspended');
+        sel.classList.add('ob-doctor-state--' + (toneFor[newStatus] || 'pending'));
+
+        var transitions = nextTransitions[newStatus] || [];
+        sel.innerHTML = '';
+        var opt0 = document.createElement('option');
+        opt0.value = '';
+        opt0.selected = true;
+        opt0.textContent = labelFor[newStatus] || newStatus;
+        sel.appendChild(opt0);
+        transitions.forEach(function (t) {
+            var opt = document.createElement('option');
+            opt.value = t.value;
+            opt.textContent = t.label;
+            sel.appendChild(opt);
+        });
+        sel.disabled = false;
+    }
+
+    // Recount PENDING selects in DOM and update badge + bulk buttons accordingly.
+    function syncPendingUI() {
+        var pendingCount = document.querySelectorAll('.ob-doctor-state[data-current="PENDING"]').length;
+        var badge = document.getElementById('pendingPivotBadge');
+        if (badge) {
+            if (pendingCount === 0) {
+                badge.remove();
+            } else {
+                badge.textContent = pendingCount + ' pending';
+            }
+        }
+        var approveBtn = document.getElementById('bulkApproveBtn');
+        var rejectBtn  = document.getElementById('bulkRejectBtn');
+        if (approveBtn) approveBtn.disabled = pendingCount === 0;
+        if (rejectBtn)  rejectBtn.disabled  = pendingCount === 0;
+    }
+
+    // After a practice-level status change (which may cascade doctor pivots),
+    // fetch and replace only the doctors card section — much faster than a full reload.
+    function reloadDoctorsCard() {
+        var tbody  = document.getElementById('doctorRowsBody');
+        var cardEl = tbody ? tbody.closest('.ob-card') : null;
+        if (!cardEl) { window.location.reload(); return; }
+
+        setCardLoading(cardEl, true);
+
+        fetch(window.location.href, { credentials: 'same-origin' })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                var doc    = new DOMParser().parseFromString(html, 'text/html');
+                var newBody = doc.getElementById('doctorRowsBody');
+                var newCard = newBody ? newBody.closest('.ob-card') : null;
+                if (newCard) {
+                    cardEl.replaceWith(newCard);
+                    if (window.feather) feather.replace();
+                } else {
+                    window.location.reload();
+                }
+            })
+            .catch(function () { window.location.reload(); });
+    }
+
+    // ── Practice-level ACTIVE/INACTIVE dropdown ──────────────────────
     var pSel = document.getElementById('practiceStatusSelect');
     if (pSel) {
         pSel.addEventListener('change', function () {
@@ -620,133 +750,114 @@
                 buttonsStyling: false
             }).then(function (result) {
                 if (!result.value) { pSel.value = previous; return; }
+                var heroStatusEl = pSel.closest('.ob-hero-status') || pSel.parentElement;
+                setCardLoading(heroStatusEl, true);
                 pSel.disabled = true;
                 jsonPost(pSel.getAttribute('data-url'), { status: next })
                     .then(function (res) {
                         pSel.setAttribute('data-current', res.status);
                         pSel.classList.remove('ob-status-select--success', 'ob-status-select--secondary');
                         pSel.classList.add(res.status === 'ACTIVE' ? 'ob-status-select--success' : 'ob-status-select--secondary');
-                        // Reload to refresh the doctor card — cascade may have flipped pivots.
-                        window.location.reload();
+                        // Cascade may have flipped doctor pivot statuses — reload just the doctors card.
+                        reloadDoctorsCard();
                     })
                     .catch(function (msg) {
                         pSel.value = previous;
                         Swal.fire({ icon: 'error', title: 'Update failed', text: String(msg) });
                     })
-                    .finally(function () { pSel.disabled = false; });
+                    .finally(function () {
+                        pSel.disabled = false;
+                        setCardLoading(heroStatusEl, false);
+                    });
             });
         });
     }
 
-    // Per-doctor state dropdowns.
-    var toneFor = {
-        APPROVED:  'approved',
-        REJECTED:  'rejected',
-        SUSPENDED: 'suspended',
-        PENDING:   'pending'
-    };
-    var labelFor = {
-        APPROVED:  'Active',
-        REJECTED:  'Rejected',
-        SUSPENDED: 'Suspended',
-        PENDING:   'Pending'
-    };
+    // ── Per-doctor state dropdowns (event delegation — survives card swap) ──
+    document.addEventListener('change', function (e) {
+        if (!e.target.matches('.ob-doctor-state')) return;
+        var sel          = e.target;
+        var target       = sel.value;
+        if (!target) return;
+        var url          = sel.getAttribute('data-url');
+        var doctorName   = sel.getAttribute('data-doctor-name') || 'this doctor';
+        var practiceName = sel.getAttribute('data-practice-name') || 'this practice';
 
-    function reapplyTone(sel, newStatus) {
-        sel.classList.remove('ob-doctor-state--pending', 'ob-doctor-state--approved',
-                              'ob-doctor-state--rejected', 'ob-doctor-state--suspended');
-        sel.classList.add('ob-doctor-state--' + (toneFor[newStatus] || 'pending'));
-    }
+        var needsReason = (target === 'REJECTED' || target === 'SUSPENDED');
+        var actionLabel = { APPROVED: 'Approve', REJECTED: 'Reject', SUSPENDED: 'Suspend' }[target] || target;
 
-    document.querySelectorAll('.ob-doctor-state').forEach(function (sel) {
-        sel.addEventListener('change', function () {
-            var target = sel.value;
-            if (!target) return;
-            var current      = sel.getAttribute('data-current');
-            var url          = sel.getAttribute('data-url');
-            var doctorName   = sel.getAttribute('data-doctor-name') || 'this doctor';
-            var practiceName = sel.getAttribute('data-practice-name') || 'this practice';
-
-            var needsReason = (target === 'REJECTED' || target === 'SUSPENDED');
-            var actionLabel = { APPROVED: 'Approve', REJECTED: 'Reject', SUSPENDED: 'Suspend' }[target] || target;
-
-            var swalPromise;
-            if (needsReason) {
-                swalPromise = Swal.fire({
-                    title: actionLabel + ' ' + doctorName + '?',
-                    input: 'textarea',
-                    inputLabel: 'Reason (shown to the doctor)',
-                    inputPlaceholder: 'Brief reason...',
-                    inputAttributes: { maxlength: 500 },
-                    showCancelButton: true,
-                    confirmButtonText: actionLabel,
-                    cancelButtonText:  'Cancel',
-                    customClass: {
-                        confirmButton: 'btn btn-danger',
-                        cancelButton:  'btn btn-outline-secondary ms-1'
-                    },
-                    buttonsStyling: false,
-                    inputValidator: function (v) {
-                        if (!v || !v.trim()) return 'A reason is required.';
-                    }
-                });
-            } else {
-                swalPromise = Swal.fire({
-                    title: actionLabel + ' ' + doctorName + '?',
-                    text:  target === 'APPROVED'
-                        ? 'Grants access to ' + practiceName + '.'
-                        : '',
-                    icon:  'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, ' + actionLabel.toLowerCase(),
-                    cancelButtonText:  'Cancel',
-                    customClass: {
-                        confirmButton: 'btn btn-success',
-                        cancelButton:  'btn btn-outline-secondary ms-1'
-                    },
-                    buttonsStyling: false
-                });
-            }
-
-            swalPromise.then(function (result) {
-                if (!result.value) {
-                    // Reset select to the "current state" option (the empty-value default).
-                    sel.value = '';
-                    return;
+        var swalPromise;
+        if (needsReason) {
+            swalPromise = Swal.fire({
+                title: actionLabel + ' ' + doctorName + '?',
+                input: 'textarea',
+                inputLabel: 'Reason (shown to the doctor)',
+                inputPlaceholder: 'Brief reason...',
+                inputAttributes: { maxlength: 500 },
+                showCancelButton: true,
+                confirmButtonText: actionLabel,
+                cancelButtonText:  'Cancel',
+                customClass: {
+                    confirmButton: 'btn btn-danger',
+                    cancelButton:  'btn btn-outline-secondary ms-1'
+                },
+                buttonsStyling: false,
+                inputValidator: function (v) {
+                    if (!v || !v.trim()) return 'A reason is required.';
                 }
-                var reason = needsReason ? (result.value || '').trim() : null;
-                sel.disabled = true;
-                jsonPost(url, { status: target, reason: reason })
-                    .then(function () {
-                        // Reload so the pending badge, bulk-button enabled state, and
-                        // valid transitions all stay in sync without bespoke client diffing.
-                        Swal.fire({ icon: 'success', title: actionLabel + 'd.', timer: 900, showConfirmButton: false })
-                            .then(function () { window.location.reload(); });
-                        setTimeout(function () { window.location.reload(); }, 1000);
-                    })
-                    .catch(function (msg) {
-                        sel.value = '';
-                        sel.disabled = false;
-                        Swal.fire({ icon: 'error', title: 'Update failed', text: String(msg) });
-                    });
             });
+        } else {
+            swalPromise = Swal.fire({
+                title: actionLabel + ' ' + doctorName + '?',
+                text:  target === 'APPROVED' ? 'Grants access to ' + practiceName + '.' : '',
+                icon:  'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, ' + actionLabel.toLowerCase(),
+                cancelButtonText:  'Cancel',
+                customClass: {
+                    confirmButton: 'btn btn-success',
+                    cancelButton:  'btn btn-outline-secondary ms-1'
+                },
+                buttonsStyling: false
+            });
+        }
+
+        swalPromise.then(function (result) {
+            if (!result.value) { sel.value = ''; return; }
+            var reason = needsReason ? (result.value || '').trim() : null;
+            var td = sel.closest('td');
+            if (td) setCardLoading(td, true);
+            sel.disabled = true;
+            jsonPost(url, { status: target, reason: reason })
+                .then(function () {
+                    updateDoctorStateSelect(sel, target);
+                    syncPendingUI();
+                    if (td) setCardLoading(td, false);
+                    Swal.fire({ icon: 'success', title: actionLabel + 'd.', timer: 900, showConfirmButton: false });
+                })
+                .catch(function (msg) {
+                    if (td) setCardLoading(td, false);
+                    sel.value = '';
+                    sel.disabled = false;
+                    Swal.fire({ icon: 'error', title: 'Update failed', text: String(msg) });
+                });
         });
     });
 
     // ── Doctor search + relationship filter (client-side) ────────────
-    var searchInput      = document.getElementById('doctorSearchInput');
-    var relationshipSel  = document.getElementById('doctorRelationshipFilter');
-    var emptyRow         = document.getElementById('doctorSearchEmpty');
+    var searchInput     = document.getElementById('doctorSearchInput');
+    var relationshipSel = document.getElementById('doctorRelationshipFilter');
     function applyDoctorFilters() {
-        var q    = searchInput ? (searchInput.value || '').trim().toLowerCase() : '';
-        var rel  = relationshipSel ? relationshipSel.value : 'all';
+        var q       = searchInput ? (searchInput.value || '').trim().toLowerCase() : '';
+        var rel     = relationshipSel ? relationshipSel.value : 'all';
         var visible = 0;
+        var emptyRow = document.getElementById('doctorSearchEmpty');
         document.querySelectorAll('tr[data-doctor-row]').forEach(function (row) {
-            var hay        = row.getAttribute('data-search') || '';
-            var rowRel     = row.getAttribute('data-relationship') || '';
-            var matchText  = q === '' || hay.indexOf(q) !== -1;
-            var matchRel   = rel === 'all' || rowRel === rel;
-            var match      = matchText && matchRel;
+            var hay       = row.getAttribute('data-search') || '';
+            var rowRel    = row.getAttribute('data-relationship') || '';
+            var matchText = q === '' || hay.indexOf(q) !== -1;
+            var matchRel  = rel === 'all' || rowRel === rel;
+            var match     = matchText && matchRel;
             row.hidden = !match;
             if (match) visible++;
         });
@@ -755,7 +866,7 @@
     if (searchInput)     searchInput.addEventListener('input', applyDoctorFilters);
     if (relationshipSel) relationshipSel.addEventListener('change', applyDoctorFilters);
 
-    // ── Bulk approve / reject all PENDING doctors ────────────────────
+    // ── Bulk approve / reject all PENDING doctors ─────────────────────
     function runBulk(btn, action) {
         var url          = btn.getAttribute('data-url');
         var practiceName = btn.getAttribute('data-practice-name') || 'this practice';
@@ -789,31 +900,39 @@
 
         Swal.fire(swalCfg).then(function (result) {
             if (!result.value) return;
-            var reason = isReject ? (result.value || '').trim() : null;
+            var reason    = isReject ? (result.value || '').trim() : null;
+            var newStatus = isReject ? 'REJECTED' : 'APPROVED';
+            setBtnLoading(btn, true);
 
-            btn.disabled = true;
             jsonPost(url, { action: action, reason: reason })
                 .then(function (res) {
                     var n = (res && res.count) || 0;
+                    // Update all pending rows in-place — no page reload needed.
+                    document.querySelectorAll('.ob-doctor-state[data-current="PENDING"]').forEach(function (sel) {
+                        updateDoctorStateSelect(sel, newStatus);
+                    });
+                    syncPendingUI();
                     Swal.fire({
                         icon: 'success',
                         title: actionWord + 'd ' + n + ' ' + (n === 1 ? 'doctor' : 'doctors') + '.',
                         timer: 1100,
                         showConfirmButton: false
-                    }).then(function () { window.location.reload(); });
-                    setTimeout(function () { window.location.reload(); }, 1200);
+                    });
                 })
                 .catch(function (msg) {
-                    btn.disabled = false;
+                    setBtnLoading(btn, false);
                     Swal.fire({ icon: 'error', title: 'Bulk update failed', text: String(msg) });
                 });
         });
     }
 
-    var bulkApproveBtn = document.getElementById('bulkApproveBtn');
-    var bulkRejectBtn  = document.getElementById('bulkRejectBtn');
-    if (bulkApproveBtn) bulkApproveBtn.addEventListener('click', function () { runBulk(bulkApproveBtn, 'APPROVE'); });
-    if (bulkRejectBtn)  bulkRejectBtn .addEventListener('click', function () { runBulk(bulkRejectBtn,  'REJECT');  });
+    // Event delegation for bulk buttons — survives card swap after practice toggle.
+    document.addEventListener('click', function (e) {
+        var approveBtn = e.target.closest('#bulkApproveBtn');
+        var rejectBtn  = e.target.closest('#bulkRejectBtn');
+        if (approveBtn) { runBulk(approveBtn, 'APPROVE'); return; }
+        if (rejectBtn)  { runBulk(rejectBtn,  'REJECT');  }
+    });
 })();
 </script>
 @endpush
