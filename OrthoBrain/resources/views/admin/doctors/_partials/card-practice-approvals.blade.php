@@ -111,7 +111,7 @@
 </style>
 @endpush
 
-<div class="card">
+<div class="card" id="practice-approvals-card">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-1">
             <h5 class="card-title mb-0">
@@ -218,7 +218,8 @@
                             @if($link->approval_status === 'PENDING')
                                 <form method="POST"
                                       action="{{ route('admin.doctors.practices.approve', [$doctor, $link->link_id]) }}"
-                                      class="m-0">
+                                      data-status-url="{{ route('admin.doctors.practices.status', [$doctor, $link->link_id]) }}"
+                                      class="m-0 js-practice-approve-form">
                                     @csrf
                                     <button class="btn btn-sm btn-success" type="submit" title="Approve">
                                         <i data-feather="check" style="width:13px;height:13px;"></i>
@@ -244,7 +245,9 @@
                             <div class="modal-dialog">
                                 <form method="POST"
                                       action="{{ route('admin.doctors.practices.reject', [$doctor, $link->link_id]) }}"
-                                      class="modal-content">
+                                      data-status-url="{{ route('admin.doctors.practices.status', [$doctor, $link->link_id]) }}"
+                                      data-modal-id="rejectPracticeModal-{{ $link->link_id }}"
+                                      class="modal-content js-practice-reject-form">
                                     @csrf
                                     <div class="modal-header">
                                         <h5 class="modal-title">Reject practice request</h5>
