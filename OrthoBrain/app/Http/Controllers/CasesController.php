@@ -66,7 +66,7 @@ class CasesController extends Controller
                 $like = "%{$searchTerm}%";
                 $q->where(function ($w) use ($searchTerm, $like) {
                     if (ctype_digit($searchTerm)) {
-                        $w->orWhere('cases.id', (int) $searchTerm);
+                        $w->orWhereRaw('CAST(cases.id AS CHAR) LIKE ?', [$like]);
                     }
                     $w->orWhereHas('patient', function ($p) use ($like) {
                         $p->where('first_name', 'like', $like)
