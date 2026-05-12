@@ -29,8 +29,9 @@ function caseReadyForInitialsGate(): array
 
     DB::table('prescriptions')->insert(['case_id' => $bundle['caseId']]);
     DB::table('cases')->where('id', $bundle['caseId'])->update([
-        'patient_id' => $patientId,
-        'xrays_date' => '2026-01-01',
+        'patient_id'  => $patientId,
+        'xrays_date'  => '2026-01-01',
+        'photos_date' => '2026-01-01',   // added in PR #138 alongside the xrays_date gate
     ]);
 
     return $bundle;
