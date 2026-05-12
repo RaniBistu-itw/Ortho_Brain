@@ -195,6 +195,7 @@ Route::middleware(['web', 'admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/system-health', [\App\Http\Controllers\Admin\SystemHealthController::class, 'index'])->name('system-health');
 
         // Admin notifications — bell dropdown "View All" feed (today's activity)
         Route::get('/notifications', [\App\Http\Controllers\Admin\NotificationController::class, 'index'])
