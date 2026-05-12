@@ -356,3 +356,54 @@ any media-replacement flow.
 **Reference:** PR #106. Fixed for photographs and x-rays. See
 `Docs/architecture/04-add-case-flow.md` § "Tile drag-reorder
 semantics" for the implementation map.
+
+## Security headers
+
+### Entry 12 — Audit client-side API usage before tightening security headers
+
+**Rule:** When adding or tightening `Permissions-Policy`, CSP, or any
+security header, first audit which browser APIs the JS codebase uses:
+
+```
+grep -rn "getUserMedia\|SpeechRecognition\|clipboard\|geolocation\|notifications\|usb\|bluetooth" \
+  resources/js/ public/js/ --include="*.js"
+```
+
+Confirm none of the matched APIs are blocked by the new header before
+shipping.
+
+**Reason:** `Permissions-Policy` is a hard browser-policy gate that
+sits *above* the lock-icon site permission. Setting an empty allowlist
+(`microphone=()`) disables the API globally regardless of what the user
+clicks in chrome://settings or the lock-icon panel. Voice input and
+camera capture both throw `not-allowed` with no recourse for the user.
+
+**Real incident:** Commit `8734f701` (2026-04-29, "email otp
+verification") set `camera=()` and `microphone=()` globally in
+`SecurityHeaders.php`. This silently broke two features that were
+already in the codebase:
+
+- `SpeechRecognition` in `resources/js/scripts/cases/voice-input.js`
+  (voice dictation on 5000-char textareas, Add/Edit Case)
+- `getUserMedia` in `resources/js/scripts/cases/sections/photographs.js`
+  (in-app camera capture for photo tiles)
+
+Both features threw `not-allowed` regardless of browser site
+permissions. Hours of diagnostic concluded with the realisation that
+the response header itself was the gate.
+
+**Fix:** `camera=(self) microphone=(self)` — same origin only;
+third-party iframes cannot borrow these APIs. Future option:
+route-scoped policy (mic only on case edit pages) for tighter
+control, but global `(self)` is correct for OB's scale.
+
+**Verify after any security-header change:**
+
+```
+curl -sI http://localhost:8001/login | grep -i permissions-policy
+php artisan test --filter=SecurityHeadersTest
+```
+
+**Reference:** PR for `fix/permissions-policy-mic-camera`.
+`tests/Feature/SecurityHeadersTest.php` pins the contract so a future
+hardening pass cannot silently re-block the two features.
