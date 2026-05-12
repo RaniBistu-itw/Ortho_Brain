@@ -156,3 +156,19 @@ Both wired locally (dev-only):
 
 Don't enable either in production. They're declared in `require-dev` so
 `composer install --no-dev` excludes them.
+
+**PHP 8.3 workaround:** Debugbar's request/log collectors call
+`symfony/var-dumper v8.x`, which uses `ReflectionProperty::isVirtual()` —
+a PHP 8.4-only method. On a local PHP 8.3 box this fatals on every
+response and masks the original exception in the logs (the cascade
+overwrites the real error with the var-dumper fatal). Set
+`DEBUGBAR_ENABLED=false` in `.env` until local PHP is upgraded to 8.4
+(the team standard) or var-dumper is pinned to `^7.3`. The
+exception-rendering fallback at [bootstrap/app.php](../../bootstrap/app.php)
+(see [02-request-lifecycle.md](02-request-lifecycle.md) § Exception
+rendering) already dodges the same issue in Symfony's
+`HtmlErrorRenderer`.
+
+## Recent changes
+
+- **2026-05-12** — New [tests/Feature/SecurityHeadersTest.php](../../tests/Feature/SecurityHeadersTest.php) pins the `Permissions-Policy` contract (`camera=(self)`, `microphone=(self)`, plus the still-denied `geolocation=()` and `interest-cohort=()`). Regression guard so a future hardening pass cannot silently re-block voice or camera. PR #141.

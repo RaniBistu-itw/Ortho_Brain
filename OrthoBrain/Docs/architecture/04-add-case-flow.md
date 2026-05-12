@@ -107,7 +107,7 @@ Helper JS:
 - `case-media-api.js` — media upload/destroy endpoints
 - `case-image-store.js` — client-side image state
 - `tooth-layout.js` — palmer/universal/FDI numbering layouts
-- `voice-input.js` — Web Speech API for additional comments
+- `voice-input.js` — Web Speech API mic dictation, auto-attached to every `textarea[maxlength="5000"]`. Self-heals on Livewire `wire:navigate` morph: Idiomorph drops the client-injected `.voice-input-wrapper` while preserving the textarea's stable id, so the script clears `_voiceAttached` on `livewire:navigating` and re-runs `refresh()` on `livewire:navigated`. See CLAUDE.md Entry 13.
 - `mock-*.js` — placeholder data (addresses, patients, scanners, preferences); should disappear as backend lands
 
 ## Identity in CasesController
@@ -250,6 +250,10 @@ Admin section-save endpoints (post-Sprint B-2) dispatch `CaseEditedByAdminNotifi
 
 Last verified: 2026-05-07 (workflow design lock; implementation gaps documented above pending Sprint B).
 
+## Recent changes
+
+- **2026-05-12** — Voice input survives `wire:navigate` round-trips on Add/Edit Case. Three coordinated PRs landed together — #139 (HTTPS guard + early-return + basic `onerror` toasts), #141 (Permissions-Policy unblock at the header level), #143 (`wire:navigate` re-attach hooks + Permissions API error introspection + `getUserMedia` preflight removal). All three layers required for end-to-end functionality. See CLAUDE.md Entry 13 for the generalised rule.
+
 ## Where things go wrong (cross-references)
 
 | Symptom | Likely cause | Doc |
@@ -259,3 +263,4 @@ Last verified: 2026-05-07 (workflow design lock; implementation gaps documented 
 | JS edit not visible after refresh | Forgot to mirror `public/js/` | CLAUDE.md Entry 3, [doc 05](05-frontend-pipeline.md) |
 | `<select>` shows blank when data is present | Alpine `x-model` + `x-for` race | CLAUDE.md Entry 6 |
 | Behaviour fixed in PR still broken locally | Stale `php artisan serve` | CLAUDE.md Entry 7, `restart-dev-server` skill |
+| Mic button vanishes after `wire:navigate` away-and-back | Idiomorph stripped client-injected wrapper, `_voiceAttached` flag stale | CLAUDE.md Entry 13 |

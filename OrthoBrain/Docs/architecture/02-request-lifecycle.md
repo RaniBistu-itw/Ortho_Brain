@@ -69,7 +69,7 @@ currentPractice()->id           // global helper, app/Support/helpers.php
 | `throttle:<name>` | Laravel | Named rate limiters (see below) |
 
 Globally appended on every web request:
-- [SecurityHeaders](../../app/Http/Middleware/SecurityHeaders.php) — CSP, X-Frame-Options, etc.
+- [SecurityHeaders](../../app/Http/Middleware/SecurityHeaders.php) — CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy (`camera=(self) microphone=(self)` so `getUserMedia` + `SpeechRecognition` work on OB's own pages; third-party iframes still blocked)
 - [LogSlowRequests](../../app/Http/Middleware/LogSlowRequests.php) — log requests over a threshold
 
 ## Rate limiters
@@ -107,6 +107,10 @@ Two `render()` callbacks in [bootstrap/app.php](../../bootstrap/app.php), in reg
    AuthenticationException, ValidationException,
    TokenMismatchException, HttpResponseException so those keep their
    normal redirect behaviour.
+
+## Recent changes
+
+- **2026-05-12** — `Permissions-Policy` widened from empty `camera=() microphone=()` to `camera=(self) microphone=(self)` so the in-app photo-tile camera capture and voice dictation textareas work. PR #141. See CLAUDE.md Entry 12 for the "audit client APIs before tightening security headers" rule. New regression test at [tests/Feature/SecurityHeadersTest.php](../../tests/Feature/SecurityHeadersTest.php).
 
 ## Service providers
 
