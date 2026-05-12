@@ -31,7 +31,15 @@ class SecurityHeaders
         $headers->set('X-Frame-Options', 'SAMEORIGIN');
         $headers->set('X-Content-Type-Options', 'nosniff');
         $headers->set('Referrer-Policy', 'same-origin');
-        $headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()');
+        // camera=(self) and microphone=(self) allow OB's own pages
+        // to use getUserMedia (photo tile camera capture) and
+        // SpeechRecognition (voice dictation on textareas).
+        // Empty () blocks both features globally regardless of
+        // browser site permissions — that was the silent regression
+        // introduced in commit 8734f701 (2026-04-29).
+        // (self) = same origin only; third-party iframes cannot
+        // borrow these APIs. See CLAUDE.md Entry 12.
+        $headers->set('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(), interest-cohort=()');
 
         $csp = implode('; ', [
             "default-src 'self'",
