@@ -42,7 +42,22 @@
     // Buttons are built dynamically here — returning early
     // means no broken/disabled UI is ever inserted into the DOM.
     if (!supported) return;
-    if (!textarea || textarea._voiceAttached) return;
+    if (!textarea) return;
+
+    // Self-heal: after a wire:navigate morph, Idiomorph keeps
+    // the textarea (stable id) but drops the client-injected
+    // .voice-input-wrapper because it's absent from server HTML.
+    // The _voiceAttached flag survives on the DOM node, so
+    // without this reset attach() bails and mic never comes back.
+    if (textarea._voiceAttached) {
+      var existingWrapper = textarea.closest('.voice-input-wrapper');
+      if (existingWrapper
+          && existingWrapper.querySelector('.voice-input-mic')) {
+        return;
+      }
+      textarea._voiceAttached = false;
+    }
+
     textarea._voiceAttached = true;
 
     var parent = textarea.parentNode;
@@ -78,7 +93,7 @@
     function ensureRecognition() {
       if (recognition) return recognition;
       recognition = new SR();
-      recognition.continuous = true;
+      recognition.continuous = false;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
@@ -99,30 +114,53 @@
         if (combined.length > MAXLEN) combined = combined.substring(0, MAXLEN);
 
         textarea.value = combined;
-        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        textarea.dispatchEvent(new InputEvent('input', {
+          bubbles: true,
+          composed: true
+        }));
       };
 
-      recognition.onend = function () { finishRecording(); };
-      recognition.onerror = function (evt) {
-        console.warn('[VoiceInput] recognition error:', evt.error);
+      recognition.onend = function () {
         finishRecording();
-        // Surface actionable errors to the user — silent
-        // failures leave the mic button in a broken state.
-        if (evt.error === 'not-allowed') {
-          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
-            window.MediaTileHelpers.showToast(
-              'Microphone access denied — check browser permissions.',
-              3000
-            );
+      };
+      recognition.onerror = function (evt) {
+        console.warn('[VoiceInput] recognition error:', evt.error, 'origin=', location.origin);
+
+        // Permissions API tells us *why* not-allowed fired: prompt (never asked /
+        // dismissed), denied (explicit block), or granted (real Chrome bug, rare).
+        // Per-origin: localhost:8001 and 127.0.0.1:8001 have separate state.
+        var permPromise = (navigator.permissions && navigator.permissions.query)
+          ? navigator.permissions.query({ name: 'microphone' }).catch(function () { return null; })
+          : Promise.resolve(null);
+
+        permPromise.then(function (perm) {
+          var state = perm ? perm.state : 'unknown';
+          console.info('[VoiceInput] mic permission state for', location.origin, '=', state);
+
+          var msg = null;
+          if (evt.error === 'not-allowed') {
+            if (state === 'denied') {
+              msg = 'Microphone is BLOCKED for ' + location.host + '. Open chrome://settings/content/microphone and remove it from the Block list, then reload.';
+            } else if (state === 'prompt') {
+              msg = 'Microphone permission needed — click the lock icon for ' + location.host + ' and set Microphone to Allow, then reload.';
+            } else if (state === 'granted') {
+              msg = 'Mic permission granted but Chrome refused dictation. Try restarting Chrome, or open chrome://settings/content/microphone.';
+            } else {
+              msg = 'Microphone blocked — check site permissions for ' + location.host + '.';
+            }
+          } else if (evt.error === 'service-not-allowed') {
+            msg = 'Voice service blocked — try opening the page as http://localhost:' + (location.port || '80') + ' instead of 127.0.0.1.';
+          } else if (evt.error === 'audio-capture') {
+            msg = 'No microphone detected.';
+          } else if (evt.error === 'network') {
+            msg = 'Voice recognition needs network access.';
           }
-        } else if (evt.error === 'network') {
-          if (window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
-            window.MediaTileHelpers.showToast(
-              'Voice input requires an internet connection.',
-              3000
-            );
+          if (msg && window.MediaTileHelpers && window.MediaTileHelpers.showToast) {
+            window.MediaTileHelpers.showToast(msg, 5000);
           }
-        }
+        });
+
+        finishRecording();
       };
       return recognition;
     }
@@ -133,8 +171,16 @@
       baseline = textarea.value || '';
       btn.classList.add('voice-input-mic--active');
       btn.title = 'Stop dictation';
-      try { ensureRecognition().start(); }
-      catch (e) { console.warn('[VoiceInput] start failed:', e); finishRecording(); }
+
+      // SR.start() handles its own permission prompt. Don't preflight with
+      // getUserMedia — the two permission gates can disagree in Chrome,
+      // producing false "denied" toasts even after the user clicks Allow.
+      try {
+        ensureRecognition().start();
+      } catch (e) {
+        console.warn('[VoiceInput] start failed:', e);
+        finishRecording();
+      }
     }
 
     function finishRecording() {
@@ -163,15 +209,48 @@
     });
     var newly = after - before;
     console.info('[VoiceInput] refresh — found=' + list.length + ' newly_attached=' + newly + ' supported=' + supported);
-    if (window.feather) window.feather.replace({ width: 14, height: 14 });
+    if (newly > 0 && window.feather) {
+      window.feather.replace({ width: 14, height: 14 });
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    // Alpine CDN auto-starts on DOMContentLoaded. Give it a tick to render x-show/x-if,
-    // then sweep; a second sweep at 800ms catches anything that hydrates later.
-    setTimeout(refresh, 150);
-    setTimeout(refresh, 800);
+    refresh();
+
+    var refreshPending = false;
+    const observer = new MutationObserver(function () {
+      if (refreshPending) return;
+      refreshPending = true;
+      requestAnimationFrame(function () {
+        refreshPending = false;
+        refresh();
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
   });
+
+  // Livewire wire:navigate hooks. Idiomorph drops the .voice-input-wrapper
+  // we inject (it's not in the server response) but keeps the textareas via
+  // their stable ids. Without clearing _voiceAttached on navigating, the
+  // subsequent refresh() would bail and the mic would never reappear.
+  if (!window.__voiceInputNavBound) {
+    window.__voiceInputNavBound = true;
+
+    document.addEventListener('livewire:navigating', function () {
+      var attached = document.querySelectorAll('textarea');
+      attached.forEach(function (el) {
+        if (el._voiceAttached) el._voiceAttached = false;
+      });
+    });
+
+    document.addEventListener('livewire:navigated', function () {
+      refresh();
+    });
+  }
 
   window.VoiceInput = {
     attach: attach,
