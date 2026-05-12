@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\CaseModel;
 use App\Models\User;
 use App\Notifications\CaseApprovedNotification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 // ─── Admin status transition notifications ───────────────────────────────────
@@ -49,4 +51,25 @@ it('does not dispatch any notification on SUBMITTED → IN_REVIEW transition', f
         ->assertStatus(200);
 
     Notification::assertNothingSent();
+});
+
+// ─── Notification body content ───────────────────────────────────────────────
+
+it('includes case_code in approved notification body', function () {
+    ['caseId' => $caseId, 'user' => $doctorUser] = makeDoctorCase(['case_code' => 'D1-A-099']);
+    $case = CaseModel::find($caseId);
+
+    $body = (new CaseApprovedNotification($case))->toArray($doctorUser)['body'];
+
+    expect($body)->toContain('D1-A-099');
+});
+
+it('falls back to case id when case_code is null', function () {
+    ['caseId' => $caseId, 'user' => $doctorUser] = makeDoctorCase();
+    DB::table('cases')->where('id', $caseId)->update(['case_code' => null]);
+    $case = CaseModel::find($caseId);
+
+    $body = (new CaseApprovedNotification($case))->toArray($doctorUser)['body'];
+
+    expect($body)->toContain('Case #' . $caseId);
 });

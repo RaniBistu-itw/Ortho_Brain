@@ -28,9 +28,11 @@ class CaseEditedByAdminNotification extends Notification
         return [
             'kind'  => 'info',
             'title' => 'Case updated by admin',
+            // case_code is nullable on legacy rows — fall back to
+            // the numeric ID so the notification body is never blank.
             'body'  => 'An admin updated the ' . $this->section
                        . ' section of your case #'
-                       . $this->case->case_code . '.',
+                       . ($this->case->case_code ?? 'Case #' . $this->case->id) . '.',
             'url'   => route('doctor.cases.edit', $this->case),
         ];
     }

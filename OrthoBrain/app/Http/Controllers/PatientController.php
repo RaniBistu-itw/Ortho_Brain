@@ -118,10 +118,27 @@ class PatientController extends Controller
             }
 
             if ($existing) {
+                // Preserve existing chart_id — never overwrite with null
+                // on update. Doctor may have a previously auto-generated
+                // or manually entered chart_id that must not be lost.
+                if (empty($patientData['chart_id']) && $existing->chart_id) {
+                    unset($patientData['chart_id']);
+                }
                 $existing->update($patientData);
                 $patient = $existing;
             } else {
                 $patient = Patient::create($patientData);
+                // Auto-generate chart_id if doctor did not provide one.
+                // Format: PT-{doctor_id}-{practice_id}-{patient_id}
+                // Only on creation — never overwrite an existing chart_id.
+                if (empty($patientData['chart_id'])) {
+                    $generated = 'PT-' . $patientData['doctor_id']
+                        . '-' . $patientData['practice_id']
+                        . '-' . $patient->id;
+                    DB::table('patients')->where('id', $patient->id)
+                        ->update(['chart_id' => $generated]);
+                    $patient->chart_id = $generated;
+                }
             }
 
             if ($case->patient_id !== $patient->id) {

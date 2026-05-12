@@ -24,7 +24,9 @@ class CaseRejectedNotification extends Notification
 
     public function toArray($notifiable): array
     {
-        $body = 'Your case #' . $this->case->case_code . ' has been unapproved.';
+        // case_code is nullable on legacy rows — fall back to
+        // the numeric ID so the notification body is never blank.
+        $body = 'Your case #' . ($this->case->case_code ?? 'Case #' . $this->case->id) . ' has been unapproved.';
         if ($this->reason) {
             $body .= ' Reason: ' . $this->reason;
         }
