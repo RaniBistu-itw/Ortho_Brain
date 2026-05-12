@@ -38,6 +38,13 @@
                 </a>
             </li>
 
+            <li class="nav-item {{ $active('admin.system-health') }}">
+                <a wire:navigate href="{{ route('admin.system-health') }}" class="d-flex align-items-center">
+                    <i data-feather="activity"></i>
+                    <span class="menu-title text-truncate">System Health</span>
+                </a>
+            </li>
+
             <li class="nav-item {{ $active('admin.cases.*') }}">
                 <a wire:navigate href="{{ route('admin.cases.index') }}" class="d-flex align-items-center">
                     <i data-feather="folder"></i>

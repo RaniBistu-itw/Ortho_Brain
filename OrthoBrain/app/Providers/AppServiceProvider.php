@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Health\Checks\GeminiApiCheck;
+use App\Health\Checks\MailConfigCheck;
 use App\Models\Doctor;
 use App\Observers\DoctorObserver;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -10,6 +12,10 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Health\Checks\Checks\DatabaseCheck;
+use Spatie\Health\Checks\Checks\EnvironmentCheck;
+use Spatie\Health\Checks\Checks\UsedDiskSpaceCheck;
+use Spatie\Health\Facades\Health;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +28,14 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useBootstrapFive();
         Doctor::observe(DoctorObserver::class);
+
+        Health::checks([
+            DatabaseCheck::new(),
+            UsedDiskSpaceCheck::new()->warnWhenUsedSpaceIsAbovePercentage(80)->failWhenUsedSpaceIsAbovePercentage(90),
+            EnvironmentCheck::new()->expectEnvironment((string) config('app.env')),
+            MailConfigCheck::new(),
+            GeminiApiCheck::new(),
+        ]);
 
         // Force https when APP_URL is https (e.g. behind ngrok / a reverse
         // proxy). Toggling APP_URL alone is enough — no other env edits.
