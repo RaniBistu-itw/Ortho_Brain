@@ -55,7 +55,7 @@
         </label>
         <div class="input-group">
           <span class="input-group-text"><i data-feather="user"></i></span>
-          <input type="text" class="form-control" id="pi-first-name" name="firstName" autocomplete="given-name" />
+          <input type="text" class="form-control" id="pi-first-name" name="firstName" autocomplete="given-name" placeholder="First name" />
         </div>
         <div class="pi-field-error small text-danger mt-25" id="pi-first-name-error"></div>
       </div>
@@ -65,7 +65,7 @@
         </label>
         <div class="input-group">
           <span class="input-group-text"><i data-feather="user"></i></span>
-          <input type="text" class="form-control" id="pi-last-name" name="lastName" autocomplete="family-name" />
+          <input type="text" class="form-control" id="pi-last-name" name="lastName" autocomplete="family-name" placeholder="Last name" />
         </div>
         <div class="pi-field-error small text-danger mt-25" id="pi-last-name-error"></div>
       </div>
@@ -128,8 +128,16 @@
         <label class="form-label" for="pi-chart-id">Patient Chart ID</label>
         <div class="input-group">
           <span class="input-group-text"><i data-feather="credit-card"></i></span>
-          <input type="text" class="form-control" id="pi-chart-id" name="patientChartId" autocomplete="off" />
+          <input type="text" class="form-control" id="pi-chart-id" name="patientChartId" autocomplete="off" placeholder="Leave blank to auto-generate" />
         </div>
+        {{-- Auto-gen hint: format is PT-{doctor_id}-{practice_id}-{patient_id}.
+             Set in PatientController::upsert() on creation only.
+             See app/Http/Controllers/PatientController.php --}}
+        <small class="form-text text-muted">
+          Leave blank and we'll auto-generate
+          PT-{doctor}-{practice}-{patient} on save.
+          Override with your own ID if you prefer.
+        </small>
       </div>
     </div>
 
@@ -145,6 +153,7 @@
           name="chiefComplaint"
           rows="4"
           maxlength="5000"
+          placeholder="Describe the patient's primary complaint..."
         ></textarea>
         <div class="pi-field-error small text-danger mt-25" id="pi-chief-complaint-error"></div>
         <div class="text-muted small mt-25">
