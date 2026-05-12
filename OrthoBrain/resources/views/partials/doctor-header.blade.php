@@ -356,8 +356,8 @@
                 <span class="doc-nav__count-dot">{{ $navBellCount > 9 ? '9+' : $navBellCount }}</span>
             @endif
         </a>
-        @php $recent = auth()->user()?->notifications()->limit(8)->get() ?? collect(); @endphp
-        @php $totalNotifs = auth()->user()?->notifications()->count() ?? 0; @endphp
+        @php $recent = auth()->user()?->unreadNotifications()->limit(8)->get() ?? collect(); @endphp
+        @php $totalNotifs = auth()->user()?->unreadNotifications()->count() ?? 0; @endphp
         <div class="dropdown-menu dropdown-menu-end" style="min-width:340px;max-width:360px;" id="doctorNotifDropdown">
             <h6 class="dropdown-header" style="display:flex;justify-content:space-between;align-items:center;">
                 <span>Notifications</span>
@@ -433,7 +433,7 @@
                     </a>
                 @empty
                     @if($navPendingList->isEmpty())
-                        <div class="doc-nav__notif-empty" data-notif-empty>No notifications yet.</div>
+                        <div class="doc-nav__notif-empty" data-notif-empty>No new notifications.</div>
                     @endif
                 @endforelse
             </div>
@@ -733,7 +733,7 @@
         const list = dropdown.querySelector('[data-notif-list]');
         const pendingItems = dropdown.querySelectorAll('[data-pending-id]');
         if (list && dbItems.length === 0 && pendingItems.length === 0 && !list.querySelector('[data-notif-empty]')) {
-            list.innerHTML = '<div class="doc-nav__notif-empty" data-notif-empty>No notifications yet.</div>';
+            list.innerHTML = '<div class="doc-nav__notif-empty" data-notif-empty>No new notifications.</div>';
         }
     }
  
@@ -807,9 +807,13 @@
             // ── Click on a DB notification row → mark read + navigate ─────────
             const link = e.target.closest('[data-notif-id]');
             if (link) {
-                markItemReadInDom(link);
                 markReadKeepalive(link.dataset.notifId);
-                syncDropdownButtons(); // re-enable Mark All Read if any unread remain
+                link.remove();
+                updateBellCount(
+                    [...dropdown.querySelectorAll('[data-notif-id]')].length
+                    + countPendingInDropdown()
+                );
+                syncDropdownButtons();
                 // Allow the <a> href to navigate naturally
             }
         });
@@ -818,7 +822,7 @@
         dropdown.querySelector('[data-notif-mark-all]')?.addEventListener('click', function () {
             fetchJson(routes.readAll, { method: 'POST' })
                 .then(j => {
-                    dropdown.querySelectorAll('[data-notif-id]').forEach(el => markItemReadInDom(el));
+                    dropdown.querySelectorAll('[data-notif-id]').forEach(el => el.remove());
                     updateBellCount((j.unread || 0) + countPendingInDropdown());
                     syncDropdownButtons();
                     showToast('All notifications marked as read');

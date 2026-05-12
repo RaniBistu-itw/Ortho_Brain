@@ -104,9 +104,8 @@ class NotificationController extends Controller
         $row = DB::table('doctor_practice')->where('id', $link)->first();
         abort_unless($row && (int) $row->doctor_id === $doctor->id, 404);
 
-        $practiceStatus = DB::table('practices')->where('id', $row->practice_id)->value('status');
-        if ($practiceStatus !== 'INACTIVE') {
-            return response()->json(['ok' => false, 'message' => 'Only requests to inactive practices can be cancelled here.'], 422);
+        if ($row->approval_status !== 'PENDING') {
+            return response()->json(['ok' => false, 'message' => 'Only pending requests can be cancelled.'], 422);
         }
 
         DB::table('doctor_practice')->where('id', $link)->update([
