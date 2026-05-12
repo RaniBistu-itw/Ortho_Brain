@@ -3,31 +3,6 @@
 @section('title', 'Cases')
 @section('page_title', 'Cases')
 
-@php
-  $statusBadge = function ($status) {
-    return match ($status) {
-      'DRAFT'     => 'badge rounded-pill badge-light-secondary',
-      'SUBMITTED' => 'badge rounded-pill badge-light-info',
-      'IN_REVIEW' => 'badge rounded-pill badge-light-warning',
-      'APPROVED'  => 'badge rounded-pill badge-light-success',
-      'REJECTED'  => 'badge rounded-pill badge-light-danger',
-      default     => 'badge rounded-pill badge-light-secondary',
-    };
-  };
-
-  $statusLabel = function ($status) {
-    return match ($status) {
-      'DRAFT'     => 'Draft',
-      'SUBMITTED' => 'Submitted',
-      'IN_REVIEW' => 'In Review',
-      'APPROVED'  => 'Approved',
-      'REJECTED'  => 'Unapproved',
-      'ACTIVE'    => 'Active',
-      default     => $status,
-    };
-  };
-@endphp
-
 @push('styles')
 <style>
   #cases-list .ob-input-icon { position: relative; }
@@ -43,13 +18,11 @@
     border-color: var(--ob-primary, #00bad1);
     box-shadow: 0 0 0 3px var(--ob-primary-softer, rgba(0, 186, 209, 0.18));
   }
+  #cases-list-content.is-loading { opacity: 0.55; pointer-events: none; transition: opacity .12s; }
 </style>
 @endpush
 
 @section('content')
-@php
-  $statusBase = $searchTerm !== '' ? ['search' => $searchTerm] : [];
-@endphp
 <section id="cases-list">
   <div class="card">
     <div class="card-header border-bottom">
@@ -81,140 +54,17 @@
                    value="{{ $searchTerm }}" class="form-control" autocomplete="off">
           </div>
         </div>
-        @if($searchTerm !== '')
-          <div class="col-md-2">
-            <a href="{{ request()->fullUrlWithQuery(['search' => null, 'page' => null]) }}"
-               class="ob-btn-clear w-100">
-              <i data-feather="x"></i> Clear
-            </a>
-          </div>
-        @endif
+        <div class="col-md-2" id="cases-clear-wrap" @if($searchTerm === '') style="display:none" @endif>
+          <button type="button" id="cases-clear-btn" class="ob-btn-clear w-100">
+            <i data-feather="x"></i> Clear
+          </button>
+        </div>
       </form>
     </div>
 
-    <div class="card-body border-bottom py-1">
-      <div class="d-flex flex-wrap align-items-center gap-50">
-        <a href="{{ route('doctor.cases.index', $statusBase) }}"
-           class="btn btn-sm {{ $activeStatus === null ? 'btn-primary' : 'btn-outline-secondary' }}">
-          All
-        </a>
-        <a href="{{ route('doctor.cases.index', array_merge($statusBase, ['status' => 'ACTIVE'])) }}"
-           class="btn btn-sm {{ $activeStatus === 'ACTIVE' ? 'btn-primary' : 'btn-outline-secondary' }}">
-          Active
-        </a>
-        @foreach($statuses as $s)
-          <a href="{{ route('doctor.cases.index', array_merge($statusBase, ['status' => $s])) }}"
-             class="btn btn-sm {{ $activeStatus === $s && ! $staleOnly ? 'btn-primary' : 'btn-outline-secondary' }}">
-            {{ $statusLabel($s) }}
-          </a>
-        @endforeach
-        @if($staleOnly)
-          <a href="{{ route('doctor.cases.index', array_merge($statusBase, ['status' => 'DRAFT', 'stale' => 1])) }}"
-             class="btn btn-sm btn-warning">
-            Stale drafts only
-          </a>
-        @endif
-        @if($activeStatus)
-          <span class="text-muted small ms-1">
-            Showing
-            <strong>
-              @if($staleOnly) Stale drafts @else {{ $statusLabel($activeStatus) }} @endif
-            </strong>
-            ({{ $cases->total() }})
-            @if($staleOnly)
-              · <a href="{{ route('doctor.cases.index', array_merge($statusBase, ['status' => 'DRAFT'])) }}">show all drafts</a>
-            @endif
-          </span>
-        @endif
-
-        @php
-          $currentOrder = request('order') === 'oldest' ? 'oldest' : 'newest';
-          $orderBase    = $statusBase;
-          if ($activeStatus) { $orderBase['status'] = $activeStatus; }
-          if ($staleOnly)    { $orderBase['stale']  = 1; }
-        @endphp
-        <div class="ms-auto d-flex flex-wrap align-items-center gap-50">
-          <span class="text-muted small me-25">Sort:</span>
-          <a href="{{ route('doctor.cases.index', array_merge($orderBase, ['order' => 'newest'])) }}"
-             class="btn btn-sm {{ $currentOrder === 'newest' ? 'btn-primary' : 'btn-outline-secondary' }}">
-            Newest first
-          </a>
-          <a href="{{ route('doctor.cases.index', array_merge($orderBase, ['order' => 'oldest'])) }}"
-             class="btn btn-sm {{ $currentOrder === 'oldest' ? 'btn-primary' : 'btn-outline-secondary' }}">
-            Oldest first
-          </a>
-        </div>
-      </div>
+    <div id="cases-list-content">
+      @include('content.cases._case-list-table')
     </div>
-
-    <div class="table-responsive">
-      <table class="table table-hover mb-0 align-middle">
-        <thead>
-          <tr>
-            <th>@include('admin._partials.sort_th', ['label' => 'Case ID', 'key' => 'id', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
-            <th>@include('admin._partials.sort_th', ['label' => 'Patient Name', 'key' => 'patient', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
-            <th>Status</th>
-            <th>@include('admin._partials.sort_th', ['label' => 'Created', 'key' => 'created_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
-            <th>@include('admin._partials.sort_th', ['label' => 'Submitted', 'key' => 'submitted_at', 'default' => 'created_at', 'defaultDir' => 'desc'])</th>
-            <th class="text-end">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse($cases as $case)
-            <tr data-row-href="{{ route('doctor.cases.edit', $case->id) }}" style="cursor:pointer;">
-              <td><span class="fw-bolder">#{{ $case->id }}</span></td>
-              <td>
-                @if($case->patient)
-                  {{ trim($case->patient->first_name . ' ' . $case->patient->last_name) ?: '—' }}
-                @else
-                  <span class="text-muted">—</span>
-                @endif
-              </td>
-              <td><span class="{{ $statusBadge($case->status) }}">{{ $statusLabel($case->status) }}</span></td>
-              <td>{{ $case->created_at?->format('Y-m-d H:i') }}</td>
-              <td>{{ $case->submitted_at?->format('Y-m-d H:i') ?? '—' }}</td>
-              <td class="text-end">
-                <div class="ob-row-actions">
-                  @if($case->status === 'DRAFT')
-                    <a href="{{ route('doctor.cases.edit', $case->id) }}"
-                       class="ob-icon-btn ob-icon-btn--edit"
-                       title="Continue editing">
-                      <i data-feather="edit-2"></i>
-                    </a>
-                  @else
-                    <a href="{{ route('doctor.cases.edit', $case->id) }}"
-                       class="ob-icon-btn ob-icon-btn--view"
-                       title="View case">
-                      <i data-feather="eye"></i>
-                    </a>
-                  @endif
-                </div>
-              </td>
-            </tr>
-          @empty
-            <tr>
-              <td colspan="6" class="text-center text-muted py-2">
-                @if($searchTerm !== '')
-                  No cases match <strong>"{{ $searchTerm }}"</strong>.
-                  <a href="{{ route('doctor.cases.index') }}">Clear filters</a>.
-                @elseif($staleOnly)
-                  No stale drafts. <a href="{{ route('doctor.cases.index') }}">Clear filter</a>.
-                @elseif($activeStatus)
-                  No cases with status <strong>{{ $statusLabel($activeStatus) }}</strong>.
-                  <a href="{{ route('doctor.cases.index') }}">Clear filter</a>.
-                @else
-                  No cases yet. Click <strong>New Case</strong> above to get started.
-                @endif
-              </td>
-            </tr>
-          @endforelse
-        </tbody>
-      </table>
-    </div>
-
-    @if($cases->hasPages())
-      <div class="card-body">{{ $cases->links() }}</div>
-    @endif
   </div>
 </section>
 @endsection
@@ -246,22 +96,116 @@ document.addEventListener('auxclick', function (e) {
 })
 
 document.addEventListener('DOMContentLoaded', function () {
-  var form = document.getElementById('casesSearchForm')
-  if (form) {
-    var input = form.querySelector('input[name="search"]')
-    if (input) {
-      var timer
-      input.addEventListener('input', function () {
-        clearTimeout(timer)
-        timer = setTimeout(function () { form.submit() }, 450)
-      })
-      // Place cursor at end so the search keeps feeling sticky after reload.
-      if (input.value) {
-        var len = input.value.length
-        input.focus()
-        try { input.setSelectionRange(len, len) } catch (e) {}
-      }
-    }
+  var form      = document.getElementById('casesSearchForm');
+  var input     = form && form.querySelector('input[name="search"]');
+  var content   = document.getElementById('cases-list-content');
+  var clearBtn  = document.getElementById('cases-clear-btn');
+  var clearWrap = document.getElementById('cases-clear-wrap');
+  if (!form || !input || !content) return;
+
+  var debounceTimer = null;
+  var inflight      = null;
+
+  function buildUrl(extra) {
+    var url = new URL(form.action, window.location.origin);
+    new FormData(form).forEach(function (v, k) {
+      if (String(v) !== '') url.searchParams.set(k, v);
+    });
+    if (extra) Object.keys(extra).forEach(function (k) {
+      if (extra[k] === null) url.searchParams.delete(k);
+      else url.searchParams.set(k, extra[k]);
+    });
+    return url;
+  }
+
+  function syncClearVisibility() {
+    if (!clearWrap) return;
+    clearWrap.style.display = input.value === '' ? 'none' : '';
+  }
+
+  function performFetch(url, pushHistory) {
+    if (inflight) inflight.abort();
+    var ctrl = new AbortController();
+    inflight = ctrl;
+    content.classList.add('is-loading');
+
+    fetch(url.toString(), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+      credentials: 'same-origin',
+      signal: ctrl.signal,
+    })
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    })
+    .then(function (html) {
+      content.innerHTML = html;
+      if (window.feather) window.feather.replace();
+      var fullPath = url.pathname + url.search;
+      if (pushHistory) history.pushState({}, '', fullPath);
+      else             history.replaceState({}, '', fullPath);
+    })
+    .catch(function (err) {
+      if (err.name === 'AbortError') return;
+      console.warn('cases search fetch failed; full reload', err);
+      window.location.assign(url.toString());
+    })
+    .finally(function () {
+      content.classList.remove('is-loading');
+      if (inflight === ctrl) inflight = null;
+    });
+  }
+
+  // Typing → debounced fetch with replaceState (no history pollution).
+  input.addEventListener('input', function () {
+    syncClearVisibility();
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () {
+      performFetch(buildUrl({ page: null }), false);
+    }, 350);
+  });
+
+  // Enter → immediate fetch with pushState.
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearTimeout(debounceTimer);
+    performFetch(buildUrl({ page: null }), true);
+  });
+
+  // Clear button → wipe input, fetch.
+  if (clearBtn) clearBtn.addEventListener('click', function () {
+    input.value = '';
+    syncClearVisibility();
+    clearTimeout(debounceTimer);
+    performFetch(buildUrl({ search: null, page: null }), true);
+    input.focus();
+  });
+
+  // Filter pills, sort headers, pagination, in-content "Clear filters" links → AJAX.
+  // Only same-path links are intercepted so per-row Edit/View links navigate normally.
+  content.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href]');
+    if (!a) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey || a.target === '_blank') return;
+    var href = a.getAttribute('href');
+    if (!href || href.charAt(0) === '#') return;
+    var u;
+    try { u = new URL(href, window.location.origin); } catch (err) { return; }
+    if (u.pathname !== window.location.pathname) return; // different route → normal nav
+    e.preventDefault();
+    performFetch(u, true);
+  });
+
+  // Back / forward → re-fetch so DOM matches URL.
+  window.addEventListener('popstate', function () {
+    performFetch(new URL(window.location.href), false);
+  });
+
+  // Restore cursor-at-end on initial load (preserves prior UX).
+  if (input.value) {
+    var len = input.value.length;
+    input.focus();
+    try { input.setSelectionRange(len, len); } catch (err) {}
   }
 })
 

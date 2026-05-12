@@ -86,13 +86,19 @@ class CasesController extends Controller
 
         $cases = $query->paginate(20)->withQueryString();
 
-        return view('content.cases.case-list', [
+        $payload = [
             'cases'        => $cases,
             'activeStatus' => $activeStatus,
             'statuses'     => self::STATUSES,
             'staleOnly'    => $staleOnly,
             'searchTerm'   => $searchTerm,
-        ]);
+        ];
+
+        if ($request->ajax()) {
+            return view('content.cases._case-list-table', $payload);
+        }
+
+        return view('content.cases.case-list', $payload);
     }
 
     public function create()
