@@ -245,16 +245,66 @@
 </table>
 @endif
 
-{{-- ── 6. Photographs / X-Rays — deferred ───────────────────────────────── --}}
-<h2>6. Photographs &amp; X-Rays</h2>
-<p class="empty">
-    Image attachments are not embedded in v1 of this report. Server-side persistence
-    for photographs and X-rays is pending — when the schema lands, this section will
-    include thumbnails and AI-classification metadata.
-</p>
+{{-- ── 6. Photographs ─────────────────────────────────────────── --}}
+@if($mediaBySection->has('photograph') && $mediaBySection['photograph']->isNotEmpty())
+<h2>6. Photographs</h2>
+<table width="100%" cellspacing="4" cellpadding="4">
+  @foreach($mediaBySection['photograph']->chunk(3) as $row)
+  <tr>
+    @foreach($row as $photo)
+    <td width="33%" align="center" valign="top">
+      {{-- Base64 data URI: DomPDF renders inline image data
+           without filesystem or HTTP access. --}}
+      <img src="{{ $photo['data_uri'] }}"
+           width="180" height="135"
+           style="object-fit:cover;border:1px solid #ddd;" />
+      <br>
+      <small style="font-size:9px;color:#666;">
+        {{ ucwords(str_replace('-', ' ', $photo['tile_id'])) }}
+      </small>
+    </td>
+    @endforeach
+    @for($i = $row->count(); $i < 3; $i++)
+    <td width="33%"></td>
+    @endfor
+  </tr>
+  @endforeach
+</table>
+@else
+<h2>6. Photographs</h2>
+<p class="empty">No photographs uploaded for this case.</p>
+@endif
 
-{{-- ── 7. Shipping Address ──────────────────────────────────────────────── --}}
-<h2>7. Shipping Address</h2>
+{{-- ── 7. X-Rays ───────────────────────────────────────────────── --}}
+@if($mediaBySection->has('xray') && $mediaBySection['xray']->isNotEmpty())
+<h2>7. X-Rays</h2>
+<table width="100%" cellspacing="4" cellpadding="4">
+  @foreach($mediaBySection['xray']->chunk(3) as $row)
+  <tr>
+    @foreach($row as $xray)
+    <td width="33%" align="center" valign="top">
+      <img src="{{ $xray['data_uri'] }}"
+           width="180" height="135"
+           style="object-fit:cover;border:1px solid #ddd;" />
+      <br>
+      <small style="font-size:9px;color:#666;">
+        {{ ucwords(str_replace('-', ' ', $xray['tile_id'])) }}
+      </small>
+    </td>
+    @endforeach
+    @for($i = $row->count(); $i < 3; $i++)
+    <td width="33%"></td>
+    @endfor
+  </tr>
+  @endforeach
+</table>
+@else
+<h2>7. X-Rays</h2>
+<p class="empty">No X-rays uploaded for this case.</p>
+@endif
+
+{{-- ── 8. Shipping Address ──────────────────────────────────────────────── --}}
+<h2>8. Shipping Address</h2>
 @if(empty($shipping) || empty($shipping['streetAddress'] ?? null))
     <p class="empty">Not yet captured.</p>
 @else
@@ -270,8 +320,8 @@
 </table>
 @endif
 
-{{-- ── 8. Submit Order ──────────────────────────────────────────────────── --}}
-<h2>8. Submit Order</h2>
+{{-- ── 9. Submit Order ──────────────────────────────────────────────────── --}}
+<h2>9. Submit Order</h2>
 <table class="kv">
     <tr><td class="k">Status</td><td class="v">{{ $case->status === 'REJECTED' ? 'Unapproved' : $case->status }}</td></tr>
     @if($case->submitted_at)
