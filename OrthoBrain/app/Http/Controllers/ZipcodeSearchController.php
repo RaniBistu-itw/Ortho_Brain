@@ -69,7 +69,12 @@ class ZipcodeSearchController extends Controller
                 'stateId'      => $z->city?->state_id,
                 'state'        => $z->city?->state?->name,
                 'countryId'    => $z->city?->state?->country_id,
-                'country'      => $z->city?->state?->country?->name,
+                // country must be the ISO code (US, CA, AU) not the display
+                // name — consumers are the Blade <select> (options keyed by
+                // country_code) and selectZip() in shipping-address.js.
+                // serializeShipping() returns the same ISO code shape.
+                // See CLAUDE.md Entry 5 — field semantics across consumers.
+                'country'      => $z->city?->state?->country?->country_code,
                 'displayLabel' => trim(implode(' — ', array_filter([
                     $z->code,
                     $z->city?->name,
