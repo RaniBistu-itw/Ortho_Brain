@@ -407,3 +407,112 @@ php artisan test --filter=SecurityHeadersTest
 **Reference:** PR for `fix/permissions-policy-mic-camera`.
 `tests/Feature/SecurityHeadersTest.php` pins the contract so a future
 hardening pass cannot silently re-block the two features.
+
+## Livewire patterns
+
+### Entry 13 — Livewire `wire:navigate` strips client-injected DOM
+
+**Rule:** Idiomorph (Livewire's morph engine) keeps elements with
+stable `id` attributes but drops anything not present in the
+server-rendered HTML. Any wrapper, sibling element, or DOM mutation
+your JS injects client-side will be removed on the next
+`wire:navigate`. State flags set as JS properties on the *surviving*
+elements persist and become stale.
+
+**Reason:** Wire:navigate uses morph (not full page replace) so the
+session/Alpine state is preserved across navigation. But the morph
+target is the server response — anything you added that isn't there
+gets removed. Stable-id elements are preserved by reference, which
+means JS properties (`el._yourFlag = true`) stay alive on the morphed
+node, but the wrapper/sibling/inner structure you added does NOT.
+
+**Real incident:** `voice-input.js` injected
+`<span class="voice-input-wrapper">` around each textarea and set
+`textarea._voiceAttached = true` on the node. After a
+`wire:navigate` round-trip, Idiomorph dropped the wrapper but kept
+the textarea (stable id). `_voiceAttached` stayed `true`, causing
+`refresh()` to silently skip re-attaching the mic button. The mic
+silently disappeared with no error to the user. PR #143.
+
+**Pattern:** Any client-injected wrapper or DOM-property flag that
+must survive navigation needs a `livewire:navigating` reset +
+`livewire:navigated` re-init:
+
+```javascript
+document.addEventListener('livewire:navigating', function () {
+  // reset stale flags before morph
+  document.querySelectorAll('textarea').forEach(function (el) {
+    if (el._voiceAttached) el._voiceAttached = false;
+  });
+});
+
+document.addEventListener('livewire:navigated', function () {
+  // re-run init after morph completes
+  refresh();
+});
+```
+
+For defence in depth, the `attach()` (or equivalent init) function
+should also self-heal: if the flag says "already attached" but the
+wrapper/child is missing, clear the flag and re-attach. See the
+self-heal block at the top of `attach()` in
+[resources/js/scripts/cases/voice-input.js](resources/js/scripts/cases/voice-input.js).
+
+**Reference:** PR #143. See also
+[Docs/architecture/04-add-case-flow.md](Docs/architecture/04-add-case-flow.md)
+§ "Where things go wrong" for the symptom-side entry.
+
+## Runtime requirements
+
+### Entry 14 — Local PHP must match team standard (PHP 8.4)
+
+**Rule:** Always run PHP 8.4 locally. Team standard is 8.4. If
+stuck on 8.3 temporarily, set `DEBUGBAR_ENABLED=false` in `.env`
+and avoid `PUT`/`PATCH`/`DELETE`/`QUERY` routes until upgraded.
+Do not ship `--ignore-platform-req=php` workarounds — they only
+hide the mismatch at install time, not at runtime.
+
+**Reason:** `composer.json` specifies `php: ^8.3`, but
+`composer.lock` pins Symfony 8.x packages that require PHP 8.4.
+Installing with `--ignore-platform-req=php` lets `composer install`
+succeed, but at runtime those packages call PHP 8.4-only methods
+and fatal on a PHP 8.3 box.
+
+**Two known symptoms on PHP 8.3:**
+
+1. **`PUT`/`PATCH`/`DELETE`/`QUERY` requests fatal 500.** Symfony
+   8.x calls `request_parse_body()` (PHP 8.4-only) inside
+   `Request::createFromGlobals()` whenever the HTTP method is one
+   of those four. Affects any non-GET / non-POST route. Workaround:
+   route via `POST` and use `@method('PUT')` form spoofing
+   (the real HTTP verb stays `POST`, so the spoof is fine).
+   Example: the Prescription save endpoint was originally
+   `PUT /dev/cases/{case}/prescription` but was flipped to `POST`
+   for this reason; the route name `doctor.cases.prescription.update`
+   was kept.
+
+2. **Debugbar fatals on every response.** `symfony/var-dumper v8.0.8`
+   calls `ReflectionProperty::isVirtual()` (PHP 8.4-only) inside
+   Debugbar's request/log collectors. On PHP 8.3 this fires on every
+   response with debug data to format AND while Laravel's exception
+   handler tries to log a separate exception — the cascade overwrites
+   the real exception in the log, so debugging anything else becomes
+   impossible. Fix: `DEBUGBAR_ENABLED=false` in `.env` until PHP is
+   upgraded, or pin `symfony/var-dumper` to `^7.3`.
+
+**Discipline:**
+- Before merging anything that depends on PHP 8.4-only API behaviour,
+  confirm CI / teammates are on 8.4.
+- When a dep update bumps a Symfony major or similar, check the new
+  release notes for `php: >=8.4` constraints.
+- The `bootstrap/app.php` exception-rendering fallback already
+  side-steps the same issue inside Symfony's `HtmlErrorRenderer`
+  for HTML responses on `APP_DEBUG=true` — see
+  [Docs/architecture/02-request-lifecycle.md](Docs/architecture/02-request-lifecycle.md)
+  § Exception rendering.
+
+**Reference:** User memory entry `project_php_version_gotcha` for
+the original PUT-route incident. Debugbar symptom + workaround
+surfaced 2026-05-12 during voice-input debugging — see
+[Docs/architecture/08-testing-and-quality-gates.md](Docs/architecture/08-testing-and-quality-gates.md)
+§ "Telescope + Debugbar".
